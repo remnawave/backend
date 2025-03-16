@@ -46,6 +46,11 @@ export const configSchema = z
             .transform((db) => parseInt(db, 10))
             .refine((db) => db >= 0 && db <= 15, 'Redis DB index must be between 0 and 15')
             .default('1'),
+        SHORT_UUID_LENGTH: z
+            .string()
+            .default('16')
+            .transform((val) => parseInt(val, 10))
+            .refine((val) => val >= 16 && val <= 64, 'SHORT_UUID_LENGTH must be between 16 and 64'),
     })
     .superRefine((data, ctx) => {
         if (data.WEBHOOK_ENABLED === 'true') {

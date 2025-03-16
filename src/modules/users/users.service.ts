@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
+import { ConfigService } from '@nestjs/config';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
 import { Transactional } from '@nestjs-cls/transactional';
@@ -59,6 +60,7 @@ export class UsersService {
         private readonly eventBus: EventBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly queryBus: QueryBus,
+        private readonly configService: ConfigService,
     ) {}
 
     public async createUser(
@@ -737,7 +739,8 @@ export class UsersService {
 
     private createNanoId(): string {
         const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
-        const nanoid = customAlphabet(alphabet, 16);
+        const length = this.configService.get('SHORT_UUID_LENGTH', 16);
+        const nanoid = customAlphabet(alphabet, length);
 
         return nanoid();
     }
