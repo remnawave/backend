@@ -54,7 +54,7 @@
     "@nestjs-cls/transactional-adapter-prisma": "1.2.19",
     "@nestjs/axios": "4.0.0",
     "@nestjs/bullmq": "11.0.2",
-    "@nestjs/common": "11.0.13",
+    "@nestjs/common": "11.0.16",
     "@nestjs/config": "4.0.2",
     "@nestjs/core": "11.0.13",
     "@nestjs/cqrs": "11.0.3",
