@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { REST_API, SUBSCRIPTION_TEMPLATE_ROUTES } from '../../api';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../../constants';
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
 export namespace GetSubscriptionTemplateCommand {
-    export const url = REST_API.SUBSCRIPTION_TEMPLATE.GET_INFO;
+    export const url = REST_API.SUBSCRIPTION_TEMPLATE.GET;
     export const TSQ_url = url(':templateType');
+
+    export const endpointDetails = getEndpointDetails(
+        SUBSCRIPTION_TEMPLATE_ROUTES.GET(':templateType'),
+        'get',
+        'Get subscription template',
+    );
 
     export const RequestSchema = z.object({
         templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),

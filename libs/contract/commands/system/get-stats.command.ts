@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../constants';
+import { REST_API, SYSTEM_ROUTES } from '../../api';
 import { USERS_STATUS } from '../../constants';
-import { REST_API } from '../../api';
 
 export namespace GetStatsCommand {
-    export const url = REST_API.SYSTEM.STATS;
+    export const url = REST_API.SYSTEM.STATS.SYSTEM_STATS;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        SYSTEM_ROUTES.STATS.SYSTEM_STATS,
+        'get',
+        'Get Stats',
+    );
 
     export const RequestQuerySchema = z.object({
         tz: z.string().optional(),

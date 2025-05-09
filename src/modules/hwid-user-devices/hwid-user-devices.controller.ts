@@ -1,29 +1,18 @@
-import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiBody,
-    ApiOkResponse,
-    ApiOperation,
-    ApiParam,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { HWID_CONTROLLER, HWID_ROUTES } from '@libs/contracts/api';
+import {
+    CreateUserHwidDeviceCommand,
+    DeleteUserHwidDeviceCommand,
+    GetUserHwidDevicesCommand,
+} from '@libs/contracts/commands';
+import { HWID_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -46,17 +35,15 @@ import { BaseUserHwidDevicesResponseModel } from './models';
 export class HwidUserDevicesController {
     constructor(private readonly hwidUserDevicesService: HwidUserDevicesService) {}
 
-    @ApiBody({ type: CreateUserHwidDeviceRequestDto })
     @ApiOkResponse({
         type: CreateUserHwidDeviceResponseDto,
         description: 'User HWID device created successfully',
     })
-    @ApiOperation({
-        summary: 'Create user HWID device',
-        description: 'Create user HWID device',
+    @Endpoint({
+        command: CreateUserHwidDeviceCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: CreateUserHwidDeviceRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HWID_ROUTES.CREATE_USER_HWID_DEVICE)
     async createUserHwidDevice(
         @Body() body: CreateUserHwidDeviceRequestDto,
     ): Promise<CreateUserHwidDeviceResponseDto> {
@@ -68,17 +55,15 @@ export class HwidUserDevicesController {
         };
     }
 
-    @ApiBody({ type: DeleteUserHwidDeviceRequestDto })
     @ApiOkResponse({
         type: DeleteUserHwidDeviceResponseDto,
         description: 'User HWID device deleted successfully',
     })
-    @ApiOperation({
-        summary: 'Delete user HWID device',
-        description: 'Delete user HWID device',
+    @Endpoint({
+        command: DeleteUserHwidDeviceCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: DeleteUserHwidDeviceRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HWID_ROUTES.DELETE_USER_HWID_DEVICE)
     async deleteUserHwidDevice(
         @Body() body: DeleteUserHwidDeviceRequestDto,
     ): Promise<DeleteUserHwidDeviceResponseDto> {
@@ -97,13 +82,11 @@ export class HwidUserDevicesController {
         type: GetUserHwidDevicesResponseDto,
         description: 'User HWID devices fetched successfully',
     })
-    @ApiOperation({
-        summary: 'Get user HWID devices',
-        description: 'Get user HWID devices',
-    })
     @ApiParam({ name: 'userUuid', type: String, description: 'UUID of the user', required: true })
-    @HttpCode(HttpStatus.OK)
-    @Get(HWID_ROUTES.GET_USER_HWID_DEVICES + '/:userUuid')
+    @Endpoint({
+        command: GetUserHwidDevicesCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getUserHwidDevices(
         @Param() paramData: GetUserHwidDevicesRequestDto,
     ): Promise<GetUserHwidDevicesResponseDto> {

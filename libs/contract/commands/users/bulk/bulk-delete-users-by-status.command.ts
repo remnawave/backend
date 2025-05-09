@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../../constants';
+import { REST_API, USERS_ROUTES } from '../../../api';
 import { UsersSchema } from '../../../models';
-import { REST_API } from '../../../api';
 
 export namespace BulkDeleteUsersByStatusCommand {
     export const url = REST_API.USERS.BULK.DELETE_BY_STATUS;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        USERS_ROUTES.BULK.DELETE_BY_STATUS,
+        'post',
+        'Bulk delete users by status',
+    );
 
     export const RequestSchema = z.object({
         status: UsersSchema.shape.status,

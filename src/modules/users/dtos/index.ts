@@ -10,6 +10,8 @@ export * from './get-user-by-subscription-uuid.dto';
 export * from './get-user-by-username.dto';
 export * from './get-user-by-uuid.dto';
 export * from './get-user-usage-by-range.dto';
+export * from './get-users-by-tag.dto';
 export * from './reset-user-traffic.dto';
 export * from './revoke-user-subscription.dto';
+export * from './tags';
 export * from './update-user.dto';

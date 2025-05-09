@@ -1,12 +1,19 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../../constants';
+import { REST_API, USERS_ROUTES } from '../../../api';
 import { RESET_PERIODS } from '../../../constants';
 import { UsersSchema } from '../../../models';
-import { REST_API } from '../../../api';
 
 export namespace BulkAllUpdateUsersCommand {
     export const url = REST_API.USERS.BULK.ALL.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        USERS_ROUTES.BULK.ALL.UPDATE,
+        'post',
+        'Bulk update all users',
+    );
 
     export const RequestSchema = z.object({
         status: UsersSchema.shape.status.optional(),
@@ -39,6 +46,16 @@ export namespace BulkAllUpdateUsersCommand {
         description: z.optional(z.string().nullable()),
         telegramId: z.optional(z.number().int().nullable()),
         email: z.optional(z.string().email('Invalid email format').nullable()),
+        tag: z.optional(
+            z
+                .string()
+                .regex(
+                    /^[A-Z0-9_]+$/,
+                    'Tag can only contain uppercase letters, numbers, underscores',
+                )
+                .max(16, 'Tag must be less than 16 characters')
+                .nullable(),
+        ),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

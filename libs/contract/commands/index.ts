@@ -8,6 +8,7 @@ export * from './nodes';
 export * from './subscription';
 export * from './subscription-settings';
 export * from './subscription-template';
+export * from './subscriptions';
 export * from './system';
 export * from './users';
 export * from './xray';

@@ -1,22 +1,24 @@
-import {
-    Body,
-    Controller,
-    HttpCode,
-    HttpStatus,
-    Patch,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { USERS_CONTROLLER, USERS_ROUTES } from '@libs/contracts/api';
+import {
+    BulkAllResetTrafficUsersCommand,
+    BulkAllUpdateUsersCommand,
+    BulkDeleteUsersByStatusCommand,
+    BulkDeleteUsersCommand,
+    BulkResetTrafficUsersCommand,
+    BulkRevokeUsersSubscriptionCommand,
+    BulkUpdateUsersCommand,
+    BulkUpdateUsersInboundsCommand,
+} from '@libs/contracts/commands';
+import { USERS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -53,17 +55,15 @@ export class UsersBulkActionsController {
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
     }
 
-    @ApiBody({ type: BulkDeleteUsersByStatusRequestDto })
     @ApiOkResponse({
         type: BulkDeleteUsersByStatusResponseDto,
         description: 'Users deleted successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Delete Users By Status',
-        description: 'Bulk delete users by status',
+    @Endpoint({
+        command: BulkDeleteUsersByStatusCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkDeleteUsersByStatusRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.DELETE_BY_STATUS)
     async bulkDeleteUsersByStatus(
         @Body() body: BulkDeleteUsersByStatusRequestDto,
     ): Promise<BulkDeleteUsersByStatusResponseDto> {
@@ -75,17 +75,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkDeleteUsersRequestDto })
     @ApiOkResponse({
         type: BulkDeleteUsersResponseDto,
         description: 'Users deleted successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Delete Users By UUIDs',
-        description: 'Bulk delete users by UUIDs',
+    @Endpoint({
+        command: BulkDeleteUsersCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkDeleteUsersRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.DELETE)
     async bulkDeleteUsers(
         @Body() body: BulkDeleteUsersRequestDto,
     ): Promise<BulkDeleteUsersResponseDto> {
@@ -97,17 +95,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkRevokeUsersSubscriptionRequestDto })
     @ApiOkResponse({
         type: BulkRevokeUsersSubscriptionResponseDto,
         description: 'Users subscription revoked successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Revoke Users Subscription',
-        description: 'Bulk revoke users subscription',
+    @Endpoint({
+        command: BulkRevokeUsersSubscriptionCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkRevokeUsersSubscriptionRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.REVOKE_SUBSCRIPTION)
     async bulkRevokeUsersSubscription(
         @Body() body: BulkRevokeUsersSubscriptionRequestDto,
     ): Promise<BulkRevokeUsersSubscriptionResponseDto> {
@@ -119,17 +115,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkResetTrafficUsersRequestDto })
     @ApiOkResponse({
         type: BulkResetTrafficUsersResponseDto,
         description: 'Users traffic reset successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Reset User Traffic',
-        description: 'Bulk reset user traffic',
+    @Endpoint({
+        command: BulkResetTrafficUsersCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkResetTrafficUsersRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.RESET_TRAFFIC)
     async bulkResetUserTraffic(
         @Body() body: BulkResetTrafficUsersRequestDto,
     ): Promise<BulkResetTrafficUsersResponseDto> {
@@ -141,17 +135,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkUpdateUsersRequestDto })
     @ApiOkResponse({
         type: BulkUpdateUsersResponseDto,
         description: 'Users updated successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Update Users',
-        description: 'Bulk update users',
+    @Endpoint({
+        command: BulkUpdateUsersCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkUpdateUsersRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.UPDATE)
     async bulkUpdateUsers(
         @Body() body: BulkUpdateUsersRequestDto,
     ): Promise<BulkUpdateUsersResponseDto> {
@@ -163,17 +155,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkUpdateUsersInboundsRequestDto })
     @ApiOkResponse({
         type: BulkUpdateUsersInboundsResponseDto,
         description: 'Users inbounds updated successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Update Users Inbounds',
-        description: 'Bulk update users inbounds',
+    @Endpoint({
+        command: BulkUpdateUsersInboundsCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkUpdateUsersInboundsRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.UPDATE_INBOUNDS)
     async bulkUpdateUsersInbounds(
         @Body() body: BulkUpdateUsersInboundsRequestDto,
     ): Promise<BulkUpdateUsersInboundsResponseDto> {
@@ -188,17 +178,15 @@ export class UsersBulkActionsController {
         };
     }
 
-    @ApiBody({ type: BulkAllUpdateUsersRequestDto })
     @ApiOkResponse({
         type: BulkAllUpdateUsersResponseDto,
         description: 'All users updated successfully',
     })
-    @ApiOperation({
-        summary: 'Bulk Update All Users',
-        description: 'Bulk update all users',
+    @Endpoint({
+        command: BulkAllUpdateUsersCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkAllUpdateUsersRequestDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(USERS_ROUTES.BULK.ALL.UPDATE)
     async bulkUpdateAllUsers(
         @Body() body: BulkAllUpdateUsersRequestDto,
     ): Promise<BulkAllUpdateUsersResponseDto> {
@@ -218,8 +206,10 @@ export class UsersBulkActionsController {
         summary: 'Bulk Reset All Users Traffic',
         description: 'Bulk reset all users traffic',
     })
-    @HttpCode(HttpStatus.OK)
-    @Patch(USERS_ROUTES.BULK.ALL.RESET_TRAFFIC)
+    @Endpoint({
+        command: BulkAllResetTrafficUsersCommand,
+        httpCode: HttpStatus.OK,
+    })
     async bulkAllResetUserTraffic(): Promise<BulkAllResetTrafficUsersResponseDto> {
         const result = await this.usersService.bulkAllResetUserTraffic();
 

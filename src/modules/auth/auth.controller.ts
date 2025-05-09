@@ -1,16 +1,21 @@
 import {
-    ApiBody,
     ApiForbiddenResponse,
-    ApiOperation,
     ApiResponse,
     ApiTags,
     ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseFilters } from '@nestjs/common';
+import { Body, Controller, HttpStatus, UseFilters } from '@nestjs/common';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { errorHandler } from '@common/helpers/error-handler.helper';
-import { AUTH_CONTROLLER, AUTH_ROUTES } from '@libs/contracts/api/controllers/auth';
+import { Endpoint } from '@common/decorators/base-endpoint';
+import {
+    GetStatusCommand,
+    LoginCommand,
+    RegisterCommand,
+    TelegramCallbackCommand,
+} from '@libs/contracts/commands';
+import { AUTH_CONTROLLER } from '@libs/contracts/api/controllers/auth';
 
 import {
     GetStatusResponseDto,
@@ -18,6 +23,8 @@ import {
     LoginResponseDto,
     RegisterRequestDto,
     RegisterResponseDto,
+    TelegramCallbackRequestDto,
+    TelegramCallbackResponseDto,
 } from './dtos';
 import { RegisterResponseModel } from './model/register.response.model';
 import { AuthResponseModel } from './model/auth-response.model';
@@ -29,8 +36,6 @@ import { AuthService } from './auth.service';
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
-    @ApiBody({ type: LoginRequestDto })
-    @ApiOperation({ summary: 'Login', description: 'Login to the system' })
     @ApiResponse({ type: LoginResponseDto, description: 'Access token for further requests' })
     @ApiUnauthorizedResponse({
         description: 'Unauthorized - Invalid credentials',
@@ -43,8 +48,11 @@ export class AuthController {
             },
         },
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(AUTH_ROUTES.LOGIN)
+    @Endpoint({
+        command: LoginCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: LoginRequestDto,
+    })
     async login(@Body() body: LoginRequestDto): Promise<LoginResponseDto> {
         const result = await this.authService.login(body);
 
@@ -54,7 +62,6 @@ export class AuthController {
         };
     }
 
-    @ApiBody({ type: RegisterRequestDto })
     @ApiForbiddenResponse({
         description: 'Forbidden - Registration is not allowed',
         schema: {
@@ -66,10 +73,12 @@ export class AuthController {
             },
         },
     })
-    @ApiOperation({ summary: 'Register', description: 'Register to the system' })
     @ApiResponse({ type: RegisterResponseDto, description: 'Access token for further requests' })
-    @HttpCode(HttpStatus.CREATED)
-    @Post(AUTH_ROUTES.REGISTER)
+    @Endpoint({
+        command: RegisterCommand,
+        httpCode: HttpStatus.CREATED,
+        apiBody: RegisterRequestDto,
+    })
     async register(@Body() body: RegisterRequestDto): Promise<RegisterResponseDto> {
         const result = await this.authService.register(body);
 
@@ -79,12 +88,33 @@ export class AuthController {
         };
     }
 
-    @ApiOperation({ summary: 'Get status', description: 'Get status of the system' })
     @ApiResponse({ type: GetStatusResponseDto, description: 'Status of the system' })
-    @HttpCode(HttpStatus.OK)
-    @Get(AUTH_ROUTES.GET_STATUS)
+    @Endpoint({
+        command: GetStatusCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getStatus(): Promise<GetStatusResponseDto> {
         const result = await this.authService.getStatus();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiResponse({
+        type: TelegramCallbackResponseDto,
+        description: 'Access token for further requests',
+    })
+    @Endpoint({
+        command: TelegramCallbackCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: TelegramCallbackRequestDto,
+    })
+    async telegramCallback(
+        @Body() body: TelegramCallbackRequestDto,
+    ): Promise<TelegramCallbackResponseDto> {
+        const result = await this.authService.telegramCallback(body);
 
         const data = errorHandler(result);
         return {

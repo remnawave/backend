@@ -1,3 +1,4 @@
+export * from './endpoint-details';
 export * from './errors';
 export * from './events';
 export * from './hosts';

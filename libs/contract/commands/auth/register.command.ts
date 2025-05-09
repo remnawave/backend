@@ -1,9 +1,17 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
+import { AUTH_ROUTES, REST_API } from '../../api';
+
 export namespace RegisterCommand {
     export const url = REST_API.AUTH.REGISTER;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        AUTH_ROUTES.REGISTER,
+        'post',
+        'Register as superadmin',
+    );
 
     export const RequestSchema = z.object({
         username: z.string(),

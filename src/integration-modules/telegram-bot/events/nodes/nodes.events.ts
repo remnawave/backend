@@ -26,8 +26,10 @@ export class NodesEvents {
         private readonly telegramBotLoggerQueueService: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.notifyChatId = this.configService.getOrThrow<string>('NODES_NOTIFY_CHAT_ID');
-        this.nodesNotifyThreadId = this.configService.get<string>('NODES_NOTIFY_THREAD_ID');
+        this.notifyChatId = this.configService.getOrThrow<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
+        this.nodesNotifyThreadId = this.configService.get<string>(
+            'TELEGRAM_NOTIFY_NODES_THREAD_ID',
+        );
     }
 
     @OnEvent(EVENTS.NODE.CREATED)

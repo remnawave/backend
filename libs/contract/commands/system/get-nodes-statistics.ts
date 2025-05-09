@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
+import { REST_API, SYSTEM_ROUTES } from '../../api';
 
 export namespace GetNodesStatisticsCommand {
-    export const url = REST_API.SYSTEM.NODES_STATISTIC;
+    export const url = REST_API.SYSTEM.STATS.NODES_STATS;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        SYSTEM_ROUTES.STATS.NODES_STATS,
+        'get',
+        'Get Nodes Statistics',
+    );
 
     export const RequestQuerySchema = z.object({
         tz: z.string().optional(),

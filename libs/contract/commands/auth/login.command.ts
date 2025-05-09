@@ -1,9 +1,17 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
+import { AUTH_ROUTES, REST_API } from '../../api';
+
 export namespace LoginCommand {
     export const url = REST_API.AUTH.LOGIN;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        AUTH_ROUTES.LOGIN,
+        'post',
+        'Login as superadmin',
+    );
 
     export const RequestSchema = z.object({
         username: z.string(),

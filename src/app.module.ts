@@ -60,6 +60,9 @@ import { QueueModule } from '@queue/queue.module';
                         configService.getOrThrow<string>('SWAGGER_PATH'),
                         configService.getOrThrow<string>('SCALAR_PATH'),
                     ],
+                    serveStaticOptions: {
+                        dotfiles: 'deny',
+                    },
                 },
             ],
         }),

@@ -2,6 +2,7 @@ import { GetUsersByTrafficStrategyAndStatusHandler } from './get-users-by-traffi
 import { GetExceededTrafficUsageUsersHandler } from './get-exceeded-traffic-usage-users';
 import { GetPreparedConfigWithUsersHandler } from './get-prepared-config-with-users';
 import { GetUsersForConfigBatchHandler } from './get-users-for-config-batch';
+import { GetUsersWithPaginationHandler } from './get-users-with-pagination';
 import { GetUserByShortUuidHandler } from './get-user-by-short-uuid';
 import { GetUsersByExpireAtHandler } from './get-users-by-expire-at';
 import { GetUsersForConfigHandler } from './get-users-for-config';
@@ -26,4 +27,5 @@ export const QUERIES = [
     GetUsersForConfigBatchHandler,
     GetPreparedConfigWithUsersHandler,
     GetUsersByExpireAtHandler,
+    GetUsersWithPaginationHandler,
 ];

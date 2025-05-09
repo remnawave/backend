@@ -191,7 +191,7 @@ export class RenderTemplatesService {
     private isJsonSubscriptionAllowed(userAgent: string): boolean {
         if (!userAgent) return false;
 
-        const xrayJsonClients = [/^[Ss]treisand/, /^Happ\//, /^ktor-client/, /^V2Box/];
+        const xrayJsonClients = [/^[Ss]treisand/, /^Happ\//, /^ktor-client/, /^V2Box/, /^io\.github\.saeeddev94\.xray\//];
 
         if (xrayJsonClients.some((regex) => regex.test(userAgent))) {
             return true;
@@ -207,7 +207,7 @@ export class RenderTemplatesService {
         }
 
         const v2rayNMatch = userAgent.match(/^v2rayN\/(\d+\.\d+\.\d+)/);
-        if (v2rayNMatch && semver.gte(v2rayNMatch[1], '6.40')) {
+        if (v2rayNMatch && semver.gte(v2rayNMatch[1], '6.40.0')) {
             return true;
         }
 

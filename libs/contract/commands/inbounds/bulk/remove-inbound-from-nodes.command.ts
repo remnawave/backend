@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../../api';
-
+import { INBOUNDS_ROUTES, REST_API } from '../../../api';
+import { getEndpointDetails } from '../../../constants';
 export namespace RemoveInboundFromNodesCommand {
     export const url = REST_API.INBOUNDS.BULK.REMOVE_INBOUND_FROM_NODES;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        INBOUNDS_ROUTES.BULK.REMOVE_INBOUND_FROM_NODES,
+        'post',
+        'Remove inbound from nodes',
+    );
 
     export const RequestSchema = z.object({
         inboundUuid: z

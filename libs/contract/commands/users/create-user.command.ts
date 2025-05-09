@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails, RESET_PERIODS, USERS_STATUS } from '../../constants';
 import { ExtendedUsersSchema, UsersSchema } from '../../models';
-import { RESET_PERIODS, USERS_STATUS } from '../../constants';
-import { REST_API } from '../../api';
+import { REST_API, USERS_ROUTES } from '../../api';
 
 export namespace CreateUserCommand {
     export const url = REST_API.USERS.CREATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        USERS_ROUTES.CREATE,
+        'post',
+        'Create a new user',
+    );
 
     export const RequestSchema = z.object({
         username: z
@@ -105,6 +111,16 @@ export namespace CreateUserCommand {
             .describe('Date format: 2025-01-17T15:38:45.065Z')
             .optional(),
         description: z.string().optional(),
+        tag: z.optional(
+            z
+                .string()
+                .regex(
+                    /^[A-Z0-9_]+$/,
+                    'Tag can only contain uppercase letters, numbers, underscores',
+                )
+                .max(16, 'Tag must be less than 16 characters')
+                .nullable(),
+        ),
 
         telegramId: z.optional(z.number().int()),
         email: z.string().email('Invalid email format').optional(),

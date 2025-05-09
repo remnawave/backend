@@ -1,11 +1,14 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../constants';
+import { NODES_ROUTES, REST_API } from '../../api';
 import { NodesSchema } from '../../models';
-import { REST_API } from '../../api';
 
 export namespace UpdateNodeCommand {
     export const url = REST_API.NODES.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(NODES_ROUTES.UPDATE, 'patch', 'Update node');
 
     export const RequestSchema = NodesSchema.pick({
         uuid: true,

@@ -25,8 +25,8 @@ export class UsersEvents {
         private readonly telegramBotLoggerQueueService: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.adminId = this.configService.getOrThrow<string>('TELEGRAM_ADMIN_ID');
-        this.adminThreadId = this.configService.get<string>('TELEGRAM_ADMIN_THREAD_ID');
+        this.adminId = this.configService.getOrThrow<string>('TELEGRAM_NOTIFY_USERS_CHAT_ID');
+        this.adminThreadId = this.configService.get<string>('TELEGRAM_NOTIFY_USERS_THREAD_ID');
     }
 
     @OnEvent(EVENTS.USER.CREATED)

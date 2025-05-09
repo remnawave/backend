@@ -1,30 +1,17 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiBody,
-    ApiOperation,
-    ApiParam,
-    ApiResponse,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { API_TOKENS_ROUTES } from '@libs/contracts/api/controllers';
+import {
+    CreateApiTokenCommand,
+    DeleteApiTokenCommand,
+    FindAllApiTokensCommand,
+} from '@libs/contracts/commands';
 import { API_TOKENS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
@@ -47,19 +34,16 @@ import { CreateApiTokenResponseModel } from './models';
 export class ApiTokensController {
     constructor(private readonly apiTokensService: ApiTokensService) {}
 
-    @ApiBody({ type: CreateApiTokenRequestDto })
-    @ApiOperation({
-        summary: 'Create new API token',
-        description:
-            'This endpoint is forbidden to use via "API-key". It can be used only admin JWT-token.',
-    })
     @ApiResponse({
         status: 201,
         description: 'Token created successfully',
         type: CreateApiTokenResponseDto,
     })
-    @HttpCode(HttpStatus.CREATED)
-    @Post(API_TOKENS_ROUTES.CREATE)
+    @Endpoint({
+        command: CreateApiTokenCommand,
+        httpCode: HttpStatus.CREATED,
+        apiBody: CreateApiTokenRequestDto,
+    })
     async create(@Body() body: CreateApiTokenRequestDto): Promise<CreateApiTokenResponseDto> {
         const result = await this.apiTokensService.create(body);
 
@@ -69,19 +53,16 @@ export class ApiTokensController {
         };
     }
 
-    @ApiOperation({
-        summary: 'Delete API token',
-        description:
-            'This endpoint is forbidden to use via "API-key". It can be used only admin JWT-token.',
-    })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the API token' })
     @ApiResponse({
         status: 200,
         description: 'Token deleted successfully',
         type: DeleteApiTokenResponseDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Delete(`${API_TOKENS_ROUTES.DELETE}/:uuid`)
+    @Endpoint({
+        command: DeleteApiTokenCommand,
+        httpCode: HttpStatus.OK,
+    })
     async delete(@Param() paramData: DeleteApiTokenRequestDto): Promise<DeleteApiTokenResponseDto> {
         const result = await this.apiTokensService.delete(paramData.uuid);
         const data = errorHandler(result);
@@ -90,18 +71,15 @@ export class ApiTokensController {
         };
     }
 
-    @ApiOperation({
-        summary: 'Get all API tokens',
-        description:
-            'This endpoint is forbidden to use via "API-key". It can be used only admin JWT-token.',
-    })
     @ApiResponse({
         status: 200,
         description: 'Tokens fetched successfully',
         type: FindAllApiTokensResponseDto,
     })
-    @HttpCode(HttpStatus.OK)
-    @Get(API_TOKENS_ROUTES.GET_ALL)
+    @Endpoint({
+        command: FindAllApiTokensCommand,
+        httpCode: HttpStatus.OK,
+    })
     async findAll(): Promise<FindAllApiTokensResponseDto> {
         const result = await this.apiTokensService.findAll();
         const data = errorHandler(result);

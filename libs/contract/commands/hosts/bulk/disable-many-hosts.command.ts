@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../../constants';
+import { HOSTS_ROUTES, REST_API } from '../../../api';
 import { HostsSchema } from '../../../models';
-import { REST_API } from '../../../api';
 
 export namespace BulkDisableHostsCommand {
     export const url = REST_API.HOSTS.BULK.DISABLE_HOSTS;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        HOSTS_ROUTES.BULK.DISABLE_HOSTS,
+        'post',
+        'Disable hosts by UUIDs',
+    );
 
     export const RequestSchema = z.object({
         uuids: z.array(z.string().uuid()),

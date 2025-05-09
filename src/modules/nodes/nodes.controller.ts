@@ -1,33 +1,33 @@
-import { NODES_CONTROLLER, NODES_ROUTES } from '@contract/api';
+import { NODES_CONTROLLER } from '@contract/api';
 import { ROLE } from '@contract/constants';
 
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Patch,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import {
     ApiBearerAuth,
-    ApiBody,
+    ApiCreatedResponse,
     ApiOkResponse,
-    ApiOperation,
     ApiParam,
     ApiTags,
 } from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { RolesGuard } from '@common/guards/roles/roles.guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
+import {
+    CreateNodeCommand,
+    DeleteNodeCommand,
+    DisableNodeCommand,
+    EnableNodeCommand,
+    GetAllNodesCommand,
+    GetOneNodeCommand,
+    ReorderNodeCommand,
+    RestartAllNodesCommand,
+    RestartNodeCommand,
+    UpdateNodeCommand,
+} from '@libs/contracts/commands';
 
 import {
     CreateNodeRequestDto,
@@ -65,14 +65,15 @@ import { NodesService } from './nodes.service';
 export class NodesController {
     constructor(private readonly nodesService: NodesService) {}
 
-    @ApiBody({ type: CreateNodeRequestDto })
-    @ApiOkResponse({
+    @ApiCreatedResponse({
         type: CreateNodeResponseDto,
         description: 'Node created successfully',
     })
-    @ApiOperation({ summary: 'Create Node', description: 'Create a new node' })
-    @HttpCode(HttpStatus.OK)
-    @Post(NODES_ROUTES.CREATE)
+    @Endpoint({
+        command: CreateNodeCommand,
+        httpCode: HttpStatus.CREATED,
+        apiBody: CreateNodeRequestDto,
+    })
     async createNode(@Body() body: CreateNodeRequestDto): Promise<CreateNodeResponseDto> {
         const result = await this.nodesService.createNode(body);
 
@@ -83,12 +84,13 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [GetAllNodesResponseDto],
+        type: GetAllNodesResponseDto,
         description: 'Nodes fetched',
     })
-    @ApiOperation({ summary: 'Get All Nodes', description: 'Get all nodes' })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.GET_ALL)
+    @Endpoint({
+        command: GetAllNodesCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getAllNodes(): Promise<GetAllNodesResponseDto> {
         const res = await this.nodesService.getAllNodes();
         const data = errorHandler(res);
@@ -98,13 +100,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [GetOneNodeResponseDto],
+        type: GetOneNodeResponseDto,
         description: 'Node fetched',
     })
-    @ApiOperation({ summary: 'Get One Node', description: 'Get one node' })
     @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.GET_ONE + '/:uuid')
+    @Endpoint({
+        command: GetOneNodeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getOneNode(@Param() uuid: GetOneNodeRequestParamDto): Promise<GetOneNodeResponseDto> {
         const res = await this.nodesService.getOneNode(uuid.uuid);
         const data = errorHandler(res);
@@ -114,13 +117,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [EnableNodeResponseDto],
+        type: EnableNodeResponseDto,
         description: 'Node enabled',
     })
-    @ApiOperation({ summary: 'Enable Node', description: 'Enable node to further use' })
     @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
-    @HttpCode(HttpStatus.OK)
-    @Patch(NODES_ROUTES.ENABLE + '/:uuid')
+    @Endpoint({
+        command: EnableNodeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async enableNode(@Param() uuid: EnableNodeRequestParamDto): Promise<EnableNodeResponseDto> {
         const res = await this.nodesService.enableNode(uuid.uuid);
         const data = errorHandler(res);
@@ -130,13 +134,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [DisableNodeResponseDto],
+        type: DisableNodeResponseDto,
         description: 'Node disabled',
     })
-    @ApiOperation({ summary: 'Disable Node', description: 'Disable node' })
     @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
-    @HttpCode(HttpStatus.OK)
-    @Patch(NODES_ROUTES.DISABLE + '/:uuid')
+    @Endpoint({
+        command: DisableNodeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async disableNode(@Param() uuid: DisableNodeRequestParamDto): Promise<DisableNodeResponseDto> {
         const res = await this.nodesService.disableNode(uuid.uuid);
         const data = errorHandler(res);
@@ -146,13 +151,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [DeleteNodeResponseDto],
+        type: DeleteNodeResponseDto,
         description: 'Node deleted',
     })
-    @ApiOperation({ summary: 'Delete Node', description: 'Delete node' })
     @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
-    @HttpCode(HttpStatus.OK)
-    @Delete(NODES_ROUTES.DELETE + '/:uuid')
+    @Endpoint({
+        command: DeleteNodeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async deleteNode(@Param() uuid: DeleteNodeRequestParamDto): Promise<DeleteNodeResponseDto> {
         const res = await this.nodesService.deleteNode(uuid.uuid);
         const data = errorHandler(res);
@@ -162,12 +168,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [UpdateNodeResponseDto],
+        type: UpdateNodeResponseDto,
         description: 'Node updated',
     })
-    @ApiOperation({ summary: 'Update Node', description: 'Update node' })
-    @HttpCode(HttpStatus.OK)
-    @Post(NODES_ROUTES.UPDATE)
+    @Endpoint({
+        command: UpdateNodeCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: UpdateNodeRequestDto,
+    })
     async updateNode(@Body() body: UpdateNodeRequestDto): Promise<UpdateNodeResponseDto> {
         const res = await this.nodesService.updateNode(body);
         const data = errorHandler(res);
@@ -177,13 +185,14 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [RestartNodeResponseDto],
+        type: RestartNodeResponseDto,
         description: 'Node restarted',
     })
-    @ApiOperation({ summary: 'Restart Node', description: 'Restart node' })
     @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.RESTART + '/:uuid')
+    @Endpoint({
+        command: RestartNodeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async restartNode(@Param() uuid: RestartNodeRequestDto): Promise<RestartNodeResponseDto> {
         const res = await this.nodesService.restartNode(uuid.uuid);
         const data = errorHandler(res);
@@ -193,12 +202,13 @@ export class NodesController {
     }
 
     @ApiOkResponse({
-        type: [RestartNodeResponseDto],
+        type: RestartNodeResponseDto,
         description: 'Node restarted',
     })
-    @ApiOperation({ summary: 'Restart All Nodes', description: 'Restart all nodes' })
-    @HttpCode(HttpStatus.OK)
-    @Patch(NODES_ROUTES.RESTART_ALL)
+    @Endpoint({
+        command: RestartAllNodesCommand,
+        httpCode: HttpStatus.OK,
+    })
     async restartAllNodes(): Promise<RestartAllNodesResponseDto> {
         const res = await this.nodesService.restartAllNodes();
         const data = errorHandler(res);
@@ -207,14 +217,15 @@ export class NodesController {
         };
     }
 
-    @ApiBody({ type: ReorderNodeRequestDto })
     @ApiOkResponse({
         type: ReorderNodeResponseDto,
         description: 'Nodes reordered successfully',
     })
-    @ApiOperation({ summary: 'Reorder Nodes', description: 'Reorder nodes' })
-    @HttpCode(HttpStatus.OK)
-    @Post(NODES_ROUTES.REORDER)
+    @Endpoint({
+        command: ReorderNodeCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ReorderNodeRequestDto,
+    })
     async reorderNodes(@Body() body: ReorderNodeRequestDto): Promise<ReorderNodeResponseDto> {
         const result = await this.nodesService.reorderNodes(body);
 

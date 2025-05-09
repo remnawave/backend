@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails, RESET_PERIODS } from '../../constants';
 import { ExtendedUsersSchema, UsersSchema } from '../../models';
-import { RESET_PERIODS } from '../../constants';
-import { REST_API } from '../../api';
+import { REST_API, USERS_ROUTES } from '../../api';
 
 export namespace UpdateUserCommand {
     export const url = REST_API.USERS.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        USERS_ROUTES.UPDATE,
+        'patch',
+        'Update a user',
+    );
 
     export const RequestSchema = UsersSchema.pick({
         uuid: true,
@@ -49,6 +55,16 @@ export namespace UpdateUserCommand {
             .describe('Expiration date: 2025-01-17T15:38:45.065Z')
             .optional(),
         description: z.optional(z.string().nullable()),
+        tag: z.optional(
+            z
+                .string()
+                .regex(
+                    /^[A-Z0-9_]+$/,
+                    'Tag can only contain uppercase letters, numbers, underscores',
+                )
+                .max(16, 'Tag must be less than 16 characters')
+                .nullable(),
+        ),
         telegramId: z.optional(z.number().int().nullable()),
         email: z.optional(z.string().email('Invalid email format').nullable()),
         hwidDeviceLimit: z.optional(

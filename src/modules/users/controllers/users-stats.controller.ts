@@ -2,28 +2,20 @@ import {
     ApiBearerAuth,
     ApiNotFoundResponse,
     ApiOkResponse,
-    ApiOperation,
     ApiParam,
     ApiQuery,
     ApiTags,
 } from '@nestjs/swagger';
-import {
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Query,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
+import { Controller, HttpStatus, Param, Query, UseFilters, UseGuards } from '@nestjs/common';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { USERS_CONTROLLER, USERS_ROUTES } from '@libs/contracts/api';
+import { GetUserUsageByRangeCommand } from '@libs/contracts/commands';
+import { USERS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -50,10 +42,6 @@ export class UsersStatsController {
         type: GetUserUsageByRangeResponseDto,
         description: 'User usage by range fetched successfully',
     })
-    @ApiOperation({
-        summary: 'Get User Usage By Range',
-        description: 'Get user usage by range',
-    })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the user', required: true })
     @ApiQuery({
         name: 'end',
@@ -67,8 +55,10 @@ export class UsersStatsController {
         description: 'Start date',
         required: true,
     })
-    @HttpCode(HttpStatus.OK)
-    @Get(USERS_ROUTES.STATS.GET_USAGE_BY_RANGE + '/:uuid')
+    @Endpoint({
+        command: GetUserUsageByRangeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getUserUsageByRange(
         @Query() query: GetUserUsageByRangeRequestQueryDto,
         @Param() paramData: GetUserUsageByRangeRequestDto,

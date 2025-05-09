@@ -6,7 +6,7 @@ import { WebhookModule } from './webhook-module/webhook.module';
 
 @Module({
     imports: [
-        ConditionalModule.registerWhen(TelegramBotModule, 'IS_TELEGRAM_ENABLED'),
+        ConditionalModule.registerWhen(TelegramBotModule, 'IS_TELEGRAM_NOTIFICATIONS_ENABLED'),
         ConditionalModule.registerWhen(WebhookModule, 'WEBHOOK_ENABLED'),
     ],
 })

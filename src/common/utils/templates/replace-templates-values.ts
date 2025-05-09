@@ -25,7 +25,11 @@ export class TemplateEngine {
         return hasReplacement ? result : template;
     }
 
-    static formarWithUser(template: string, user: UserWithActiveInboundsEntity): string {
+    static formarWithUser(
+        template: string,
+        user: UserWithActiveInboundsEntity,
+        subPublicDomain: string,
+    ): string {
         return this.replace(template, {
             DAYS_LEFT: dayjs(user.expireAt).diff(dayjs(), 'day'),
             TRAFFIC_USED: prettyBytesUtil(user.usedTrafficBytes, true, 3),
@@ -35,6 +39,7 @@ export class TemplateEngine {
             USERNAME: user.username,
             EMAIL: user.email || '',
             TELEGRAM_ID: user.telegramId?.toString() || '',
+            SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
         });
     }
 }

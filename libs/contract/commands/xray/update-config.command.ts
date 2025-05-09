@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
+import { REST_API, XRAY_ROUTES } from '../../api';
 
 export namespace UpdateXrayConfigCommand {
-    export const url = REST_API.XRAY.UPDATE_CONFIG;
+    export const url = REST_API.XRAY.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        XRAY_ROUTES.UPDATE,
+        'put',
+        'Update XRay config',
+    );
 
     export const RequestSchema = z.object({}).passthrough();
 

@@ -1,13 +1,18 @@
 export const HOSTS_CONTROLLER = 'hosts' as const;
 
+export const HOST_ACTIONS_ROUTE = 'actions' as const;
+
 export const HOSTS_ROUTES = {
-    CREATE: 'create',
-    DELETE: 'delete',
-    GET_ALL: 'all',
-    UPDATE: 'update',
-    UPDATE_MANY: 'many',
-    REORDER: 'reorder',
-    GET_ONE: 'get-one',
+    CREATE: '', // create
+    UPDATE: '', // update host
+    GET: '', // get all hosts
+    GET_BY_UUID: (uuid: string) => `${uuid}`, // get by UUID
+    DELETE: (uuid: string) => `${uuid}`, // delete by UUID
+
+    ACTIONS: {
+        REORDER: `${HOST_ACTIONS_ROUTE}/reorder`,
+    },
+
     BULK: {
         ENABLE_HOSTS: 'bulk/enable',
         DISABLE_HOSTS: 'bulk/disable',

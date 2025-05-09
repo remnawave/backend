@@ -16,7 +16,7 @@ import { QueueNames } from '../../queue.enum';
 
 const requiredModules = [
     CqrsModule,
-    ConditionalModule.registerWhen(TelegramBotModule, 'IS_TELEGRAM_ENABLED'),
+    ConditionalModule.registerWhen(TelegramBotModule, 'IS_TELEGRAM_NOTIFICATIONS_ENABLED'),
 ];
 
 const processors = [TelegramBotLoggerQueueProcessor];

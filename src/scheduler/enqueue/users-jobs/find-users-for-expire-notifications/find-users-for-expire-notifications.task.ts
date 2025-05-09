@@ -18,8 +18,9 @@ export class FindUsersForExpireNotificationsTask implements OnApplicationBootstr
     ) {}
 
     public async onApplicationBootstrap() {
-        const isTelegramLoggerEnabled =
-            this.configService.getOrThrow<string>('IS_TELEGRAM_ENABLED');
+        const isTelegramLoggerEnabled = this.configService.getOrThrow<string>(
+            'IS_TELEGRAM_NOTIFICATIONS_ENABLED',
+        );
 
         const isWebhookLoggerEnabled = this.configService.getOrThrow<string>('WEBHOOK_ENABLED');
 

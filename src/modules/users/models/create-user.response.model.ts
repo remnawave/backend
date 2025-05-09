@@ -29,7 +29,7 @@ export class CreateUserResponseModel {
     public readonly vlessUuid: string;
     public readonly ssPassword: string;
     public readonly description: null | string;
-
+    public readonly tag: null | string;
     public readonly telegramId: number | null;
     public readonly email: string | null;
 
@@ -66,6 +66,7 @@ export class CreateUserResponseModel {
         this.vlessUuid = entity.vlessUuid;
         this.ssPassword = entity.ssPassword;
         this.description = entity.description;
+        this.tag = entity.tag;
 
         this.telegramId = entity.telegramId ? Number(entity.telegramId) : null;
         this.email = entity.email;

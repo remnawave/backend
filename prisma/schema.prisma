@@ -36,6 +36,7 @@ model Users {
   ssPassword     String @map("ss_password")
 
   description String? @map("description")
+  tag         String? @map("tag")
 
   telegramId BigInt? @map("telegram_id")
   email      String? @map("email")
@@ -50,6 +51,7 @@ model Users {
   userTrafficHistory    UserTrafficHistory[]
   hwidUserDevices       HwidUserDevices[]
 
+  @@index([tag])
   @@map("users")
 }
 
@@ -173,6 +175,8 @@ model NodesUserUsageHistory {
   user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
 
   @@id([nodeUuid, userUuid, createdAt])
+  @@index([userUuid, updatedAt(sort: Desc)])
+  @@index([nodeUuid, createdAt(sort: Desc)])
   @@map("nodes_user_usage_history")
 }
 
@@ -187,6 +191,7 @@ model NodesUsageHistory {
   node Nodes @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
 
   @@id([nodeUuid, createdAt])
+  @@index([nodeUuid, createdAt(sort: Desc)])
   @@map("nodes_usage_history")
 }
 
@@ -253,6 +258,7 @@ model ActiveUserInbounds {
   inbound Inbounds @relation(fields: [inboundUuid], references: [uuid], onDelete: Cascade)
 
   @@id([userUuid, inboundUuid])
+  @@index([userUuid])
   @@map("active_user_inbounds")
 }
 

@@ -34,6 +34,7 @@ const entityToModel = (entity: UserEntity): UserEntity => {
         ssPassword: entity.ssPassword,
 
         description: entity.description,
+        tag: entity.tag,
 
         telegramId: entity.telegramId,
         email: entity.email,

@@ -70,7 +70,7 @@ export class WebhookLoggerQueueProcessor extends WorkerHost {
                     .pipe(
                         retry({
                             count: 3,
-                            delay: 1000,
+                            delay: 5000,
                         }),
                         catchError((error) =>
                             throwError(

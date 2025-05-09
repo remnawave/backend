@@ -1,24 +1,23 @@
-import { SUBSCRIPTION_TEMPLATE_CONTROLLER, SUBSCRIPTION_TEMPLATE_ROUTES } from '@contract/api';
-import { ROLE, TSubscriptionTemplateType } from '@contract/constants';
-
 import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+    ROLE,
+    SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
+    TSubscriptionTemplateType,
+} from '@contract/constants';
+import { SUBSCRIPTION_TEMPLATE_CONTROLLER } from '@contract/api';
+
+import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
+import {
+    GetSubscriptionTemplateCommand,
+    UpdateSubscriptionTemplateCommand,
+} from '@libs/contracts/commands';
 
 import { GetTemplateRequestDto, GetTemplateResponseDto } from './dtos/get-template.dto';
 import { SubscriptionTemplateService } from './subscription-template.service';
@@ -38,9 +37,17 @@ export class SubscriptionTemplateController {
         type: GetTemplateResponseDto,
         description: 'Template retrieved successfully',
     })
-    @ApiOperation({ summary: 'Get Template', description: 'Get Template' })
-    @HttpCode(HttpStatus.OK)
-    @Get(SUBSCRIPTION_TEMPLATE_ROUTES.GET_TEMPLATE + '/' + ':templateType')
+    @ApiParam({
+        name: 'templateType',
+        type: String,
+        description: 'Template type',
+        required: true,
+        enum: SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
+    })
+    @Endpoint({
+        command: GetSubscriptionTemplateCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getTemplate(@Param() paramData: GetTemplateRequestDto): Promise<GetTemplateResponseDto> {
         const result = await this.subscriptionTemplateService.getTemplate(
             paramData.templateType as TSubscriptionTemplateType,
@@ -52,14 +59,15 @@ export class SubscriptionTemplateController {
         };
     }
 
-    @ApiBody({ type: UpdateTemplateRequestDto })
     @ApiOkResponse({
         type: UpdateTemplateResponseDto,
         description: 'Template updated successfully',
     })
-    @ApiOperation({ summary: 'Update Template', description: 'Update Template' })
-    @HttpCode(HttpStatus.OK)
-    @Post(SUBSCRIPTION_TEMPLATE_ROUTES.UPDATE_TEMPLATE)
+    @Endpoint({
+        command: UpdateSubscriptionTemplateCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: UpdateTemplateRequestDto,
+    })
     async updateTemplate(
         @Body() body: UpdateTemplateRequestDto,
     ): Promise<UpdateTemplateResponseDto> {

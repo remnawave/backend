@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
 
+import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
@@ -26,9 +27,14 @@ import { IFormattedHost } from './interfaces/formatted-hosts.interface';
 @Injectable()
 export class FormatHostsService {
     private readonly nanoid: ReturnType<typeof customAlphabet>;
+    private readonly subPublicDomain: string;
 
-    constructor(private readonly queryBus: QueryBus) {
+    constructor(
+        private readonly queryBus: QueryBus,
+        private readonly configService: ConfigService,
+    ) {
         this.nanoid = customAlphabet('0123456789abcdefghjkmnopqrstuvwxyz', 10);
+        this.subPublicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
     }
 
     public async generateFormattedHosts(
@@ -60,7 +66,7 @@ export class FormatHostsService {
                 }
 
                 const templatedRemarks = specialRemarks.map((remark) =>
-                    TemplateEngine.formarWithUser(remark, user),
+                    TemplateEngine.formarWithUser(remark, user, this.subPublicDomain),
                 );
 
                 formattedHosts.push(...this.createFallbackHosts(templatedRemarks));
@@ -102,7 +108,11 @@ export class FormatHostsService {
                 continue;
             }
 
-            const remark = TemplateEngine.formarWithUser(inputHost.remark, user);
+            const remark = TemplateEngine.formarWithUser(
+                inputHost.remark,
+                user,
+                this.subPublicDomain,
+            );
 
             let address = inputHost.address;
 

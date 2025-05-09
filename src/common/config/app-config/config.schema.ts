@@ -22,21 +22,34 @@ export const configSchema = z
                 'JWT_API_TOKENS_SECRET cannot be set to "change_me"',
             ),
 
+        IS_TELEGRAM_NOTIFICATIONS_ENABLED: z.string().default('false'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
-        TELEGRAM_ADMIN_ID: z.string().optional(),
-
-        NODES_NOTIFY_CHAT_ID: z.string().optional(),
-
-        TELEGRAM_ADMIN_THREAD_ID: z
-            .string()
-            .transform((val) => (val === '' ? undefined : val))
-            .optional(),
-        NODES_NOTIFY_THREAD_ID: z
+        TELEGRAM_NOTIFY_USERS_CHAT_ID: z.string().optional(),
+        TELEGRAM_NOTIFY_USERS_THREAD_ID: z
             .string()
             .transform((val) => (val === '' ? undefined : val))
             .optional(),
 
-        IS_TELEGRAM_ENABLED: z.string().default('false'),
+        TELEGRAM_NOTIFY_NODES_CHAT_ID: z.string().optional(),
+        TELEGRAM_NOTIFY_NODES_THREAD_ID: z
+            .string()
+            .transform((val) => (val === '' ? undefined : val))
+            .optional(),
+
+        TELEGRAM_OAUTH_ENABLED: z.string().default('false'),
+        TELEGRAM_OAUTH_ADMIN_IDS: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val || val === '') return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    throw new Error('TELEGRAM_OAUTH_ADMIN_IDS must be a valid JSON array');
+                }
+            })
+            .pipe(z.array(z.number()).optional()),
+
         FRONT_END_DOMAIN: z.string(),
         IS_DOCS_ENABLED: z.string().default('false'),
         SCALAR_PATH: z.string().default('/scalar'),
@@ -121,26 +134,29 @@ export const configSchema = z
             }
         }
 
-        if (data.IS_TELEGRAM_ENABLED === 'true') {
+        if (data.IS_TELEGRAM_NOTIFICATIONS_ENABLED === 'true') {
             if (!data.TELEGRAM_BOT_TOKEN) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: 'TELEGRAM_BOT_TOKEN is required when IS_TELEGRAM_ENABLED is true',
+                    message:
+                        'TELEGRAM_BOT_TOKEN is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
                     path: ['TELEGRAM_BOT_TOKEN'],
                 });
             }
-            if (!data.TELEGRAM_ADMIN_ID) {
+            if (!data.TELEGRAM_NOTIFY_USERS_CHAT_ID) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: 'TELEGRAM_ADMIN_ID is required when IS_TELEGRAM_ENABLED is true',
-                    path: ['TELEGRAM_ADMIN_ID'],
+                    message:
+                        'TELEGRAM_NOTIFY_USERS_CHAT_ID is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
+                    path: ['TELEGRAM_NOTIFY_USERS_CHAT_ID'],
                 });
             }
-            if (!data.NODES_NOTIFY_CHAT_ID) {
+            if (!data.TELEGRAM_NOTIFY_NODES_CHAT_ID) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: 'NODES_NOTIFY_CHAT_ID is required when IS_TELEGRAM_ENABLED is true',
-                    path: ['NODES_NOTIFY_CHAT_ID'],
+                    message:
+                        'TELEGRAM_NOTIFY_NODES_CHAT_ID is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
+                    path: ['TELEGRAM_NOTIFY_NODES_CHAT_ID'],
                 });
             }
         }
@@ -161,6 +177,33 @@ export const configSchema = z
                     message:
                         'HWID_MAX_DEVICES_ANNOUNCE is required when HWID_DEVICE_LIMIT_ENABLED is true',
                     path: ['HWID_MAX_DEVICES_ANNOUNCE'],
+                });
+            }
+        }
+
+        if (data.TELEGRAM_OAUTH_ENABLED === 'true') {
+            if (!data.TELEGRAM_OAUTH_ADMIN_IDS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'TELEGRAM_OAUTH_ADMIN_IDS is required when TELEGRAM_OAUTH_ENABLED is true',
+                    path: ['TELEGRAM_OAUTH_ADMIN_IDS'],
+                });
+            }
+
+            if (data.TELEGRAM_OAUTH_ADMIN_IDS && data.TELEGRAM_OAUTH_ADMIN_IDS.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'TELEGRAM_OAUTH_ADMIN_IDS must not be empty',
+                    path: ['TELEGRAM_OAUTH_ADMIN_IDS'],
+                });
+            }
+
+            if (!data.TELEGRAM_BOT_TOKEN) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'TELEGRAM_BOT_TOKEN is required when TELEGRAM_OAUTH_ENABLED is true',
+                    path: ['TELEGRAM_BOT_TOKEN'],
                 });
             }
         }

@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
-import { GetAllUsersV2Command } from '@libs/contracts/commands';
+import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { UserEvent } from '@integration-modules/telegram-bot/events/users/interfaces';
 
@@ -108,6 +108,13 @@ export class UsersService {
         const user = await this.updateUserTransactional(dto);
 
         if (!user.isOk || !user.response) {
+            if (user.code === 'A025') {
+                return {
+                    isOk: false,
+                    ...ERRORS.USER_NOT_FOUND,
+                };
+            }
+
             return {
                 isOk: false,
                 ...ERRORS.UPDATE_USER_ERROR,
@@ -119,6 +126,10 @@ export class UsersService {
             user.response.isNeedToBeAddedToNode
         ) {
             this.eventBus.publish(new AddUserToNodeEvent(user.response.user));
+        }
+
+        if (user.response.isNeedToBeRemovedFromNode) {
+            this.eventBus.publish(new RemoveUserFromNodeEvent(user.response.user));
         }
 
         this.eventEmitter.emit(
@@ -141,6 +152,7 @@ export class UsersService {
     public async updateUserTransactional(dto: UpdateUserRequestDto): Promise<
         ICommandResponse<{
             isNeedToBeAddedToNode: boolean;
+            isNeedToBeRemovedFromNode: boolean;
             user: UserWithActiveInboundsEntity;
         }>
     > {
@@ -156,6 +168,7 @@ export class UsersService {
                 telegramId,
                 email,
                 hwidDeviceLimit,
+                tag,
             } = dto;
 
             const user = await this.userRepository.getUserByUUID(uuid);
@@ -170,6 +183,8 @@ export class UsersService {
 
             let isNeedToBeAddedToNode =
                 user.status !== USERS_STATUS.ACTIVE && status === USERS_STATUS.ACTIVE;
+
+            const isNeedToBeRemovedFromNode = status !== USERS_STATUS.DISABLED;
 
             if (trafficLimitBytes !== undefined) {
                 if (user.status === USERS_STATUS.LIMITED && trafficLimitBytes >= 0) {
@@ -212,6 +227,7 @@ export class UsersService {
                         : undefined,
                 email: email,
                 hwidDeviceLimit: hwidDeviceLimit,
+                tag: tag,
             });
 
             if (activeUserInbounds) {
@@ -261,6 +277,7 @@ export class UsersService {
                 response: {
                     user: userWithInbounds,
                     isNeedToBeAddedToNode,
+                    isNeedToBeRemovedFromNode,
                 },
             };
         } catch (error) {
@@ -283,7 +300,7 @@ export class UsersService {
                 }
             }
 
-            return { isOk: false, ...ERRORS.CREATE_NODE_ERROR };
+            return { isOk: false, ...ERRORS.UPDATE_USER_ERROR };
         }
     }
 
@@ -311,6 +328,7 @@ export class UsersService {
                 telegramId,
                 email,
                 hwidDeviceLimit,
+                tag,
             } = dto;
 
             const userEntity = new UserEntity({
@@ -331,6 +349,7 @@ export class UsersService {
                 lastTrafficResetAt: lastTrafficResetAt ? new Date(lastTrafficResetAt) : undefined,
                 description: description || undefined,
                 hwidDeviceLimit: hwidDeviceLimit || null,
+                tag: tag,
             });
 
             const result = await this.userRepository.create(userEntity);
@@ -415,7 +434,7 @@ export class UsersService {
         }
     }
 
-    public async getAllUsersV2(dto: GetAllUsersV2Command.RequestQuery): Promise<
+    public async getAllUsers(dto: GetAllUsersCommand.RequestQuery): Promise<
         ICommandResponse<{
             total: number;
             users: UserWithAiAndLcnRawEntity[];
@@ -479,6 +498,7 @@ export class UsersService {
                 {
                     email: dto.email || undefined,
                     telegramId: dto.telegramId ? BigInt(dto.telegramId) : undefined,
+                    tag: dto.tag || undefined,
                 },
             );
 
@@ -1062,6 +1082,21 @@ export class UsersService {
             return { isOk: false, ...ERRORS.GET_USER_USAGE_BY_RANGE_ERROR };
         }
     }
+
+    public async getAllTags(): Promise<ICommandResponse<string[]>> {
+        try {
+            const result = await this.userRepository.getAllTags();
+
+            return {
+                isOk: true,
+                response: result,
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GET_ALL_TAGS_ERROR };
+        }
+    }
+
     private createUuid(): string {
         return randomUUID();
     }

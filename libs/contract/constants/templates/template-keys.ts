@@ -7,5 +7,6 @@ export const TEMPLATE_KEYS = [
     'USERNAME',
     'EMAIL',
     'TELEGRAM_ID',
+    'SUBSCRIPTION_URL',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];

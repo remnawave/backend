@@ -1,29 +1,16 @@
-import { XRAY_CONTROLLER, XRAY_ROUTES } from '@contract/api';
 import { ERRORS, ROLE } from '@contract/constants';
+import { XRAY_CONTROLLER } from '@contract/api';
 
-import {
-    Body,
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import {
-    ApiBadRequestResponse,
-    ApiBearerAuth,
-    ApiOkResponse,
-    ApiOperation,
-    ApiTags,
-} from '@nestjs/swagger';
+import { ApiBadRequestResponse, ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
+import { GetXrayConfigCommand, UpdateXrayConfigCommand } from '@libs/contracts/commands';
 
 import { UpdateConfigRequestDto, UpdateConfigResponseDto } from './dtos/update-config.dto';
 import { GetConfigResponseModel } from './models/get-config.response.model';
@@ -44,9 +31,10 @@ export class XrayConfigController {
         type: GetConfigResponseDto,
         description: 'Configuration retrieved successfully',
     })
-    @ApiOperation({ summary: 'Get Xray Config', description: 'Get Xray Config' })
-    @HttpCode(HttpStatus.OK)
-    @Get(XRAY_ROUTES.GET_CONFIG)
+    @Endpoint({
+        command: GetXrayConfigCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getConfig(): Promise<GetConfigResponseDto> {
         const result = await this.xrayConfigService.getConfig();
 
@@ -61,9 +49,11 @@ export class XrayConfigController {
         type: UpdateConfigResponseDto,
         description: 'Configuration updated successfully',
     })
-    @ApiOperation({ summary: 'Update Xray Config', description: 'Update Xray Config' })
-    @HttpCode(HttpStatus.OK)
-    @Post(XRAY_ROUTES.UPDATE_CONFIG)
+    @Endpoint({
+        command: UpdateXrayConfigCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: UpdateConfigRequestDto,
+    })
     async updateConfig(
         @Body() requestConfig: UpdateConfigRequestDto,
     ): Promise<UpdateConfigResponseDto> {
@@ -74,21 +64,4 @@ export class XrayConfigController {
             response: new GetConfigResponseModel(data.config || {}),
         };
     }
-
-    // @Get(KEYGEN_ROUTES.GET)
-    // @HttpCode(HttpStatus.OK)
-    // @ApiOperation({ summary: 'Get Public Key', description: 'Get public key' })
-    // @ApiOkResponse({
-    //     type: [GetPubKeyResponseDto],
-    //     description: 'Access token for further requests',
-    // })
-    // @Roles(ROLE.ADMIN)
-    // async generateKey(): Promise<GetPubKeyResponseDto> {
-    //     const result = await this.keygenService.generateKey();
-
-    //     const data = errorHandler(result);
-    //     return {
-    //         response: new KeygenResponseModel(data),
-    //     };
-    // }
 }

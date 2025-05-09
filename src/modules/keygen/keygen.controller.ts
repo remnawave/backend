@@ -1,13 +1,14 @@
-import { Controller, Get, HttpCode, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
+import { GetPubKeyCommand } from '@libs/contracts/commands';
 import { KEYGEN_CONTROLLER } from '@libs/contracts/api';
-import { KEYGEN_ROUTES } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import { KeygenService } from './keygen.service';
@@ -27,9 +28,10 @@ export class KeygenController {
         type: GetPubKeyResponseDto,
         description: 'Get SSL_CERT for Remnawave Node',
     })
-    @ApiOperation({ summary: 'Get SSL_CERT', description: 'Get SSL_CERT for Remnawave Node' })
-    @HttpCode(HttpStatus.OK)
-    @Get(KEYGEN_ROUTES.GET)
+    @Endpoint({
+        command: GetPubKeyCommand,
+        httpCode: HttpStatus.OK,
+    })
     async generateKey(): Promise<GetPubKeyResponseDto> {
         const result = await this.keygenService.generateKey();
 

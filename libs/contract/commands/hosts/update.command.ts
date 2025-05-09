@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
-import { FINGERPRINTS, SECURITY_LAYERS, ALPN } from '../../constants/hosts';
+import { getEndpointDetails, FINGERPRINTS, SECURITY_LAYERS, ALPN } from '../../constants';
+import { HOSTS_ROUTES, REST_API } from '../../api';
 import { HostsSchema } from '../../models';
-import { REST_API } from '../../api';
 
 export namespace UpdateHostCommand {
     export const url = REST_API.HOSTS.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        HOSTS_ROUTES.UPDATE,
+        'patch',
+        'Update a host',
+    );
 
     export const RequestSchema = HostsSchema.pick({
         uuid: true,

@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { REST_API, SUBSCRIPTION_TEMPLATE_ROUTES } from '../../api';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../../constants';
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
 export namespace UpdateSubscriptionTemplateCommand {
-    export const url = REST_API.SUBSCRIPTION_TEMPLATE.UPDATE_TEMPLATE;
+    export const url = REST_API.SUBSCRIPTION_TEMPLATE.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        SUBSCRIPTION_TEMPLATE_ROUTES.UPDATE,
+        'put',
+        'Update subscription template',
+    );
 
     export const RequestSchema = z.object({
         templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),

@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { REST_API, SUBSCRIPTION_SETTINGS_ROUTES } from '../../api';
 import { SubscriptionSettingsSchema } from '../../models';
-import { REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
 export namespace UpdateSubscriptionSettingsCommand {
-    export const url = REST_API.SUBSCRIPTION_SETTINGS.UPDATE_SETTINGS;
+    export const url = REST_API.SUBSCRIPTION_SETTINGS.UPDATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        SUBSCRIPTION_SETTINGS_ROUTES.UPDATE,
+        'patch',
+        'Update subscription settings',
+    );
 
     export const RequestSchema = z.object({
         uuid: z.string().uuid(),

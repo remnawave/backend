@@ -1,12 +1,18 @@
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Controller, Get, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { Controller, HttpStatus, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { SYSTEM_CONTROLLER, SYSTEM_ROUTES } from '@libs/contracts/api';
+import {
+    GetBandwidthStatsCommand,
+    GetNodesStatisticsCommand,
+    GetStatsCommand,
+} from '@libs/contracts/commands';
+import { SYSTEM_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -26,13 +32,15 @@ import { SystemService } from './system.service';
 export class SystemController {
     constructor(private readonly systemService: SystemService) {}
 
-    @ApiOperation({ summary: 'Get System Stats' })
     @ApiResponse({
         status: 200,
         description: 'Returns system statistics',
         type: GetStatsResponseDto,
     })
-    @Get(SYSTEM_ROUTES.STATS)
+    @Endpoint({
+        command: GetStatsCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getStats(): Promise<GetStatsResponseDto> {
         const result = await this.systemService.getStats();
 
@@ -42,13 +50,15 @@ export class SystemController {
         };
     }
 
-    @ApiOperation({ summary: 'Get System Bandwidth Statistics' })
     @ApiResponse({
         status: 200,
         description: 'Returns bandwidth statistics',
         type: GetBandwidthStatsResponseDto,
     })
-    @Get(SYSTEM_ROUTES.BANDWIDTH)
+    @Endpoint({
+        command: GetBandwidthStatsCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getBandwidthStats(
         @Query() query: GetBandwidthStatsRequestQueryDto,
     ): Promise<GetBandwidthStatsResponseDto> {
@@ -60,13 +70,15 @@ export class SystemController {
         };
     }
 
-    @ApiOperation({ summary: 'Get Nodes Statistics' })
     @ApiResponse({
         status: 200,
         description: 'Returns nodes statistics',
         type: GetNodesStatisticsResponseDto,
     })
-    @Get(SYSTEM_ROUTES.STATISTIC.NODES)
+    @Endpoint({
+        command: GetNodesStatisticsCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getNodesStatistics(): Promise<GetNodesStatisticsResponseDto> {
         const result = await this.systemService.getNodesStatistics();
 

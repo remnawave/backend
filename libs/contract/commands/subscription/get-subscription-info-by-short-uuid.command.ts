@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
 import { RESET_PERIODS, USERS_STATUS } from '../../constants';
-import { REST_API } from '../../api';
+import { REST_API, SUBSCRIPTION_ROUTES } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
 export namespace GetSubscriptionInfoByShortUuidCommand {
     export const url = REST_API.SUBSCRIPTION.GET_INFO;
     export const TSQ_url = url(':shortUuid');
+
+    export const endpointDetails = getEndpointDetails(
+        SUBSCRIPTION_ROUTES.GET_INFO(':shortUuid'),
+        'get',
+        'Get Subscription Info by Short UUID',
+    );
 
     export const RequestSchema = z.object({
         shortUuid: z.string(),

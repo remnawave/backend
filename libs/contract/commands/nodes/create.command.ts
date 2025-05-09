@@ -1,11 +1,17 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../constants';
+import { NODES_ROUTES, REST_API } from '../../api';
 import { NodesSchema } from '../../models';
-import { REST_API } from '../../api';
-
 export namespace CreateNodeCommand {
     export const url = REST_API.NODES.CREATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        NODES_ROUTES.CREATE,
+        'post',
+        'Create a new node',
+    );
 
     export const RequestSchema = z.object({
         name: z.string().min(5, 'Minimum 5 characters!'),

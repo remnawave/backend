@@ -1,20 +1,20 @@
-import {
-    Body,
-    Controller,
-    HttpCode,
-    HttpStatus,
-    Post,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { RolesGuard } from '@common/guards/roles/roles.guard';
 import { Roles } from '@common/decorators/roles/roles';
-import { HOSTS_CONTROLLER, HOSTS_ROUTES } from '@libs/contracts/api/controllers';
+import {
+    BulkDeleteHostsCommand,
+    BulkDisableHostsCommand,
+    BulkEnableHostsCommand,
+    SetInboundToManyHostsCommand,
+    SetPortToManyHostsCommand,
+} from '@libs/contracts/commands';
+import { HOSTS_CONTROLLER } from '@libs/contracts/api/controllers';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -45,12 +45,10 @@ export class HostsBulkActionsController {
         type: BulkDeleteHostsResponseDto,
         description: 'Hosts deleted successfully',
     })
-    @ApiOperation({
-        summary: 'Delete many hosts',
-        description: 'Delete many hosts',
+    @Endpoint({
+        command: BulkDeleteHostsCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HOSTS_ROUTES.BULK.DELETE_HOSTS)
     async deleteHosts(
         @Body() body: BulkDeleteHostsRequestDto,
     ): Promise<BulkDeleteHostsResponseDto> {
@@ -66,12 +64,10 @@ export class HostsBulkActionsController {
         type: BulkDisableHostsResponseDto,
         description: 'Hosts disabled successfully',
     })
-    @ApiOperation({
-        summary: 'Disable many hosts',
-        description: 'Disable many hosts',
+    @Endpoint({
+        command: BulkDisableHostsCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HOSTS_ROUTES.BULK.DISABLE_HOSTS)
     async disableHosts(
         @Body() body: BulkDisableHostsRequestDto,
     ): Promise<BulkDisableHostsResponseDto> {
@@ -87,12 +83,10 @@ export class HostsBulkActionsController {
         type: BulkEnableHostsResponseDto,
         description: 'Hosts enabled successfully',
     })
-    @ApiOperation({
-        summary: 'Enable many hosts',
-        description: 'Enable many hosts',
+    @Endpoint({
+        command: BulkEnableHostsCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HOSTS_ROUTES.BULK.ENABLE_HOSTS)
     async enableHosts(
         @Body() body: BulkEnableHostsRequestDto,
     ): Promise<BulkEnableHostsResponseDto> {
@@ -108,12 +102,10 @@ export class HostsBulkActionsController {
         type: SetInboundToManyHostsResponseDto,
         description: 'Hosts inbound set successfully',
     })
-    @ApiOperation({
-        summary: 'Set inbound to many hosts',
-        description: 'Set inbound to many hosts',
+    @Endpoint({
+        command: SetInboundToManyHostsCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HOSTS_ROUTES.BULK.SET_INBOUND)
     async setInboundToHosts(
         @Body() body: SetInboundToManyHostsRequestDto,
     ): Promise<SetInboundToManyHostsResponseDto> {
@@ -129,12 +121,10 @@ export class HostsBulkActionsController {
         type: SetPortToManyHostsResponseDto,
         description: 'Hosts port set successfully',
     })
-    @ApiOperation({
-        summary: 'Set port to many hosts',
-        description: 'Set port to many hosts',
+    @Endpoint({
+        command: SetPortToManyHostsCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Post(HOSTS_ROUTES.BULK.SET_PORT)
     async setPortToHosts(
         @Body() body: SetPortToManyHostsRequestDto,
     ): Promise<SetPortToManyHostsResponseDto> {

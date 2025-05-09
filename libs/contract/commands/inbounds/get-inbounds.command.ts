@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
-import { REST_API } from '../../api';
+import { INBOUNDS_ROUTES, REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
 export namespace GetInboundsCommand {
     export const url = REST_API.INBOUNDS.GET_INBOUNDS;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        INBOUNDS_ROUTES.GET_INBOUNDS,
+        'get',
+        'Get inbounds',
+    );
 
     export const ResponseSchema = z.object({
         response: z.array(

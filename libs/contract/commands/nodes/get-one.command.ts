@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../constants';
+import { NODES_ROUTES, REST_API } from '../../api';
 import { NodesSchema } from '../../models';
-import { REST_API } from '../../api';
 
 export namespace GetOneNodeCommand {
-    export const url = REST_API.NODES.GET_ONE;
+    export const url = REST_API.NODES.GET_BY_UUID;
     export const TSQ_url = url(':uuid');
+
+    export const endpointDetails = getEndpointDetails(
+        NODES_ROUTES.GET_BY_UUID(':uuid'),
+        'get',
+        'Get node by UUID',
+    );
 
     export const RequestSchema = z.object({
         uuid: z.string().uuid(),

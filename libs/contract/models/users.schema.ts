@@ -57,6 +57,7 @@ export const UsersSchema = z.object({
     ssPassword: z.string(),
 
     description: z.nullable(z.string()),
+    tag: z.nullable(z.string()),
 
     telegramId: z.nullable(z.number().int()),
     email: z.nullable(z.string().email()),

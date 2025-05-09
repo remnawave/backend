@@ -29,6 +29,7 @@ export class UserWithAiAndLcnRawEntity {
     public ssPassword: string;
 
     public description: null | string;
+    public tag: null | string;
 
     public telegramId: bigint | null;
     public email: string | null;

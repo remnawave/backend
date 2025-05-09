@@ -1,28 +1,17 @@
-import {
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Param,
-    Query,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import {
-    ApiBearerAuth,
-    ApiOkResponse,
-    ApiOperation,
-    ApiParam,
-    ApiQuery,
-    ApiTags,
-} from '@nestjs/swagger';
+import { Controller, HttpStatus, Param, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { NODES_CONTROLLER, NODES_ROUTES } from '@libs/contracts/api';
+import {
+    GetNodesRealtimeUsageCommand,
+    GetNodeUserUsageByRangeCommand,
+} from '@libs/contracts/commands';
+import { NODES_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -47,10 +36,6 @@ export class NodesUserUsageHistoryController {
         type: GetNodeUserUsageByRangeResponseDto,
         description: 'Nodes user usage by range fetched successfully',
     })
-    @ApiOperation({
-        summary: 'Get node users usage by range and node uuid',
-        description: 'Get node users usage by range and node uuid',
-    })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the node', required: true })
     @ApiQuery({
         name: 'end',
@@ -64,8 +49,10 @@ export class NodesUserUsageHistoryController {
         description: 'Start date',
         required: true,
     })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.STATS.USAGE_BY_RANGE_USER + '/:uuid')
+    @Endpoint({
+        command: GetNodeUserUsageByRangeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getNodeUserUsage(
         @Query() query: GetNodeUserUsageByRangeRequestQueryDto,
         @Param() paramData: GetNodeUserUsageByRangeRequestDto,
@@ -86,12 +73,10 @@ export class NodesUserUsageHistoryController {
         type: GetNodesRealtimeUsageResponseDto,
         description: 'Nodes realtime usage fetched successfully',
     })
-    @ApiOperation({
-        summary: 'Get nodes realtime usage',
-        description: 'Get nodes realtime usage',
+    @Endpoint({
+        command: GetNodesRealtimeUsageCommand,
+        httpCode: HttpStatus.OK,
     })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.STATS.USAGE_REALTIME)
     async getNodesRealtimeUsage(): Promise<GetNodesRealtimeUsageResponseDto> {
         const result = await this.nodesUserUsageHistoryService.getNodesRealtimeUsage();
 

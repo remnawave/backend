@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
-import { FINGERPRINTS, SECURITY_LAYERS, ALPN } from '../../constants/hosts';
+import { getEndpointDetails, FINGERPRINTS, SECURITY_LAYERS, ALPN } from '../../constants';
+import { HOSTS_ROUTES, REST_API } from '../../api';
 import { HostsSchema } from '../../models';
-import { REST_API } from '../../api';
 
 export namespace CreateHostCommand {
     export const url = REST_API.HOSTS.CREATE;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        HOSTS_ROUTES.CREATE,
+        'post',
+        'Create a new host',
+    );
 
     export const RequestSchema = z.object({
         inboundUuid: z

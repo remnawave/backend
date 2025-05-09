@@ -1,9 +1,9 @@
 export const SYSTEM_CONTROLLER = 'system' as const;
 
 export const SYSTEM_ROUTES = {
-    STATS: 'stats',
-    BANDWIDTH: 'bandwidth',
-    STATISTIC: {
-        NODES: 'statistics/nodes',
+    STATS: {
+        SYSTEM_STATS: 'stats',
+        BANDWIDTH_STATS: 'stats/bandwidth',
+        NODES_STATS: 'stats/nodes',
     },
 } as const;

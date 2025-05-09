@@ -9,7 +9,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 
 import { ICrud } from '@common/types/crud-port';
-import { GetAllUsersV2Command } from '@libs/contracts/commands';
+import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { InboundsEntity } from '@modules/inbounds/entities';
 
@@ -310,7 +310,7 @@ export class UsersRepository implements ICrud<UserEntity> {
         filters,
         filterModes,
         sorting,
-    }: GetAllUsersV2Command.RequestQuery): Promise<[UserWithAiAndLcnRawEntity[], number]> {
+    }: GetAllUsersCommand.RequestQuery): Promise<[UserWithAiAndLcnRawEntity[], number]> {
         const where = filters?.reduce((acc, filter) => {
             const mode = filterModes?.[filter.id] || 'contains';
 
@@ -420,6 +420,28 @@ export class UsersRepository implements ICrud<UserEntity> {
         });
 
         return [result, total];
+    }
+
+    public async getUsersWithPagination({
+        start,
+        size,
+    }: GetAllUsersCommand.RequestQuery): Promise<[UserWithActiveInboundsEntity[], number]> {
+        const [users, total] = await Promise.all([
+            this.prisma.tx.users.findMany({
+                skip: start,
+                take: size,
+
+                orderBy: {
+                    createdAt: 'desc',
+                },
+                include: INCLUDE_ACTIVE_USER_INBOUNDS,
+            }),
+            this.prisma.tx.users.count(),
+        ]);
+
+        const usersResult = users.map((user) => new UserWithActiveInboundsEntity(user));
+
+        return [usersResult, total];
     }
 
     public async getUserByShortUuid(
@@ -764,5 +786,16 @@ export class UsersRepository implements ICrud<UserEntity> {
         });
 
         return result.count;
+    }
+
+    public async getAllTags(): Promise<string[]> {
+        const result = await this.prisma.tx.users.findMany({
+            select: {
+                tag: true,
+            },
+            distinct: ['tag'],
+        });
+
+        return result.map((user) => user.tag).filter((tag) => tag !== null);
     }
 }

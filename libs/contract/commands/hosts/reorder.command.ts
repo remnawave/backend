@@ -1,11 +1,18 @@
 import { z } from 'zod';
 
+import { getEndpointDetails } from '../../constants';
+import { HOSTS_ROUTES, REST_API } from '../../api';
 import { HostsSchema } from '../../models';
-import { REST_API } from '../../api';
 
 export namespace ReorderHostCommand {
-    export const url = REST_API.HOSTS.REORDER;
+    export const url = REST_API.HOSTS.ACTIONS.REORDER;
     export const TSQ_url = url;
+
+    export const endpointDetails = getEndpointDetails(
+        HOSTS_ROUTES.ACTIONS.REORDER,
+        'post',
+        'Reorder hosts',
+    );
 
     export const RequestSchema = z.object({
         hosts: z.array(

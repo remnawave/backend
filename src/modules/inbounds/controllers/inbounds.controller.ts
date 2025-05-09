@@ -1,12 +1,14 @@
-import { Controller, Get, HttpCode, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { INBOUNDS_CONTROLLER, INBOUNDS_ROUTES } from '@libs/contracts/api';
+import { GetFullInboundsCommand, GetInboundsCommand } from '@libs/contracts/commands';
+import { INBOUNDS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import { GetFullInboundsResponseDto, GetInboundsResponseDto } from '../dtos';
@@ -23,12 +25,13 @@ export class InboundsController {
     constructor(private readonly inboundsService: InboundsService) {}
 
     @ApiOkResponse({
-        type: [GetInboundsResponseDto],
+        type: GetInboundsResponseDto,
         description: 'Get inbounds',
     })
-    @ApiOperation({ summary: 'Get Inbounds', description: 'Get inbounds' })
-    @HttpCode(HttpStatus.OK)
-    @Get(INBOUNDS_ROUTES.GET_INBOUNDS)
+    @Endpoint({
+        command: GetInboundsCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getInbounds(): Promise<GetInboundsResponseDto> {
         const result = await this.inboundsService.getInbounds();
 
@@ -39,12 +42,13 @@ export class InboundsController {
     }
 
     @ApiOkResponse({
-        type: [GetFullInboundsResponseDto],
+        type: GetFullInboundsResponseDto,
         description: 'Get full inbounds',
     })
-    @ApiOperation({ summary: 'Get Full Inbounds', description: 'Get full inbounds' })
-    @HttpCode(HttpStatus.OK)
-    @Get(INBOUNDS_ROUTES.GET_FULL_INBOUNDS)
+    @Endpoint({
+        command: GetFullInboundsCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getFullInbounds(): Promise<GetFullInboundsResponseDto> {
         const result = await this.inboundsService.getFullInbounds();
 

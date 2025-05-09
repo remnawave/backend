@@ -30,6 +30,7 @@ export class GetFullUserResponseModel {
     public readonly ssPassword: string;
     public readonly activeUserInbounds: InboundsEntity[];
     public readonly description: null | string;
+    public readonly tag: null | string;
 
     public readonly telegramId: number | null;
     public readonly email: string | null;
@@ -70,6 +71,7 @@ export class GetFullUserResponseModel {
         this.vlessUuid = entity.vlessUuid;
         this.ssPassword = entity.ssPassword;
         this.description = entity.description;
+        this.tag = entity.tag;
 
         this.telegramId = entity.telegramId ? Number(entity.telegramId) : null;
         this.email = entity.email;

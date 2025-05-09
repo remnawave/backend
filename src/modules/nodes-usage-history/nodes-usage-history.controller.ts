@@ -1,20 +1,14 @@
-import {
-    Controller,
-    Get,
-    HttpCode,
-    HttpStatus,
-    Query,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, HttpStatus, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/httpException.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
+import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { NODES_CONTROLLER, NODES_ROUTES } from '@libs/contracts/api';
+import { GetNodesUsageByRangeCommand } from '@libs/contracts/commands';
+import { NODES_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import { GetNodesUsageByRangeRequestQueryDto, GetNodesUsageByRangeResponseDto } from './dtos';
@@ -33,7 +27,6 @@ export class NodesUsageHistoryController {
         type: GetNodesUsageByRangeResponseDto,
         description: 'Nodes usage by range fetched successfully',
     })
-    @ApiOperation({ summary: 'Get Nodes Usage By Range', description: 'Get nodes usage by range' })
     @ApiQuery({
         name: 'end',
         type: Date,
@@ -46,12 +39,15 @@ export class NodesUsageHistoryController {
         description: 'Start date',
         required: true,
     })
-    @HttpCode(HttpStatus.OK)
-    @Get(NODES_ROUTES.STATS.USAGE_BY_RANGE)
+    @Endpoint({
+        command: GetNodesUsageByRangeCommand,
+        httpCode: HttpStatus.OK,
+    })
     async getNodesUsageByRange(
         @Query() query: GetNodesUsageByRangeRequestQueryDto,
     ): Promise<GetNodesUsageByRangeResponseDto> {
         const { start, end } = query;
+
         const result = await this.nodesUsageHistoryService.getNodesUsageByRange(
             new Date(start),
             new Date(end),
