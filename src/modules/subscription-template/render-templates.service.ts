@@ -191,7 +191,7 @@ export class RenderTemplatesService {
     private isJsonSubscriptionAllowed(userAgent: string): boolean {
         if (!userAgent) return false;
 
-        const xrayJsonClients = [/^[Ss]treisand/, /^Happ\//, /^ktor-client/, /^V2Box/, /^io\.github\.saeeddev94\.xray\//];
+        const xrayJsonClients = [/^[Ss]treisand/, /^Happ\//, /^v2raytun[\w\-]*\//, /^ktor-client/, /^V2Box/, /^io\.github\.saeeddev94\.xray\//];
 
         if (xrayJsonClients.some((regex) => regex.test(userAgent))) {
             return true;
