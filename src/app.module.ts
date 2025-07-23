@@ -10,7 +10,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 
-import { disableFrontend } from '@common/utils/startup-app/is-development';
+import { disableFrontend, isCrowdinEditorEnabled } from '@common/utils/startup-app/is-development';
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
 import { configSchema, Env } from '@common/config/app-config';
@@ -57,7 +57,12 @@ import { QueueModule } from '@queue/queue.module';
                 inject: [ConfigService],
                 useFactory: (configService: ConfigService) => [
                     {
-                        rootPath: join(__dirname, '..', '..', 'frontend'),
+                        rootPath: join(
+                            __dirname,
+                            '..',
+                            '..',
+                            isCrowdinEditorEnabled() ? 'frontend-crowdin' : 'frontend',
+                        ),
                         renderPath: '*splat',
                         exclude: [
                             '/api/*splat',

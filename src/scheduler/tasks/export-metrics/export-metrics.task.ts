@@ -60,6 +60,7 @@ export class ExportMetricsTask {
 
     constructor(
         @InjectMetric(METRIC_NAMES.USERS_STATUS) public usersStatus: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.USERS_ONLINE_STATS) public usersOnlineStats: Gauge<string>,
         @InjectMetric(METRIC_NAMES.USERS_TOTAL) public usersTotal: Gauge<string>,
         @InjectMetric(METRIC_NAMES.NODE_ONLINE_USERS) public nodeOnlineUsers: Gauge<string>,
         @InjectMetric(METRIC_NAMES.NODE_STATUS) public nodeStatus: Gauge<string>,
@@ -139,6 +140,10 @@ export class ExportMetricsTask {
 
                 Object.entries(stats.statusCounts.statusCounts).forEach(([status, count]) => {
                     this.usersStatus.set({ status }, count);
+                });
+
+                Object.entries(stats.onlineStats).forEach(([metricType, value]) => {
+                    this.usersOnlineStats.set({ metricType }, value);
                 });
 
                 this.usersTotal.set({ type: 'all' }, stats.statusCounts.totalUsers);

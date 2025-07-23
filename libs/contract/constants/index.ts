@@ -6,6 +6,7 @@ export * from './hosts';
 export * from './messaging';
 export * from './metrics';
 export * from './nodes';
+export * from './oauth2';
 export * from './roles';
 export * from './subscription-template';
 export * from './templates';

@@ -16,6 +16,8 @@ import {
     LoginCommand,
     RegisterCommand,
     TelegramCallbackCommand,
+    OAuth2AuthorizeCommand,
+    OAuth2CallbackCommand,
 } from '@libs/contracts/commands';
 import { AUTH_CONTROLLER } from '@libs/contracts/api/controllers/auth';
 
@@ -27,6 +29,10 @@ import {
     RegisterResponseDto,
     TelegramCallbackRequestDto,
     TelegramCallbackResponseDto,
+    OAuth2AuthorizeResponseDto,
+    OAuth2CallbackResponseDto,
+    OAuth2CallbackRequestDto,
+    OAuth2AuthorizeRequestDto,
 } from './dtos';
 import { RegisterResponseModel } from './model/register.response.model';
 import { AuthResponseModel } from './model/auth-response.model';
@@ -127,6 +133,54 @@ export class AuthController {
         const data = errorHandler(result);
         return {
             response: new AuthResponseModel(data),
+        };
+    }
+
+    @ApiResponse({
+        type: OAuth2AuthorizeResponseDto,
+        description: 'OAuth2 authorization URL',
+    })
+    @Endpoint({
+        command: OAuth2AuthorizeCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: OAuth2AuthorizeRequestDto,
+    })
+    async oauth2Authorize(
+        @Body() body: OAuth2AuthorizeRequestDto,
+    ): Promise<OAuth2AuthorizeResponseDto> {
+        const result = await this.authService.oauth2Authorize(body.provider);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiResponse({
+        type: OAuth2CallbackResponseDto,
+        description: 'Access token for further requests',
+    })
+    @Endpoint({
+        command: OAuth2CallbackCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: OAuth2CallbackRequestDto,
+    })
+    async oauth2Callback(
+        @Body() body: OAuth2CallbackRequestDto,
+        @IpAddress() ip: string,
+        @UserAgent() userAgent: string,
+    ): Promise<OAuth2CallbackResponseDto> {
+        const result = await this.authService.oauth2Callback(
+            body.code,
+            body.state,
+            body.provider,
+            ip,
+            userAgent,
+        );
+
+        const data = errorHandler(result);
+        return {
+            response: data,
         };
     }
 }

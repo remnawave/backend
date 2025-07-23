@@ -19,6 +19,11 @@ export const METRIC_PROVIDERS = [
         labelNames: ['status'],
     }),
     makeGaugeProvider({
+        name: METRIC_NAMES.USERS_ONLINE_STATS,
+        help: 'Counter for online stats of distinct users, updated every 1 minute',
+        labelNames: ['metricType'],
+    }),
+    makeGaugeProvider({
         name: METRIC_NAMES.USERS_TOTAL,
         help: 'Total number of users, updated every 1 minute',
         labelNames: ['type'],

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { getEndpointDetails } from '../../constants';
+import { getEndpointDetails, OAUTH2_PROVIDERS } from '../../constants';
 import { AUTH_ROUTES, REST_API } from '../../api';
 
 export namespace GetStatusCommand {
@@ -22,6 +22,9 @@ export namespace GetStatusCommand {
                     botId: z.number(),
                 })
                 .nullable(),
+            oauth2: z.object({
+                providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
+            }),
         }),
     });
 

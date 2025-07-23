@@ -61,3 +61,15 @@ export function useBullBoard(): boolean {
 export function disableFrontend(): boolean {
     return process.env.DISABLE_FRONTEND === 'true';
 }
+
+/**
+ * Determines if Crowdin editor should be enabled
+ * @returns {boolean} True if Crowdin editor should be enabled
+ */
+export function isCrowdinEditorEnabled(): boolean {
+    if (process.env.REMNAWAVE_BRANCH !== 'dev') {
+        return false;
+    }
+
+    return process.env.IS_CROWDIN_EDITOR_ENABLED === 'true';
+}

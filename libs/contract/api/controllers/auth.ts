@@ -7,5 +7,7 @@ export const AUTH_ROUTES = {
 
     OAUTH2: {
         TELEGRAM_CALLBACK: 'oauth2/tg/callback',
+        AUTHORIZE: 'oauth2/authorize',
+        CALLBACK: 'oauth2/callback',
     },
 } as const;

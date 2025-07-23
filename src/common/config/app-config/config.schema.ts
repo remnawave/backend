@@ -87,6 +87,8 @@ export const configSchema = z
             .transform((val) => parseInt(val, 10))
             .refine((val) => val >= 16 && val <= 64, 'SHORT_UUID_LENGTH must be between 16 and 64'),
         IS_HTTP_LOGGING_ENABLED: z.string().default('false'),
+        IS_CROWDIN_EDITOR_ENABLED: z.string().default('false'),
+        REMNAWAVE_BRANCH: z.string().default('dev'),
 
         HWID_DEVICE_LIMIT_ENABLED: z.string().default('false'),
         HWID_FALLBACK_DEVICE_LIMIT: z.optional(
@@ -123,6 +125,55 @@ export const configSchema = z
                 }
             })
             .pipe(z.array(z.number()).optional()),
+
+        OAUTH2_GITHUB_ENABLED: z.string().default('false'),
+        OAUTH2_GITHUB_CLIENT_ID: z.string().optional(),
+        OAUTH2_GITHUB_CLIENT_SECRET: z.string().optional(),
+        OAUTH2_GITHUB_ALLOWED_EMAILS: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val || val === '') return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    throw new Error('OAUTH2_GITHUB_ALLOWED_EMAILS must be a valid JSON array');
+                }
+            })
+            .pipe(z.array(z.string()).optional()),
+
+        OAUTH2_POCKETID_ENABLED: z.string().default('false'),
+        OAUTH2_POCKETID_CLIENT_ID: z.string().optional(),
+        OAUTH2_POCKETID_CLIENT_SECRET: z.string().optional(),
+        OAUTH2_POCKETID_PLAIN_DOMAIN: z.string().optional(),
+        OAUTH2_POCKETID_ALLOWED_EMAILS: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val || val === '') return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    throw new Error('OAUTH2_POCKETID_ALLOWED_EMAILS must be a valid JSON array');
+                }
+            })
+            .pipe(z.array(z.string()).optional()),
+
+        OAUTH2_YANDEX_ENABLED: z.string().default('false'),
+        OAUTH2_YANDEX_CLIENT_ID: z.string().optional(),
+        OAUTH2_YANDEX_CLIENT_SECRET: z.string().optional(),
+        OAUTH2_YANDEX_ALLOWED_EMAILS: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val || val === '') return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    throw new Error('OAUTH2_YANDEX_ALLOWED_EMAILS must be a valid JSON array');
+                }
+            })
+            .pipe(z.array(z.string()).optional()),
     })
     .superRefine((data, ctx) => {
         if (data.WEBHOOK_ENABLED === 'true') {
@@ -240,6 +291,101 @@ export const configSchema = z
             }
         }
 
+        if (data.OAUTH2_GITHUB_ENABLED === 'true') {
+            if (!data.OAUTH2_GITHUB_CLIENT_ID) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_GITHUB_CLIENT_ID is required when OAUTH2_GITHUB_ENABLED is true',
+                    path: ['OAUTH2_GITHUB_CLIENT_ID'],
+                });
+            }
+
+            if (!data.OAUTH2_GITHUB_CLIENT_SECRET) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_GITHUB_CLIENT_SECRET is required when OAUTH2_GITHUB_ENABLED is true',
+                    path: ['OAUTH2_GITHUB_CLIENT_SECRET'],
+                });
+            }
+
+            if (!data.OAUTH2_GITHUB_ALLOWED_EMAILS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_GITHUB_ALLOWED_EMAILS is required when OAUTH2_GITHUB_ENABLED is true',
+                    path: ['OAUTH2_GITHUB_ALLOWED_EMAILS'],
+                });
+            }
+        }
+
+        if (data.OAUTH2_POCKETID_ENABLED === 'true') {
+            if (!data.OAUTH2_POCKETID_CLIENT_ID) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_POCKETID_CLIENT_ID is required when OAUTH2_POCKETID_ENABLED is true',
+                    path: ['OAUTH2_POCKETID_CLIENT_ID'],
+                });
+            }
+
+            if (!data.OAUTH2_POCKETID_CLIENT_SECRET) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_POCKETID_CLIENT_SECRET is required when OAUTH2_POCKETID_ENABLED is true',
+                    path: ['OAUTH2_POCKETID_CLIENT_SECRET'],
+                });
+            }
+
+            if (!data.OAUTH2_POCKETID_PLAIN_DOMAIN) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_POCKETID_PLAIN_DOMAIN is required when OAUTH2_POCKETID_ENABLED is true',
+                    path: ['OAUTH2_POCKETID_PLAIN_DOMAIN'],
+                });
+            }
+
+            if (!data.OAUTH2_POCKETID_ALLOWED_EMAILS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_POCKETID_ALLOWED_EMAILS is required when OAUTH2_POCKETID_ENABLED is true',
+                    path: ['OAUTH2_POCKETID_ALLOWED_EMAILS'],
+                });
+            }
+        }
+
+        if (data.OAUTH2_YANDEX_ENABLED === 'true') {
+            if (!data.OAUTH2_YANDEX_CLIENT_ID) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_YANDEX_CLIENT_ID is required when OAUTH2_YANDEX_ENABLED is true',
+                    path: ['OAUTH2_YANDEX_CLIENT_ID'],
+                });
+            }
+
+            if (!data.OAUTH2_YANDEX_CLIENT_SECRET) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_YANDEX_CLIENT_SECRET is required when OAUTH2_YANDEX_ENABLED is true',
+                    path: ['OAUTH2_YANDEX_CLIENT_SECRET'],
+                });
+            }
+
+            if (!data.OAUTH2_YANDEX_ALLOWED_EMAILS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'OAUTH2_YANDEX_ALLOWED_EMAILS is required when OAUTH2_YANDEX_ENABLED is true',
+                    path: ['OAUTH2_YANDEX_ALLOWED_EMAILS'],
+                });
+            }
+        }
         // if (data.COOKIE_AUTH_ENABLED) {
         //     if (!data.COOKIE_AUTH_NONCE) {
         //         ctx.addIssue({
@@ -329,6 +475,14 @@ export const configSchema = z
                 code: z.ZodIssueCode.custom,
                 message: 'JWT_AUTH_LIFETIME must be between 12 and 168 hours.',
                 path: ['JWT_AUTH_LIFETIME'],
+            });
+        }
+
+        if (data.REMNAWAVE_BRANCH !== 'dev' && data.REMNAWAVE_BRANCH !== 'main') {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'REMNAWAVE_BRANCH is modified in the Dockerfile. Please do not change it.',
+                path: ['REMNAWAVE_BRANCH'],
             });
         }
     });

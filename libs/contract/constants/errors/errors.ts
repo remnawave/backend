@@ -729,4 +729,14 @@ export const ERRORS = {
         message: 'Update config profile error',
         httpCode: 500,
     },
+    OAUTH2_PROVIDER_NOT_FOUND: {
+        code: 'A147',
+        message: 'OAuth2 provider not found',
+        httpCode: 404,
+    },
+    OAUTH2_AUTHORIZE_ERROR: {
+        code: 'A148',
+        message: 'OAuth2 authorize error',
+        httpCode: 500,
+    },
 } as const;

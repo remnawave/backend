@@ -31,14 +31,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.x'
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -58,10 +50,14 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
+          build-args: |
+            FRONTEND_URL=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend.zip
+            FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend-loc.zip
+            BRANCH=dev
+
           context: .
-          file: DockerfileDev
-          # platforms: linux/amd64,linux/arm64
-          platforms: linux/amd64 # ARM64 is not supported.
+          file: Dockerfile
+          platforms: linux/amd64
           push: true
           tags: |
             remnawave/backend:dev
