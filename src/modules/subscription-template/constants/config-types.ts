@@ -1,7 +1,7 @@
 export const SUBSCRIPTION_CONFIG_TYPES = {
     MIHOMO: {
         NAME: 'MIHOMO',
-        REGEX: /^(?:FlClash|[Cc]lash-[Vv]erge|[Kk]oala-[Cc]lash|[Cc]lash-?[Mm]eta|[Mm]urge|[Cc]lashX [Mm]eta|[Mm]ihomo|[Cc]lash-nyanpasu|clash\.meta)/,
+        REGEX: /^(?:FlClash|FlClashX|[Cc]lash-[Vv]erge|[Kk]oala-[Cc]lash|[Cc]lash-?[Mm]eta|[Mm]urge|[Cc]lashX [Mm]eta|[Mm]ihomo|[Cc]lash-nyanpasu|clash\.meta)/,
         CONTENT_TYPE: 'text/yaml',
         BASE64: false,
     },
