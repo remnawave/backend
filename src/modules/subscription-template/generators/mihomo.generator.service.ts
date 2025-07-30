@@ -164,6 +164,7 @@ export class MihomoGeneratorService {
             path: host.path || '',
             headers: '',
             udp: true,
+            packetEncoding: "xudp",
             alpn: host.alpn,
             publicKey: host.publicKey,
             shortId: host.shortId,
@@ -218,6 +219,7 @@ export class MihomoGeneratorService {
         path: string;
         headers: string;
         udp: boolean;
+        packetEncoding: string;
         alpn?: string;
         publicKey?: string;
         shortId?: string;
@@ -231,6 +233,7 @@ export class MihomoGeneratorService {
             sni,
             alpn,
             udp,
+            packetEncoding,
             host,
             path,
             headers,
