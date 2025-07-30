@@ -317,7 +317,7 @@ export class MihomoGeneratorService {
 
         node['client-fingerprint'] = clientFingerprint || 'chrome';
 
-        if (type === 'vless' || type === 'vmess') {
+        if (type === 'vless') {
             node['packet-encoding'] = 'xudp';
         };
 
