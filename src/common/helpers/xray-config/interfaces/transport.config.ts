@@ -115,7 +115,7 @@ export interface DomainSocketObject {
 }
 
 export interface StreamSettingsObject {
-    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | 'httpupgrade';
+    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | "grpc" | 'httpupgrade';
     security?: 'none' | 'reality' | 'tls';
     tlsSettings?: TLSObject;
     realitySettings?: RealityObject;
