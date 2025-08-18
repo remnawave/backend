@@ -152,7 +152,7 @@
     "@typescript-eslint/eslint-plugin": "^8.39.1",
     "@typescript-eslint/parser": "^8.8.39.1",
     "esbuild": "^0.25.9",
-    "eslint": "9.28.0",
+    "eslint": "9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-paths": "^1.1.0",
     "eslint-plugin-perfectionist": "^4.15.0",
