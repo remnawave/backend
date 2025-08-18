@@ -12,7 +12,7 @@ const targets = [
   { entry: 'prisma/seed/config.seed.js', out: 'bundle/config.seed.js', dest: 'dist/prisma/seed/config.seed.js' },
 ];
 
-// copy out the bundled
+// create minimal package.json with the same version as currently set only for the packages that had trouble being bundled
 if (process.argv.includes('--create-deps')) {
   const prodModulesDir = '/opt/app/prod_modules';
   fs.mkdirSync(prodModulesDir, { recursive: true });
@@ -28,7 +28,7 @@ if (process.argv.includes('--create-deps')) {
   process.exit(0);
 }
 
-// copy out the bundled
+// copy out the bundled files to their previous locations
 if (process.argv.includes('--copy-bundled-executables')) {
   const bundleDir = '/opt/app/bundle';
   targets.forEach(({ entry, out, dest }) => {
