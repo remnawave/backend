@@ -58,7 +58,7 @@ services:
         condition: service_healthy
 
   remnawave-db:
-    image: postgres:17.5
+    image: postgres:17.6
     container_name: 'remnawave-db'
     hostname: remnawave-db
     restart: always
@@ -82,7 +82,7 @@ services:
       retries: 3
 
   remnawave-redis:
-    image: valkey/valkey:8.0.2-alpine
+    image: valkey/valkey:8.1-alpine
     container_name: remnawave-redis
     hostname: remnawave-redis
     restart: always

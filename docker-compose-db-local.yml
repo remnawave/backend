@@ -1,6 +1,6 @@
 services:
   remnawave-db-local:
-    image: postgres:17.5
+    image: postgres:17.6
     container_name: remnawave-db-local
     hostname: remnawave-db-local
     restart: always
@@ -16,7 +16,7 @@ services:
     volumes:
       - remnawave_db_local_data:/var/lib/postgresql/data
   remnawave-redis-local:
-    image: valkey/valkey:8.0.2-alpine
+    image: valkey/valkey:8.1-alpine
     container_name: remnawave-redis-local
     hostname: remnawave-redis-local
     restart: always
