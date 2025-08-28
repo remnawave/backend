@@ -2,18 +2,40 @@ import requestIp from 'request-ip';
 
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
-export const IpAddress = createParamDecorator((data, ctx: ExecutionContext) => {
+export const IpAddress = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
-    const cfConnectingIp = request.headers?.['cf-connecting-ip'] || request.headers?.['CF-Connecting-IP'];
-    if (cfConnectingIp) {
-        return Array.isArray(cfConnectingIp) ? cfConnectingIp[0] : cfConnectingIp;
+    const headers = request?.headers || {};
+    const hadXff = Object.prototype.hasOwnProperty.call(headers, 'x-forwarded-for');
+    const savedXff = hadXff ? headers['x-forwarded-for'] : undefined;
+
+    if (hadXff) {
+        delete headers['x-forwarded-for'];
     }
 
-    if (request.clientIp) {
-        return request.clientIp;
+    let ip = requestIp.getClientIp(request);
+
+    // Restore X-Forwarded-For header
+    if (hadXff) {
+        headers['x-forwarded-for'] = savedXff as any;
     }
 
-    const ip = requestIp.getClientIp(request);
-    return ip || 'Unknown';
+    if (ip) {
+        return ip;
+    }
+
+    const xff = headers['x-forwarded-for'];
+    if (typeof xff === 'string' && xff.length > 0) {
+        const firstIp = xff.split(',')[0]?.trim();
+        if (firstIp) {
+            return firstIp;
+        }
+    } else if (Array.isArray(xff) && xff.length > 0) {
+        const firstIp = String(xff[0]).split(',')[0]?.trim();
+        if (firstIp) {
+            return firstIp;
+        }
+    }
+
+    return 'Unknown';
 });
