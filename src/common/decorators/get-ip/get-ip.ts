@@ -15,7 +15,6 @@ export const IpAddress = createParamDecorator((data: unknown, ctx: ExecutionCont
 
     let ip = requestIp.getClientIp(request);
 
-    // Restore X-Forwarded-For header
     if (hadXff) {
         headers['x-forwarded-for'] = savedXff as any;
     }
