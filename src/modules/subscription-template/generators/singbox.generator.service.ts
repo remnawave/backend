@@ -78,7 +78,7 @@ export class SingBoxGeneratorService {
     private async createConfig(version: null | string): Promise<Record<string, any>> {
         let config: Record<string, any> = {};
 
-        if (version && semver.gte(version, '1.11.0')) {
+        if (version && semver.gte(version, '1.12.0')) {
             const templateContent =
                 await this.subscriptionTemplateService.getJsonTemplateByType('SINGBOX');
             config = templateContent;
@@ -86,50 +86,6 @@ export class SingBoxGeneratorService {
             const templateContent =
                 await this.subscriptionTemplateService.getJsonTemplateByType('SINGBOX_LEGACY');
             config = templateContent;
-        }
-
-        if (version && semver.satisfies(version, '>=1.10.0')) {
-            // version 1.10.x
-            // Reference: https://sing-box.sagernet.org/migration/#tun-address-fields-are-merged
-            const tunInboundIndex = config.inbounds.findIndex(
-                (inbound: any) => inbound.type === 'tun',
-            );
-
-            if (tunInboundIndex !== -1) {
-                const tunInbound = config.inbounds[tunInboundIndex];
-
-                if (tunInbound.inet4_address || tunInbound.inet6_address) {
-                    tunInbound.address = [
-                        tunInbound.inet4_address,
-                        tunInbound.inet6_address,
-                    ].filter(Boolean);
-                    delete tunInbound.inet4_address;
-                    delete tunInbound.inet6_address;
-                }
-
-                if (tunInbound.inet4_route_address || tunInbound.inet6_route_address) {
-                    tunInbound.route_address = [
-                        ...(tunInbound.inet4_route_address || []),
-                        ...(tunInbound.inet6_route_address || []),
-                    ];
-                    delete tunInbound.inet4_route_address;
-                    delete tunInbound.inet6_route_address;
-                }
-
-                if (
-                    tunInbound.inet4_route_exclude_address ||
-                    tunInbound.inet6_route_exclude_address
-                ) {
-                    tunInbound.route_exclude_address = [
-                        ...(tunInbound.inet4_route_exclude_address || []),
-                        ...(tunInbound.inet6_route_exclude_address || []),
-                    ];
-                    delete tunInbound.inet4_route_exclude_address;
-                    delete tunInbound.inet6_route_exclude_address;
-                }
-
-                config.inbounds[tunInboundIndex] = tunInbound;
-            }
         }
 
         return config;
