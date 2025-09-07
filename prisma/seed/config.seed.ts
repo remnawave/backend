@@ -301,17 +301,12 @@ export const SingboxLegacyDefaultConfig = {
             type: 'direct',
             tag: 'direct',
         },
-        {
-            type: 'block',
-            tag: 'block',
-        },
-        {
-            type: 'dns',
-            tag: 'dns-out',
-        },
     ],
     route: {
         rules: [
+            {
+                action: 'sniff',
+            },
             {
                 type: 'logical',
                 mode: 'or',
@@ -323,7 +318,7 @@ export const SingboxLegacyDefaultConfig = {
                         port: 53,
                     },
                 ],
-                outbound: 'dns-out',
+                action: 'hijack-dns',
             },
             {
                 ip_is_private: true,
@@ -360,18 +355,22 @@ export const SingboxDefaultConfig = {
         servers: [
             {
                 tag: 'cf-dns',
-                address: 'tls://1.1.1.1',
+                type: "tls",
+                address: '1.1.1.1',
             },
             {
                 tag: 'local',
-                address: 'tcp://1.1.1.1',
+                type: "tcp",
+                address: '1.1.1.1',
                 address_strategy: 'prefer_ipv4',
                 strategy: 'ipv4_only',
                 detour: 'direct',
             },
             {
+                type: "fakeip",
                 tag: 'remote',
-                address: 'fakeip',
+                inet4_range: '198.18.0.0/15',
+                inet6_range: 'fc00::/18',
             },
         ],
         rules: [
@@ -384,11 +383,6 @@ export const SingboxDefaultConfig = {
                 server: 'local',
             },
         ],
-        fakeip: {
-            enabled: true,
-            inet4_range: '198.18.0.0/15',
-            inet6_range: 'fc00::/18',
-        },
         independent_cache: true,
     },
     inbounds: [
