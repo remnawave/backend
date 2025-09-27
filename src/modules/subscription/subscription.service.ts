@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { ICommandResponse } from '@common/types/command-response.type';
+import { errorHandler } from '@common/helpers/error-handler.helper';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
 import { createHappCryptoLink } from '@common/utils';
 import {
@@ -74,6 +75,7 @@ export class SubscriptionService {
         private readonly formatHostsService: FormatHostsService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly userSubscriptionRequestHistoryQueue: UserSubscriptionRequestHistoryQueueService,
+        private readonly subscriptionService: SubscriptionService,
     ) {
         this.hwidDeviceLimitEnabled =
             this.configService.getOrThrow<string>('HWID_DEVICE_LIMIT_ENABLED') === 'true';
@@ -273,6 +275,13 @@ export class SubscriptionService {
                 };
             }
 
+            const subscriptionUrlResult =
+                await this.subscriptionService.getUserSubscriptionLinkByUser(
+                    user.response.shortUuid,
+                    user.response.username,
+                );
+            const subscriptionUrl = errorHandler(subscriptionUrlResult);
+
             let isHwidLimited: boolean | undefined;
 
             const headers = await this.getUserProfileHeadersInfo(
@@ -332,7 +341,7 @@ export class SubscriptionService {
             return {
                 isOk: true,
                 response: new RawSubscriptionWithHostsResponse({
-                    user: new GetUserResponseModel(user.response, this.subPublicDomain),
+                    user: new GetUserResponseModel(user.response, subscriptionUrl),
                     convertedUserInfo: {
                         daysLeft: dayjs(user.response.expireAt).diff(dayjs(), 'day'),
                         trafficUsed: prettyBytesUtil(user.response.usedTrafficBytes),
@@ -677,6 +686,56 @@ export class SubscriptionService {
         }
     }
 
+    public async getUserSubscriptionLinkByUser(
+        userShortUuid: string,
+        username: string,
+    ): Promise<ICommandResponse<string>> {
+        const settingEntity = await this.getCachedSubscriptionSettings();
+
+        if (!settingEntity) {
+            return {
+                isOk: false,
+                ...ERRORS.INTERNAL_SERVER_ERROR,
+            };
+        }
+
+        return {
+            isOk: true,
+            response: this.resolveSubscriptionUrl(
+                userShortUuid,
+                username,
+                settingEntity.addUsernameToBaseSubscription,
+            ),
+        };
+    }
+
+    public async getUsersSubscriptionLinkByUser(
+        users: Pick<UserEntity, 'shortUuid' | 'username'>[],
+    ): Promise<ICommandResponse<Record<string, string>>> {
+        const settingEntity = await this.getCachedSubscriptionSettings();
+
+        if (!settingEntity) {
+            return {
+                isOk: false,
+                ...ERRORS.INTERNAL_SERVER_ERROR,
+            };
+        }
+
+        const linksEntries = users.map((user) => [
+            user.shortUuid,
+            this.resolveSubscriptionUrl(
+                user.shortUuid,
+                user.username,
+                settingEntity.addUsernameToBaseSubscription,
+            ),
+        ]);
+
+        return {
+            isOk: true,
+            response: Object.fromEntries(linksEntries),
+        };
+    }
+
     private async generateSsConfLinks(
         subscriptionShortUuid: string,
         formattedHosts: IFormattedHost[],
@@ -703,11 +762,17 @@ export class SubscriptionService {
         isHapp: boolean,
         settings: SubscriptionSettingsEntity,
     ): Promise<ISubscriptionHeaders> {
+        const subscriptionLink = this.resolveSubscriptionUrl(
+            user.shortUuid,
+            user.username,
+            settings.addUsernameToBaseSubscription,
+        );
+
         const headers: ISubscriptionHeaders = {
             'content-disposition': `attachment; filename=${user.username}`,
             'support-url': settings.supportLink,
             'profile-title': `base64:${Buffer.from(
-                TemplateEngine.formatWithUser(settings.profileTitle, user, this.subPublicDomain),
+                TemplateEngine.formatWithUser(settings.profileTitle, user, subscriptionLink),
             ).toString('base64')}`,
             'profile-update-interval': settings.profileUpdateInterval.toString(),
             'subscription-userinfo': Object.entries(getSubscriptionUserInfo(user))
@@ -717,7 +782,7 @@ export class SubscriptionService {
 
         if (settings.happAnnounce) {
             headers.announce = `base64:${Buffer.from(
-                TemplateEngine.formatWithUser(settings.happAnnounce, user, this.subPublicDomain),
+                TemplateEngine.formatWithUser(settings.happAnnounce, user, subscriptionLink),
             ).toString('base64')}`;
         }
 
@@ -726,11 +791,7 @@ export class SubscriptionService {
         }
 
         if (settings.isProfileWebpageUrlEnabled && !this.hwidDeviceLimitEnabled) {
-            headers['profile-web-page-url'] = this.resolveSubscriptionUrl(
-                user.shortUuid,
-                user.username,
-                settings.addUsernameToBaseSubscription,
-            );
+            headers['profile-web-page-url'] = subscriptionLink;
         }
 
         const refillDate = getSubscriptionRefillDate(user.trafficLimitStrategy);
@@ -740,7 +801,7 @@ export class SubscriptionService {
 
         if (settings.customResponseHeaders) {
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.formatWithUser(value, user, this.subPublicDomain);
+                headers[key] = TemplateEngine.formatWithUser(value, user, subscriptionLink);
             }
         }
 

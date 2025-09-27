@@ -23,6 +23,7 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { SubscriptionService } from '@modules/subscription/subscription.service';
 import { UserEntity } from '@modules/users/entities';
 
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
@@ -35,6 +36,7 @@ export class FormatHostsService {
     constructor(
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
+        private readonly subscriptionService: SubscriptionService,
     ) {
         this.nanoid = customAlphabet('0123456789abcdefghjkmnopqrstuvwxyz', 10);
         this.subPublicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
@@ -49,12 +51,18 @@ export class FormatHostsService {
 
         let specialRemarks: string[] = [];
 
-        if (user.status !== USERS_STATUS.ACTIVE) {
-            const settings = await this.getSubscriptionSettings();
-            if (!settings) {
-                return formattedHosts;
-            }
+        const settings = await this.getSubscriptionSettings();
+        const subscriptionUrlResult = await this.subscriptionService.getUserSubscriptionLinkByUser(
+            user.shortUuid,
+            user.username,
+        );
 
+        if (!settings || !subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+            return formattedHosts;
+        }
+        const subscriptionUrl = subscriptionUrlResult.response;
+
+        if (user.status !== USERS_STATUS.ACTIVE) {
             if (settings.isShowCustomRemarks) {
                 switch (user.status) {
                     case USERS_STATUS.EXPIRED:
@@ -69,7 +77,7 @@ export class FormatHostsService {
                 }
 
                 const templatedRemarks = specialRemarks.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    TemplateEngine.formatWithUser(remark, user, subscriptionUrl),
                 );
 
                 formattedHosts.push(...this.createFallbackHosts(templatedRemarks));
@@ -109,11 +117,7 @@ export class FormatHostsService {
         const knownRemarks = new Map<string, number>();
 
         for (const inputHost of hosts) {
-            const remark = TemplateEngine.formatWithUser(
-                inputHost.remark,
-                user,
-                this.subPublicDomain,
-            );
+            const remark = TemplateEngine.formatWithUser(inputHost.remark, user, subscriptionUrl);
 
             const currentCount = knownRemarks.get(remark) || 0;
             knownRemarks.set(remark, currentCount + 1);

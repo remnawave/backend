@@ -25,7 +25,7 @@ export class TemplateEngine {
         return hasReplacement ? result : template;
     }
 
-    static formatWithUser(template: string, user: UserEntity, subPublicDomain: string): string {
+    static formatWithUser(template: string, user: UserEntity, subscriptionLink: string): string {
         return this.replace(template, {
             DAYS_LEFT: Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
             TRAFFIC_USED: prettyBytesUtil(user.usedTrafficBytes, true, 3),
@@ -35,7 +35,7 @@ export class TemplateEngine {
             USERNAME: user.username,
             EMAIL: user.email || '',
             TELEGRAM_ID: user.telegramId?.toString() || '',
-            SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
+            SUBSCRIPTION_URL: subscriptionLink,
             TAG: user.tag || '',
         });
     }
