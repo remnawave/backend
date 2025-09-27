@@ -12,7 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { ICommandResponse } from '@common/types/command-response.type';
-import { errorHandler } from '@common/helpers/error-handler.helper';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
 import { createHappCryptoLink } from '@common/utils';
 import {
@@ -75,7 +74,6 @@ export class SubscriptionService {
         private readonly formatHostsService: FormatHostsService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly userSubscriptionRequestHistoryQueue: UserSubscriptionRequestHistoryQueueService,
-        private readonly subscriptionService: SubscriptionService,
     ) {
         this.hwidDeviceLimitEnabled =
             this.configService.getOrThrow<string>('HWID_DEVICE_LIMIT_ENABLED') === 'true';
@@ -275,12 +273,11 @@ export class SubscriptionService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    user.response.shortUuid,
-                    user.response.username,
-                );
-            const subscriptionUrl = errorHandler(subscriptionUrlResult);
+            const subscriptionUrl = this.resolveSubscriptionUrl(
+                user.response.shortUuid,
+                user.response.username,
+                settingEntity.addUsernameToBaseSubscription,
+            );
 
             let isHwidLimited: boolean | undefined;
 

@@ -2,17 +2,16 @@ import { randomUUID } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
 
 import { ConfigService } from '@nestjs/config';
-import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import {
     HttpUpgradeObject,
+    RawObject,
     StreamSettingsObject,
     TcpObject,
     WebSocketObject,
     xHttpObject,
 } from '@common/helpers/xray-config/interfaces/transport.config';
-import { RawObject } from '@common/helpers/xray-config/interfaces/transport.config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { resolveInboundAndPublicKey } from '@common/helpers/xray-config';
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -23,10 +22,11 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
-import { SubscriptionService } from '@modules/subscription/subscription.service';
 import { UserEntity } from '@modules/users/entities';
 
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
+import { Injectable } from '@nestjs/common';
+import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 
 @Injectable()
 export class FormatHostsService {
@@ -36,7 +36,6 @@ export class FormatHostsService {
     constructor(
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
-        private readonly subscriptionService: SubscriptionService,
     ) {
         this.nanoid = customAlphabet('0123456789abcdefghjkmnopqrstuvwxyz', 10);
         this.subPublicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
@@ -52,15 +51,16 @@ export class FormatHostsService {
         let specialRemarks: string[] = [];
 
         const settings = await this.getSubscriptionSettings();
-        const subscriptionUrlResult = await this.subscriptionService.getUserSubscriptionLinkByUser(
-            user.shortUuid,
-            user.username,
-        );
+        // const subscriptionUrlResult = await this.subscriptionService.getUserSubscriptionLinkByUser(
+        //     user.shortUuid,
+        //     user.username,
+        // );
 
-        if (!settings || !subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+        const subscriptionUrl = await this.getSubscriptionUrl(user.shortUuid, user.username);
+
+        if (!settings || !subscriptionUrl) {
             return formattedHosts;
         }
-        const subscriptionUrl = subscriptionUrlResult.response;
 
         if (user.status !== USERS_STATUS.ACTIVE) {
             if (settings.isShowCustomRemarks) {
@@ -417,6 +417,21 @@ export class FormatHostsService {
         }
 
         return settingsResponse.response;
+    }
+
+    private async getSubscriptionUrl(
+        userShortUuid: string,
+        username: string,
+    ): Promise<string | null> {
+        const url = await this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
+            new GetSubscriptionUrlQuery(userShortUuid, username),
+        );
+
+        if (!url.isOk || !url.response) {
+            return null;
+        }
+
+        return url.response;
     }
 
     private createFallbackHosts(remarks: string[]): IFormattedHost[] {
