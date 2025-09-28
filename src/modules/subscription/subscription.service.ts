@@ -56,6 +56,7 @@ import { HostWithRawInbound } from '../hosts/entities/host-with-inbound-tag.enti
 import { ISubscriptionHeaders } from './interfaces/subscription-headers.interface';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
 import { GetAllSubscriptionsQueryDto } from './dto';
+import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 
 @Injectable()
 export class SubscriptionService {
@@ -273,10 +274,11 @@ export class SubscriptionService {
                 };
             }
 
-            const subscriptionUrl = this.resolveSubscriptionUrl(
+            const subscriptionUrl = resolveSubscriptionUrl(
                 user.response.shortUuid,
                 user.response.username,
                 settingEntity.addUsernameToBaseSubscription,
+                this.subPublicDomain,
             );
 
             let isHwidLimited: boolean | undefined;
@@ -523,10 +525,11 @@ export class SubscriptionService {
         ssConfLinks: Record<string, string>,
         settingEntity: SubscriptionSettingsEntity,
     ): Promise<SubscriptionRawResponse> {
-        const subscriptionUrl = this.resolveSubscriptionUrl(
+        const subscriptionUrl = resolveSubscriptionUrl(
             user.shortUuid,
             user.username,
             settingEntity.addUsernameToBaseSubscription,
+            this.subPublicDomain,
         );
 
         return new SubscriptionRawResponse({
@@ -698,10 +701,11 @@ export class SubscriptionService {
 
         return {
             isOk: true,
-            response: this.resolveSubscriptionUrl(
+            response: resolveSubscriptionUrl(
                 userShortUuid,
                 username,
                 settingEntity.addUsernameToBaseSubscription,
+                this.subPublicDomain,
             ),
         };
     }
@@ -720,10 +724,11 @@ export class SubscriptionService {
 
         const linksEntries = users.map((user) => [
             user.shortUuid,
-            this.resolveSubscriptionUrl(
+            resolveSubscriptionUrl(
                 user.shortUuid,
                 user.username,
                 settingEntity.addUsernameToBaseSubscription,
+                this.subPublicDomain,
             ),
         ]);
 
@@ -759,10 +764,11 @@ export class SubscriptionService {
         isHapp: boolean,
         settings: SubscriptionSettingsEntity,
     ): Promise<ISubscriptionHeaders> {
-        const subscriptionLink = this.resolveSubscriptionUrl(
+        const subscriptionLink = resolveSubscriptionUrl(
             user.shortUuid,
             user.username,
             settings.addUsernameToBaseSubscription,
+            this.subPublicDomain,
         );
 
         const headers: ISubscriptionHeaders = {
@@ -1004,17 +1010,17 @@ export class SubscriptionService {
         }
     }
 
-    private resolveSubscriptionUrl(
-        shortUuid: string,
-        username: string,
-        addUsernameToBaseSubscription: boolean,
-    ): string {
-        if (addUsernameToBaseSubscription) {
-            return `https://${this.subPublicDomain}/${shortUuid}#${username}`;
-        }
-
-        return `https://${this.subPublicDomain}/${shortUuid}`;
-    }
+    // private resolveSubscriptionUrl(
+    //     shortUuid: string,
+    //     username: string,
+    //     addUsernameToBaseSubscription: boolean,
+    // ): string {
+    //     if (addUsernameToBaseSubscription) {
+    //         return `https://${this.subPublicDomain}/${shortUuid}#${username}`;
+    //     }
+    //
+    //     return `https://${this.subPublicDomain}/${shortUuid}`;
+    // }
 
     private async updateAndReportSubscriptionRequest(
         userUuid: string,

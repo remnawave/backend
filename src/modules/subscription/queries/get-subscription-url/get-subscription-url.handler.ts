@@ -2,8 +2,9 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 
-import { GetSubscriptionUrlQuery } from './get-subscription-url.query';
 import { SubscriptionService } from '@modules/subscription/subscription.service';
+
+import { GetSubscriptionUrlQuery } from './get-subscription-url.query';
 
 @QueryHandler(GetSubscriptionUrlQuery)
 export class GetSubscriptionUrlHandler

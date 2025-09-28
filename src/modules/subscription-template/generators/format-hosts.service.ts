@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { customAlphabet } from 'nanoid';
 
 import { ConfigService } from '@nestjs/config';
+import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import {
@@ -21,12 +22,12 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
+// import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
+import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
 import { UserEntity } from '@modules/users/entities';
 
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
-import { Injectable } from '@nestjs/common';
-import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 
 @Injectable()
 export class FormatHostsService {
@@ -51,16 +52,17 @@ export class FormatHostsService {
         let specialRemarks: string[] = [];
 
         const settings = await this.getSubscriptionSettings();
-        // const subscriptionUrlResult = await this.subscriptionService.getUserSubscriptionLinkByUser(
-        //     user.shortUuid,
-        //     user.username,
-        // );
 
-        const subscriptionUrl = await this.getSubscriptionUrl(user.shortUuid, user.username);
-
-        if (!settings || !subscriptionUrl) {
+        if (!settings) {
             return formattedHosts;
         }
+
+        const subscriptionUrl = resolveSubscriptionUrl(
+            user.shortUuid,
+            user.username,
+            settings?.addUsernameToBaseSubscription,
+            this.subPublicDomain,
+        );
 
         if (user.status !== USERS_STATUS.ACTIVE) {
             if (settings.isShowCustomRemarks) {
@@ -419,20 +421,20 @@ export class FormatHostsService {
         return settingsResponse.response;
     }
 
-    private async getSubscriptionUrl(
-        userShortUuid: string,
-        username: string,
-    ): Promise<string | null> {
-        const url = await this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
-            new GetSubscriptionUrlQuery(userShortUuid, username),
-        );
-
-        if (!url.isOk || !url.response) {
-            return null;
-        }
-
-        return url.response;
-    }
+    // private async getSubscriptionUrl(
+    //     userShortUuid: string,
+    //     username: string,
+    // ): Promise<string | null> {
+    //     const url = await this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
+    //         new GetSubscriptionUrlQuery(userShortUuid, username),
+    //     );
+    //
+    //     if (!url.isOk || !url.response) {
+    //         return null;
+    //     }
+    //
+    //     return url.response;
+    // }
 
     private createFallbackHosts(remarks: string[]): IFormattedHost[] {
         return remarks.map((remark) => ({
