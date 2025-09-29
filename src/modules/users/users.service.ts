@@ -23,7 +23,6 @@ import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/quer
 import { GetUsersSubscriptionUrlQuery } from '@modules/subscription/queries/get-users-subscription-url';
 import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
-// import { SubscriptionService } from '@modules/subscription/subscription.service';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
 
@@ -71,7 +70,6 @@ export class UsersService {
         private readonly startAllNodesQueue: StartAllNodesQueueService,
         private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService,
         private readonly userActionsQueueService: UserActionsQueueService,
-        // private readonly subscriptionService: SubscriptionService,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }

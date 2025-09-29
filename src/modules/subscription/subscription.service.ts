@@ -1010,18 +1010,6 @@ export class SubscriptionService {
         }
     }
 
-    // private resolveSubscriptionUrl(
-    //     shortUuid: string,
-    //     username: string,
-    //     addUsernameToBaseSubscription: boolean,
-    // ): string {
-    //     if (addUsernameToBaseSubscription) {
-    //         return `https://${this.subPublicDomain}/${shortUuid}#${username}`;
-    //     }
-    //
-    //     return `https://${this.subPublicDomain}/${shortUuid}`;
-    // }
-
     private async updateAndReportSubscriptionRequest(
         userUuid: string,
         userAgent: string,
