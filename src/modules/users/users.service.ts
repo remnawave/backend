@@ -485,6 +485,13 @@ export class UsersService {
                 return { ...subscriptionUrlResult, response: undefined };
             }
 
+            this.logger.error(
+                'GET by uunic',
+                result.shortUuid,
+                result.username,
+                subscriptionUrlResult.response,
+            );
+
             return {
                 isOk: true,
                 response: { user: result, subscriptionUrl: subscriptionUrlResult.response },
