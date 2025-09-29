@@ -37,6 +37,7 @@ import { RenderTemplatesService } from '@modules/subscription-template/render-te
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
 import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
+import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { UserEntity } from '@modules/users/entities/user.entity';
@@ -56,7 +57,6 @@ import { HostWithRawInbound } from '../hosts/entities/host-with-inbound-tag.enti
 import { ISubscriptionHeaders } from './interfaces/subscription-headers.interface';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
 import { GetAllSubscriptionsQueryDto } from './dto';
-import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 
 @Injectable()
 export class SubscriptionService {

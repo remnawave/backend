@@ -7,10 +7,8 @@ import { UserConverter } from './users.converter';
 import { UsersService } from './users.service';
 import { COMMANDS } from './commands';
 import { QUERIES } from './queries';
-import { SubscriptionModule } from '@modules/subscription/subscription.module';
-
 @Module({
-    imports: [CqrsModule, SubscriptionModule],
+    imports: [CqrsModule],
     controllers: [UsersController, UsersBulkActionsController, UsersStatsController],
     providers: [UsersRepository, UserConverter, UsersService, ...QUERIES, ...COMMANDS],
     exports: [],

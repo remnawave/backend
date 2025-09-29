@@ -52,7 +52,9 @@ export class FormatHostsService {
         let specialRemarks: string[] = [];
 
         const settings = await this.getSubscriptionSettings();
+        // const subscriptionUrl = await this.getSubscriptionUrl(user.shortUuid, user.username);
 
+        // if (!settings || !subscriptionUrl) {
         if (!settings) {
             return formattedHosts;
         }

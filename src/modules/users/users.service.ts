@@ -20,8 +20,9 @@ import { UserEvent } from '@integration-modules/notifications/interfaces';
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
 import { CreateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/create-user-traffic-history';
 import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
+import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
-import { SubscriptionService } from '@modules/subscription/subscription.service';
+// import { SubscriptionService } from '@modules/subscription/subscription.service';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
 
@@ -69,7 +70,7 @@ export class UsersService {
         private readonly startAllNodesQueue: StartAllNodesQueueService,
         private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService,
         private readonly userActionsQueueService: UserActionsQueueService,
-        private readonly subscriptionService: SubscriptionService,
+        // private readonly subscriptionService: SubscriptionService,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }
@@ -84,11 +85,10 @@ export class UsersService {
                 return { ...user, response: undefined };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    user.response.shortUuid,
-                    user.response.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                user.response.shortUuid,
+                user.response.username,
+            );
 
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
@@ -153,11 +153,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    user.response.user.shortUuid,
-                    user.response.user.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                user.response.user.shortUuid,
+                user.response.user.username,
+            );
 
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
@@ -439,8 +438,7 @@ export class UsersService {
         try {
             const [users, total] = await this.userRepository.getAllUsersV2(dto);
 
-            const subscriptionUrlsResult =
-                await this.subscriptionService.getUsersSubscriptionLinkByUser(users);
+            const subscriptionUrlsResult = await this.getUsersSubscriptionLink(users);
             if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
                 return { ...subscriptionUrlsResult, response: undefined };
             }
@@ -479,11 +477,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    result.shortUuid,
-                    result.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                result.shortUuid,
+                result.username,
+            );
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
             }
@@ -520,8 +517,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlsResult =
-                await this.subscriptionService.getUsersSubscriptionLinkByUser(result);
+            const subscriptionUrlsResult = await this.getUsersSubscriptionLink(result);
             if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
                 return { ...subscriptionUrlsResult, response: undefined };
             }
@@ -581,11 +577,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    updatedUser.shortUuid,
-                    updatedUser.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
             }
@@ -678,11 +673,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    updatedUser.shortUuid,
-                    updatedUser.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
             }
@@ -742,11 +736,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    updatedUser.shortUuid,
-                    updatedUser.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
             }
@@ -823,11 +816,10 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult =
-                await this.subscriptionService.getUserSubscriptionLinkByUser(
-                    newUser.shortUuid,
-                    newUser.username,
-                );
+            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+                newUser.shortUuid,
+                newUser.username,
+            );
             if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
                 return { ...subscriptionUrlResult, response: undefined };
             }
@@ -1255,4 +1247,20 @@ export class UsersService {
             ICommandResponse<IGetUserUsageByRange[]>
         >(new GetUserUsageByRangeQuery(userUuid, start, end));
     }
+
+    private getUserSubscriptionLink = async (
+        shortUuid: string,
+        username: string,
+    ): Promise<ICommandResponse<string>> => {
+        // return { isOk: true, response: 'Sublink' };
+        return this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
+            new GetSubscriptionUrlQuery(shortUuid, username),
+        );
+    };
+
+    private getUsersSubscriptionLink = async (
+        users: Pick<UserEntity, 'shortUuid' | 'username'>[],
+    ): Promise<ICommandResponse<Record<string, string>>> => {
+        return { isOk: true, response: { user: 'Sublinks' } };
+    };
 }

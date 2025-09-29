@@ -13,7 +13,7 @@ import { SubscriptionService } from './subscription.service';
     imports: [CqrsModule, SubscriptionTemplateModule],
     controllers: [SubscriptionController, SubscriptionsController],
     providers: [SubscriptionService, ...QUERIES],
-    exports: [SubscriptionService],
+    exports: [],
 })
 export class SubscriptionModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
