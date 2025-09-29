@@ -20,6 +20,7 @@ import { UserEvent } from '@integration-modules/notifications/interfaces';
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
 import { CreateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/create-user-traffic-history';
 import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
+import { GetUsersSubscriptionUrlQuery } from '@modules/subscription/queries/get-users-subscription-url';
 import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 // import { SubscriptionService } from '@modules/subscription/subscription.service';
@@ -1259,7 +1260,6 @@ export class UsersService {
         shortUuid: string,
         username: string,
     ): Promise<ICommandResponse<string>> => {
-        // return { isOk: true, response: 'Sublink' };
         return this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
             new GetSubscriptionUrlQuery(shortUuid, username),
         );
@@ -1268,6 +1268,9 @@ export class UsersService {
     private getUsersSubscriptionLink = async (
         users: Pick<UserEntity, 'shortUuid' | 'username'>[],
     ): Promise<ICommandResponse<Record<string, string>>> => {
-        return { isOk: true, response: { user: 'Sublinks' } };
+        return this.queryBus.execute<
+            GetUsersSubscriptionUrlQuery,
+            ICommandResponse<Record<string, string>>
+        >(new GetUsersSubscriptionUrlQuery(users));
     };
 }
