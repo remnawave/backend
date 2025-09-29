@@ -13,9 +13,6 @@ export class GetSubscriptionUrlHandler
     constructor(private readonly subscriptionService: SubscriptionService) {}
 
     async execute(query: GetSubscriptionUrlQuery): Promise<ICommandResponse<string>> {
-        return this.subscriptionService.getUserSubscriptionLinkByUser(
-            query.userShortUuid,
-            query.username,
-        );
+        return this.subscriptionService.getSubscriptionUrl(query.userShortUuid, query.username);
     }
 }

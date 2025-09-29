@@ -22,7 +22,6 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
-// import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
 import { UserEntity } from '@modules/users/entities';
@@ -52,9 +51,7 @@ export class FormatHostsService {
         let specialRemarks: string[] = [];
 
         const settings = await this.getSubscriptionSettings();
-        // const subscriptionUrl = await this.getSubscriptionUrl(user.shortUuid, user.username);
 
-        // if (!settings || !subscriptionUrl) {
         if (!settings) {
             return formattedHosts;
         }
@@ -422,21 +419,6 @@ export class FormatHostsService {
 
         return settingsResponse.response;
     }
-
-    // private async getSubscriptionUrl(
-    //     userShortUuid: string,
-    //     username: string,
-    // ): Promise<string | null> {
-    //     const url = await this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
-    //         new GetSubscriptionUrlQuery(userShortUuid, username),
-    //     );
-    //
-    //     if (!url.isOk || !url.response) {
-    //         return null;
-    //     }
-    //
-    //     return url.response;
-    // }
 
     private createFallbackHosts(remarks: string[]): IFormattedHost[] {
         return remarks.map((remark) => ({

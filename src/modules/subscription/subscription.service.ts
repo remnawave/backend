@@ -686,7 +686,7 @@ export class SubscriptionService {
         }
     }
 
-    public async getUserSubscriptionLinkByUser(
+    public async getSubscriptionUrl(
         userShortUuid: string,
         username: string,
     ): Promise<ICommandResponse<string>> {
@@ -710,7 +710,7 @@ export class SubscriptionService {
         };
     }
 
-    public async getUsersSubscriptionLinkByUser(
+    public async getUsersSubscriptionUrl(
         users: Pick<UserEntity, 'shortUuid' | 'username'>[],
     ): Promise<ICommandResponse<Record<string, string>>> {
         const settingEntity = await this.getCachedSubscriptionSettings();

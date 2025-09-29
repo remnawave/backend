@@ -86,7 +86,7 @@ export class UsersService {
                 return { ...user, response: undefined };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 user.response.shortUuid,
                 user.response.username,
             );
@@ -154,7 +154,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 user.response.user.shortUuid,
                 user.response.user.username,
             );
@@ -439,7 +439,7 @@ export class UsersService {
         try {
             const [users, total] = await this.userRepository.getAllUsersV2(dto);
 
-            const subscriptionUrlsResult = await this.getUsersSubscriptionLink(users);
+            const subscriptionUrlsResult = await this.getUsersSubscriptionUrl(users);
             if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
                 return { ...subscriptionUrlsResult, response: undefined };
             }
@@ -478,7 +478,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 result.shortUuid,
                 result.username,
             );
@@ -518,7 +518,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlsResult = await this.getUsersSubscriptionLink(result);
+            const subscriptionUrlsResult = await this.getUsersSubscriptionUrl(result);
             if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
                 return { ...subscriptionUrlsResult, response: undefined };
             }
@@ -578,7 +578,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 updatedUser.shortUuid,
                 updatedUser.username,
             );
@@ -674,7 +674,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 updatedUser.shortUuid,
                 updatedUser.username,
             );
@@ -737,7 +737,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 updatedUser.shortUuid,
                 updatedUser.username,
             );
@@ -817,7 +817,7 @@ export class UsersService {
                 };
             }
 
-            const subscriptionUrlResult = await this.getUserSubscriptionLink(
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
                 newUser.shortUuid,
                 newUser.username,
             );
@@ -1249,7 +1249,7 @@ export class UsersService {
         >(new GetUserUsageByRangeQuery(userUuid, start, end));
     }
 
-    private getUserSubscriptionLink = async (
+    private getSubscriptionUrl = async (
         shortUuid: string,
         username: string,
     ): Promise<ICommandResponse<string>> => {
@@ -1258,7 +1258,7 @@ export class UsersService {
         );
     };
 
-    private getUsersSubscriptionLink = async (
+    private getUsersSubscriptionUrl = async (
         users: Pick<UserEntity, 'shortUuid' | 'username'>[],
     ): Promise<ICommandResponse<Record<string, string>>> => {
         return this.queryBus.execute<

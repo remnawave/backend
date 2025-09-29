@@ -15,6 +15,6 @@ export class GetUsersSubscriptionUrlHandler
     async execute(
         query: GetUsersSubscriptionUrlQuery,
     ): Promise<ICommandResponse<Record<string, string>>> {
-        return this.subscriptionService.getUsersSubscriptionLinkByUser(query.users);
+        return this.subscriptionService.getUsersSubscriptionUrl(query.users);
     }
 }
