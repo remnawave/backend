@@ -20,6 +20,9 @@ export class GetOneHostResponseModel {
     public sockoptParams: null | object;
     public allowInsecure: boolean;
 
+    public shuffleHost: boolean;
+    public mihomoX25519: boolean;
+
     public tag: null | string;
     public isHidden: boolean;
 
@@ -52,6 +55,9 @@ export class GetOneHostResponseModel {
         this.muxParams = data.muxParams;
         this.sockoptParams = data.sockoptParams;
         this.allowInsecure = data.allowInsecure;
+
+        this.shuffleHost = data.shuffleHost;
+        this.mihomoX25519 = data.mihomoX25519;
 
         this.tag = data.tag;
         this.isHidden = data.isHidden;

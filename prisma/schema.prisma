@@ -252,6 +252,8 @@ model Hosts {
   serverDescription String? @map("server_description")
   vlessRouteId      Int?    @map("vless_route_id")
   allowInsecure     Boolean @default(false) @map("allow_insecure")
+  shuffleHost       Boolean @default(false) @map("shuffle_host")
+  mihomoX25519      Boolean @default(false) @map("mihomo_x25519")
 
   tag      String? @map("tag")
   isHidden Boolean @default(false) @map("is_hidden")

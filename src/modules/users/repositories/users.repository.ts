@@ -276,6 +276,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     continue;
                 }
 
+                if (filter.id === 'uuid') {
+                    whereBuilder = whereBuilder.where(
+                        sql`"uuid"::text`,
+                        'ilike',
+                        `%${filter.value}%`,
+                    );
+                    continue;
+                }
+
                 const field = filter.id as keyof DB['users'];
 
                 switch (mode) {
@@ -375,6 +384,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                             'lastConnectedNodeUuid',
                             '=',
                             getKyselyUuid(filter.value as string),
+                        );
+                        continue;
+                    }
+
+                    if (filter.id === 'uuid') {
+                        countBuilder = countBuilder.where(
+                            sql`"uuid"::text`,
+                            'ilike',
+                            `%${filter.value}%`,
                         );
                         continue;
                     }

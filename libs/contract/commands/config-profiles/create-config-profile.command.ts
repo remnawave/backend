@@ -18,10 +18,10 @@ export namespace CreateConfigProfileCommand {
         name: z
             .string()
             .min(2, 'Name must be at least 2 characters')
-            .max(20, 'Name must be less than 20 characters')
+            .max(30, 'Name must be less than 30 characters')
             .regex(
-                /^[A-Za-z0-9_-]+$/,
-                'Name can only contain letters, numbers, underscores and dashes',
+                /^[A-Za-z0-9_\s-]+$/,
+                'Name can only contain letters, numbers, underscores, dashes and spaces',
             ),
         config: z.object({}).passthrough(),
     });

@@ -206,6 +206,7 @@ export class MihomoGeneratorService {
             shortId: host.shortId,
             clientFingerprint: host.fingerprint,
             allowInsecure: host.allowInsecure,
+            mihomoX25519: host.mihomoX25519,
         });
 
         switch (host.protocol) {
@@ -262,6 +263,7 @@ export class MihomoGeneratorService {
         shortId?: string;
         clientFingerprint?: string;
         allowInsecure?: boolean;
+        mihomoX25519?: boolean;
     }): ProxyNode {
         const {
             server,
@@ -278,6 +280,7 @@ export class MihomoGeneratorService {
             shortId,
             clientFingerprint,
             allowInsecure,
+            mihomoX25519,
         } = params;
         let { type, network } = params;
 
@@ -357,6 +360,10 @@ export class MihomoGeneratorService {
                 'public-key': publicKey,
                 'short-id': shortId,
             };
+
+            if (mihomoX25519) {
+                node['reality-opts']['support-x25519mlkem768'] = true;
+            }
         }
 
         node['client-fingerprint'] = clientFingerprint || 'chrome';

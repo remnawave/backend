@@ -30,6 +30,8 @@ const entityToModel = (entity: HostsEntity): Hosts => {
         sockoptParams: entity.sockoptParams,
         serverDescription: entity.serverDescription,
         allowInsecure: entity.allowInsecure,
+        shuffleHost: entity.shuffleHost,
+        mihomoX25519: entity.mihomoX25519,
 
         tag: entity.tag,
         isHidden: entity.isHidden,

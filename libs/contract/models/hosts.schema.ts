@@ -30,4 +30,6 @@ export const HostsSchema = z.object({
     overrideSniFromAddress: z.boolean().default(false),
     vlessRouteId: z.number().int().nullable(),
     allowInsecure: z.boolean().default(false),
+    shuffleHost: z.boolean(),
+    mihomoX25519: z.boolean(),
 });

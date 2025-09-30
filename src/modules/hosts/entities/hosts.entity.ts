@@ -26,6 +26,8 @@ export class HostsEntity implements Hosts {
 
     overrideSniFromAddress: boolean;
     vlessRouteId: number | null;
+    shuffleHost: boolean;
+    mihomoX25519: boolean;
 
     configProfileUuid: string | null;
     configProfileInboundUuid: string | null;

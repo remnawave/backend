@@ -25,6 +25,10 @@ export namespace GetStatusCommand {
             oauth2: z.object({
                 providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
             }),
+            branding: z.object({
+                title: z.nullable(z.string()),
+                logoUrl: z.nullable(z.string()),
+            }),
         }),
     });
 

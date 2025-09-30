@@ -21,6 +21,15 @@ export namespace GetSubscriptionRequestHistoryStatsCommand {
                     count: z.number(),
                 }),
             ),
+            hourlyRequestStats: z.array(
+                z.object({
+                    dateTime: z
+                        .string()
+                        .datetime()
+                        .transform((str) => new Date(str)),
+                    requestCount: z.number(),
+                }),
+            ),
         }),
     });
 

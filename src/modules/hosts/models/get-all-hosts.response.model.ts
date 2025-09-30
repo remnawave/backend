@@ -27,6 +27,9 @@ export class GetAllHostsResponseModel {
     public overrideSniFromAddress: boolean;
     public vlessRouteId: number | null;
 
+    public shuffleHost: boolean;
+    public mihomoX25519: boolean;
+
     public inbound: {
         configProfileUuid: string | null;
         configProfileInboundUuid: string | null;
@@ -55,6 +58,9 @@ export class GetAllHostsResponseModel {
 
         this.tag = data.tag;
         this.isHidden = data.isHidden;
+
+        this.shuffleHost = data.shuffleHost;
+        this.mihomoX25519 = data.mihomoX25519;
 
         this.inbound = {
             configProfileUuid: data.configProfileUuid,

@@ -57,6 +57,10 @@ export class AuthService {
         client: arctic.Yandex;
         allowedEmails: string[];
     };
+    private readonly branding: {
+        title: string | null;
+        logoUrl: string | null;
+    };
     private readonly oauth2Providers: Record<TOAuth2ProvidersKeys, boolean>;
 
     constructor(
@@ -78,6 +82,11 @@ export class AuthService {
         const isYandexAuthEnabled =
             this.configService.get<string>('OAUTH2_YANDEX_ENABLED') === 'true';
         const isTgAuthEnabled = this.configService.get<string>('TELEGRAM_OAUTH_ENABLED') === 'true';
+
+        this.branding = {
+            title: this.configService.get<string>('BRANDING_TITLE') ?? null,
+            logoUrl: this.configService.get<string>('BRANDING_LOGO_URL') ?? null,
+        };
 
         this.oauth2Providers = {
             [OAUTH2_PROVIDERS.GITHUB]: isGithubAuthEnabled,
@@ -377,6 +386,7 @@ export class AuthService {
                                 ]),
                             ) as Record<TOAuth2ProvidersKeys, boolean>,
                         },
+                        branding: this.branding,
                     }),
                 };
             }
@@ -390,6 +400,7 @@ export class AuthService {
                     oauth2: {
                         providers: this.oauth2Providers,
                     },
+                    branding: this.branding,
                 }),
             };
         } catch (error) {

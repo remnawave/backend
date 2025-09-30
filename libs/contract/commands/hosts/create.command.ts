@@ -74,6 +74,8 @@ export namespace CreateHostCommand {
         overrideSniFromAddress: z.optional(z.boolean().default(false)),
         allowInsecure: z.optional(z.boolean().default(false)),
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
+        shuffleHost: z.optional(z.boolean().default(false)),
+        mihomoX25519: z.optional(z.boolean().default(false)),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

@@ -44,6 +44,8 @@ export interface IRawHost {
     serverDescription?: string;
     flow?: string;
     allowInsecure?: boolean;
+    shuffleHost?: boolean;
+    mihomoX25519?: boolean;
     protocolOptions?: {
         ss?: {
             method: string;

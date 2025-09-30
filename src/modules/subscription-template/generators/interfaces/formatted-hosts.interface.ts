@@ -32,5 +32,7 @@ export interface IFormattedHost {
     sockoptParams?: null | object;
     serverDescription?: string;
     allowInsecure?: boolean;
+    shuffleHost?: boolean;
+    mihomoX25519?: boolean;
     dbData?: IDbHostData;
 }

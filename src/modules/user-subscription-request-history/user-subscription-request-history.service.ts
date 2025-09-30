@@ -52,10 +52,14 @@ export class UserSubscriptionRequestHistoryService {
             const stats =
                 await this.userSubscriptionRequestHistoryRepository.getSubscriptionRequestHistoryStats();
 
+            const hourlyRequestStats =
+                await this.userSubscriptionRequestHistoryRepository.getHourlyRequestStats();
+
             return {
                 isOk: true,
                 response: new GetSubscriptionRequestHistoryStatsResponseModel({
                     byParsedApp: stats.byParsedApp,
+                    hourlyRequestStats: hourlyRequestStats,
                 }),
             };
         } catch (error) {

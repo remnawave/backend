@@ -14,9 +14,14 @@ export namespace CreateNodeCommand {
     );
 
     export const RequestSchema = z.object({
-        name: z.string().min(3, 'Minimum 3 characters!'),
+        name: z.string().min(3, 'Minimum 3 characters!').max(30, 'Maximum 30 characters!'),
         address: z.string().min(2, 'Minimum 2 characters!'),
-        port: z.number().int().min(1, 'Port is required').optional(),
+        port: z
+            .number()
+            .int()
+            .min(1, 'Port is required')
+            .max(65535, 'Port must be less than 65535')
+            .optional(),
         isTrafficTrackingActive: z.boolean().optional().default(false),
         trafficLimitBytes: z.optional(
             z.number().int().min(0, 'Traffic limit must be greater than 0'),

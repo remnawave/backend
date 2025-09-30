@@ -174,6 +174,9 @@ export const configSchema = z
                 }
             })
             .pipe(z.array(z.string()).optional()),
+
+        BRANDING_TITLE: z.string().optional(),
+        BRANDING_LOGO_URL: z.string().optional(),
     })
     .superRefine((data, ctx) => {
         if (data.WEBHOOK_ENABLED === 'true') {

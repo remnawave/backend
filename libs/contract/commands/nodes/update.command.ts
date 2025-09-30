@@ -13,9 +13,14 @@ export namespace UpdateNodeCommand {
     export const RequestSchema = NodesSchema.pick({
         uuid: true,
     }).extend({
-        name: z.optional(z.string().min(3, 'Min. 3 characters')),
+        name: z.optional(z.string().min(3, 'Min. 3 characters').max(30, 'Max. 30 characters')),
         address: z.optional(z.string().min(2, 'Min. 2 characters')),
-        port: z.optional(z.number()),
+        port: z.optional(
+            z
+                .number()
+                .min(1, 'Port must be greater than 0')
+                .max(65535, 'Port must be less than 65535'),
+        ),
         isTrafficTrackingActive: z.optional(z.boolean()),
         trafficLimitBytes: z.optional(z.number().min(0, 'Traffic limit must be greater than 0')),
         notifyPercent: z.optional(

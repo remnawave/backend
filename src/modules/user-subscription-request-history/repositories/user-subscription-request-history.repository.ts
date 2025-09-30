@@ -254,4 +254,22 @@ export class UserSubscriptionRequestHistoryRepository
 
         return result.length;
     }
+
+    public async getHourlyRequestStats(): Promise<{ dateTime: Date; requestCount: number }[]> {
+        const result = await this.qb.kysely
+            .selectFrom('userSubscriptionRequestHistory')
+            .select([
+                sql<Date>`date_trunc('hour', request_at)`.as('hour'),
+                (eb) => eb.fn.count('id').as('requestCount'),
+            ])
+            .where('requestAt', '>=', sql<Date>`NOW() - INTERVAL '48 hours'`)
+            .groupBy(sql`date_trunc('hour', request_at)`)
+            .orderBy('hour')
+            .execute();
+
+        return result.map((row) => ({
+            dateTime: row.hour,
+            requestCount: Number(row.requestCount),
+        }));
+    }
 }

@@ -21,6 +21,9 @@ export class UpdateHostResponseModel {
     public serverDescription: null | string;
     public allowInsecure: boolean;
 
+    public shuffleHost: boolean;
+    public mihomoX25519: boolean;
+
     public tag: null | string;
     public isHidden: boolean;
 
@@ -52,6 +55,8 @@ export class UpdateHostResponseModel {
         this.sockoptParams = data.sockoptParams;
         this.serverDescription = data.serverDescription;
         this.allowInsecure = data.allowInsecure;
+        this.shuffleHost = data.shuffleHost;
+        this.mihomoX25519 = data.mihomoX25519;
 
         this.tag = data.tag;
         this.isHidden = data.isHidden;
