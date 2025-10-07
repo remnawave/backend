@@ -114,7 +114,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new CreateUserResponseModel(data, this.subPublicDomain),
+            response: new CreateUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -132,7 +132,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -193,7 +193,8 @@ export class UsersController {
             response: new GetAllUsersResponseModel({
                 total: data.total,
                 users: data.users.map(
-                    (item) => new GetFullUserResponseModel(item, this.subPublicDomain),
+                    (item) =>
+                        new GetFullUserResponseModel(item, data.subscriptionUrls[item.shortUuid]),
                 ),
             }),
         };
@@ -297,7 +298,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetFullUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -320,7 +321,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetFullUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -350,7 +351,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetFullUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -380,7 +381,9 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetFullUserResponseModel(item, this.subPublicDomain)),
+            response: data.users.map(
+                (item) => new GetFullUserResponseModel(item, data.subscriptionUrls[item.shortUuid]),
+            ),
         };
     }
 
@@ -410,7 +413,9 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetFullUserResponseModel(item, this.subPublicDomain)),
+            response: data.users.map(
+                (item) => new GetFullUserResponseModel(item, data.subscriptionUrls[item.shortUuid]),
+            ),
         };
     }
 
@@ -441,7 +446,9 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetFullUserResponseModel(item, this.subPublicDomain)),
+            response: data.users.map(
+                (item) => new GetFullUserResponseModel(item, data.subscriptionUrls[item.shortUuid]),
+            ),
         };
     }
 
@@ -474,7 +481,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -495,7 +502,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -516,7 +523,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 
@@ -539,7 +546,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetUserResponseModel(data.user, data.subscriptionUrl),
         };
     }
 }
