@@ -2,11 +2,11 @@ FROM alpine:3.19 AS frontend
 WORKDIR /opt/frontend
 
 RUN apk add --no-cache curl unzip ca-certificates \
-    && curl -L https://github.com/remnawave/frontend/releases/download/1.6.17/remnawave-frontend.zip -o frontend.zip \
+    && curl -L https://github.com/remnawave/frontend/releases/download/1.6.18/remnawave-frontend.zip -o frontend.zip \
     && unzip frontend.zip -d frontend_temp \
-    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_temp/wasm_exec.js \
-    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_temp/xray.schema.json \
-    && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/main.wasm
+    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_temp/dist/wasm_exec.js \
+    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_temp/dist/xray.schema.json \
+    && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/dist/main.wasm
 
 FROM node:22.17.0 AS backend-build
 WORKDIR /opt/app
