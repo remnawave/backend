@@ -348,6 +348,9 @@ export class FormatHostsService {
 
             if (sni.includes('*.')) {
                 sni = sni.replace('*', this.nanoid());
+            } else if (sni.includes(',')) {
+                const sniList = sni.split(',');
+                sni = sniList[Math.floor(Math.random() * sniList.length)].trim();
             }
 
             // Fingerprint
