@@ -82,4 +82,8 @@ export const CONTROLLERS_INFO = {
         tag: 'Subscription Request History Controller',
         description: '',
     },
+    SNIPPETS: {
+        tag: 'Snippets Controller',
+        description: '',
+    },
 } as const;

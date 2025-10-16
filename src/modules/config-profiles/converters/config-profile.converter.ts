@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 import { UniversalConverter } from '@common/converter/universalConverter';
 
-import { ConfigProfileEntity } from './entities/config-profile.entity';
+import { ConfigProfileEntity } from '../entities/config-profile.entity';
 
 const modelToEntity = (model: ConfigProfiles): ConfigProfileEntity => {
     return new ConfigProfileEntity(model);

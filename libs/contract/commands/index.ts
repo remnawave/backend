@@ -7,6 +7,7 @@ export * from './infra-billing';
 export * from './internal-squads';
 export * from './keygen';
 export * from './nodes';
+export * from './snippets';
 export * from './subscription';
 export * from './subscription-request-history';
 export * from './subscription-settings';

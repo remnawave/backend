@@ -15,6 +15,7 @@ export * from './infra-provider.schema';
 export * from './internal-squad.schema';
 export * from './last-connected-node.schema';
 export * from './nodes.schema';
+export * from './snippets.schema';
 export * from './subscription-info.schema';
 export * from './subscription-request-history.schema';
 export * from './subscription-settings.schema';

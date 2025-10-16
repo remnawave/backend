@@ -481,3 +481,12 @@ model HostsToNodes {
   @@id([hostUuid, nodeUuid])
   @@map("hosts_to_nodes")
 }
+
+model ConfigProfileSnippets {
+  name    String @id @map("name") @db.VarChar(255)
+  snippet Json   @map("snippet")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+
+  @@map("config_profile_snippets")
+}

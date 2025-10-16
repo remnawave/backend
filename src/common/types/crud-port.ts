@@ -26,3 +26,11 @@ export interface ICrudWithStringId<ENTITY> {
     findById: (id: string) => Promise<ENTITY | null>;
     update: (entity: ENTITY) => Promise<ENTITY | null>;
 }
+
+export interface ICrudWithName<ENTITY> {
+    create: (entity: ENTITY) => Promise<ENTITY>;
+    deleteByName: (name: string) => Promise<boolean>;
+    findByCriteria?: (entity: Partial<ENTITY>) => Promise<ENTITY[]>;
+    findByName: (name: string) => Promise<ENTITY | null>;
+    update: (entity: ENTITY) => Promise<ENTITY | null>;
+}

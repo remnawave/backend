@@ -799,4 +799,39 @@ export const ERRORS = {
         message: 'Get user subscription request history stats error',
         httpCode: 500,
     },
+    GET_SNIPPETS_ERROR: {
+        code: 'A161',
+        message: 'Get snippets error',
+        httpCode: 500,
+    },
+    SNIPPET_NOT_FOUND: {
+        code: 'A162',
+        message: 'Snippet not found',
+        httpCode: 404,
+    },
+    DELETE_SNIPPET_BY_NAME_ERROR: {
+        code: 'A163',
+        message: 'Delete snippet by name error',
+        httpCode: 500,
+    },
+    SNIPPET_NAME_ALREADY_EXISTS: {
+        code: 'A164',
+        message: 'Snippet name already exists',
+        httpCode: 400,
+    },
+    UPDATE_SNIPPET_ERROR: {
+        code: 'A165',
+        message: 'Update snippet error',
+        httpCode: 500,
+    },
+    SNIPPET_CANNOT_BE_EMPTY: {
+        code: 'A166',
+        message: 'Snippet cannot be empty',
+        httpCode: 400,
+    },
+    SNIPPET_CANNOT_CONTAIN_EMPTY_OBJECTS: {
+        code: 'A167',
+        message: 'Snippet cannot contain empty objects',
+        httpCode: 400,
+    },
 } as const;
