@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { isRestApi, isScheduler } from '@common/utils/startup-app';
 
 import { UserSubscriptionRequestHistoryModule } from './user-subscription-request-history/user-subscription-request-history.module';
+import { SubscriptionResponseRulesModule } from './subscription-response-rules/subscription-response-rules.module';
 import { NodesTrafficUsageHistoryModule } from './nodes-traffic-usage-history/nodes-traffic-usage-history.module';
 import { NodesUserUsageHistoryModule } from './nodes-user-usage-history/nodes-user-usage-history.module';
 import { SubscriptionTemplateModule } from './subscription-template/subscription-template.module';
@@ -30,6 +31,7 @@ import { AuthModule } from './auth/auth.module';
         ConditionalModule.registerWhen(AdminModule, () => isRestApi()),
         ConditionalModule.registerWhen(AuthModule, () => isRestApi()),
         UsersModule,
+        ConditionalModule.registerWhen(SubscriptionResponseRulesModule, () => isRestApi()),
         ConditionalModule.registerWhen(SubscriptionModule, () => isRestApi()),
         ConditionalModule.registerWhen(ApiTokensModule, () => isRestApi()),
         ConfigProfileModule,

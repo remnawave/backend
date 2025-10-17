@@ -302,6 +302,7 @@ model SubscriptionSettings {
   disabledUsersRemarks          Json    @map("disabled_users_remarks")
   customResponseHeaders         Json?   @map("custom_response_headers")
   randomizeHosts                Boolean @default(false) @map("randomize_hosts")
+  responseRules                 Json?   @map("response_rules")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")

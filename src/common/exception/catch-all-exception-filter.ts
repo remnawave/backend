@@ -5,9 +5,9 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nest
 
 import { HttpExceptionWithErrorCodeType } from './http-exeception-with-error-code.type';
 
-@Catch(HttpExceptionWithErrorCodeType, ZodValidationException)
-export class HttpExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(HttpExceptionFilter.name);
+@Catch()
+export class CatchAllExceptionFilter implements ExceptionFilter {
+    private readonly logger = new Logger(CatchAllExceptionFilter.name);
 
     catch(exception: HttpExceptionWithErrorCodeType | ZodValidationException, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
@@ -28,14 +28,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
         if (exception instanceof ZodValidationException) {
             this.logger.error(exception.getResponse());
+
             response.status(status).json(exception.getResponse());
         } else {
-            this.logger.error({
-                timestamp: new Date().toISOString(),
-                code: errorCode,
-                path: request.url,
-                message: errorMessage,
-            });
             response.status(status).json({
                 timestamp: new Date().toISOString(),
                 path: request.url,

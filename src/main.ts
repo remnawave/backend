@@ -9,11 +9,13 @@ import morgan from 'morgan';
 
 import { ROOT } from '@contract/api';
 
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { getDocs, isCrowdinEditorEnabled, isDevelopment } from '@common/utils/startup-app';
 import { proxyCheckMiddleware, getRealIp, noRobotsMiddleware } from '@common/middlewares';
+import { CatchAllExceptionFilter } from '@common/exception/catch-all-exception-filter';
 import { getStartMessage } from '@common/utils/startup-app/get-start-message';
 import { customLogFilter } from '@common/utils/filter-logs';
 import { AxiosService } from '@common/axios';
@@ -54,11 +56,13 @@ const logger = createLogger({
 });
 
 async function bootstrap(): Promise<void> {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
         logger: WinstonModule.createLogger({
             instance: logger,
         }),
     });
+
+    app.disable('x-powered-by');
 
     app.use(json({ limit: '100mb' }));
 
@@ -129,6 +133,8 @@ async function bootstrap(): Promise<void> {
     });
 
     app.useGlobalPipes(new ZodValidationPipe());
+
+    app.useGlobalFilters(new CatchAllExceptionFilter());
 
     app.enableShutdownHooks();
 

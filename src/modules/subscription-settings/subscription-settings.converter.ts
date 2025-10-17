@@ -32,6 +32,8 @@ const entityToModel = (entity: SubscriptionSettingsEntity): SubscriptionSettings
 
         randomizeHosts: entity.randomizeHosts,
 
+        responseRules: entity.responseRules,
+
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

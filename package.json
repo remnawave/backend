@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/backend",
-  "version": "2.1.19",
+  "version": "2.2.0",
   "description": "Remnawave Panel Backend",
   "private": false,
   "type": "commonjs",
@@ -40,7 +40,8 @@
     "docs:serve": "compodoc -p tsconfig.json -s",
     "generate:openapi": "nest start gen-doc",
     "new:queue": "hygen new queue",
-    "knip": "knip"
+    "knip": "knip",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@bull-board/api": "^6.13.0",
@@ -68,7 +69,7 @@
     "@nestjs/platform-express": "11.1.6",
     "@nestjs/schedule": "6.0.1",
     "@nestjs/serve-static": "5.0.4",
-    "@nestjs/swagger": "11.2.0",
+    "@nestjs/swagger": "11.2.1",
     "@nestjs/terminus": "^11.0.0",
     "@nestjstools/messaging": "^2.22.0",
     "@noble/post-quantum": "^0.5.2",
@@ -79,7 +80,7 @@
     "@remnawave/hashed-set": "^0.0.4",
     "@remnawave/node-contract": "0.5.9",
     "@remnawave/xtls-sdk": "^0.6.3",
-    "@scalar/nestjs-api-reference": "^1.0.4",
+    "@scalar/nestjs-api-reference": "^1.0.5",
     "@stablelib/base64": "^2.0.1",
     "@stablelib/x25519": "^2.0.1",
     "@willsoto/nestjs-prometheus": "^6.0.2",
@@ -113,6 +114,7 @@
     "passport": "0.7.0",
     "passport-http": "^0.3.0",
     "passport-jwt": "4.0.1",
+    "patch-package": "^8.0.1",
     "pkg-types": "2.3.0",
     "pm2": "6.0.13",
     "prisma": "6.15.0",

@@ -8,7 +8,7 @@ import { CONTROLLERS_INFO, SUBSCRIPTION_TEMPLATE_CONTROLLER } from '@contract/ap
 import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiParam, ApiTags } from '@nestjs/swagger';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Endpoint } from '@common/decorators/base-endpoint';

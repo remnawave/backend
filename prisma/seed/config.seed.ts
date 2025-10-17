@@ -9,6 +9,15 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import consola from 'consola';
 import _ from 'lodash';
 import { Redis } from 'ioredis';
+import { hasher } from 'node-object-hash';
+
+const hash = hasher({
+    trim: true,
+    sort: {
+        array: false,
+        object: true,
+    },
+}).hash;
 
 export const XTLSDefaultConfig = {
     log: {
@@ -218,138 +227,6 @@ proxy-groups:
 rules:
   - MATCH,→ Remnawave`;
 
-export const SingboxLegacyDefaultConfig = {
-    log: {
-        disabled: true,
-        level: 'debug',
-        timestamp: true,
-    },
-    dns: {
-        servers: [
-            {
-                tag: 'cf-dns',
-                address: 'tls://1.1.1.1',
-            },
-            {
-                tag: 'local',
-                address: 'tcp://1.1.1.1',
-                address_strategy: 'prefer_ipv4',
-                strategy: 'ipv4_only',
-                detour: 'direct',
-            },
-            {
-                tag: 'remote',
-                address: 'fakeip',
-            },
-        ],
-        rules: [
-            {
-                query_type: ['A', 'AAAA'],
-                server: 'remote',
-            },
-            {
-                outbound: 'any',
-                server: 'local',
-            },
-        ],
-        fakeip: {
-            enabled: true,
-            inet4_range: '198.18.0.0/15',
-            inet6_range: 'fc00::/18',
-        },
-        independent_cache: true,
-    },
-    inbounds: [
-        {
-            type: 'tun',
-            mtu: 9000,
-            interface_name: 'tun125',
-            tag: 'tun-in',
-            inet4_address: '172.19.0.1/30',
-            inet6_address: 'fdfe:dcba:9876::1/126',
-            auto_route: true,
-            strict_route: true,
-            endpoint_independent_nat: true,
-            stack: 'mixed',
-            sniff: true,
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: '127.0.0.1',
-                    server_port: 2412,
-                },
-            },
-        },
-        {
-            type: 'mixed',
-            tag: 'mixed-in',
-            listen: '127.0.0.1',
-            listen_port: 2412,
-            sniff: true,
-            users: [],
-            set_system_proxy: false,
-        },
-    ],
-    outbounds: [
-        {
-            type: 'selector',
-            tag: '→ Remnawave',
-            interrupt_exist_connections: true,
-            outbounds: null,
-        },
-        {
-            type: 'direct',
-            tag: 'direct',
-        },
-        {
-            type: 'block',
-            tag: 'block',
-        },
-        {
-            type: 'dns',
-            tag: 'dns-out',
-        },
-    ],
-    route: {
-        rules: [
-            {
-                type: 'logical',
-                mode: 'or',
-                rules: [
-                    {
-                        protocol: 'dns',
-                    },
-                    {
-                        port: 53,
-                    },
-                ],
-                outbound: 'dns-out',
-            },
-            {
-                ip_is_private: true,
-                outbound: 'direct',
-            },
-        ],
-        auto_detect_interface: true,
-        override_android_vpn: true,
-    },
-    experimental: {
-        clash_api: {
-            external_controller: '127.0.0.1:9090',
-            external_ui: 'yacd',
-            external_ui_download_url: 'https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip',
-            external_ui_download_detour: 'direct',
-            default_mode: 'rule',
-        },
-        cache_file: {
-            enabled: true,
-            path: 'remnawave.db',
-            cache_id: 'remnawave',
-            store_fakeip: true,
-        },
-    },
-};
-
 export const SingboxDefaultConfig = {
     log: {
         disabled: true,
@@ -536,6 +413,98 @@ export const XrayJsonDefaultConfig = {
     ],
 };
 
+export const ResponseRulesDefaultConfig = {
+    version: '1',
+    rules: [
+        {
+            name: 'Browser Subscription',
+            description: 'System critical: do not delete or disable this rule.',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'accept',
+                    operator: 'CONTAINS',
+                    value: 'text/html',
+                    caseSensitive: true,
+                },
+            ],
+            responseType: 'BROWSER',
+        },
+        {
+            name: 'Mihomo Clients',
+            description: 'Response with generated YAML config (Mihomo Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '(?:flclash|fl-clash|mihomo|clash[\\s.-]*(?:verge|meta|nyanpasu|x)|koala-clash|murge|prizrak-box|flowvy)',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'MIHOMO',
+        },
+        {
+            name: 'Clash Core Clients',
+            description: 'Response with generated YAML config (Clash Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: 'clash',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'CLASH',
+        },
+        {
+            name: 'Stash (iOS, macOS)',
+            description: 'Response with generated YAML config (Stash Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: 'stash',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'STASH',
+        },
+        {
+            name: 'Sing-box clients',
+            description: 'Resonse with generated JSON config (Singbox template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: 'sfa|sfi|sfm|sft|karing|singbox|rabbithole',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'SINGBOX',
+        },
+        {
+            name: 'Fallback Base64',
+            description: 'System critical: do not delete or disable this rule.',
+            enabled: true,
+            operator: 'AND',
+            conditions: [],
+            responseType: 'XRAY_BASE64',
+        },
+    ],
+};
+
+export const PreviousResponseRulesConfigHash =
+    '4c94963084bafacca3f19868247532f879d3765ff15504ab171903950ed98716';
+
 const prisma = new PrismaClient({
     datasources: {
         db: {
@@ -600,16 +569,6 @@ async function seedSubscriptionTemplate() {
                     data: { templateType, templateJson: SingboxDefaultConfig },
                 });
                 break;
-            case SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX_LEGACY:
-                if (existingConfig) {
-                    consola.info(`Default ${templateType} config already exists!`);
-                    continue;
-                }
-
-                await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateJson: SingboxLegacyDefaultConfig },
-                });
-                break;
             case SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON:
                 if (existingConfig) {
                     consola.info(`Default ${templateType} config already exists!`);
@@ -631,6 +590,8 @@ async function seedSubscriptionTemplate() {
                     data: { templateType, templateYaml: ClashDefaultConfig },
                 });
 
+                break;
+            case SUBSCRIPTION_TEMPLATE_TYPE.XRAY_BASE64:
                 break;
             default:
                 consola.error(`Unknown template type: ${templateType}`);
@@ -666,6 +627,45 @@ async function seedSubscriptionSettings() {
             randomizeHosts: false,
         },
     });
+}
+
+async function seedResponseRules() {
+    const existingConfig = await prisma.subscriptionSettings.findFirst();
+
+    if (!existingConfig) {
+        consola.error('🔐 Subscription settings not found!');
+        process.exit(1);
+    }
+
+    if (existingConfig.responseRules === null) {
+        consola.info('🔐 No response rules found! Seeding default response rules...');
+        await prisma.subscriptionSettings.update({
+            where: { uuid: existingConfig.uuid },
+            data: { responseRules: ResponseRulesDefaultConfig },
+        });
+
+        consola.success('🔐 Default response rules seeded!');
+        return;
+    }
+
+    consola.info('Existing SRR hash:', hash(existingConfig.responseRules));
+    consola.info('Default SRR hash:', hash(ResponseRulesDefaultConfig));
+    consola.info('Previous SRR hash:', PreviousResponseRulesConfigHash);
+
+    if (PreviousResponseRulesConfigHash === hash(existingConfig.responseRules)) {
+        consola.info('User have old default response rules... is default one is newer?');
+        if (PreviousResponseRulesConfigHash !== hash(ResponseRulesDefaultConfig)) {
+            consola.info(
+                'Default response rules have been changed... updating to new default response rules...',
+            );
+            await prisma.subscriptionSettings.update({
+                where: { uuid: existingConfig.uuid },
+                data: { responseRules: ResponseRulesDefaultConfig },
+            });
+        }
+    }
+
+    consola.success('🔐 Response rules seeded!');
 }
 
 async function seedDefaultConfigProfile() {
@@ -1018,6 +1018,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function seedAll() {
     let isConnected = false;
 
+    // console.log('ResponseRulesDefaultConfig hash:', hash(ResponseRulesDefaultConfig));
+
     while (!isConnected) {
         isConnected = await checkDatabaseConnection();
 
@@ -1031,6 +1033,7 @@ async function seedAll() {
             await seedDefaultInternalSquad();
             await seedSubscriptionSettings();
             await seedKeygen();
+            await seedResponseRules();
             break;
         } else {
             consola.info('Failed to connect to database. Retrying in 5 seconds...');

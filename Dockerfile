@@ -34,6 +34,7 @@ ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x,linux-musl-arm64-openssl-
 COPY package*.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
+COPY patches ./patches
 
 
 RUN npm ci
@@ -71,6 +72,7 @@ COPY --from=backend-build /opt/app/dist ./dist
 COPY --from=frontend /opt/frontend/frontend_temp/dist ./frontend
 COPY --from=frontend /opt/frontend/frontend_crowdin_temp/dist ./frontend-crowdin
 COPY --from=backend-build /opt/app/prisma ./prisma
+COPY --from=backend-build /opt/app/patches ./patches
 COPY --from=backend-build /opt/app/node_modules ./node_modules
 
 COPY configs /var/lib/remnawave/configs

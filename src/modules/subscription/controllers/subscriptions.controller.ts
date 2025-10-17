@@ -10,7 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { Controller, HttpStatus, Param, Query, Req, UseFilters, UseGuards } from '@nestjs/common';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { extractHwidHeaders } from '@common/utils/extract-hwid-headers';
 import { errorHandler } from '@common/helpers/error-handler.helper';

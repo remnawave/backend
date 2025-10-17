@@ -18,10 +18,7 @@ import {
     CACHE_KEYS,
     ERRORS,
     EVENTS,
-    REQUEST_TEMPLATE_TYPE,
-    SUBSCRIPTION_TEMPLATE_TYPE,
-    TRequestTemplateTypeKeys,
-    TSubscriptionTemplateType,
+    RESPONSE_RULES_RESPONSE_TYPES,
     USERS_STATUS,
 } from '@libs/contracts/constants';
 
@@ -39,6 +36,7 @@ import { IFormattedHost, IRawHost } from '@modules/subscription-template/generat
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
+import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
 import { GetUserResponseModel } from '@modules/users/models';
 
@@ -84,12 +82,8 @@ export class SubscriptionService {
     }
 
     public async getSubscriptionByShortUuid(
+        srrContext: ISRRContext,
         shortUuid: string,
-        userAgent: string,
-        isHtml: boolean,
-        clientType: TRequestTemplateTypeKeys | undefined,
-        hwidHeaders: HwidHeaders | null,
-        requestIp?: string,
     ): Promise<
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
@@ -109,11 +103,13 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const settingEntity = await this.getCachedSubscriptionSettings();
-
-            if (!settingEntity) {
-                return new SubscriptionNotFoundResponse();
-            }
+            const {
+                userAgent,
+                hwidHeaders,
+                matchedResponseType,
+                subscriptionSettings,
+                isXrayExtSupported,
+            } = srrContext;
 
             if (this.hwidDeviceLimitEnabled) {
                 const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);
@@ -126,8 +122,8 @@ export class SubscriptionService {
                     const response = new SubscriptionWithConfigResponse({
                         headers: await this.getUserProfileHeadersInfo(
                             user.response,
-                            /^Happ\//.test(userAgent),
-                            settingEntity,
+                            isXrayExtSupported,
+                            subscriptionSettings,
                         ),
                         body: '',
                         contentType: 'text/plain',
@@ -144,42 +140,15 @@ export class SubscriptionService {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
             }
 
-            let clientOverride: TSubscriptionTemplateType | undefined;
-
-            switch (clientType) {
-                case REQUEST_TEMPLATE_TYPE.STASH:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.STASH;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.SINGBOX:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.SINGBOX_LEGACY:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX_LEGACY;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.MIHOMO:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.MIHOMO;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.XRAY_JSON:
-                case REQUEST_TEMPLATE_TYPE.V2RAY_JSON:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.CLASH:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.CLASH;
-                    break;
-                default:
-                    clientOverride = undefined;
-                    break;
-            }
-
-            if (isHtml) {
-                const result = await this.getSubscriptionInfoByShortUuid(
+            if (matchedResponseType === RESPONSE_RULES_RESPONSE_TYPES.BROWSER) {
+                const subscriptionInfo = await this.getSubscriptionInfoByShortUuid(
                     user.response.shortUuid,
-                    settingEntity,
+                    subscriptionSettings,
                 );
-                if (!result.isOk || !result.response) {
+                if (!subscriptionInfo.isOk || !subscriptionInfo.response) {
                     return new SubscriptionNotFoundResponse();
                 }
-                return result.response;
+                return subscriptionInfo.response;
             }
 
             const hosts = await this.getHostsByUserUuid({
@@ -192,45 +161,29 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            if (settingEntity.randomizeHosts) {
+            if (subscriptionSettings.randomizeHosts) {
                 hosts.response = _.shuffle(hosts.response);
             }
 
-            await this.updateAndReportSubscriptionRequest(user.response.uuid, userAgent, requestIp);
+            await this.updateAndReportSubscriptionRequest(
+                user.response.uuid,
+                userAgent,
+                srrContext.ip,
+            );
 
-            let subscription: { contentType: string; sub: string };
-
-            if (clientOverride !== undefined) {
-                subscription = await this.renderTemplatesService.generateSubscriptionByClientType({
-                    userAgent,
-                    user: user.response,
-                    hosts: hosts.response,
-
-                    clientType: clientOverride,
-                });
-            } else {
-                let isServeJson = clientOverride === SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON;
-
-                if (!isServeJson && settingEntity.serveJsonAtBaseSubscription) {
-                    isServeJson = true;
-                }
-
-                subscription = await this.renderTemplatesService.generateSubscription({
-                    userAgent: userAgent,
-                    user: user.response,
-                    hosts: hosts.response,
-                    isOutlineConfig: false,
-                    needJsonSubscription: isServeJson,
-                });
-            }
+            const subscription = await this.renderTemplatesService.generateSubscription({
+                srrContext,
+                user: user.response,
+                hosts: hosts.response,
+            });
 
             return new SubscriptionWithConfigResponse({
                 headers: await this.getUserProfileHeadersInfo(
                     user.response,
-                    /^Happ\//.test(userAgent),
-                    settingEntity,
+                    isXrayExtSupported,
+                    subscriptionSettings,
                 ),
-                body: subscription.sub,
+                body: subscription.subscription,
                 contentType: subscription.contentType,
             });
         } catch (error) {
@@ -357,12 +310,11 @@ export class SubscriptionService {
         }
     }
 
+    /** @deprecated Will be removed soon */
     public async getOutlineSubscriptionByShortUuid(
         shortUuid: string,
         userAgent: string,
-        isHtml: boolean,
-        isOutlineConfig: boolean = false,
-        encodedTag?: string,
+        encodedTag: string,
     ): Promise<
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
@@ -383,20 +335,6 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const settingEntity = await this.getCachedSubscriptionSettings();
-
-            if (!settingEntity) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            if (isHtml) {
-                const result = await this.getSubscriptionInfoByShortUuid(user.response.shortUuid);
-                if (!result.isOk || !result.response) {
-                    return new SubscriptionNotFoundResponse();
-                }
-                return result.response;
-            }
-
             const hosts = await this.getHostsByUserUuid({
                 userUuid: user.response.uuid,
                 returnDisabledHosts: false,
@@ -413,21 +351,15 @@ export class SubscriptionService {
                 subLastUserAgent: userAgent,
             });
 
-            const subscription = await this.renderTemplatesService.generateSubscription({
-                userAgent: userAgent,
-                user: user.response,
-                hosts: hosts.response,
-                isOutlineConfig,
+            const subscription = await this.renderTemplatesService.generateOutlineSubscription(
                 encodedTag,
-            });
+                user.response,
+                hosts.response,
+            );
 
             return new SubscriptionWithConfigResponse({
-                headers: await this.getUserProfileHeadersInfo(
-                    user.response,
-                    /^Happ\//.test(userAgent),
-                    settingEntity,
-                ),
-                body: subscription.sub,
+                headers: {},
+                body: subscription.subscription,
                 contentType: subscription.contentType,
             });
         } catch {

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/swagger';
 import { Body, Controller, HttpStatus, UseFilters } from '@nestjs/common';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { UserAgent } from '@common/decorators/get-useragent/get-useragent';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { IpAddress } from '@common/decorators/get-ip/get-ip';
