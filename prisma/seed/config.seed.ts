@@ -440,26 +440,11 @@ export const ResponseRulesDefaultConfig = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: '(?:flclash|fl-clash|mihomo|clash[\\s.-]*(?:verge|meta|nyanpasu|x)|koala-clash|murge|prizrak-box|flowvy)',
+                    value: '^(?:FlClash|FlClashX|Flowvy|[Cc]lash-[Vv]erge|[Kk]oala-[Cc]lash|[Cc]lash-?[Mm]eta|[Mm]urge|[Cc]lashX [Mm]eta|[Mm]ihomo|[Cc]lash-nyanpasu|clash.meta|prizrak-box)',
                     caseSensitive: false,
                 },
             ],
             responseType: 'MIHOMO',
-        },
-        {
-            name: 'Clash Core Clients',
-            description: 'Response with generated YAML config (Clash Template)',
-            enabled: true,
-            operator: 'AND',
-            conditions: [
-                {
-                    headerName: 'user-agent',
-                    operator: 'REGEX',
-                    value: 'clash',
-                    caseSensitive: false,
-                },
-            ],
-            responseType: 'CLASH',
         },
         {
             name: 'Stash (iOS, macOS)',
@@ -470,7 +455,7 @@ export const ResponseRulesDefaultConfig = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: 'stash',
+                    value: '^stash',
                     caseSensitive: false,
                 },
             ],
@@ -485,11 +470,26 @@ export const ResponseRulesDefaultConfig = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: 'sfa|sfi|sfm|sft|karing|singbox|rabbithole',
+                    value: '^sfa|sfi|sfm|sft|karing|singbox|rabbithole',
                     caseSensitive: false,
                 },
             ],
             responseType: 'SINGBOX',
+        },
+        {
+            name: 'Clash Core Clients',
+            description: 'Response with generated YAML config (Clash Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^clash',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'CLASH',
         },
         {
             name: 'Fallback Base64',
@@ -503,7 +503,7 @@ export const ResponseRulesDefaultConfig = {
 };
 
 export const PreviousResponseRulesConfigHash =
-    '4c94963084bafacca3f19868247532f879d3765ff15504ab171903950ed98716';
+    '0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4';
 
 const prisma = new PrismaClient({
     datasources: {
