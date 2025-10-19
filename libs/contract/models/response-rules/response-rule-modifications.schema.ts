@@ -50,7 +50,8 @@ export const ResponseRuleModificationsSchema = z
                     ],
                     markdownDescription: 'Array of headers to be added when the rule is matched.',
                 }),
-            ),
+            )
+            .optional(),
     })
     .optional()
     .describe(
