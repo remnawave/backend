@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import { PublicHttpExceptionFilter } from '@common/exception/public-http-exception.filter';
 import { OptionalJwtGuard } from '@common/guards/jwt-guards/optional-jwt-guard';
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { GetOptionalAuth } from '@common/decorators/get-optional-auth';
@@ -117,6 +118,7 @@ export class SubscriptionController {
         required: true,
         enum: REQUEST_TEMPLATE_TYPE,
     })
+    @UseFilters(PublicHttpExceptionFilter)
     @Get([SUBSCRIPTION_ROUTES.GET + '/:shortUuid' + '/:clientType'])
     async getSubscriptionByClientType(
         @GetSrrContext() srrContext: ISRRContext,

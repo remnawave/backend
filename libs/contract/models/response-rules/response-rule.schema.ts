@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 import {
-    RESPONSE_RULES_CONDITION_OPERATORS,
+    EXAMPLES_SRR_BLANK_RULE,
+    EXAMPLES_SRR_BLOCK_LEGACY_CLIENTS_RULE,
+    generateResponseRuleDescription,
+} from './response-rules-examples';
+import {
     RESPONSE_RULES_OPERATORS,
     RESPONSE_RULES_RESPONSE_TYPES,
     RESPONSE_RULES_RESPONSE_TYPES_DESCRIPTION,
@@ -9,107 +13,75 @@ import {
 import { ResponseRuleModificationsSchema } from './response-rule-modifications.schema';
 import { ResponseRuleConditionSchema } from './response-rule-condition.schema';
 
-const RuleExampleJson = JSON.stringify(
-    {
-        name: 'Block Legacy Clients',
-        description: 'Block requests from legacy clients',
-        enabled: true,
-        operator: RESPONSE_RULES_OPERATORS.OR,
-        conditions: [
+export const ResponseRuleSchemaBase = z.object({
+    name: z
+        .string()
+        .min(1, 'Name is required')
+        .max(50, 'Name must be less than 50 characters')
+        .describe(
+            JSON.stringify({
+                markdownDescription: 'Name of the response rule.',
+            }),
+        ),
+    description: z
+        .string()
+        .min(1, 'Description is required')
+        .max(250, 'Description must be less than 250 characters')
+        .optional()
+        .describe(
+            JSON.stringify({
+                markdownDescription: 'Description of the response rule. Optional.',
+            }),
+        ),
+    enabled: z.boolean().describe(
+        JSON.stringify({
+            markdownDescription:
+                'Control whether the response rule is enabled or disabled. \n\n - `true` the rule will be applied. \n\n - `false` the rule will be always ignored.',
+        }),
+    ),
+    operator: z.nativeEnum(RESPONSE_RULES_OPERATORS).describe(
+        JSON.stringify({
+            markdownDescription: 'Operator to use for combining conditions in the rule.',
+        }),
+    ),
+    conditions: z.array(ResponseRuleConditionSchema).describe(
+        JSON.stringify({
+            markdownDescription:
+                'Array of conditions to check against the request headers. Conditions are applied with **operator**. If conditions are empty, the rule will be matched.',
+        }),
+    ),
+    responseType: z.nativeEnum(RESPONSE_RULES_RESPONSE_TYPES).describe(
+        JSON.stringify({
+            errorMessage: 'Invalid response type. Please select a valid response type.',
+            markdownDescription: `Type of the response. Determines the type of **response** to be returned when the rule is matched.`,
+            markdownEnumDescriptions: Object.entries(
+                RESPONSE_RULES_RESPONSE_TYPES_DESCRIPTION,
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            ).map(([_key, description]) => description),
+        }),
+    ),
+    responseModifications: ResponseRuleModificationsSchema,
+});
+
+export const ResponseRuleSchema = ResponseRuleSchemaBase.describe(
+    JSON.stringify({
+        defaultSnippets: [
             {
-                headerName: 'user-agent',
-                operator: RESPONSE_RULES_CONDITION_OPERATORS.CONTAINS,
-                value: 'Hiddify',
-                caseSensitive: true,
+                label: 'Examples: Blank rule',
+                markdownDescription: `Simple blank rule with no conditions or modifications.\n\`\`\`json\n${JSON.stringify(EXAMPLES_SRR_BLANK_RULE, null, 2)}\n\`\`\``,
+                body: {
+                    ...EXAMPLES_SRR_BLANK_RULE,
+                },
             },
             {
-                headerName: 'user-agent',
-                operator: RESPONSE_RULES_CONDITION_OPERATORS.CONTAINS,
-                value: 'FoxRay',
-                caseSensitive: true,
+                label: 'Examples: Block Legacy Clients',
+                markdownDescription: `Block requests from legacy clients\n\`\`\`json\n${JSON.stringify(EXAMPLES_SRR_BLOCK_LEGACY_CLIENTS_RULE, null, 2)}\n\`\`\``,
+                body: {
+                    ...EXAMPLES_SRR_BLOCK_LEGACY_CLIENTS_RULE,
+                },
             },
         ],
-        responseType: RESPONSE_RULES_RESPONSE_TYPES.BLOCK,
-    },
-    null,
-    2,
+        title: 'Response Rule',
+        markdownDescription: generateResponseRuleDescription(ResponseRuleSchemaBase),
+    }),
 );
-
-export const ResponseRuleSchema = z
-    .object({
-        name: z
-            .string()
-            .min(1, 'Name is required')
-            .max(50, 'Name must be less than 50 characters')
-            .describe(
-                JSON.stringify({
-                    title: 'Name',
-                    markdownDescription: 'Name of the response rule.',
-                }),
-            ),
-        description: z
-            .string()
-            .min(1, 'Description is required')
-            .max(250, 'Description must be less than 250 characters')
-            .optional()
-            .describe(
-                JSON.stringify({
-                    title: 'Description',
-                    markdownDescription:
-                        'Description of the response rule. Maximum length is 250 characters.',
-                }),
-            ),
-        enabled: z.boolean().describe(
-            JSON.stringify({
-                markdownDescription:
-                    'Whether the response rule is enabled. If disabled, the rule will not be applied.',
-            }),
-        ),
-        operator: z.nativeEnum(RESPONSE_RULES_OPERATORS).describe(
-            JSON.stringify({
-                title: 'Operator',
-                markdownDescription: 'Operator to use for combining conditions in the rule.',
-            }),
-        ),
-        conditions: z.array(ResponseRuleConditionSchema),
-        responseType: z.nativeEnum(RESPONSE_RULES_RESPONSE_TYPES).describe(
-            JSON.stringify({
-                markdownDescription: `Type of the response. Determines the type of **response** to be returned when the rule is matched.\n\n${Object.entries(
-                    RESPONSE_RULES_RESPONSE_TYPES_DESCRIPTION,
-                )
-                    .map(([key, description]) => `- **${key}**: ${description}\n`)
-                    .join('\n')}`,
-            }),
-        ),
-        responseModifications: ResponseRuleModificationsSchema,
-    })
-    .describe(
-        JSON.stringify({
-            title: 'Response Rule',
-            markdownDescription: `\n\nFields:\n- **name**: Name of the response rule (required)\n- **description**: Description of the response rule (optional)\n- **enabled**: Whether the response rule is enabled. If disabled, the rule will not be applied.\n- **operator**: Operator to combine conditions (AND/OR)\n- **conditions**: Array of conditions to match against HTTP headers\n  - **headerName**: Name of the HTTP header to check (case insensitive)\n  - **operator**: Comparison operator (CONTAINS, EQUALS, etc)\n  - **value**: Value to compare against (case sensitive, max 255 chars)\n- **responseType**: Type of response when rule matches (e.g. BLOCK)\n\nExample:\n\`\`\`json\n${RuleExampleJson}\n\`\`\``,
-            examples: [
-                {
-                    name: 'This is example rule name',
-                    description: 'This is example rule description (optional)',
-                    enabled: true,
-                    operator: RESPONSE_RULES_OPERATORS.AND,
-                    conditions: [
-                        {
-                            headerName: 'user-agent',
-                            operator: RESPONSE_RULES_CONDITION_OPERATORS.CONTAINS,
-                            value: 'Example Rule Value, replace with your own value',
-                            caseSensitive: true,
-                        },
-                    ],
-                    responseType: RESPONSE_RULES_RESPONSE_TYPES.BLOCK,
-                },
-                {
-                    name: 'Empty rule',
-                    enabled: true,
-                    operator: RESPONSE_RULES_OPERATORS.AND,
-                    conditions: [],
-                    responseType: RESPONSE_RULES_RESPONSE_TYPES.BLOCK,
-                },
-            ],
-        }),
-    );
