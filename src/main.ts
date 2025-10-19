@@ -1,3 +1,7 @@
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+};
+
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod';
 import { createLogger } from 'winston';

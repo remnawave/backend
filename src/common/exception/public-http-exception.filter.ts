@@ -26,18 +26,17 @@ export class PublicHttpExceptionFilter implements ExceptionFilter {
             }
         }
 
-        response.removeHeader('x-powered-by');
-
         if (exception instanceof ZodValidationException) {
-            this.logger.error(exception.getResponse());
-        } else {
-            this.logger.error({
-                timestamp: new Date().toISOString(),
-                code: errorCode,
-                path: request.url,
-                message: errorMessage,
-            });
+            response.removeHeader('x-powered-by');
+            errorMessage = '[ZodValidationException] ' + JSON.stringify(exception.getResponse());
         }
+
+        this.logger.error({
+            timestamp: new Date().toISOString(),
+            code: errorCode,
+            path: request.url,
+            message: errorMessage,
+        });
 
         response.status(status).json({
             timestamp: new Date().toISOString(),

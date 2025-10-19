@@ -27,7 +27,12 @@ export class CatchAllExceptionFilter implements ExceptionFilter {
         }
 
         if (exception instanceof ZodValidationException) {
-            this.logger.error(exception.getResponse());
+            this.logger.error({
+                timestamp: new Date().toISOString(),
+                code: errorCode,
+                path: request.url,
+                message: '[ZodValidationException] ' + JSON.stringify(exception.getResponse()),
+            });
 
             response.status(status).json(exception.getResponse());
         } else {
