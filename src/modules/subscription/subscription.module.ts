@@ -4,6 +4,7 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { CqrsModule } from '@nestjs/cqrs';
 
 import { SUBSCRIPTION_CONTROLLER, SUBSCRIPTION_ROUTES } from '@libs/contracts/api';
+import { REQUEST_TEMPLATE_TYPE_VALUES } from '@libs/contracts/constants';
 
 import { SubscriptionResponseRulesModule } from '@modules/subscription-response-rules/subscription-response-rules.module';
 import { ResponseRulesMiddleware } from '@modules/subscription-response-rules/middleware/response-rules.middleware';
@@ -34,10 +35,10 @@ export class SubscriptionModule implements NestModule {
                 path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid`,
                 method: RequestMethod.GET,
             },
-            {
-                path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/:clientType`,
+            ...REQUEST_TEMPLATE_TYPE_VALUES.map((clientType) => ({
+                path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/${clientType}`,
                 method: RequestMethod.GET,
-            },
+            })),
         );
     }
 }
