@@ -894,4 +894,9 @@ export const ERRORS = {
         message: 'Create subscription template error',
         httpCode: 500,
     },
+    TEMPLATE_TYPE_NOT_ALLOWED: {
+        code: 'A180',
+        message: 'Template type not allowed',
+        httpCode: 400,
+    },
 } as const;

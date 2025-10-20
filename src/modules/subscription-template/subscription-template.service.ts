@@ -216,6 +216,13 @@ export class SubscriptionTemplateService {
                 };
             }
 
+            if (templateType === 'XRAY_BASE64') {
+                return {
+                    isOk: false,
+                    ...ERRORS.TEMPLATE_TYPE_NOT_ALLOWED,
+                };
+            }
+
             let templateJson = undefined;
             let templateYaml = undefined;
             switch (templateType) {
