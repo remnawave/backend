@@ -52,7 +52,18 @@ export const ResponseRuleModificationsSchema = z
                 }),
             )
             .optional(),
+        subscriptionTemplate: z
+            .string()
+            .min(1, 'Subscription template name is required')
+            .optional()
+            .describe(
+                JSON.stringify({
+                    markdownDescription:
+                        'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification have higher priority than settings from External Squads.**',
+                }),
+            ),
     })
+
     .optional()
     .describe(
         JSON.stringify({

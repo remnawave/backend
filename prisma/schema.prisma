@@ -275,6 +275,7 @@ model Hosts {
 
 model SubscriptionTemplate {
   uuid         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String  @default("Default") @map("name") @db.VarChar(255)
   templateType String  @map("template_type")
   templateYaml String? @map("template_yaml")
   templateJson Json?   @map("template_json")
@@ -282,7 +283,7 @@ model SubscriptionTemplate {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  @@unique([templateType])
+  @@unique([templateType, name])
   @@map("subscription_templates")
 }
 

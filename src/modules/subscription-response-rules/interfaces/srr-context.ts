@@ -11,4 +11,5 @@ export interface ISRRContext {
     matchedResponseType: TResponseRulesResponseType;
     ip: string;
     subscriptionSettings: SubscriptionSettingsEntity;
+    overrideTemplateName?: string;
 }

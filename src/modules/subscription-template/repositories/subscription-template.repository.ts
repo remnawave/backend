@@ -99,4 +99,56 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
         const result = await this.prisma.tx.subscriptionTemplate.delete({ where: { uuid } });
         return !!result;
     }
+
+    public async getAllTemplates(
+        withContent: boolean = true,
+    ): Promise<SubscriptionTemplateEntity[]> {
+        const result = await this.prisma.tx.subscriptionTemplate.findMany({
+            select: {
+                name: true,
+                templateType: true,
+                uuid: true,
+                ...(withContent
+                    ? {
+                          templateYaml: true,
+                          templateJson: true,
+                      }
+                    : {}),
+            },
+            orderBy: {
+                createdAt: 'asc',
+            },
+        });
+        return result.map((item) => new SubscriptionTemplateEntity(item));
+    }
+
+    public async getTemplateByNameAndTypeOrGetDefault(
+        name: string,
+        type: TSubscriptionTemplateType,
+    ): Promise<null | SubscriptionTemplateEntity> {
+        let result = null;
+
+        result = await this.prisma.tx.subscriptionTemplate.findFirst({
+            where: {
+                name,
+                templateType: type,
+            },
+        });
+
+        if (result) {
+            return this.converter.fromPrismaModelToEntity(result);
+        }
+
+        result = await this.prisma.tx.subscriptionTemplate.findFirst({
+            where: {
+                name: 'Default',
+                templateType: type,
+            },
+        });
+        if (result) {
+            return this.converter.fromPrismaModelToEntity(result);
+        }
+
+        return null;
+    }
 }

@@ -834,4 +834,64 @@ export const ERRORS = {
         message: 'Snippet cannot contain empty objects',
         httpCode: 400,
     },
+    GET_ALL_SUBSCRIPTION_TEMPLATES_ERROR: {
+        code: 'A168',
+        message: 'Get all subscription templates error',
+        httpCode: 500,
+    },
+    GET_SUBSCRIPTION_TEMPLATE_BY_UUID_ERROR: {
+        code: 'A169',
+        message: 'Get subscription template by UUID error',
+        httpCode: 500,
+    },
+    SUBSCRIPTION_TEMPLATE_NOT_FOUND: {
+        code: 'A170',
+        message: 'Subscription template not found',
+        httpCode: 404,
+    },
+    UPDATE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A171',
+        message: 'Update subscription template error',
+        httpCode: 500,
+    },
+    RESERVED_TEMPLATE_NAME: {
+        code: 'A172',
+        message: 'This name is reserved. Please use a different name.',
+        httpCode: 400,
+    },
+    TEMPLATE_JSON_NOT_ALLOWED_FOR_YAML_TEMPLATE: {
+        code: 'A173',
+        message: 'Template JSON is not allowed for YAML template',
+        httpCode: 400,
+    },
+    TEMPLATE_YAML_NOT_ALLOWED_FOR_JSON_TEMPLATE: {
+        code: 'A174',
+        message: 'Template YAML is not allowed for JSON template',
+        httpCode: 400,
+    },
+    TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY: {
+        code: 'A175',
+        message: 'Template JSON and YAML cannot be updated simultaneously',
+        httpCode: 400,
+    },
+    TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE: {
+        code: 'A176',
+        message: 'Template name already exists for this type',
+        httpCode: 400,
+    },
+    DELETE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A177',
+        message: 'Delete subscription template error',
+        httpCode: 500,
+    },
+    RESERVED_TEMPLATE_CANNOT_BE_DELETED: {
+        code: 'A178',
+        message: 'Reserved template cannot be deleted',
+        httpCode: 400,
+    },
+    CREATE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A179',
+        message: 'Create subscription template error',
+        httpCode: 500,
+    },
 } as const;

@@ -54,9 +54,16 @@ interface TransportConfig {
 export class SingBoxGeneratorService {
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    public async generateConfig(hosts: IFormattedHost[]): Promise<string> {
+    public async generateConfig(
+        hosts: IFormattedHost[],
+        overrideTemplateName?: string,
+    ): Promise<string> {
         try {
-            const config = await this.createConfig();
+            const config = await this.subscriptionTemplateService.getCachedTemplateByType(
+                'SINGBOX',
+                overrideTemplateName,
+            );
+
             const proxy_remarks: string[] = [];
 
             for (const host of hosts) {
@@ -71,16 +78,6 @@ export class SingBoxGeneratorService {
         } catch {
             return '';
         }
-    }
-
-    private async createConfig(): Promise<Record<string, any>> {
-        let config: Record<string, any> = {};
-
-        const templateContent =
-            await this.subscriptionTemplateService.getJsonTemplateByType('SINGBOX');
-        config = templateContent;
-
-        return config;
     }
 
     private addOutbound(config: Record<string, any>, outbound_data: OutboundConfig): void {

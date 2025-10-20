@@ -42,6 +42,8 @@ export class ResponseRulesMiddleware implements NestMiddleware {
     ) {
         try {
             let overrideClientType: TRequestTemplateTypeKeys | undefined;
+            let overrideTemplateName: string | undefined;
+
             const userAgent = req.headers['user-agent'] as string;
 
             const settingsEntity = await this.getCachedSubscriptionSettings();
@@ -79,6 +81,11 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                             res.setHeader(header.key, header.value);
                         });
                     }
+
+                    if (result.matchedRule.responseModifications.subscriptionTemplate) {
+                        overrideTemplateName =
+                            result.matchedRule.responseModifications.subscriptionTemplate;
+                    }
                 }
             }
 
@@ -90,6 +97,7 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 matchedResponseType: result.responseType,
                 ip: req.clientIp,
                 subscriptionSettings: settingsEntity,
+                overrideTemplateName,
             };
 
             switch (ssrContext.matchedResponseType) {

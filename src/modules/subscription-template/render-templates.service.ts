@@ -65,7 +65,7 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.clashGeneratorService.generateConfig(
                         formattedHosts,
-                        false,
+                        srrContext.overrideTemplateName,
                     ),
                     contentType: configParams.CONTENT_TYPE,
                 };
@@ -76,13 +76,17 @@ export class RenderTemplatesService {
                         formattedHosts,
                         false,
                         srrContext.isMihomoExtSupported,
+                        srrContext.overrideTemplateName,
                     ),
                     contentType: configParams.CONTENT_TYPE,
                 };
 
             case 'SINGBOX':
                 return {
-                    subscription: await this.singBoxGeneratorService.generateConfig(formattedHosts),
+                    subscription: await this.singBoxGeneratorService.generateConfig(
+                        formattedHosts,
+                        srrContext.overrideTemplateName,
+                    ),
                     contentType: configParams.CONTENT_TYPE,
                 };
 
@@ -91,6 +95,8 @@ export class RenderTemplatesService {
                     subscription: await this.mihomoGeneratorService.generateConfig(
                         formattedHosts,
                         true,
+                        false,
+                        srrContext.overrideTemplateName,
                     ),
                     contentType: configParams.CONTENT_TYPE,
                 };
@@ -100,6 +106,7 @@ export class RenderTemplatesService {
                     subscription: await this.xrayJsonGeneratorService.generateConfig(
                         formattedHosts,
                         srrContext.isXrayExtSupported,
+                        srrContext.overrideTemplateName,
                     ),
                     contentType: configParams.CONTENT_TYPE,
                 };

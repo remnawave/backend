@@ -63,11 +63,19 @@ export class XrayJsonGeneratorService {
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    public async generateConfig(hosts: IFormattedHost[], isHapp: boolean): Promise<string> {
+    public async generateConfig(
+        hosts: IFormattedHost[],
+        isHapp: boolean,
+        overrideTemplateName?: string,
+    ): Promise<string> {
         try {
-            const templateContent = (await this.subscriptionTemplateService.getJsonTemplateByType(
-                'XRAY_JSON',
-            )) as XrayJsonConfig;
+            const templateContentDb =
+                await this.subscriptionTemplateService.getCachedTemplateByType(
+                    'XRAY_JSON',
+                    overrideTemplateName,
+                );
+
+            const templateContent = templateContentDb as unknown as XrayJsonConfig;
 
             const templatedOutbounds: XrayJsonConfig[] = [];
 
