@@ -13,6 +13,7 @@ import { UserTrafficHistoryModule } from './user-traffic-history/user-traffic-hi
 import { NodesUsageHistoryModule } from './nodes-usage-history/nodes-usage-history.module';
 import { RemnawaveServiceModule } from './remnawave-service/remnawave-service.module';
 import { HwidUserDevicesModule } from './hwid-user-devices/hwid-user-devices.module';
+import { ExternalSquadModule } from './external-squads/external-squads.module';
 import { ConfigProfileModule } from './config-profiles/config-profile.module';
 import { InternalSquadModule } from './internal-squads/internal-squad.module';
 import { InfraBillingModule } from './infra-billing/infra-billing.module';
@@ -36,6 +37,7 @@ import { AuthModule } from './auth/auth.module';
         ConditionalModule.registerWhen(ApiTokensModule, () => isRestApi()),
         ConfigProfileModule,
         InternalSquadModule,
+        ExternalSquadModule,
         KeygenModule,
         NodesModule,
         NodesTrafficUsageHistoryModule,

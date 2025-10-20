@@ -42,6 +42,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Internal Squads Controller',
         description: 'Management of Internal Squads.',
     },
+    EXTERNAL_SQUADS: {
+        tag: 'External Squads Controller',
+        description: 'Management of External Squads.',
+    },
     NODES: {
         tag: 'Nodes Controller',
         description: '',

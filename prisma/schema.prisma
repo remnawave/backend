@@ -65,13 +65,17 @@ model Users {
   firstConnectedAt       DateTime? @map("first_connected_at")
   lastTriggeredThreshold Int       @default(0) @map("last_triggered_threshold") // 1-99
 
+  externalSquadUuid String? @map("external_squad_uuid") @db.Uuid
+
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
   nodesUserUsageHistory NodesUserUsageHistory[]
   userTrafficHistory    UserTrafficHistory[]
   hwidUserDevices       HwidUserDevices[]
-  lastConnectedNode     Nodes?                  @relation("UserLastConnectedNode", fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
+
+  lastConnectedNode Nodes?          @relation("UserLastConnectedNode", fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
+  externalSquad     ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
   activeInternalSquads           InternalSquadMembers[]
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
@@ -283,6 +287,8 @@ model SubscriptionTemplate {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
+  externalSquadsTemplates ExternalSquadsTemplates[]
+
   @@unique([templateType, name])
   @@map("subscription_templates")
 }
@@ -491,4 +497,29 @@ model ConfigProfileSnippets {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
 
   @@map("config_profile_snippets")
+}
+
+model ExternalSquads {
+  uuid String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String @unique @map("name") @db.VarChar(30)
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  externalSquadsTemplates ExternalSquadsTemplates[]
+  users                   Users[]
+
+  @@map("external_squads")
+}
+
+model ExternalSquadsTemplates {
+  externalSquadUuid String @map("external_squad_uuid") @db.Uuid
+  templateUuid      String @map("template_uuid") @db.Uuid
+  templateType      String @map("template_type") // ENUM: XRAY_JSON, MIHOMO, STASH, CLASH, SINGBOX
+
+  externalSquad ExternalSquads       @relation(fields: [externalSquadUuid], references: [uuid], onDelete: Cascade)
+  template      SubscriptionTemplate @relation(fields: [templateUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([externalSquadUuid, templateType])
+  @@map("external_squads_templates")
 }

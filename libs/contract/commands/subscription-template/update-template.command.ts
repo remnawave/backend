@@ -23,7 +23,8 @@ export namespace UpdateSubscriptionTemplateCommand {
             .regex(
                 /^[A-Za-z0-9_\s-]+$/,
                 'Name can only contain letters, numbers, underscores, dashes and spaces',
-            ),
+            )
+            .optional(),
         templateJson: z.optional(z.object({}).passthrough()),
         encodedTemplateYaml: z.optional(z.string()),
     });

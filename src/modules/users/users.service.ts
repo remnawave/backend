@@ -185,6 +185,7 @@ export class UsersService {
                 hwidDeviceLimit,
                 tag,
                 activeInternalSquads,
+                externalSquadUuid,
             } = dto;
 
             const userCriteria = uuid ? { uuid } : { username };
@@ -248,6 +249,7 @@ export class UsersService {
                 hwidDeviceLimit: hwidDeviceLimit,
                 tag: tag,
                 lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
+                externalSquadUuid: externalSquadUuid,
             });
 
             if (activeInternalSquads) {
@@ -328,6 +330,7 @@ export class UsersService {
                 hwidDeviceLimit,
                 tag,
                 activeInternalSquads,
+                externalSquadUuid,
                 uuid,
             } = dto;
 
@@ -350,6 +353,7 @@ export class UsersService {
                 hwidDeviceLimit: hwidDeviceLimit,
                 tag: tag,
                 uuid: uuid || undefined,
+                externalSquadUuid: externalSquadUuid || null,
             });
 
             const result = await this.userRepository.create(userEntity);

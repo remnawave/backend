@@ -19,6 +19,7 @@ import {
     ERRORS,
     EVENTS,
     RESPONSE_RULES_RESPONSE_TYPES,
+    TSubscriptionTemplateType,
     USERS_STATUS,
 } from '@libs/contracts/constants';
 
@@ -36,6 +37,7 @@ import { IFormattedHost, IRawHost } from '@modules/subscription-template/generat
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
+import { GetTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
 import { GetUserResponseModel } from '@modules/users/models';
@@ -110,6 +112,21 @@ export class SubscriptionService {
                 subscriptionSettings,
                 isXrayExtSupported,
             } = srrContext;
+
+            if (!srrContext.overrideTemplateName) {
+                if (user.response.externalSquadUuid) {
+                    const templateName = await this.queryBus.execute(
+                        new GetTemplateNameQuery(
+                            user.response.externalSquadUuid,
+                            matchedResponseType as TSubscriptionTemplateType,
+                        ),
+                    );
+
+                    if (templateName.isOk && templateName.response) {
+                        srrContext.overrideTemplateName = templateName.response;
+                    }
+                }
+            }
 
             if (this.hwidDeviceLimitEnabled) {
                 const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);

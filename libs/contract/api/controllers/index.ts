@@ -1,6 +1,7 @@
 export * from './api-tokens';
 export * from './auth';
 export * from './config-profiles';
+export * from './external-squads';
 export * from './hosts';
 export * from './hwid';
 export * from './infra-billing';

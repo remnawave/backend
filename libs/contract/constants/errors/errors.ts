@@ -899,4 +899,54 @@ export const ERRORS = {
         message: 'Template type not allowed',
         httpCode: 400,
     },
+    GET_EXTERNAL_SQUADS_ERROR: {
+        code: 'A181',
+        message: 'Get external squads error',
+        httpCode: 500,
+    },
+    EXTERNAL_SQUAD_NOT_FOUND: {
+        code: 'A182',
+        message: 'External squad not found',
+        httpCode: 404,
+    },
+    CREATE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A183',
+        message: 'Create external squad error',
+        httpCode: 500,
+    },
+    UPDATE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A184',
+        message: 'Update external squad error',
+        httpCode: 500,
+    },
+    DELETE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A185',
+        message: 'Delete external squad error',
+        httpCode: 500,
+    },
+    ADD_USERS_TO_EXTERNAL_SQUAD_ERROR: {
+        code: 'A186',
+        message: 'Add users to external squad error',
+        httpCode: 500,
+    },
+    REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR: {
+        code: 'A187',
+        message: 'Remove users from external squad error',
+        httpCode: 500,
+    },
+    GET_EXTERNAL_SQUAD_BY_UUID_ERROR: {
+        code: 'A188',
+        message: 'Get external squad by UUID error',
+        httpCode: 500,
+    },
+    EXTERNAL_SQUAD_NAME_ALREADY_EXISTS: {
+        code: 'A189',
+        message: 'External squad name already exists',
+        httpCode: 400,
+    },
+    NAME_OR_TEMPLATES_REQUIRED: {
+        code: 'A190',
+        message: 'Name or templates are required',
+        httpCode: 400,
+    },
 } as const;

@@ -96,6 +96,7 @@ export class XrayJsonGeneratorService {
                     ...templateContent,
                     outbounds: [...templatedOutbound.outbounds, ...templateContent.outbounds],
                     remarks: templatedOutbound.remarks,
+                    meta: templatedOutbound.meta,
                 });
             }
 
@@ -134,7 +135,7 @@ export class XrayJsonGeneratorService {
 
             if (isHapp && host.serverDescription) {
                 config.meta = {
-                    serverDescription: host.serverDescription,
+                    serverDescription: Buffer.from(host.serverDescription, 'base64').toString(),
                 };
             }
 

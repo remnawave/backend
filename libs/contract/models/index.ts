@@ -5,6 +5,7 @@ export * from './base-stat.schema';
 export * from './config-profile-inbounds.schema';
 export * from './config-profile.schema';
 export * from './extended-users.schema';
+export * from './external-squad.schema';
 export * from './happ.schema';
 export * from './hosts.schema';
 export * from './hwid-user-device.schema';
