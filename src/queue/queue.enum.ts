@@ -1,6 +1,7 @@
 export enum QueueNames {
     bulkUserOperations = 'BULK_USER_OPERATIONS_QUEUE',
     expireUserNotifications = 'EXPIRE_USER_NOTIFICATIONS_QUEUE',
+    externalSquadActions = 'EXTERNAL_SQUAD_ACTIONS_QUEUE',
     firstConnectedUsers = 'FIRST_CONNECTED_USERS_QUEUE',
     internalSquadActions = 'INTERNAL_SQUAD_ACTIONS_QUEUE',
     nodeHealthCheck = 'NODE_HEALTH_CHECK_QUEUE',

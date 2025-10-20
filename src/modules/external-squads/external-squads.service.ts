@@ -7,6 +7,8 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
+import { ExternalSquadActionsQueueService } from '@queue/external-squad-actions';
+
 import {
     DeleteExternalSquadByUuidResponseModel,
     EventSentExternalSquadResponseModel,
@@ -20,7 +22,10 @@ import { ExternalSquadEntity } from './entities';
 export class ExternalSquadService {
     private readonly logger = new Logger(ExternalSquadService.name);
 
-    constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
+    constructor(
+        private readonly externalSquadRepository: ExternalSquadRepository,
+        private readonly externalSquadActionsQueueService: ExternalSquadActionsQueueService,
+    ) {}
 
     public async getExternalSquads(): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
         try {
@@ -220,7 +225,9 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadRepository.addUsersToExternalSquad(uuid);
+            await this.externalSquadActionsQueueService.addUsersToExternalSquad({
+                externalSquadUuid: uuid,
+            });
 
             return {
                 isOk: true,
@@ -248,7 +255,9 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadRepository.removeUsersFromExternalSquad(uuid);
+            await this.externalSquadActionsQueueService.removeUsersFromExternalSquad({
+                externalSquadUuid: uuid,
+            });
 
             return {
                 isOk: true,
