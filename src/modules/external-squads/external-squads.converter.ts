@@ -14,6 +14,7 @@ const entityToModel = (entity: ExternalSquadEntity): ExternalSquads => {
     return {
         uuid: entity.uuid,
         name: entity.name,
+        subscriptionSettings: entity.subscriptionSettings,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

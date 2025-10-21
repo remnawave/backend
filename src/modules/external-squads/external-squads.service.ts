@@ -16,6 +16,7 @@ import {
 import { GetExternalSquadByUuidResponseModel } from './models/get-external-squad-by-uuid.response.model';
 import { GetExternalSquadsResponseModel } from './models/get-external-squads.response.model';
 import { ExternalSquadRepository } from './repositories/external-squad.repository';
+import { UpdateExternalSquadRequestDto } from './dtos';
 import { ExternalSquadEntity } from './entities';
 
 @Injectable()
@@ -104,13 +105,10 @@ export class ExternalSquadService {
     }
 
     public async updateExternalSquad(
-        uuid: string,
-        name?: string,
-        templates?: {
-            templateType: TSubscriptionTemplateType;
-            templateUuid: string;
-        }[],
+        dto: UpdateExternalSquadRequestDto,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
+        const { uuid, name, templates, subscriptionSettings } = dto;
+
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
@@ -121,17 +119,18 @@ export class ExternalSquadService {
                 };
             }
 
-            if (!name && !templates) {
+            if (!name && !templates && !subscriptionSettings) {
                 return {
                     isOk: false,
                     ...ERRORS.NAME_OR_TEMPLATES_REQUIRED,
                 };
             }
 
-            if (name) {
+            if (name || subscriptionSettings) {
                 await this.externalSquadRepository.update({
                     uuid,
-                    name,
+                    name: name || undefined,
+                    subscriptionSettings: subscriptionSettings || undefined,
                 });
             }
 

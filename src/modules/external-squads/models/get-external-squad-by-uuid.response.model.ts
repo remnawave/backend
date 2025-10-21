@@ -1,3 +1,6 @@
+import z from 'zod';
+
+import { ExternalSquadSubscriptionSettingsSchema } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import { ExternalSquadWithInfoEntity } from '../entities/internal-squad-with-info.entity';
@@ -14,6 +17,10 @@ export class GetExternalSquadByUuidResponseModel {
         templateType: TSubscriptionTemplateType;
     }[];
 
+    public readonly subscriptionSettings: z.infer<
+        typeof ExternalSquadSubscriptionSettingsSchema
+    > | null;
+
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
 
@@ -28,6 +35,8 @@ export class GetExternalSquadByUuidResponseModel {
             templateUuid: template.templateUuid,
             templateType: template.templateType,
         }));
+
+        this.subscriptionSettings = entity.subscriptionSettings;
 
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;

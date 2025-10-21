@@ -1,4 +1,5 @@
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import { Prisma } from '@prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -24,7 +25,10 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
     public async create(entity: ExternalSquadEntity): Promise<ExternalSquadEntity> {
         const model = this.externalSquadConverter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.externalSquads.create({
-            data: model,
+            data: {
+                ...model,
+                subscriptionSettings: model.subscriptionSettings as Prisma.InputJsonValue,
+            },
         });
 
         return this.externalSquadConverter.fromPrismaModelToEntity(result);
@@ -48,15 +52,22 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             where: {
                 uuid,
             },
-            data,
+            data: {
+                ...data,
+                subscriptionSettings: data.subscriptionSettings as Prisma.InputJsonValue,
+            },
         });
 
         return this.externalSquadConverter.fromPrismaModelToEntity(result);
     }
 
     public async findByCriteria(dto: Partial<ExternalSquadEntity>): Promise<ExternalSquadEntity[]> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { subscriptionSettings: _subscriptionSettings, ...rest } = dto;
         const externalSquadList = await this.prisma.tx.externalSquads.findMany({
-            where: dto,
+            where: {
+                ...rest,
+            },
         });
         return this.externalSquadConverter.fromPrismaModelsToEntities(externalSquadList);
     }
@@ -64,8 +75,12 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
     public async findFirstByCriteria(
         dto: Partial<ExternalSquadEntity>,
     ): Promise<ExternalSquadEntity | null> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { subscriptionSettings: _subscriptionSettings, ...rest } = dto;
         const result = await this.prisma.tx.externalSquads.findFirst({
-            where: dto,
+            where: {
+                ...rest,
+            },
         });
 
         if (!result) {
@@ -86,6 +101,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .select((eb) => [
                 'externalSquads.uuid',
                 'externalSquads.name',
+                'externalSquads.subscriptionSettings',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -115,6 +131,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .select((eb) => [
                 'externalSquads.uuid',
                 'externalSquads.name',
+                'externalSquads.subscriptionSettings',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -233,5 +250,22 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         }
 
         return result.templateName;
+    }
+
+    public async getExternalSquadSubscriptionSettings(
+        externalSquadUuid: string,
+    ): Promise<Pick<ExternalSquadEntity, 'subscriptionSettings'> | null> {
+        const result = await this.prisma.tx.externalSquads.findUnique({
+            where: { uuid: externalSquadUuid },
+            select: {
+                subscriptionSettings: true,
+            },
+        });
+
+        if (!result) {
+            return null;
+        }
+
+        return new ExternalSquadEntity(result);
     }
 }

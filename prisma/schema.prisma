@@ -500,8 +500,9 @@ model ConfigProfileSnippets {
 }
 
 model ExternalSquads {
-  uuid String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name String @unique @map("name") @db.VarChar(30)
+  uuid                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String @unique @map("name") @db.VarChar(30)
+  subscriptionSettings Json?  @map("subscription_settings")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")

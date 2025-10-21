@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ExternalSquadSubscriptionSettingsSchema } from './external-squad-subscription-settings.schema';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 
 export const ExternalSquadSchema = z.object({
@@ -16,6 +17,7 @@ export const ExternalSquadSchema = z.object({
             templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),
         }),
     ),
+    subscriptionSettings: z.nullable(ExternalSquadSubscriptionSettingsSchema),
 
     createdAt: z
         .string()

@@ -125,11 +125,7 @@ export class ExternalSquadController {
     async updateExternalSquad(
         @Body() updateExternalSquadDto: UpdateExternalSquadRequestDto,
     ): Promise<UpdateExternalSquadResponseDto> {
-        const result = await this.externalSquadService.updateExternalSquad(
-            updateExternalSquadDto.uuid,
-            updateExternalSquadDto.name,
-            updateExternalSquadDto.templates,
-        );
+        const result = await this.externalSquadService.updateExternalSquad(updateExternalSquadDto);
 
         const data = errorHandler(result);
         return {

@@ -25,6 +25,7 @@ import {
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetExternalSquadSubscriptionSettingsQuery } from '@modules/external-squads/queries/get-external-squad-subscription-settings';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
@@ -105,13 +106,7 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const {
-                userAgent,
-                hwidHeaders,
-                matchedResponseType,
-                subscriptionSettings,
-                isXrayExtSupported,
-            } = srrContext;
+            const { userAgent, hwidHeaders, matchedResponseType, isXrayExtSupported } = srrContext;
 
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
@@ -127,6 +122,26 @@ export class SubscriptionService {
                     }
                 }
             }
+
+            // Override subscription settings with External Squad subscription settings
+            if (user.response.externalSquadUuid) {
+                const externalSquadSubscriptionSettings = await this.queryBus.execute(
+                    new GetExternalSquadSubscriptionSettingsQuery(user.response.externalSquadUuid),
+                );
+
+                if (
+                    externalSquadSubscriptionSettings.isOk &&
+                    externalSquadSubscriptionSettings.response &&
+                    externalSquadSubscriptionSettings.response.subscriptionSettings !== null
+                ) {
+                    srrContext.subscriptionSettings = {
+                        ...srrContext.subscriptionSettings,
+                        ...externalSquadSubscriptionSettings.response.subscriptionSettings,
+                    };
+                }
+            }
+
+            const subscriptionSettings = srrContext.subscriptionSettings;
 
             if (this.hwidDeviceLimitEnabled) {
                 const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);

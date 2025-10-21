@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
+import { ExternalSquadSchema, ExternalSquadSubscriptionSettingsSchema } from '../../models';
 import { getEndpointDetails, SUBSCRIPTION_TEMPLATE_TYPE } from '../../constants';
 import { EXTERNAL_SQUADS_ROUTES, REST_API } from '../../api';
-import { ExternalSquadSchema } from '../../models';
 
 export namespace UpdateExternalSquadCommand {
     export const url = REST_API.EXTERNAL_SQUADS.UPDATE;
@@ -33,6 +33,7 @@ export namespace UpdateExternalSquadCommand {
                 }),
             )
             .optional(),
+        subscriptionSettings: ExternalSquadSubscriptionSettingsSchema.optional(),
     });
 
     export type Request = z.infer<typeof RequestSchema>;
