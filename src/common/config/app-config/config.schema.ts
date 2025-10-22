@@ -177,6 +177,21 @@ export const configSchema = z
 
         BRANDING_TITLE: z.string().optional(),
         BRANDING_LOGO_URL: z.string().optional(),
+        NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED: z.string().default('false'),
+        NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS: z
+            .string()
+            .optional()
+            .transform((val) => {
+                if (!val || val === '') return undefined;
+                try {
+                    return JSON.parse(val);
+                } catch {
+                    throw new Error(
+                        'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must be a valid JSON array',
+                    );
+                }
+            })
+            .pipe(z.array(z.number()).optional()),
     })
     .superRefine((data, ctx) => {
         if (data.WEBHOOK_ENABLED === 'true') {
@@ -468,6 +483,56 @@ export const configSchema = z
                         code: z.ZodIssueCode.custom,
                         message: 'Threshold values must be in strictly ascending order',
                         path: ['BANDWIDTH_USAGE_NOTIFICATIONS_THRESHOLD'],
+                    });
+                }
+            }
+        }
+
+        if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED === 'true') {
+            if (!data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS is required when NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED is true',
+                    path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                });
+            } else if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must not be empty',
+                    path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                });
+            } else {
+                if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.length > 3) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must contain at most 3 values',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                    });
+                }
+
+                if (
+                    data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.some(
+                        (t) => isNaN(t) || !Number.isInteger(t) || t < 1 || t > 168,
+                    )
+                ) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'All hours values must be integers between 1 and 168',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                    });
+                }
+
+                if (
+                    !data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.every(
+                        (value, index, array) => index === 0 || value > array[index - 1],
+                    )
+                ) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Hours values must be in strictly ascending order',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
                     });
                 }
             }

@@ -86,7 +86,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.CREATED,
-                new UserEvent(user.response, EVENTS.USER.CREATED),
+                new UserEvent({
+                    user: user.response,
+                    event: EVENTS.USER.CREATED,
+                }),
             );
             return user;
         } catch (error) {
@@ -149,7 +152,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.MODIFIED,
-                new UserEvent(user.response.user, EVENTS.USER.MODIFIED),
+                new UserEvent({
+                    user: user.response.user,
+                    event: EVENTS.USER.MODIFIED,
+                }),
             );
 
             return {
@@ -531,7 +537,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.REVOKED,
-                new UserEvent(updatedUser, EVENTS.USER.REVOKED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.REVOKED,
+                }),
             );
 
             return {
@@ -568,7 +577,13 @@ export class UsersService {
 
             this.eventBus.publish(new RemoveUserFromNodeEvent(user.username, user.vlessUuid));
 
-            this.eventEmitter.emit(EVENTS.USER.DELETED, new UserEvent(user, EVENTS.USER.DELETED));
+            this.eventEmitter.emit(
+                EVENTS.USER.DELETED,
+                new UserEvent({
+                    user,
+                    event: EVENTS.USER.DELETED,
+                }),
+            );
             return {
                 isOk: true,
                 response: new DeleteUserResponseModel(result),
@@ -616,7 +631,10 @@ export class UsersService {
             );
             this.eventEmitter.emit(
                 EVENTS.USER.DISABLED,
-                new UserEvent(updatedUser, EVENTS.USER.DISABLED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.DISABLED,
+                }),
             );
 
             return {
@@ -668,7 +686,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.ENABLED,
-                new UserEvent(updatedUser, EVENTS.USER.ENABLED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.ENABLED,
+                }),
             );
 
             return {
@@ -737,13 +758,19 @@ export class UsersService {
             if (user.status === USERS_STATUS.LIMITED) {
                 this.eventEmitter.emit(
                     EVENTS.USER.ENABLED,
-                    new UserEvent(newUser, EVENTS.USER.ENABLED),
+                    new UserEvent({
+                        user: newUser,
+                        event: EVENTS.USER.ENABLED,
+                    }),
                 );
             }
 
             this.eventEmitter.emit(
                 EVENTS.USER.TRAFFIC_RESET,
-                new UserEvent(newUser, EVENTS.USER.TRAFFIC_RESET),
+                new UserEvent({
+                    user: newUser,
+                    event: EVENTS.USER.TRAFFIC_RESET,
+                }),
             );
 
             return {

@@ -61,7 +61,10 @@ export class FirstConnectedUsersQueueProcessor extends WorkerHost {
 
             this.eventEmitter.emit(
                 EVENTS.USER.FIRST_CONNECTED,
-                new UserEvent(user.response, EVENTS.USER.FIRST_CONNECTED),
+                new UserEvent({
+                    user: user.response,
+                    event: EVENTS.USER.FIRST_CONNECTED,
+                }),
             );
         } catch (error) {
             this.logger.error(

@@ -1210,6 +1210,20 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         return result.uuid;
     }
 
+    public async findNotConnectedUsers(startDate: Date, endDate: Date): Promise<UserEntity[]> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .selectAll()
+            .where('status', '=', 'ACTIVE')
+            .where('firstConnectedAt', 'is', null)
+            .where('onlineAt', 'is', null)
+            .where('createdAt', '>=', startDate)
+            .where('createdAt', '<', endDate)
+            .execute();
+
+        return result.map((value) => new UserEntity(value));
+    }
+
     private includeLastConnectedNode(eb: ExpressionBuilder<DB, 'users'>) {
         return jsonObjectFrom(
             eb

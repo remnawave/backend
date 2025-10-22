@@ -1,4 +1,5 @@
 import { Job } from 'bullmq';
+import dayjs from 'dayjs';
 import pMap from 'p-map';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
@@ -15,6 +16,7 @@ import { UserEvent } from '@integration-modules/notifications/interfaces';
 import { TriggerThresholdNotificationCommand } from '@modules/users/commands/trigger-threshold-notification';
 import { UpdateExceededTrafficUsersCommand } from '@modules/users/commands/update-exceeded-users';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
+import { GetNotConnectedUsersQuery } from '@modules/users/queries/get-not-connected-users';
 import { UpdateExpiredUsersCommand } from '@modules/users/commands/update-expired-users';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 
@@ -46,6 +48,8 @@ export class UserJobsQueueProcessor extends WorkerHost {
                 return this.handleFindExceededUsers(job);
             case UserJobsJobNames.findUsersForThresholdNotification:
                 return this.handleFindUsersForThresholdNotification(job);
+            case UserJobsJobNames.findNotConnectedUsersNotification:
+                return this.handleFindNotConnectedUsersNotification(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -104,7 +108,10 @@ export class UserJobsQueueProcessor extends WorkerHost {
 
                     this.eventEmitter.emit(
                         EVENTS.USER.EXPIRED,
-                        new UserEvent(user, EVENTS.USER.EXPIRED),
+                        new UserEvent({
+                            user,
+                            event: EVENTS.USER.EXPIRED,
+                        }),
                     );
 
                     // TODO: find a better way to do this. If previous user status was limited, this event will throw warning.
@@ -172,7 +179,10 @@ export class UserJobsQueueProcessor extends WorkerHost {
 
                     this.eventEmitter.emit(
                         EVENTS.USER.LIMITED,
-                        new UserEvent(user, EVENTS.USER.LIMITED),
+                        new UserEvent({
+                            user,
+                            event: EVENTS.USER.LIMITED,
+                        }),
                     );
 
                     await this.eventBus.publish(
@@ -196,6 +206,7 @@ export class UserJobsQueueProcessor extends WorkerHost {
             'BANDWIDTH_USAGE_NOTIFICATIONS_THRESHOLD',
         );
 
+        // Loop reason: SQL query is strictly limited by 5000 users
         while (true) {
             try {
                 const usersResponse = await this.triggerThresholdNotifications(percentages);
@@ -253,11 +264,11 @@ export class UserJobsQueueProcessor extends WorkerHost {
 
                             this.eventEmitter.emit(
                                 EVENTS.USER.BANDWIDTH_USAGE_THRESHOLD_REACHED,
-                                new UserEvent(
+                                new UserEvent({
                                     user,
-                                    EVENTS.USER.BANDWIDTH_USAGE_THRESHOLD_REACHED,
+                                    event: EVENTS.USER.BANDWIDTH_USAGE_THRESHOLD_REACHED,
                                     skipTelegramNotification,
-                                ),
+                                }),
                             );
                         } catch (error) {
                             this.logger.error(
@@ -276,6 +287,75 @@ export class UserJobsQueueProcessor extends WorkerHost {
 
                 continue;
             }
+        }
+    }
+
+    private async handleFindNotConnectedUsersNotification(job: Job) {
+        const intervals = this.configService.getOrThrow<number[]>(
+            'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS',
+        );
+        const now = dayjs().utc();
+
+        try {
+            for (const interval of intervals) {
+                const targetTime = now.subtract(interval, 'hours');
+                const start = targetTime.subtract(10, 'minutes').toDate();
+                const end = targetTime.toDate();
+
+                const usersResponse = await this.queryBus.execute(
+                    new GetNotConnectedUsersQuery(start, end),
+                );
+
+                if (!usersResponse.isOk || !usersResponse.response) {
+                    continue;
+                }
+
+                if (usersResponse.response.length === 0) {
+                    continue;
+                }
+
+                this.logger.log(
+                    `Job ${job.name} has found ${usersResponse.response.length} users for not connected interval ${interval} users notification.`,
+                );
+
+                let skipTelegramNotification = false;
+
+                if (usersResponse.response.length >= 500) {
+                    this.logger.warn(
+                        'More than 500 users found for sending not connected users notification, skipping Telegram events.',
+                    );
+
+                    skipTelegramNotification = true;
+                }
+
+                await pMap(
+                    usersResponse.response,
+                    async (userEntity) => {
+                        try {
+                            this.eventEmitter.emit(
+                                EVENTS.USER.NOT_CONNECTED,
+                                new UserEvent({
+                                    user: userEntity,
+                                    event: EVENTS.USER.NOT_CONNECTED,
+                                    meta: {
+                                        notConnectedAfterHours: interval,
+                                    },
+                                    skipTelegramNotification,
+                                }),
+                            );
+                        } catch (error) {
+                            this.logger.error(
+                                `Error handling "${UserJobsJobNames.findNotConnectedUsersNotification}" job: ${error}`,
+                            );
+                        }
+                    },
+                    { concurrency: 100 },
+                );
+            }
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${UserJobsJobNames.findNotConnectedUsersNotification}" job: ${error}`,
+            );
         }
     }
 
