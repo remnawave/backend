@@ -1,3 +1,4 @@
+import { createKeyv } from '@keyv/redis';
 import { ClsModule } from 'nestjs-cls';
 
 import { QueueModule } from 'src/queue/queue.module';
@@ -5,8 +6,9 @@ import { QueueModule } from 'src/queue/queue.module';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Logger, OnApplicationShutdown, Module } from '@nestjs/common';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '@nestjs/cache-manager';
 
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
@@ -51,6 +53,28 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
         RemnawaveModules,
         QueueModule,
         MessagingModules,
+        CacheModule.registerAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            isGlobal: true,
+            useFactory: async (configService: ConfigService) => {
+                return {
+                    stores: [
+                        createKeyv(
+                            {
+                                url: `redis://${configService.getOrThrow<string>('REDIS_HOST')}:${configService.getOrThrow<number>('REDIS_PORT')}`,
+                                database: configService.getOrThrow<number>('REDIS_DB'),
+                                password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                            },
+                            {
+                                namespace: 'rmnwv',
+                                keyPrefixSeparator: ':',
+                            },
+                        ),
+                    ],
+                };
+            },
+        }),
     ],
     controllers: [],
 })
