@@ -6,9 +6,9 @@ export const CACHE_KEYS = {
         `subscription_template:${name}:${type}`,
     PASSKEY_REGISTRATION_OPTIONS: (uuid: string) => `passkey_registration_options:${uuid}`,
     PASSKEY_AUTHENTICATION_OPTIONS: (uuid: string) => `passkey_authentication_options:${uuid}`,
-    REMNAAWAVE_SETTINGS: 'remnawave_settings',
+    REMNAWAVE_SETTINGS: 'remnawave_settings',
 } as const;
 
 export const CACHE_KEYS_TTL = {
-    REMNAAWAVE_SETTINGS: 86_400_000, // 1 day
+    REMNAWAVE_SETTINGS: 86_400_000, // 1 day
 } as const;

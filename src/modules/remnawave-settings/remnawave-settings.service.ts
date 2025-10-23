@@ -63,7 +63,7 @@ export class RemnawaveSettingsService {
                 ...body,
             });
 
-            await this.cacheManager.del(CACHE_KEYS.REMNAAWAVE_SETTINGS);
+            await this.cacheManager.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
 
             return await this.getSettingsFromController();
         } catch (error) {

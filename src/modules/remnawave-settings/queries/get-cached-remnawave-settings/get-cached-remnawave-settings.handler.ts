@@ -24,7 +24,7 @@ export class GetCachedRemnawaveSettingsHandler
     async execute(): Promise<RemnawaveSettingsEntity> {
         try {
             const cached = await this.cacheManager.get<RemnawaveSettingsEntity>(
-                CACHE_KEYS.REMNAAWAVE_SETTINGS,
+                CACHE_KEYS.REMNAWAVE_SETTINGS,
             );
             if (cached) {
                 return cached;
@@ -33,9 +33,9 @@ export class GetCachedRemnawaveSettingsHandler
             const settings = await this.remnawaveSettingsRepository.getSettings();
 
             await this.cacheManager.set(
-                CACHE_KEYS.REMNAAWAVE_SETTINGS,
+                CACHE_KEYS.REMNAWAVE_SETTINGS,
                 settings,
-                CACHE_KEYS_TTL.REMNAAWAVE_SETTINGS,
+                CACHE_KEYS_TTL.REMNAWAVE_SETTINGS,
             );
 
             return settings;

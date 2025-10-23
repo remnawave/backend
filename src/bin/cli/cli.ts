@@ -2,9 +2,11 @@
 
 import { Prisma, PrismaClient } from '@prisma/client';
 import consola from 'consola';
+import Redis from 'ioredis';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
 import { generateNodeCert } from '@common/utils/certs';
+import { CACHE_KEYS } from '@libs/contracts/constants';
 
 const prisma = new PrismaClient({
     datasources: {
@@ -12,6 +14,14 @@ const prisma = new PrismaClient({
             url: process.env.DATABASE_URL,
         },
     },
+});
+
+const redis = new Redis({
+    host: process.env.REDIS_HOST!,
+    port: parseInt(process.env.REDIS_PORT!),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB ?? '1'),
+    keyPrefix: 'rmnwv:',
 });
 
 const enum CLI_ACTIONS {
@@ -29,6 +39,16 @@ async function checkDatabaseConnection() {
         return true;
     } catch (error) {
         consola.error('❌ Database connection error:', error);
+        return false;
+    }
+}
+
+async function checkRedisConnection() {
+    try {
+        await redis.ping();
+        return true;
+    } catch (error) {
+        consola.error('❌ Redis connection error:', error);
         return false;
     }
 }
@@ -59,6 +79,9 @@ async function resetSuperadmin() {
                 uuid: superadmin.uuid,
             },
         });
+
+        await redis.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+
         consola.success(`✅ Superadmin ${superadmin.username} deleted successfully.`);
     } catch (error) {
         consola.error('❌ Failed to delete superadmin:', error);
@@ -197,14 +220,17 @@ async function enablePasswordAuth() {
             },
         });
 
+        await redis.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+
         consola.success('✅ Password authentication enabled successfully.');
+        process.exit(0);
     } catch (error) {
         consola.error('❌ Failed to enable password authentication:', error);
         process.exit(1);
     }
 }
 async function main() {
-    consola.box('Remnawave Rescue CLI v0.2');
+    consola.box('Remnawave Rescue CLI v0.3');
 
     consola.start('🌱 Checking database connection...');
     const isConnected = await checkDatabaseConnection();
@@ -213,6 +239,14 @@ async function main() {
         process.exit(1);
     }
     consola.success('✅ Database connected!');
+
+    consola.start('🌱 Checking Redis connection...');
+    const isRedisConnected = await checkRedisConnection();
+    if (!isRedisConnected) {
+        consola.error('❌ Failed to connect to Redis. Exiting...');
+        process.exit(1);
+    }
+    consola.success('✅ Redis connected!');
 
     const action = await consola.prompt('Select an action', {
         type: 'select',
