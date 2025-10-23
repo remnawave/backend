@@ -15,6 +15,7 @@ const prisma = new PrismaClient({
 });
 
 const enum CLI_ACTIONS {
+    ENABLE_PASSWORD_AUTH = 'enable-password-auth',
     EXIT = 'exit',
     FIX_POSTGRES_COLLATION = 'fix-postgres-collation',
     GET_SSL_CERT_FOR_NODE = 'get-ssl-cert-for-node',
@@ -170,6 +171,38 @@ async function fixPostgresCollation() {
     }
 }
 
+async function enablePasswordAuth() {
+    consola.start('🔄 Enabling password authentication...');
+
+    const answer = await consola.prompt(
+        'Are you sure you want to enable password authentication?',
+        {
+            type: 'confirm',
+            required: true,
+        },
+    );
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.remnawaveSettings.update({
+            where: { id: 1 },
+            data: {
+                passwordSettings: {
+                    enabled: true,
+                },
+            },
+        });
+
+        consola.success('✅ Password authentication enabled successfully.');
+    } catch (error) {
+        consola.error('❌ Failed to enable password authentication:', error);
+        process.exit(1);
+    }
+}
 async function main() {
     consola.box('Remnawave Rescue CLI v0.2');
 
@@ -189,6 +222,11 @@ async function main() {
                 value: CLI_ACTIONS.RESET_SUPERADMIN,
                 label: 'Reset superadmin',
                 hint: 'Fully reset superadmin',
+            },
+            {
+                value: CLI_ACTIONS.ENABLE_PASSWORD_AUTH,
+                label: 'Enable password authentication',
+                hint: 'Enable password authentication',
             },
             {
                 value: CLI_ACTIONS.RESET_CERTS,
@@ -225,6 +263,9 @@ async function main() {
             break;
         case CLI_ACTIONS.FIX_POSTGRES_COLLATION:
             await fixPostgresCollation();
+            break;
+        case CLI_ACTIONS.ENABLE_PASSWORD_AUTH:
+            await enablePasswordAuth();
             break;
         case CLI_ACTIONS.EXIT:
             consola.info('👋 Exiting...');

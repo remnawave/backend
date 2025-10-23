@@ -3,6 +3,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Auth Controller',
         description: 'Used to authenticate admin users.',
     },
+    PASSKEYS: {
+        tag: 'Passkeys Controller',
+        description: 'Management of Passkeys.',
+    },
     API_TOKENS: {
         tag: 'API Tokens Controller',
         description:
@@ -88,6 +92,10 @@ export const CONTROLLERS_INFO = {
     },
     SNIPPETS: {
         tag: 'Snippets Controller',
+        description: '',
+    },
+    REMNAAWAVE_SETTINGS: {
+        tag: 'Remnawave Settings Controller',
         description: '',
     },
 } as const;

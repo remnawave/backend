@@ -18,9 +18,32 @@ generator kysely {
   enumFileName       = "kyselyEnums"
 }
 
+generator json {
+  provider  = "prisma-json-types-generator"
+  namespace = "PrismaJson"
+  allowAny  = false
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model RemnawaveSettings {
+  id Int @id @default(1)
+
+  /// [PasskeySettings]
+  passkeySettings  Json? @map("passkey_settings")
+  /// [Oauth2Settings]
+  oauth2Settings   Json? @map("oauth2_settings")
+  /// [TgAuthSettings]
+  tgAuthSettings   Json? @map("tg_auth_settings")
+  /// [PasswordAuthSettings]
+  passwordSettings Json? @map("password_settings")
+  /// [BrandingSettings]
+  brandingSettings Json? @map("branding_settings")
+
+  @@map("remnawave_settings")
 }
 
 model Users {
@@ -106,7 +129,29 @@ model Admin {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
+  passkeys Passkeys[]
+
   @@map("admin")
+}
+
+model Passkeys {
+  id              String  @id @map("id") // Base64URL encoded credential ID
+  adminUuid       String  @map("admin_uuid") @db.Uuid
+  publicKey       Bytes   @map("public_key") // Raw bytes of the public key
+  counter         BigInt  @map("counter") // Signature counter
+  deviceType      String  @map("device_type") // 'singleDevice' | 'multiDevice'
+  backedUp        Boolean @map("backed_up")
+  transports      String? @map("transports") // CSV string of transports
+  passkeyProvider String? @map("passkey_provider")
+
+  admin Admin @relation(fields: [adminUuid], references: [uuid], onDelete: Cascade)
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  @@index([id])
+  @@index([adminUuid])
+  @@map("passkeys")
 }
 
 model Keygen {

@@ -5,7 +5,7 @@ import {
     SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
 } from '@libs/contracts/constants';
 import { KeygenEntity } from '@modules/keygen/entities/keygen.entity';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, RemnawaveSettings } from '@prisma/client';
 import consola from 'consola';
 import _ from 'lodash';
 import { Redis } from 'ioredis';
@@ -17,6 +17,14 @@ import {
     DEFAULT_TEMPLATE_STASH,
     DEFAULT_TEMPLATE_XRAY_JSON,
 } from '@modules/subscription-template/constants';
+import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
+import {
+    TBrandingSettings,
+    TOauth2Settings,
+    TPasswordAuthSettings,
+    TRemnawavePasskeySettings,
+    TTgAuthSettings,
+} from '@libs/contracts/models';
 
 const hash = hasher({
     trim: true,
@@ -634,6 +642,91 @@ async function syncInbounds() {
     consola.success('Inbounds synced successfully');
 }
 
+async function seedRemnawaveSettings() {
+    const DEFAULT_PASSKEY_SETTINGS: TRemnawavePasskeySettings = {
+        enabled: false,
+        rpId: null,
+        origin: null,
+    };
+
+    const DEFAULT_OAUTH2_SETTINGS: TOauth2Settings = {
+        github: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+        },
+        pocketid: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            plainDomain: null,
+            allowedEmails: [],
+        },
+        yandex: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+        },
+    };
+
+    const DEFAULT_TG_AUTH_SETTINGS: TTgAuthSettings = {
+        enabled: false,
+        botToken: null,
+        adminIds: [],
+    };
+
+    const DEFAULT_PASSWORD_AUTH_SETTINGS: TPasswordAuthSettings = {
+        enabled: true,
+    };
+
+    const settingsMapping = {
+        passkeySettings: DEFAULT_PASSKEY_SETTINGS,
+        oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
+        tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
+        passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
+    };
+
+    const DEFAULT_BRANDING_SETTINGS: TBrandingSettings = {
+        title: null,
+        logoUrl: null,
+    };
+
+    const existingConfig = await prisma.remnawaveSettings.findFirst();
+    if (existingConfig) {
+        for (const [key, value] of Object.entries(settingsMapping)) {
+            if (existingConfig[key as keyof RemnawaveSettings] === null) {
+                await prisma.remnawaveSettings.update({
+                    where: { id: existingConfig.id },
+                    data: { [key]: value },
+                });
+            }
+        }
+        return;
+    }
+
+    if (!existingConfig) {
+        const defaultRemnawaveSettings = new RemnawaveSettingsEntity({
+            passkeySettings: DEFAULT_PASSKEY_SETTINGS,
+            oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
+            tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
+            passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
+            brandingSettings: DEFAULT_BRANDING_SETTINGS,
+        });
+
+        await prisma.remnawaveSettings.create({
+            data: defaultRemnawaveSettings,
+        });
+
+        consola.success('🔐 Remnawave settings seeded!');
+
+        return;
+    }
+
+    consola.success('🔐 Remnawave settings seeded!');
+}
+
 async function checkDatabaseConnection() {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -681,6 +774,7 @@ async function seedAll() {
             await clearRedis();
             consola.start('Database connected. Starting seeding...');
             await fixOldMigrations();
+            await seedRemnawaveSettings();
             await seedSubscriptionTemplate();
             await seedDefaultConfigProfile();
             await syncInbounds();

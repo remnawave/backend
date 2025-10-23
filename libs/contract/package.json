@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/backend-contract",
-  "version": "2.2.10",
+  "version": "2.2.22",
   "public": true,
   "license": "AGPL-3.0-only",
   "description": "A contract library for Remnawave Backend. It can be used in backend and frontend.",
@@ -29,5 +29,8 @@
   "keywords": [],
   "dependencies": {
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "validator": "13.15.15"
   }
 }

@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 import { UniversalConverter } from '@common/converter/universalConverter';
 
-import { AdminEntity } from './entities/admin.entity';
+import { AdminEntity } from '../entities/admin.entity';
 
 const modelToEntity = (model: Admin): AdminEntity => {
     return new AdminEntity(model);

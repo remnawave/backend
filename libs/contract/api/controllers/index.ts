@@ -8,6 +8,8 @@ export * from './infra-billing';
 export * from './internal-squads';
 export * from './keygen';
 export * from './nodes';
+export * from './passkeys';
+export * from './remnawave-settings';
 export * from './snippets';
 export * from './subscription';
 export * from './subscription-request-history';

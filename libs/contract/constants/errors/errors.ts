@@ -949,4 +949,59 @@ export const ERRORS = {
         message: 'Name or templates are required',
         httpCode: 400,
     },
+    PASSKEY_NOT_FOUND: {
+        code: 'A191',
+        message: 'Passkey not found',
+        httpCode: 404,
+    },
+    GET_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A192',
+        message: 'Get Remnawave settings error',
+        httpCode: 500,
+    },
+    UPDATE_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A193',
+        message: 'Update Remnawave settings error',
+        httpCode: 500,
+    },
+    PASSKEYS_NOT_CONFIGURED: {
+        code: 'A194',
+        message: 'Passkeys not configured',
+        httpCode: 400,
+    },
+    PASSKEYS_NOT_ENABLED: {
+        code: 'A195',
+        message: 'Passkeys not enabled',
+        httpCode: 400,
+    },
+    GENERATE_PASSKEY_REGISTRATION_OPTIONS: {
+        code: 'A196',
+        message: 'Generate passkey registration options error',
+        httpCode: 500,
+    },
+    VERIFY_PASSKEY_REGISTRATION_ERROR: {
+        code: 'A197',
+        message: 'Verify passkey registration error',
+        httpCode: 500,
+    },
+    GET_ACTIVE_PASSKEYS_ERROR: {
+        code: 'A198',
+        message: 'Get active passkeys error',
+        httpCode: 500,
+    },
+    DELETE_PASSKEY_ERROR: {
+        code: 'A199',
+        message: 'Delete passkey error',
+        httpCode: 500,
+    },
+    VALIDATE_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A199',
+        message: 'Validate Remnawave settings error',
+        httpCode: 500,
+        withMessage: (message: string) => ({
+            code: 'A199',
+            message,
+            httpCode: 500,
+        }),
+    },
 } as const;

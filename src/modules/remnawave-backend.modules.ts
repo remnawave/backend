@@ -11,6 +11,7 @@ import { SubscriptionTemplateModule } from './subscription-template/subscription
 import { SubscriptionSettingsModule } from './subscription-settings/subscription-settings.module';
 import { UserTrafficHistoryModule } from './user-traffic-history/user-traffic-history.module';
 import { NodesUsageHistoryModule } from './nodes-usage-history/nodes-usage-history.module';
+import { RemnawaveSettingsModule } from './remnawave-settings/remnawave-settings.module';
 import { RemnawaveServiceModule } from './remnawave-service/remnawave-service.module';
 import { HwidUserDevicesModule } from './hwid-user-devices/hwid-user-devices.module';
 import { ExternalSquadModule } from './external-squads/external-squads.module';
@@ -29,6 +30,7 @@ import { AuthModule } from './auth/auth.module';
 
 @Module({
     imports: [
+        RemnawaveSettingsModule,
         ConditionalModule.registerWhen(AdminModule, () => isRestApi()),
         ConditionalModule.registerWhen(AuthModule, () => isRestApi()),
         UsersModule,

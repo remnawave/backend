@@ -1,14 +1,25 @@
 import { TOAuth2ProvidersKeys } from '@libs/contracts/constants';
 
+interface IAuthentication {
+    passkey: {
+        enabled: boolean;
+    };
+    tgAuth: {
+        enabled: boolean;
+        botId: number | null;
+    };
+    oauth2: {
+        providers: Record<TOAuth2ProvidersKeys, boolean>;
+    };
+    password: {
+        enabled: boolean;
+    };
+}
+
 export class GetStatusResponseModel {
     public readonly isLoginAllowed: boolean;
     public readonly isRegisterAllowed: boolean;
-    public readonly tgAuth: {
-        botId: number;
-    } | null;
-    public readonly oauth2: {
-        providers: Record<TOAuth2ProvidersKeys, boolean>;
-    };
+    public readonly authentication: IAuthentication | null;
     public readonly branding: {
         title: string | null;
         logoUrl: string | null;
@@ -17,12 +28,7 @@ export class GetStatusResponseModel {
     constructor(data: {
         isLoginAllowed: boolean;
         isRegisterAllowed: boolean;
-        tgAuth: {
-            botId: number;
-        } | null;
-        oauth2: {
-            providers: Record<TOAuth2ProvidersKeys, boolean>;
-        };
+        authentication: IAuthentication | null;
         branding: {
             title: string | null;
             logoUrl: string | null;
@@ -30,8 +36,7 @@ export class GetStatusResponseModel {
     }) {
         this.isLoginAllowed = data.isLoginAllowed;
         this.isRegisterAllowed = data.isRegisterAllowed;
-        this.tgAuth = data.tgAuth;
-        this.oauth2 = data.oauth2;
+        this.authentication = data.authentication;
         this.branding = data.branding;
     }
 }
