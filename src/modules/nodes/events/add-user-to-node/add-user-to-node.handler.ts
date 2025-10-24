@@ -92,8 +92,6 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
             };
 
             for (const node of nodes) {
-                // TODO: check later
-
                 if (node.activeInbounds.length === 0 || !node.activeConfigProfileUuid) {
                     continue;
                 }
@@ -106,6 +104,19 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 };
 
                 if (filteredData.data.length === 0) {
+                    await this.nodeUsersQueue.removeUserFromNode({
+                        data: {
+                            username: username,
+                            hashData: {
+                                vlessUuid: event.prevVlessUuid || vlessUuid,
+                            },
+                        },
+                        node: {
+                            address: node.address,
+                            port: node.port,
+                        },
+                    });
+
                     continue;
                 }
 
