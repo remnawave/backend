@@ -1,12 +1,7 @@
 process.env.DATABASE_URL = 'postgresql://postgres:postgres@remnawave-db:5432/postgres';
-process.env.SUPERADMIN_USERNAME = 'mock';
-process.env.SUPERADMIN_PASSWORD = 'mock';
 process.env.JWT_AUTH_SECRET = 'mock';
 process.env.JWT_API_TOKENS_SECRET = 'mock';
 process.env.FRONT_END_DOMAIN = 'mock';
-process.env.EXPIRED_USER_REMARKS = '["123"]';
-process.env.DISABLED_USER_REMARKS = '["123"]';
-process.env.LIMITED_USER_REMARKS = '["123"]';
 process.env.METRICS_USER = 'mock';
 process.env.METRICS_PASS = 'mock';
 process.env.SUB_PUBLIC_DOMAIN = 'mock';
