@@ -12,6 +12,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { ICommandResponse } from '@common/types/command-response.type';
+import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
@@ -136,7 +137,8 @@ export class UsersService {
 
             if (
                 user.response.user.status === USERS_STATUS.ACTIVE &&
-                user.response.isNeedToBeAddedToNode
+                user.response.isNeedToBeAddedToNode &&
+                !user.response.isNeedToBeRemovedFromNode
             ) {
                 this.eventBus.publish(new AddUserToNodeEvent(user.response.user.uuid));
             }
@@ -179,19 +181,13 @@ export class UsersService {
     > {
         try {
             const {
-                uuid,
                 username,
-                expireAt,
+                uuid,
                 trafficLimitBytes,
-                trafficLimitStrategy,
-                status,
-                description,
                 telegramId,
-                email,
-                hwidDeviceLimit,
-                tag,
                 activeInternalSquads,
-                externalSquadUuid,
+                status,
+                ...rest
             } = dto;
 
             const userCriteria = uuid ? { uuid } : { username };
@@ -205,58 +201,53 @@ export class UsersService {
                 throw new Error(ERRORS.USER_NOT_FOUND.message);
             }
 
-            let newStatus = status;
+            const newUserEntity = new BaseUserEntity({
+                ...rest,
+                uuid: uuid,
+                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
+                telegramId: wrapBigIntNullable(telegramId),
+                lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
+            });
 
-            let isNeedToBeAddedToNode =
-                user.status !== USERS_STATUS.ACTIVE && status === USERS_STATUS.ACTIVE;
+            let isNeedToBeAddedToNode = false;
+            let isNeedToBeRemovedFromNode = false;
 
-            let isNeedToBeRemovedFromNode = status === USERS_STATUS.DISABLED;
+            if (user.status !== 'ACTIVE' && status === 'ACTIVE') {
+                isNeedToBeAddedToNode = true;
+                newUserEntity.status = 'ACTIVE';
+            }
+
+            if (user.status === 'ACTIVE' && status === 'DISABLED') {
+                isNeedToBeRemovedFromNode = true;
+                newUserEntity.status = 'DISABLED';
+            }
 
             if (trafficLimitBytes !== undefined) {
-                if (user.status === USERS_STATUS.LIMITED && trafficLimitBytes >= 0) {
+                if (user.status === 'LIMITED' && trafficLimitBytes >= 0) {
                     if (
                         BigInt(trafficLimitBytes) > user.trafficLimitBytes ||
                         trafficLimitBytes === 0
                     ) {
-                        newStatus = USERS_STATUS.ACTIVE;
+                        newUserEntity.status = 'ACTIVE';
                         isNeedToBeAddedToNode = true;
                     }
                 }
             }
 
-            if (user.status === USERS_STATUS.EXPIRED && expireAt && !status) {
-                const newExpireDate = dayjs.utc(expireAt);
-                const currentExpireDate = dayjs.utc(user.expireAt);
+            if (user.status === 'EXPIRED' && dto.expireAt && !dto.status) {
                 const now = dayjs.utc();
+                const newExpireDate = dayjs.utc(dto.expireAt);
+                const currentExpireDate = dayjs.utc(user.expireAt);
 
                 if (!currentExpireDate.isSame(newExpireDate)) {
                     if (newExpireDate.isAfter(now)) {
-                        newStatus = USERS_STATUS.ACTIVE;
+                        newUserEntity.status = 'ACTIVE';
                         isNeedToBeAddedToNode = true;
                     }
                 }
             }
 
-            const result = await this.userRepository.update({
-                uuid: user.uuid,
-                expireAt: expireAt ? new Date(expireAt) : undefined,
-                trafficLimitBytes:
-                    trafficLimitBytes !== undefined ? BigInt(trafficLimitBytes) : undefined,
-                trafficLimitStrategy: trafficLimitStrategy || undefined,
-                status: newStatus || undefined,
-                description: description,
-                telegramId:
-                    telegramId !== undefined
-                        ? telegramId === null
-                            ? null
-                            : BigInt(telegramId)
-                        : undefined,
-                email: email,
-                hwidDeviceLimit: hwidDeviceLimit,
-                tag: tag,
-                lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
-                externalSquadUuid: externalSquadUuid,
-            });
+            const result = await this.userRepository.update(newUserEntity);
 
             if (activeInternalSquads) {
                 const newActiveInternalSquadsUuids = activeInternalSquads;
@@ -347,19 +338,18 @@ export class UsersService {
                 vlessUuid: vlessUuid || this.createUuid(),
                 ssPassword: ssPassword || this.createSSPassword(),
                 status,
-                trafficLimitBytes:
-                    trafficLimitBytes !== undefined ? BigInt(trafficLimitBytes) : undefined,
+                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
                 trafficLimitStrategy,
-                email: email || null,
-                telegramId: telegramId ? BigInt(telegramId) : null,
-                expireAt: new Date(expireAt),
-                createdAt: createdAt ? new Date(createdAt) : undefined,
-                lastTrafficResetAt: lastTrafficResetAt ? new Date(lastTrafficResetAt) : undefined,
-                description: description || undefined,
+                email: email,
+                telegramId: wrapBigIntNullable(telegramId),
+                expireAt: expireAt,
+                createdAt: createdAt,
+                lastTrafficResetAt: lastTrafficResetAt,
+                description: description,
                 hwidDeviceLimit: hwidDeviceLimit,
                 tag: tag,
-                uuid: uuid || undefined,
-                externalSquadUuid: externalSquadUuid || null,
+                uuid: uuid,
+                externalSquadUuid: externalSquadUuid,
             });
 
             const result = await this.userRepository.create(userEntity);
@@ -959,14 +949,8 @@ export class UsersService {
             await this.userRepository.bulkUpdateAllUsers({
                 ...dto,
                 lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
-                trafficLimitBytes:
-                    dto.trafficLimitBytes !== undefined ? BigInt(dto.trafficLimitBytes) : undefined,
-                telegramId:
-                    dto.telegramId !== undefined
-                        ? dto.telegramId === null
-                            ? null
-                            : BigInt(dto.telegramId)
-                        : undefined,
+                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                telegramId: wrapBigIntNullable(dto.telegramId),
                 hwidDeviceLimit: dto.hwidDeviceLimit,
             });
 
