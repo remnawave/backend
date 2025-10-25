@@ -185,6 +185,17 @@ async function fixOldMigrations() {
 
 async function seedSubscriptionTemplate() {
     consola.start('Seeding subscription templates...');
+
+    const deletedTemplates = await prisma.subscriptionTemplate.deleteMany({
+        where: {
+            templateType: {
+                notIn: [...SUBSCRIPTION_TEMPLATE_TYPE_VALUES],
+            },
+        },
+    });
+
+    consola.success(`🔐 Deleted unknown templates: ${deletedTemplates.count}!`);
+
     for (const templateType of SUBSCRIPTION_TEMPLATE_TYPE_VALUES) {
         const existingConfig = await prisma.subscriptionTemplate.findUnique({
             where: {
