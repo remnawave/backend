@@ -17,14 +17,23 @@ export namespace GetStatusCommand {
         response: z.object({
             isLoginAllowed: z.boolean(),
             isRegisterAllowed: z.boolean(),
-            tgAuth: z
-                .object({
-                    botId: z.number(),
-                })
-                .nullable(),
-            oauth2: z.object({
-                providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
-            }),
+            authentication: z.nullable(
+                z.object({
+                    passkey: z.object({
+                        enabled: z.boolean(),
+                    }),
+                    tgAuth: z.object({
+                        enabled: z.boolean(),
+                        botId: z.number().nullable(),
+                    }),
+                    oauth2: z.object({
+                        providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
+                    }),
+                    password: z.object({
+                        enabled: z.boolean(),
+                    }),
+                }),
+            ),
             branding: z.object({
                 title: z.nullable(z.string()),
                 logoUrl: z.nullable(z.string()),

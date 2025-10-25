@@ -1,3 +1,5 @@
+import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
+
 import { SubscriptionSettingsEntity } from '../entities/subscription-settings.entity';
 
 export class SubscriptionSettingsResponseModel {
@@ -19,6 +21,8 @@ export class SubscriptionSettingsResponseModel {
 
     public randomizeHosts: boolean;
 
+    public responseRules: TResponseRulesConfig | null;
+
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -38,6 +42,7 @@ export class SubscriptionSettingsResponseModel {
         this.disabledUsersRemarks = entity.disabledUsersRemarks;
         this.customResponseHeaders = entity.customResponseHeaders;
         this.randomizeHosts = entity.randomizeHosts;
+        this.responseRules = entity.responseRules;
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;
     }

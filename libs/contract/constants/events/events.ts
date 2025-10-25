@@ -17,6 +17,13 @@ export const EVENTS = {
         },
         FIRST_CONNECTED: 'user.first_connected',
         BANDWIDTH_USAGE_THRESHOLD_REACHED: 'user.bandwidth_usage_threshold_reached',
+        /**
+         * Emitted when a user is not connected to the panel for a certain amount of time.
+         * Active only when NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED is true in .env.
+         * Note: For performance reasons, user entity's activeInternalSquads and lastConnectedNode fields are always empty.
+         * Includes additional meta object with notConnectedAfterHours field.
+         */
+        NOT_CONNECTED: 'user.not_connected',
     },
     /**
      * HWID events are emitted only when HWID Device Limit feature is enabled in .env.

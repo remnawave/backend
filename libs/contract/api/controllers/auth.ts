@@ -10,4 +10,8 @@ export const AUTH_ROUTES = {
         AUTHORIZE: 'oauth2/authorize',
         CALLBACK: 'oauth2/callback',
     },
+    PASSKEY: {
+        GET_AUTHENTICATION_OPTIONS: 'passkey/authentication/options', // get
+        VERIFY_AUTHENTICATION: 'passkey/authentication/verify', // post
+    },
 } as const;

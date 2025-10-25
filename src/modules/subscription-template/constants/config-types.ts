@@ -1,45 +1,55 @@
-export const SUBSCRIPTION_CONFIG_TYPES = {
-    MIHOMO: {
-        NAME: 'MIHOMO',
-        REGEX: /^(?:FlClash|FlClashX|Flowvy|[Cc]lash-[Vv]erge|[Kk]oala-[Cc]lash|[Cc]lash-?[Mm]eta|[Mm]urge|[Cc]lashX [Mm]eta|[Mm]ihomo|[Cc]lash-nyanpasu|clash\.meta|prizrak-box)/,
+import {
+    RESPONSE_RULES_RESPONSE_TYPES,
+    TResponseRulesResponseType,
+} from '@libs/contracts/constants';
+
+export const SUBSCRIPTION_CONFIG_TYPES: Record<
+    TResponseRulesResponseType,
+    { CONTENT_TYPE: string; isBase64: boolean }
+> = {
+    [RESPONSE_RULES_RESPONSE_TYPES.MIHOMO]: {
         CONTENT_TYPE: 'text/yaml',
-        BASE64: false,
+        isBase64: false,
     },
-    CLASH: {
-        NAME: 'CLASH',
-        REGEX: /^[Cc]lash/,
+    [RESPONSE_RULES_RESPONSE_TYPES.CLASH]: {
         CONTENT_TYPE: 'text/yaml',
-        BASE64: false,
+        isBase64: false,
     },
-    STASH: {
-        NAME: 'STASH',
-        REGEX: /^[Ss]tash/,
+    [RESPONSE_RULES_RESPONSE_TYPES.STASH]: {
         CONTENT_TYPE: 'text/yaml',
-        BASE64: false,
+        isBase64: false,
     },
-    SING_BOX: {
-        NAME: 'SING_BOX',
-        REGEX: /^(SFA|SFI|SFM|SFT|[Kk]aring|Singbox|[Rr]abbit[Hh]ole)/,
+    [RESPONSE_RULES_RESPONSE_TYPES.SINGBOX]: {
         CONTENT_TYPE: 'application/json',
-        BASE64: false,
+        isBase64: false,
     },
-    OUTLINE: {
-        NAME: 'OUTLINE',
-        REGEX: /^(SS|SSR|SSD|SSS|Outline|Shadowsocks|SSconf)/,
-        CONTENT_TYPE: 'application/json',
-        BASE64: false,
-    },
-    XRAY: {
-        NAME: 'XRAY',
-        REGEX: null,
+    [RESPONSE_RULES_RESPONSE_TYPES.XRAY_BASE64]: {
         CONTENT_TYPE: 'text/plain',
-        BASE64: true,
+        isBase64: true,
     },
-    XRAY_JSON: {
-        NAME: 'XRAY_JSON',
-        REGEX: null,
+    [RESPONSE_RULES_RESPONSE_TYPES.XRAY_JSON]: {
         CONTENT_TYPE: 'application/json',
-        BASE64: false,
+        isBase64: false,
+    },
+    [RESPONSE_RULES_RESPONSE_TYPES.BLOCK]: {
+        CONTENT_TYPE: 'text/plain',
+        isBase64: false,
+    },
+    [RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_404]: {
+        CONTENT_TYPE: 'text/plain',
+        isBase64: false,
+    },
+    [RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_451]: {
+        CONTENT_TYPE: 'text/plain',
+        isBase64: false,
+    },
+    [RESPONSE_RULES_RESPONSE_TYPES.SOCKET_DROP]: {
+        CONTENT_TYPE: 'text/plain',
+        isBase64: false,
+    },
+    [RESPONSE_RULES_RESPONSE_TYPES.BROWSER]: {
+        CONTENT_TYPE: 'text/html',
+        isBase64: false,
     },
 } as const;
 

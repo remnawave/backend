@@ -63,11 +63,19 @@ export class XrayJsonGeneratorService {
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    public async generateConfig(hosts: IFormattedHost[], isHapp: boolean): Promise<string> {
+    public async generateConfig(
+        hosts: IFormattedHost[],
+        isHapp: boolean,
+        overrideTemplateName?: string,
+    ): Promise<string> {
         try {
-            const templateContent = (await this.subscriptionTemplateService.getJsonTemplateByType(
-                'XRAY_JSON',
-            )) as XrayJsonConfig;
+            const templateContentDb =
+                await this.subscriptionTemplateService.getCachedTemplateByType(
+                    'XRAY_JSON',
+                    overrideTemplateName,
+                );
+
+            const templateContent = templateContentDb as unknown as XrayJsonConfig;
 
             const templatedOutbounds: XrayJsonConfig[] = [];
 
@@ -88,6 +96,7 @@ export class XrayJsonGeneratorService {
                     ...templateContent,
                     outbounds: [...templatedOutbound.outbounds, ...templateContent.outbounds],
                     remarks: templatedOutbound.remarks,
+                    meta: templatedOutbound.meta,
                 });
             }
 
@@ -126,7 +135,7 @@ export class XrayJsonGeneratorService {
 
             if (isHapp && host.serverDescription) {
                 config.meta = {
-                    serverDescription: host.serverDescription,
+                    serverDescription: Buffer.from(host.serverDescription, 'base64').toString(),
                 };
             }
 

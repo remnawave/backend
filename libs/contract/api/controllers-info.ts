@@ -3,6 +3,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Auth Controller',
         description: 'Used to authenticate admin users.',
     },
+    PASSKEYS: {
+        tag: 'Passkeys Controller',
+        description: 'Management of Passkeys.',
+    },
     API_TOKENS: {
         tag: 'API Tokens Controller',
         description:
@@ -42,6 +46,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Internal Squads Controller',
         description: 'Management of Internal Squads.',
     },
+    EXTERNAL_SQUADS: {
+        tag: 'External Squads Controller',
+        description: 'Management of External Squads.',
+    },
     NODES: {
         tag: 'Nodes Controller',
         description: '',
@@ -80,6 +88,14 @@ export const CONTROLLERS_INFO = {
     },
     SUBSCRIPTION_REQUEST_HISTORY: {
         tag: 'Subscription Request History Controller',
+        description: '',
+    },
+    SNIPPETS: {
+        tag: 'Snippets Controller',
+        description: '',
+    },
+    REMNAAWAVE_SETTINGS: {
+        tag: 'Remnawave Settings Controller',
         description: '',
     },
 } as const;

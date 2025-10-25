@@ -85,7 +85,10 @@ export class ExpireUserNotificationsQueueProcessor extends WorkerHost {
                             async (user) => {
                                 this.eventEmitter.emit(
                                     date.NAME,
-                                    new UserEvent(user, date.NAME as TUserEvents),
+                                    new UserEvent({
+                                        user,
+                                        event: date.NAME as TUserEvents,
+                                    }),
                                 );
                             },
                             { concurrency: 100 },

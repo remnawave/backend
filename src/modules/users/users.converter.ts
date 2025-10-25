@@ -45,6 +45,8 @@ const entityToModel = (entity: BaseUserEntity): BaseUserEntity => {
         firstConnectedAt: entity.firstConnectedAt,
         lastTriggeredThreshold: entity.lastTriggeredThreshold,
 
+        externalSquadUuid: entity.externalSquadUuid,
+
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

@@ -465,4 +465,35 @@ export class XRayConfig {
     private isInboundWithUsers(protocol: string): boolean {
         return !['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(protocol);
     }
+
+    public replaceSnippets(snippets: Map<string, unknown>): void {
+        if (this.config.outbounds) {
+            this.replaceSnippetsInArray(this.config.outbounds as any[], snippets);
+        }
+        if (this.config.routing) {
+            if (typeof this.config.routing === 'object' && 'rules' in this.config.routing) {
+                this.replaceSnippetsInArray(this.config.routing.rules as any[], snippets);
+            }
+        }
+    }
+
+    private replaceSnippetsInArray = (array: any[], snippetsMap: Map<string, unknown>): void => {
+        for (let i = array.length - 1; i >= 0; i--) {
+            const item = array[i];
+
+            if (item.snippet) {
+                const snippet = snippetsMap.get(item.snippet);
+
+                if (snippet) {
+                    if (Array.isArray(snippet)) {
+                        array.splice(i, 1, ...snippet);
+                    } else {
+                        array[i] = snippet;
+                    }
+                } else {
+                    array.splice(i, 1);
+                }
+            }
+        }
+    };
 }

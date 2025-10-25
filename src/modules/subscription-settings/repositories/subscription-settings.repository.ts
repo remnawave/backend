@@ -25,6 +25,7 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
                 limitedUsersRemarks: model.limitedUsersRemarks as Prisma.InputJsonValue,
                 disabledUsersRemarks: model.disabledUsersRemarks as Prisma.InputJsonValue,
                 customResponseHeaders: model.customResponseHeaders as Prisma.InputJsonValue,
+                responseRules: model.responseRules as Prisma.InputJsonValue,
             },
         });
 
@@ -57,6 +58,7 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
                 limitedUsersRemarks: model.limitedUsersRemarks as Prisma.InputJsonValue,
                 disabledUsersRemarks: model.disabledUsersRemarks as Prisma.InputJsonValue,
                 customResponseHeaders: model.customResponseHeaders as Prisma.InputJsonValue,
+                responseRules: model.responseRules as Prisma.InputJsonValue,
             },
         });
 
@@ -67,21 +69,23 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
         dto: Partial<SubscriptionSettingsEntity>,
     ): Promise<SubscriptionSettingsEntity[]> {
         const model = this.converter.fromEntityToPrismaModel(dto as SubscriptionSettingsEntity);
+
+        const {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            responseRules: __responseRules,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            expiredUsersRemarks: __expiredUsersRemarks,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            limitedUsersRemarks: __limitedUsersRemarks,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            disabledUsersRemarks: __disabledUsersRemarks,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            customResponseHeaders: __customResponseHeaders,
+            ...rest
+        } = model;
         const list = await this.prisma.tx.subscriptionSettings.findMany({
             where: {
-                ...model,
-                expiredUsersRemarks: model.expiredUsersRemarks
-                    ? { equals: model.expiredUsersRemarks as Prisma.InputJsonValue }
-                    : undefined,
-                limitedUsersRemarks: model.limitedUsersRemarks
-                    ? { equals: model.limitedUsersRemarks as Prisma.InputJsonValue }
-                    : undefined,
-                disabledUsersRemarks: model.disabledUsersRemarks
-                    ? { equals: model.disabledUsersRemarks as Prisma.InputJsonValue }
-                    : undefined,
-                customResponseHeaders: model.customResponseHeaders
-                    ? { equals: model.customResponseHeaders as Prisma.InputJsonValue }
-                    : undefined,
+                ...rest,
             },
         });
         return this.converter.fromPrismaModelsToEntities(list);

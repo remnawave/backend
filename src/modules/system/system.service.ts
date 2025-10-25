@@ -1,6 +1,7 @@
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
+import { Request, Response } from 'express';
 import axios, { AxiosError } from 'axios';
 import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
@@ -25,6 +26,8 @@ import { createHappCryptoLink } from '@common/utils/happ-crypto-link';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
 
+import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
+import { ResponseRulesParserService } from '@modules/subscription-response-rules/services/response-rules-parser.service';
 import { Get7DaysStatsQuery } from '@modules/nodes-usage-history/queries/get-7days-stats';
 import { CountOnlineUsersQuery } from '@modules/nodes/queries/count-online-users';
 import { IGet7DaysStats } from '@modules/nodes-usage-history/interfaces';
@@ -45,6 +48,7 @@ import { GetShortUserStatsQuery } from '../users/queries/get-short-user-stats';
 import { GetStatsResponseModel } from './models/get-stats.response.model';
 import { ShortUserStats } from '../users/interfaces/user-stats.interface';
 import { GetStatsRequestQueryDto } from './dtos/get-stats.dto';
+import { DebugSrrMatcherRequestDto } from './dtos';
 
 @Injectable()
 export class SystemService {
@@ -52,6 +56,8 @@ export class SystemService {
     constructor(
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
+        private readonly srrParser: ResponseRulesParserService,
+        private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
 
     public async getStats(): Promise<ICommandResponse<any>> {
@@ -300,6 +306,44 @@ export class SystemService {
                 isOk: false,
                 ...ERRORS.INTERNAL_SERVER_ERROR,
             };
+        }
+    }
+
+    public async debugSrrMatcher(
+        request: Request,
+        response: Response,
+        body: DebugSrrMatcherRequestDto,
+    ): Promise<Response> {
+        try {
+            const parsedResponseRules = await this.srrParser.parseConfig(body.responseRules);
+
+            const inputHeaders = request.headers;
+
+            const result = this.srrMatcher.matchRules(parsedResponseRules, inputHeaders, undefined);
+
+            const responseBody = {
+                matched: result.matched,
+                matchedRule: result.matchedRule,
+                responseType: result.responseType,
+                inputHeaders,
+                outputHeaders: result.matchedRule?.responseModifications?.headers || [],
+            };
+
+            return response.status(200).json({
+                response: responseBody,
+            });
+        } catch (error) {
+            if (error instanceof Error) {
+                return response.status(500).json({
+                    error: 'Internal server error',
+                    message: error.message,
+                });
+            } else {
+                return response.status(500).json({
+                    error: 'Internal server error',
+                    message: 'Unknown error',
+                });
+            }
         }
     }
 

@@ -36,6 +36,8 @@ export class BaseUserEntity implements Users {
     public onlineAt: Date | null;
     public lastConnectedNodeUuid: string | null;
 
+    public externalSquadUuid: string | null;
+
     public createdAt: Date;
     public updatedAt: Date;
 

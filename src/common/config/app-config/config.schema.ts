@@ -46,20 +46,6 @@ export const configSchema = z
             .transform((val) => (val === '' ? undefined : val))
             .optional(),
 
-        TELEGRAM_OAUTH_ENABLED: z.string().default('false'),
-        TELEGRAM_OAUTH_ADMIN_IDS: z
-            .string()
-            .optional()
-            .transform((val) => {
-                if (!val || val === '') return undefined;
-                try {
-                    return JSON.parse(val);
-                } catch {
-                    throw new Error('TELEGRAM_OAUTH_ADMIN_IDS must be a valid JSON array');
-                }
-            })
-            .pipe(z.array(z.number()).optional()),
-
         FRONT_END_DOMAIN: z.string(),
         IS_DOCS_ENABLED: z.string().default('false'),
         SCALAR_PATH: z.string().default('/scalar'),
@@ -126,10 +112,8 @@ export const configSchema = z
             })
             .pipe(z.array(z.number()).optional()),
 
-        OAUTH2_GITHUB_ENABLED: z.string().default('false'),
-        OAUTH2_GITHUB_CLIENT_ID: z.string().optional(),
-        OAUTH2_GITHUB_CLIENT_SECRET: z.string().optional(),
-        OAUTH2_GITHUB_ALLOWED_EMAILS: z
+        NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED: z.string().default('false'),
+        NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS: z
             .string()
             .optional()
             .transform((val) => {
@@ -137,46 +121,12 @@ export const configSchema = z
                 try {
                     return JSON.parse(val);
                 } catch {
-                    throw new Error('OAUTH2_GITHUB_ALLOWED_EMAILS must be a valid JSON array');
+                    throw new Error(
+                        'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must be a valid JSON array',
+                    );
                 }
             })
-            .pipe(z.array(z.string()).optional()),
-
-        OAUTH2_POCKETID_ENABLED: z.string().default('false'),
-        OAUTH2_POCKETID_CLIENT_ID: z.string().optional(),
-        OAUTH2_POCKETID_CLIENT_SECRET: z.string().optional(),
-        OAUTH2_POCKETID_PLAIN_DOMAIN: z.string().optional(),
-        OAUTH2_POCKETID_ALLOWED_EMAILS: z
-            .string()
-            .optional()
-            .transform((val) => {
-                if (!val || val === '') return undefined;
-                try {
-                    return JSON.parse(val);
-                } catch {
-                    throw new Error('OAUTH2_POCKETID_ALLOWED_EMAILS must be a valid JSON array');
-                }
-            })
-            .pipe(z.array(z.string()).optional()),
-
-        OAUTH2_YANDEX_ENABLED: z.string().default('false'),
-        OAUTH2_YANDEX_CLIENT_ID: z.string().optional(),
-        OAUTH2_YANDEX_CLIENT_SECRET: z.string().optional(),
-        OAUTH2_YANDEX_ALLOWED_EMAILS: z
-            .string()
-            .optional()
-            .transform((val) => {
-                if (!val || val === '') return undefined;
-                try {
-                    return JSON.parse(val);
-                } catch {
-                    throw new Error('OAUTH2_YANDEX_ALLOWED_EMAILS must be a valid JSON array');
-                }
-            })
-            .pipe(z.array(z.string()).optional()),
-
-        BRANDING_TITLE: z.string().optional(),
-        BRANDING_LOGO_URL: z.string().optional(),
+            .pipe(z.array(z.number()).optional()),
     })
     .superRefine((data, ctx) => {
         if (data.WEBHOOK_ENABLED === 'true') {
@@ -260,135 +210,6 @@ export const configSchema = z
             }
         }
 
-        if (data.TELEGRAM_OAUTH_ENABLED === 'true') {
-            if (!data.TELEGRAM_OAUTH_ADMIN_IDS) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'TELEGRAM_OAUTH_ADMIN_IDS is required when TELEGRAM_OAUTH_ENABLED is true',
-                    path: ['TELEGRAM_OAUTH_ADMIN_IDS'],
-                });
-            }
-
-            if (!data.TELEGRAM_OAUTH_ADMIN_IDS) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'TELEGRAM_OAUTH_ADMIN_IDS is required when TELEGRAM_OAUTH_ENABLED is true',
-                    path: ['TELEGRAM_OAUTH_ADMIN_IDS'],
-                });
-            } else if (data.TELEGRAM_OAUTH_ADMIN_IDS.length === 0) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'TELEGRAM_OAUTH_ADMIN_IDS must not be empty',
-                    path: ['TELEGRAM_OAUTH_ADMIN_IDS'],
-                });
-            }
-
-            if (!data.TELEGRAM_BOT_TOKEN) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message: 'TELEGRAM_BOT_TOKEN is required when TELEGRAM_OAUTH_ENABLED is true',
-                    path: ['TELEGRAM_BOT_TOKEN'],
-                });
-            }
-        }
-
-        if (data.OAUTH2_GITHUB_ENABLED === 'true') {
-            if (!data.OAUTH2_GITHUB_CLIENT_ID) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_GITHUB_CLIENT_ID is required when OAUTH2_GITHUB_ENABLED is true',
-                    path: ['OAUTH2_GITHUB_CLIENT_ID'],
-                });
-            }
-
-            if (!data.OAUTH2_GITHUB_CLIENT_SECRET) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_GITHUB_CLIENT_SECRET is required when OAUTH2_GITHUB_ENABLED is true',
-                    path: ['OAUTH2_GITHUB_CLIENT_SECRET'],
-                });
-            }
-
-            if (!data.OAUTH2_GITHUB_ALLOWED_EMAILS) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_GITHUB_ALLOWED_EMAILS is required when OAUTH2_GITHUB_ENABLED is true',
-                    path: ['OAUTH2_GITHUB_ALLOWED_EMAILS'],
-                });
-            }
-        }
-
-        if (data.OAUTH2_POCKETID_ENABLED === 'true') {
-            if (!data.OAUTH2_POCKETID_CLIENT_ID) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_POCKETID_CLIENT_ID is required when OAUTH2_POCKETID_ENABLED is true',
-                    path: ['OAUTH2_POCKETID_CLIENT_ID'],
-                });
-            }
-
-            if (!data.OAUTH2_POCKETID_CLIENT_SECRET) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_POCKETID_CLIENT_SECRET is required when OAUTH2_POCKETID_ENABLED is true',
-                    path: ['OAUTH2_POCKETID_CLIENT_SECRET'],
-                });
-            }
-
-            if (!data.OAUTH2_POCKETID_PLAIN_DOMAIN) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_POCKETID_PLAIN_DOMAIN is required when OAUTH2_POCKETID_ENABLED is true',
-                    path: ['OAUTH2_POCKETID_PLAIN_DOMAIN'],
-                });
-            }
-
-            if (!data.OAUTH2_POCKETID_ALLOWED_EMAILS) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_POCKETID_ALLOWED_EMAILS is required when OAUTH2_POCKETID_ENABLED is true',
-                    path: ['OAUTH2_POCKETID_ALLOWED_EMAILS'],
-                });
-            }
-        }
-
-        if (data.OAUTH2_YANDEX_ENABLED === 'true') {
-            if (!data.OAUTH2_YANDEX_CLIENT_ID) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_YANDEX_CLIENT_ID is required when OAUTH2_YANDEX_ENABLED is true',
-                    path: ['OAUTH2_YANDEX_CLIENT_ID'],
-                });
-            }
-
-            if (!data.OAUTH2_YANDEX_CLIENT_SECRET) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_YANDEX_CLIENT_SECRET is required when OAUTH2_YANDEX_ENABLED is true',
-                    path: ['OAUTH2_YANDEX_CLIENT_SECRET'],
-                });
-            }
-
-            if (!data.OAUTH2_YANDEX_ALLOWED_EMAILS) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'OAUTH2_YANDEX_ALLOWED_EMAILS is required when OAUTH2_YANDEX_ENABLED is true',
-                    path: ['OAUTH2_YANDEX_ALLOWED_EMAILS'],
-                });
-            }
-        }
         // if (data.COOKIE_AUTH_ENABLED) {
         //     if (!data.COOKIE_AUTH_NONCE) {
         //         ctx.addIssue({
@@ -468,6 +289,56 @@ export const configSchema = z
                         code: z.ZodIssueCode.custom,
                         message: 'Threshold values must be in strictly ascending order',
                         path: ['BANDWIDTH_USAGE_NOTIFICATIONS_THRESHOLD'],
+                    });
+                }
+            }
+        }
+
+        if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED === 'true') {
+            if (!data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message:
+                        'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS is required when NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED is true',
+                    path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                });
+            } else if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: 'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must not be empty',
+                    path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                });
+            } else {
+                if (data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.length > 3) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message:
+                            'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS must contain at most 3 values',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                    });
+                }
+
+                if (
+                    data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.some(
+                        (t) => isNaN(t) || !Number.isInteger(t) || t < 1 || t > 168,
+                    )
+                ) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'All hours values must be integers between 1 and 168',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
+                    });
+                }
+
+                if (
+                    !data.NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS.every(
+                        (value, index, array) => index === 0 || value > array[index - 1],
+                    )
+                ) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: 'Hours values must be in strictly ascending order',
+                        path: ['NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS'],
                     });
                 }
             }

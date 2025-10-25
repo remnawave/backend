@@ -276,4 +276,28 @@ export class UsersEvents {
             threadId: this.adminThreadId,
         });
     }
+
+    @OnEvent(EVENTS.USER.NOT_CONNECTED)
+    @RequireAdminId()
+    async onUserNotConnected(event: UserEvent): Promise<void> {
+        if (event.skipTelegramNotification) {
+            return;
+        }
+
+        if (!event.meta) {
+            return;
+        }
+
+        const msg = `
+⏱️ <b>#not_connected_after_${event.meta.notConnectedAfterHours}_hours</b>
+➖➖➖➖➖➖➖➖➖
+<b>Username:</b> <code>${event.user.username}</code>
+        `;
+
+        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
+            message: msg,
+            chatId: this.adminId!,
+            threadId: this.adminThreadId,
+        });
+    }
 }

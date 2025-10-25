@@ -13,6 +13,7 @@ const modelToEntity = (model: SubscriptionTemplate): SubscriptionTemplateEntity 
 const entityToModel = (entity: SubscriptionTemplateEntity): SubscriptionTemplate => {
     return {
         uuid: entity.uuid,
+        name: entity.name,
         templateType: entity.templateType,
         templateYaml: entity.templateYaml,
         templateJson: entity.templateJson,

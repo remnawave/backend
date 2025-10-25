@@ -6,7 +6,8 @@ import {
 } from '@nestjs/swagger';
 import { Body, Controller, HttpStatus, UseFilters } from '@nestjs/common';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { GetRemnawaveSettings } from '@common/decorators/get-remnawave-settings';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { UserAgent } from '@common/decorators/get-useragent/get-useragent';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { IpAddress } from '@common/decorators/get-ip/get-ip';
@@ -18,9 +19,13 @@ import {
     TelegramCallbackCommand,
     OAuth2AuthorizeCommand,
     OAuth2CallbackCommand,
+    GetPasskeyAuthenticationOptionsCommand,
+    VerifyPasskeyAuthenticationCommand,
 } from '@libs/contracts/commands';
 import { AUTH_CONTROLLER } from '@libs/contracts/api/controllers/auth';
 import { CONTROLLERS_INFO } from '@libs/contracts/api';
+
+import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities';
 
 import {
     GetStatusResponseDto,
@@ -34,6 +39,9 @@ import {
     OAuth2CallbackResponseDto,
     OAuth2CallbackRequestDto,
     OAuth2AuthorizeRequestDto,
+    GetPasskeyAuthenticationOptionsResponseDto,
+    VerifyPasskeyAuthenticationRequestDto,
+    VerifyPasskeyAuthenticationResponseDto,
 } from './dtos';
 import { RegisterResponseModel } from './model/register.response.model';
 import { AuthResponseModel } from './model/auth-response.model';
@@ -175,6 +183,54 @@ export class AuthController {
             body.code,
             body.state,
             body.provider,
+            ip,
+            userAgent,
+        );
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiResponse({
+        type: GetPasskeyAuthenticationOptionsResponseDto,
+        description: 'Passkey authentication options',
+    })
+    @Endpoint({
+        command: GetPasskeyAuthenticationOptionsCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async passkeyAuthenticationOptions(
+        @GetRemnawaveSettings() remnawaveSettings: RemnawaveSettingsEntity,
+    ): Promise<GetPasskeyAuthenticationOptionsResponseDto> {
+        const result =
+            await this.authService.generatePasskeyAuthenticationOptions(remnawaveSettings);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiResponse({
+        type: VerifyPasskeyAuthenticationResponseDto,
+        description: 'JWT access token after successful passkey authentication',
+    })
+    @Endpoint({
+        command: VerifyPasskeyAuthenticationCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: VerifyPasskeyAuthenticationRequestDto,
+    })
+    async passkeyAuthenticationVerify(
+        @Body() body: VerifyPasskeyAuthenticationRequestDto,
+        @GetRemnawaveSettings() remnawaveSettings: RemnawaveSettingsEntity,
+        @IpAddress() ip: string,
+        @UserAgent() userAgent: string,
+    ): Promise<VerifyPasskeyAuthenticationResponseDto> {
+        const result = await this.authService.verifyPasskeyAuthentication(
+            body,
+            remnawaveSettings,
             ip,
             userAgent,
         );

@@ -1,11 +1,9 @@
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
 
 export interface IGenerateSubscription {
-    userAgent: string;
+    srrContext: ISRRContext;
     user: UserEntity;
     hosts: HostWithRawInbound[];
-    isOutlineConfig: boolean;
-    encodedTag?: string;
-    needJsonSubscription?: boolean;
 }

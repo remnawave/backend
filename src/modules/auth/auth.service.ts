@@ -1,3 +1,9 @@
+import {
+    AuthenticationResponseJSON,
+    type PublicKeyCredentialRequestOptionsJSON,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { TelegramOAuth2 } from '@exact-team/telegram-oauth2';
 import { catchError, firstValueFrom } from 'rxjs';
@@ -7,29 +13,40 @@ import { AxiosError } from 'axios';
 import * as arctic from 'arctic';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
 
 import { ICommandResponse } from '@common/types/command-response.type';
-import { EVENTS, OAUTH2_PROVIDERS, ROLE, TOAuth2ProvidersKeys } from '@libs/contracts/constants';
+import {
+    CACHE_KEYS,
+    EVENTS,
+    OAUTH2_PROVIDERS,
+    ROLE,
+    TOAuth2ProvidersKeys,
+} from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { ServiceEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetCachedRemnawaveSettingsQuery } from '@modules/remnawave-settings/queries/get-cached-remnawave-settings';
+import { FindPasskeyByIdAndAdminUuidQuery } from '@modules/admin/queries/find-passkey-by-id-and-uuid';
+import { GetPasskeysByAdminUuidQuery } from '@modules/admin/queries/get-passkeys-by-admin-uuid';
 import { GetAdminByUsernameQuery } from '@modules/admin/queries/get-admin-by-username';
 import { CountAdminsByRoleQuery } from '@modules/admin/queries/count-admins-by-role';
+import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities';
+import { UpdatePasskeyCommand } from '@modules/admin/commands/update-passkey';
 import { GetFirstAdminQuery } from '@modules/admin/queries/get-first-admin';
 import { CreateAdminCommand } from '@modules/admin/commands/create-admin';
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 
+import { TelegramCallbackRequestDto, VerifyPasskeyAuthenticationRequestDto } from './dtos';
 import { OAuth2AuthorizeResponseModel } from './model/oauth2-authorize.response.model';
 import { OAuth2CallbackResponseModel } from './model/oauth2-callback.response.model';
 import { GetStatusResponseModel } from './model/get-status.response.model';
-import { TelegramCallbackRequestDto } from './dtos';
 import { ILogin, IRegister } from './interfaces';
 
 const scryptAsync = promisify(scrypt);
@@ -39,29 +56,6 @@ export class AuthService {
     private readonly logger = new Logger(AuthService.name);
     private readonly jwtSecret: string;
     private readonly jwtLifetime: number;
-    private readonly github: {
-        client: arctic.GitHub;
-        allowedEmails: string[];
-    };
-    private readonly pocketId: {
-        client: arctic.OAuth2Client;
-        plainDomain: string;
-        allowedEmails: string[];
-    };
-    private readonly tgAuth: {
-        botId: number | null;
-        botToken: string | null;
-        adminIds: number[];
-    };
-    private readonly yandex: {
-        client: arctic.Yandex;
-        allowedEmails: string[];
-    };
-    private readonly branding: {
-        title: string | null;
-        logoUrl: string | null;
-    };
-    private readonly oauth2Providers: Record<TOAuth2ProvidersKeys, boolean>;
 
     constructor(
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -74,82 +68,6 @@ export class AuthService {
     ) {
         this.jwtSecret = this.configService.getOrThrow<string>('JWT_AUTH_SECRET');
         this.jwtLifetime = this.configService.getOrThrow<number>('JWT_AUTH_LIFETIME');
-
-        const isGithubAuthEnabled =
-            this.configService.get<string>('OAUTH2_GITHUB_ENABLED') === 'true';
-        const isPocketIdAuthEnabled =
-            this.configService.get<string>('OAUTH2_POCKETID_ENABLED') === 'true';
-        const isYandexAuthEnabled =
-            this.configService.get<string>('OAUTH2_YANDEX_ENABLED') === 'true';
-        const isTgAuthEnabled = this.configService.get<string>('TELEGRAM_OAUTH_ENABLED') === 'true';
-
-        this.branding = {
-            title: this.configService.get<string>('BRANDING_TITLE') ?? null,
-            logoUrl: this.configService.get<string>('BRANDING_LOGO_URL') ?? null,
-        };
-
-        this.oauth2Providers = {
-            [OAUTH2_PROVIDERS.GITHUB]: isGithubAuthEnabled,
-            [OAUTH2_PROVIDERS.POCKETID]: isPocketIdAuthEnabled,
-            [OAUTH2_PROVIDERS.YANDEX]: isYandexAuthEnabled,
-        };
-
-        if (isGithubAuthEnabled) {
-            this.github = {
-                client: new arctic.GitHub(
-                    this.configService.getOrThrow<string>('OAUTH2_GITHUB_CLIENT_ID'),
-                    this.configService.getOrThrow<string>('OAUTH2_GITHUB_CLIENT_SECRET'),
-                    null,
-                ),
-                allowedEmails: this.configService.getOrThrow<string[]>(
-                    'OAUTH2_GITHUB_ALLOWED_EMAILS',
-                ),
-            };
-        }
-
-        if (isPocketIdAuthEnabled) {
-            this.pocketId = {
-                client: new arctic.OAuth2Client(
-                    this.configService.getOrThrow<string>('OAUTH2_POCKETID_CLIENT_ID'),
-                    this.configService.getOrThrow<string>('OAUTH2_POCKETID_CLIENT_SECRET'),
-                    null,
-                ),
-                plainDomain: this.configService.getOrThrow<string>('OAUTH2_POCKETID_PLAIN_DOMAIN'),
-                allowedEmails: this.configService.getOrThrow<string[]>(
-                    'OAUTH2_POCKETID_ALLOWED_EMAILS',
-                ),
-            };
-        }
-
-        if (isYandexAuthEnabled) {
-            this.yandex = {
-                client: new arctic.Yandex(
-                    this.configService.getOrThrow<string>('OAUTH2_YANDEX_CLIENT_ID'),
-                    this.configService.getOrThrow<string>('OAUTH2_YANDEX_CLIENT_SECRET'),
-                    '',
-                ),
-                allowedEmails: this.configService.getOrThrow<string[]>(
-                    'OAUTH2_YANDEX_ALLOWED_EMAILS',
-                ),
-            };
-        }
-
-        if (isTgAuthEnabled) {
-            const tgAuthInstance = new TelegramOAuth2({
-                botToken: this.configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'),
-            });
-            this.tgAuth = {
-                botId: tgAuthInstance.getBotId(),
-                botToken: this.configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN'),
-                adminIds: this.configService.getOrThrow<number[]>('TELEGRAM_OAUTH_ADMIN_IDS'),
-            };
-        } else {
-            this.tgAuth = {
-                botId: null,
-                botToken: null,
-                adminIds: [],
-            };
-        }
     }
 
     public async login(
@@ -187,31 +105,21 @@ export class AuthService {
                 };
             }
 
-            if (statusResponse.response.tgAuth) {
-                await this.emitFailedLoginAttempt(
-                    username,
-                    password,
-                    ip,
-                    userAgent,
-                    'Telegram Oauth enabled, so username/password login is disabled.',
-                );
-
+            if (!statusResponse.response.authentication) {
                 return {
                     isOk: false,
                     ...ERRORS.FORBIDDEN,
                 };
             }
-            if (
-                Object.values(statusResponse.response.oauth2.providers).some((enabled) => enabled)
-            ) {
+
+            if (!statusResponse.response.authentication.password.enabled) {
                 await this.emitFailedLoginAttempt(
                     username,
                     password,
                     ip,
                     userAgent,
-                    'OAuth2 enabled, so username/password login is disabled.',
+                    'Someone tried to login with password authentication, but it is disabled.',
                 );
-
                 return {
                     isOk: false,
                     ...ERRORS.FORBIDDEN,
@@ -355,6 +263,10 @@ export class AuthService {
 
     public async getStatus(): Promise<ICommandResponse<GetStatusResponseModel>> {
         try {
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
             const adminCount = await this.getAdminCount();
 
             if (!adminCount.isOk) {
@@ -377,16 +289,8 @@ export class AuthService {
                     response: new GetStatusResponseModel({
                         isLoginAllowed: false,
                         isRegisterAllowed: true,
-                        tgAuth: null,
-                        oauth2: {
-                            providers: Object.fromEntries(
-                                Object.values(OAUTH2_PROVIDERS).map((provider) => [
-                                    provider,
-                                    false,
-                                ]),
-                            ) as Record<TOAuth2ProvidersKeys, boolean>,
-                        },
-                        branding: this.branding,
+                        authentication: null,
+                        branding: remnawaveSettings.brandingSettings,
                     }),
                 };
             }
@@ -396,11 +300,31 @@ export class AuthService {
                 response: new GetStatusResponseModel({
                     isLoginAllowed: true,
                     isRegisterAllowed: false,
-                    tgAuth: this.tgAuth.botId ? { botId: this.tgAuth.botId } : null,
-                    oauth2: {
-                        providers: this.oauth2Providers,
+                    authentication: {
+                        passkey: {
+                            enabled: remnawaveSettings.passkeySettings.enabled,
+                        },
+                        tgAuth: {
+                            enabled: remnawaveSettings.tgAuthSettings.enabled,
+                            botId: remnawaveSettings.tgAuthSettings.botToken
+                                ? Number(remnawaveSettings.tgAuthSettings.botToken.split(':')[0])
+                                : null,
+                        },
+                        oauth2: {
+                            providers: {
+                                [OAUTH2_PROVIDERS.GITHUB]:
+                                    remnawaveSettings.oauth2Settings.github.enabled,
+                                [OAUTH2_PROVIDERS.POCKETID]:
+                                    remnawaveSettings.oauth2Settings.pocketid.enabled,
+                                [OAUTH2_PROVIDERS.YANDEX]:
+                                    remnawaveSettings.oauth2Settings.yandex.enabled,
+                            },
+                        },
+                        password: {
+                            enabled: remnawaveSettings.passwordSettings.enabled,
+                        },
                     },
-                    branding: this.branding,
+                    branding: remnawaveSettings.brandingSettings,
                 }),
             };
         } catch (error) {
@@ -447,7 +371,25 @@ export class AuthService {
                 };
             }
 
-            if (!this.tgAuth.adminIds.includes(id)) {
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            if (!remnawaveSettings.tgAuthSettings.enabled) {
+                await this.emitFailedLoginAttempt(
+                    username ? `@${username}` : first_name,
+                    `Telegram ID: ${id}`,
+                    ip,
+                    userAgent,
+                    'Telegram authentication is not enabled.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            if (!remnawaveSettings.tgAuthSettings.adminIds.includes(id.toString())) {
                 await this.emitFailedLoginAttempt(
                     username ? `@${username}` : first_name,
                     `Telegram ID: ${id}`,
@@ -462,7 +404,7 @@ export class AuthService {
             }
 
             const isHashValid = new TelegramOAuth2({
-                botToken: this.tgAuth.botToken!,
+                botToken: remnawaveSettings.tgAuthSettings.botToken!,
                 validUntil: 15,
             }).handleTelegramOAuthCallback({
                 auth_date: dto.auth_date,
@@ -537,6 +479,7 @@ export class AuthService {
     ): Promise<ICommandResponse<OAuth2AuthorizeResponseModel>> {
         try {
             const statusResponse = await this.getStatus();
+
             if (!statusResponse.isOk || !statusResponse.response) {
                 return {
                     isOk: false,
@@ -551,12 +494,23 @@ export class AuthService {
                 };
             }
 
-            if (!statusResponse.response.oauth2.providers[provider]) {
+            if (!statusResponse.response.authentication) {
                 return {
                     isOk: false,
                     ...ERRORS.FORBIDDEN,
                 };
             }
+
+            if (!statusResponse.response.authentication?.oauth2.providers[provider]) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
 
             let authorizationURL: URL;
             const state = arctic.generateState();
@@ -564,23 +518,35 @@ export class AuthService {
 
             switch (provider) {
                 case OAUTH2_PROVIDERS.GITHUB:
-                    authorizationURL = this.github.client.createAuthorizationURL(state, [
-                        'user:email',
-                    ]);
+                    const ghClient = new arctic.GitHub(
+                        remnawaveSettings.oauth2Settings.github.clientId!,
+                        remnawaveSettings.oauth2Settings.github.clientSecret!,
+                        null,
+                    );
+
+                    authorizationURL = ghClient.createAuthorizationURL(state, ['user:email']);
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.GITHUB}`;
                     break;
                 case OAUTH2_PROVIDERS.POCKETID:
-                    authorizationURL = this.pocketId.client.createAuthorizationURL(
-                        `https://${this.pocketId.plainDomain}/authorize`,
+                    const pocketIdClient = new arctic.OAuth2Client(
+                        remnawaveSettings.oauth2Settings.pocketid.clientId!,
+                        remnawaveSettings.oauth2Settings.pocketid.clientSecret!,
+                        null,
+                    );
+                    authorizationURL = pocketIdClient.createAuthorizationURL(
+                        `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/authorize`,
                         state,
                         ['email'],
                     );
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.POCKETID}`;
                     break;
                 case OAUTH2_PROVIDERS.YANDEX:
-                    authorizationURL = this.yandex.client.createAuthorizationURL(state, [
-                        'login:email',
-                    ]);
+                    const yandexClient = new arctic.Yandex(
+                        remnawaveSettings.oauth2Settings.yandex.clientId!,
+                        remnawaveSettings.oauth2Settings.yandex.clientSecret!,
+                        '',
+                    );
+                    authorizationURL = yandexClient.createAuthorizationURL(state, ['login:email']);
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.YANDEX}`;
                     break;
                 default:
@@ -638,7 +604,22 @@ export class AuthService {
                 };
             }
 
-            if (!statusResponse.response.oauth2.providers[provider]) {
+            if (!statusResponse.response.authentication) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            if (!statusResponse.response.authentication.oauth2.providers[provider]) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    `OAuth2 provider: ${provider}`,
+                    '–',
+                    '–',
+                    'Someone tried to authorize with OAuth2, but the provider is disabled.',
+                );
+
                 return {
                     isOk: false,
                     ...ERRORS.FORBIDDEN,
@@ -754,7 +735,17 @@ export class AuthService {
                 };
             }
 
-            const tokens = await this.github.client.validateAuthorizationCode(code);
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            const githubClient = new arctic.GitHub(
+                remnawaveSettings.oauth2Settings.github.clientId!,
+                remnawaveSettings.oauth2Settings.github.clientSecret!,
+                null,
+            );
+
+            const tokens = await githubClient.validateAuthorizationCode(code);
             const accessToken = tokens.accessToken();
 
             const { data } = await firstValueFrom(
@@ -804,7 +795,7 @@ export class AuthService {
                 };
             }
 
-            if (!this.github.allowedEmails.includes(primaryEmail)) {
+            if (!remnawaveSettings.oauth2Settings.github.allowedEmails.includes(primaryEmail)) {
                 await this.emitFailedLoginAttempt(
                     primaryEmail,
                     '–',
@@ -823,7 +814,7 @@ export class AuthService {
                 email: primaryEmail,
             };
         } catch (error) {
-            this.logger.error('GitHub callback error:', error);
+            this.logger.error(`GitHub callback error: ${error}`);
 
             return {
                 isAllowed: false,
@@ -863,8 +854,18 @@ export class AuthService {
                 };
             }
 
-            const tokens = await this.pocketId.client.validateAuthorizationCode(
-                `https://${this.pocketId.plainDomain}/api/oidc/token`,
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            const pocketIdClient = new arctic.OAuth2Client(
+                remnawaveSettings.oauth2Settings.pocketid.clientId!,
+                remnawaveSettings.oauth2Settings.pocketid.clientSecret!,
+                null,
+            );
+
+            const tokens = await pocketIdClient.validateAuthorizationCode(
+                `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/api/oidc/token`,
                 code,
                 null,
             );
@@ -877,12 +878,15 @@ export class AuthService {
                         email: string;
                         email_verified: boolean;
                         sub: string;
-                    }>(`https://${this.pocketId.plainDomain}/api/oidc/userinfo`, {
-                        headers: {
-                            Authorization: `Bearer ${accessToken}`,
-                            'User-Agent': 'Remnawave',
+                    }>(
+                        `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/api/oidc/userinfo`,
+                        {
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                                'User-Agent': 'Remnawave',
+                            },
                         },
-                    })
+                    )
                     .pipe(
                         catchError((error: AxiosError) => {
                             throw error.response?.data;
@@ -898,7 +902,7 @@ export class AuthService {
                 };
             }
 
-            if (!this.pocketId.allowedEmails.includes(data.email)) {
+            if (!remnawaveSettings.oauth2Settings.pocketid.allowedEmails.includes(data.email)) {
                 await this.emitFailedLoginAttempt(
                     data.email,
                     '–',
@@ -917,7 +921,7 @@ export class AuthService {
                 email: data.email,
             };
         } catch (error) {
-            this.logger.error('PocketID callback error:', error);
+            this.logger.error(`PocketID callback error: ${error}`);
 
             return {
                 isAllowed: false,
@@ -957,7 +961,17 @@ export class AuthService {
                 };
             }
 
-            const tokens = await this.yandex.client.validateAuthorizationCode(code);
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            const yandexClient = new arctic.Yandex(
+                remnawaveSettings.oauth2Settings.yandex.clientId!,
+                remnawaveSettings.oauth2Settings.yandex.clientSecret!,
+                '',
+            );
+
+            const tokens = await yandexClient.validateAuthorizationCode(code);
             const accessToken = tokens.accessToken();
 
             const { data } = await firstValueFrom(
@@ -1002,7 +1016,7 @@ export class AuthService {
                 };
             }
 
-            if (!this.yandex.allowedEmails.includes(primaryEmail)) {
+            if (!remnawaveSettings.oauth2Settings.yandex.allowedEmails.includes(primaryEmail)) {
                 await this.emitFailedLoginAttempt(
                     primaryEmail,
                     '–',
@@ -1021,7 +1035,7 @@ export class AuthService {
                 email: primaryEmail,
             };
         } catch (error) {
-            this.logger.error('Yandex callback error:', error);
+            this.logger.error(`Yandex callback error: ${error}`);
 
             return {
                 isAllowed: false,
@@ -1122,5 +1136,241 @@ export class AuthService {
                 },
             }),
         );
+    }
+
+    public async generatePasskeyAuthenticationOptions(
+        remnawaveSettings: RemnawaveSettingsEntity,
+    ): Promise<ICommandResponse<PublicKeyCredentialRequestOptionsJSON>> {
+        try {
+            if (!remnawaveSettings.passkeySettings.enabled) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            if (
+                !remnawaveSettings.passkeySettings.rpId ||
+                !remnawaveSettings.passkeySettings.origin
+            ) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const admin = await this.getFirstAdmin();
+
+            if (!admin.isOk || !admin.response) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const userPasskeys = await this.queryBus.execute(
+                new GetPasskeysByAdminUuidQuery(admin.response.uuid),
+            );
+
+            if (!userPasskeys.isOk || !userPasskeys.response) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            if (userPasskeys.response.length === 0) {
+                this.logger.warn('No passkeys registered for this user');
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const options = await generateAuthenticationOptions({
+                rpID: remnawaveSettings.passkeySettings.rpId,
+                allowCredentials: userPasskeys.response.map((passkey) => ({
+                    id: passkey.id,
+                    transports: passkey.getTransports(),
+                })),
+                userVerification: 'preferred',
+            });
+
+            await this.cacheManager.set(
+                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
+                options.challenge,
+                60_000, // 1 minute
+            );
+
+            return {
+                isOk: true,
+                response: options,
+            };
+        } catch (error) {
+            this.logger.error(`Passkey authentication options error: ${error}`);
+            return {
+                isOk: false,
+                ...ERRORS.INTERNAL_SERVER_ERROR,
+            };
+        }
+    }
+
+    public async verifyPasskeyAuthentication(
+        dto: VerifyPasskeyAuthenticationRequestDto,
+        remnawaveSettings: RemnawaveSettingsEntity,
+        ip: string,
+        userAgent: string,
+    ): Promise<ICommandResponse<{ accessToken: string }>> {
+        try {
+            if (!remnawaveSettings.passkeySettings.enabled) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Passkey authentication is not enabled.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            if (
+                !remnawaveSettings.passkeySettings.rpId ||
+                !remnawaveSettings.passkeySettings.origin
+            ) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Passkey authentication is not configured.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const response = dto.response as unknown as AuthenticationResponseJSON;
+
+            const admin = await this.getFirstAdmin();
+
+            if (!admin.isOk || !admin.response) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Admin is not found.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const expectedChallenge = await this.cacheManager.get<string>(
+                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
+            );
+
+            if (!expectedChallenge) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Challenge not found.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const passkey = await this.queryBus.execute(
+                new FindPasskeyByIdAndAdminUuidQuery(response.id, admin.response.uuid),
+            );
+
+            if (!passkey.isOk || !passkey.response) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Passkey not found.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            const verification = await verifyAuthenticationResponse({
+                response,
+                expectedChallenge,
+                expectedOrigin: remnawaveSettings.passkeySettings.origin,
+                expectedRPID: remnawaveSettings.passkeySettings.rpId,
+                credential: {
+                    id: passkey.response.id,
+                    publicKey: new Uint8Array(passkey.response.publicKey),
+                    counter: Number(passkey.response.counter),
+                    transports: passkey.response.getTransports(),
+                },
+            });
+
+            await this.cacheManager.del(
+                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
+            );
+
+            if (!verification.verified) {
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Passkey authentication failed.',
+                );
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+
+            await this.commandBus.execute(
+                new UpdatePasskeyCommand(passkey.response.id, {
+                    counter: BigInt(verification.authenticationInfo.newCounter),
+                    updatedAt: new Date(),
+                }),
+            );
+
+            const accessToken = this.jwtService.sign(
+                {
+                    username: admin.response.username,
+                    uuid: admin.response.uuid,
+                    role: ROLE.ADMIN,
+                },
+                { expiresIn: `${this.jwtLifetime}h` },
+            );
+
+            await this.emitLoginSuccess(
+                admin.response.username,
+                ip,
+                userAgent,
+                'Passkey authentication successful.',
+            );
+
+            return {
+                isOk: true,
+                response: { accessToken },
+            };
+        } catch (error) {
+            this.logger.error(`Passkey authentication verification error: ${error}`);
+            return {
+                isOk: false,
+                ...ERRORS.FORBIDDEN,
+            };
+        }
     }
 }
