@@ -78,7 +78,7 @@ export class ResponseRulesMatcherService {
         condition: TResponseRuleCondition,
         requestHeaders: Record<string, string | string[] | undefined>,
     ): boolean {
-        const headerValue = this.getHeaderValue(requestHeaders, condition.headerName);
+        let headerValue = this.getHeaderValue(requestHeaders, condition.headerName);
 
         if (headerValue === undefined) {
             return false;
@@ -88,6 +88,7 @@ export class ResponseRulesMatcherService {
 
         if (!condition.caseSensitive) {
             compareValue = compareValue.toLowerCase();
+            headerValue = headerValue.toLowerCase();
         }
 
         try {
