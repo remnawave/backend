@@ -35,7 +35,6 @@ export class RenderTemplatesService {
     }> {
         const { srrContext, user, hosts } = params;
 
-        const configParams = SUBSCRIPTION_CONFIG_TYPES[srrContext.matchedResponseType];
         const formattedHosts = await this.formatHostsService.generateFormattedHosts(hosts, user);
 
         switch (srrContext.matchedResponseType) {
@@ -47,7 +46,7 @@ export class RenderTemplatesService {
                                 formattedHosts,
                                 srrContext.isXrayExtSupported,
                             ),
-                            contentType: configParams.CONTENT_TYPE,
+                            contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                         };
                     }
                 }
@@ -55,10 +54,10 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.xrayGeneratorService.generateConfig(
                         formattedHosts,
-                        configParams.isBase64,
+                        SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].isBase64,
                         srrContext.isXrayExtSupported,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].CONTENT_TYPE,
                 };
 
             case 'CLASH':
@@ -67,7 +66,7 @@ export class RenderTemplatesService {
                         formattedHosts,
                         srrContext.overrideTemplateName,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['CLASH'].CONTENT_TYPE,
                 };
 
             case 'MIHOMO':
@@ -78,7 +77,7 @@ export class RenderTemplatesService {
                         srrContext.isMihomoExtSupported,
                         srrContext.overrideTemplateName,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['MIHOMO'].CONTENT_TYPE,
                 };
 
             case 'SINGBOX':
@@ -87,7 +86,7 @@ export class RenderTemplatesService {
                         formattedHosts,
                         srrContext.overrideTemplateName,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['SINGBOX'].CONTENT_TYPE,
                 };
 
             case 'STASH':
@@ -98,7 +97,7 @@ export class RenderTemplatesService {
                         false,
                         srrContext.overrideTemplateName,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['STASH'].CONTENT_TYPE,
                 };
 
             case 'XRAY_JSON':
@@ -108,7 +107,7 @@ export class RenderTemplatesService {
                         srrContext.isXrayExtSupported,
                         srrContext.overrideTemplateName,
                     ),
-                    contentType: configParams.CONTENT_TYPE,
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                 };
 
             default:

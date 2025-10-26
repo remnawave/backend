@@ -203,7 +203,7 @@ export class UsersService {
 
             const newUserEntity = new BaseUserEntity({
                 ...rest,
-                uuid: uuid,
+                uuid: user.uuid,
                 trafficLimitBytes: wrapBigInt(trafficLimitBytes),
                 telegramId: wrapBigIntNullable(telegramId),
                 lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,

@@ -63,17 +63,17 @@ export class PasskeyService {
                 new GetCachedRemnawaveSettingsQuery(),
             );
 
-            if (!passkeySettings.rpId || !passkeySettings.origin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEYS_NOT_CONFIGURED,
-                };
-            }
-
             if (!passkeySettings.enabled) {
                 return {
                     isOk: false,
                     ...ERRORS.PASSKEYS_NOT_ENABLED,
+                };
+            }
+
+            if (!passkeySettings.rpId || !passkeySettings.origin) {
+                return {
+                    isOk: false,
+                    ...ERRORS.PASSKEYS_NOT_CONFIGURED,
                 };
             }
 
