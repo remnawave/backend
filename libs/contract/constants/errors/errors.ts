@@ -971,7 +971,7 @@ export const ERRORS = {
     },
     PASSKEYS_NOT_ENABLED: {
         code: 'A195',
-        message: 'Passkeys not enabled',
+        message: 'Passkeys not enabled. Please enable it first.',
         httpCode: 400,
     },
     GENERATE_PASSKEY_REGISTRATION_OPTIONS: {

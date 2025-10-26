@@ -1,4 +1,3 @@
-import isFQDN from 'validator/lib/isFQDN';
 import z from 'zod';
 
 export const Oauth2SettingsSchema = z.object({
@@ -14,12 +13,18 @@ export const Oauth2SettingsSchema = z.object({
         clientSecret: z.nullable(z.string()),
         plainDomain: z.nullable(
             z.string().refine(
-                (val) =>
-                    val === 'localhost' ||
-                    isFQDN(val, {
-                        require_tld: true,
-                    }),
-                'Must be a valid fully qualified domain name (FQDN), e.g. "remna.st"',
+                (val) => {
+                    const fqdnRegex =
+                        /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
+                    if (fqdnRegex.test(val)) {
+                        return true;
+                    }
+
+                    return false;
+                },
+                {
+                    message: 'Must be a valid fully qualified domain name (FQDN), e.g. "remna.st"',
+                },
             ),
         ),
         allowedEmails: z.array(z.string()),

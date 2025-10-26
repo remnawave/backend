@@ -19,6 +19,7 @@ import {
 } from '@modules/subscription-template/constants';
 import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
 import {
+    PasskeySettingsSchema,
     TBrandingSettings,
     TOauth2Settings,
     TPasswordAuthSettings,
@@ -712,9 +713,26 @@ async function seedRemnawaveSettings() {
                     where: { id: existingConfig.id },
                     data: { [key]: value },
                 });
+            } else {
+                if (key === 'passkeySettings') {
+                    if (!PasskeySettingsSchema.safeParse(existingConfig.passkeySettings).success) {
+                        consola.warn(`${key} is not valid! Falling back to default...`);
+                        await prisma.remnawaveSettings.update({
+                            where: { id: existingConfig.id },
+                            data: { [key]: DEFAULT_PASSKEY_SETTINGS },
+                        });
+                        consola.success(`${key} updated to default!`);
+                        consola.info('Enabling password authentication...');
+                        await prisma.remnawaveSettings.update({
+                            where: { id: existingConfig.id },
+                            data: { passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS },
+                        });
+                        consola.success('Password authentication enabled!');
+                        continue;
+                    }
+                }
             }
         }
-        return;
     }
 
     if (!existingConfig) {
