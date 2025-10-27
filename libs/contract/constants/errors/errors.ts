@@ -1004,4 +1004,9 @@ export const ERRORS = {
             httpCode: 500,
         }),
     },
+    GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR: {
+        code: 'A200',
+        message: 'Get computed config profile by UUID error',
+        httpCode: 500,
+    },
 } as const;

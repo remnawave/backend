@@ -18,6 +18,7 @@ import {
     CreateConfigProfileCommand,
     DeleteConfigProfileCommand,
     GetAllInboundsCommand,
+    GetComputedConfigProfileByUuidCommand,
     GetConfigProfileByUuidCommand,
     GetConfigProfilesCommand,
     GetInboundsByProfileUuidCommand,
@@ -31,6 +32,7 @@ import {
     CreateConfigProfileResponseDto,
     DeleteConfigProfileResponseDto,
     GetAllInboundsResponseDto,
+    GetComputedConfigProfileByUuidResponseDto,
     GetConfigProfileByUuidResponseDto,
     GetConfigProfilesResponseDto,
     GetInboundsByProfileUuidResponseDto,
@@ -119,6 +121,28 @@ export class ConfigProfileController {
         @Param('uuid') uuid: string,
     ): Promise<GetConfigProfileByUuidResponseDto> {
         const result = await this.configProfileService.getConfigProfileByUUID(uuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'Config profile not found',
+    })
+    @ApiOkResponse({
+        type: GetComputedConfigProfileByUuidResponseDto,
+        description: 'Computed config profile retrieved successfully',
+    })
+    @Endpoint({
+        command: GetComputedConfigProfileByUuidCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getComputedConfigProfileByUuid(
+        @Param('uuid') uuid: string,
+    ): Promise<GetComputedConfigProfileByUuidResponseDto> {
+        const result = await this.configProfileService.getComputedConfigProfileByUUID(uuid);
 
         const data = errorHandler(result);
         return {
