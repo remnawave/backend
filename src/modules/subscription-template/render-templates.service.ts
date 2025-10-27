@@ -45,6 +45,7 @@ export class RenderTemplatesService {
                             subscription: await this.xrayJsonGeneratorService.generateConfig(
                                 formattedHosts,
                                 srrContext.isXrayExtSupported,
+                                srrContext.overrideTemplateName,
                             ),
                             contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                         };

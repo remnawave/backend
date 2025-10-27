@@ -17,6 +17,13 @@ export class GetTemplateNameHandler
 
     async execute(query: GetTemplateNameQuery): Promise<ICommandResponse<string | null>> {
         try {
+            if (query.templateType === 'XRAY_BASE64') {
+                return {
+                    isOk: true,
+                    response: null,
+                };
+            }
+
             const result = await this.externalSquadRepository.getTemplateName(
                 query.externalSquadUuid,
                 query.templateType,

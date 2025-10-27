@@ -110,10 +110,17 @@ export class SubscriptionService {
 
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
+                    let templateTypeMatcher = matchedResponseType as TSubscriptionTemplateType;
+
+                    if (matchedResponseType === 'XRAY_BASE64') {
+                        // In case if XRAY_BASE64 matched as fallback
+                        templateTypeMatcher = 'XRAY_JSON';
+                    }
+
                     const templateName = await this.queryBus.execute(
                         new GetTemplateNameQuery(
                             user.response.externalSquadUuid,
-                            matchedResponseType as TSubscriptionTemplateType,
+                            templateTypeMatcher,
                         ),
                     );
 
