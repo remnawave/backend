@@ -1,7 +1,14 @@
 import { ZodValidationException } from 'nestjs-zod';
 import { Request, Response } from 'express';
 
-import { ArgumentsHost, Catch, ExceptionFilter, HttpStatus, Logger } from '@nestjs/common';
+import {
+    ArgumentsHost,
+    Catch,
+    ExceptionFilter,
+    HttpException,
+    HttpStatus,
+    Logger,
+} from '@nestjs/common';
 
 import { HttpExceptionWithErrorCodeType } from './http-exeception-with-error-code.type';
 
@@ -13,7 +20,11 @@ export class PublicHttpExceptionFilter implements ExceptionFilter {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<Request>();
-        const status = exception?.getStatus();
+
+        let status = HttpStatus.INTERNAL_SERVER_ERROR;
+        if (exception instanceof HttpException && exception.getStatus) {
+            status = exception.getStatus();
+        }
 
         let errorMessage: string | string[];
         let errorCode: string = 'E000';

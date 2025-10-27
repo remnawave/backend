@@ -129,6 +129,7 @@
     "swagger-themes": "^1.4.3",
     "systeminformation": "^5.27.10",
     "table": "^6.9.0",
+    "transliteration": "^2.3.5",
     "try": "^1.0.0-beta.9",
     "ufo": "^1.6.1",
     "validator": "^13.15.15",

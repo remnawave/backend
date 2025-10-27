@@ -1,3 +1,4 @@
+import { transliterate } from 'transliteration';
 import dayjs from 'dayjs';
 
 import { TemplateKeys } from '@libs/contracts/constants/templates/template-keys';
@@ -25,18 +26,26 @@ export class TemplateEngine {
         return hasReplacement ? result : template;
     }
 
-    static formatWithUser(template: string, user: UserEntity, subPublicDomain: string): string {
+    static formatWithUser(
+        template: string,
+        user: UserEntity,
+        subPublicDomain: string,
+        forHeader: boolean = false,
+    ): string {
         return this.replace(template, {
             DAYS_LEFT: Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
             TRAFFIC_USED: prettyBytesUtil(user.usedTrafficBytes, true, 3),
             TRAFFIC_LEFT: prettyBytesUtil(user.trafficLimitBytes - user.usedTrafficBytes, true, 3),
             TOTAL_TRAFFIC: prettyBytesUtil(user.trafficLimitBytes, true, 3),
-            STATUS: USER_STATUSES_TEMPLATE[user.status],
+            STATUS: forHeader
+                ? transliterate(USER_STATUSES_TEMPLATE[user.status])
+                : USER_STATUSES_TEMPLATE[user.status],
             USERNAME: user.username,
             EMAIL: user.email || '',
             TELEGRAM_ID: user.telegramId?.toString() || '',
             SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
             TAG: user.tag || '',
+            EXPIRE_UNIX: dayjs(user.expireAt).unix(),
         });
     }
 }

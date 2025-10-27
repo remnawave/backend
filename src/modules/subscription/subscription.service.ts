@@ -706,7 +706,12 @@ export class SubscriptionService {
 
         if (settings.customResponseHeaders) {
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.formatWithUser(value, user, this.subPublicDomain);
+                headers[key] = TemplateEngine.formatWithUser(
+                    value,
+                    user,
+                    this.subPublicDomain,
+                    true,
+                );
             }
         }
 

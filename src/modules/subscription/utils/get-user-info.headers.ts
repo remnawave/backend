@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import { TResetPeriods } from '@libs/contracts/constants';
 
 import { UserEntity } from '@modules/users/entities';
@@ -15,8 +17,7 @@ export function getSubscriptionUserInfo(user: UserEntity): SubscriptionUserInfo 
         download: Number(user.usedTrafficBytes),
         total: Number(user.trafficLimitBytes),
         // TODO: remove after XTLS Standards published
-        expire:
-            user.expireAt.getFullYear() !== 2099 ? Math.floor(user.expireAt.getTime() / 1000) : 0,
+        expire: user.expireAt.getFullYear() !== 2099 ? dayjs(user.expireAt).unix() : 0,
     };
 }
 
