@@ -691,7 +691,7 @@ export class SubscriptionService {
             headers.routing = settings.happRouting;
         }
 
-        if (settings.isProfileWebpageUrlEnabled && !this.hwidDeviceLimitEnabled) {
+        if (settings.isProfileWebpageUrlEnabled) {
             headers['profile-web-page-url'] = this.resolveSubscriptionUrl(
                 user.shortUuid,
                 user.username,
