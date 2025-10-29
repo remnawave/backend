@@ -94,7 +94,7 @@ export class PasskeyService {
                 })),
                 authenticatorSelection: {
                     residentKey: 'preferred',
-                    userVerification: 'preferred',
+                    userVerification: 'required',
                 },
             });
 
@@ -179,6 +179,7 @@ export class PasskeyService {
                 expectedChallenge,
                 expectedOrigin: passkeySettings.origin,
                 expectedRPID: passkeySettings.rpId,
+                requireUserVerification: true,
             });
 
             if (!verification.verified || !verification.registrationInfo) {
