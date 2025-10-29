@@ -270,6 +270,7 @@ export class ConfigProfileService {
 
                 const validatedConfig = new XRayConfig(config);
                 validatedConfig.cleanClients();
+                validatedConfig.fixIncorrectServerNames();
                 const sortedConfig = validatedConfig.getSortedConfig();
                 const inbounds = validatedConfig.getAllInbounds();
 
