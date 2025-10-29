@@ -107,7 +107,7 @@ export class ExternalSquadService {
     public async updateExternalSquad(
         dto: UpdateExternalSquadRequestDto,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
-        const { uuid, name, templates, subscriptionSettings } = dto;
+        const { uuid, name, templates, subscriptionSettings, hostOverrides } = dto;
 
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
@@ -119,18 +119,19 @@ export class ExternalSquadService {
                 };
             }
 
-            if (!name && !templates && !subscriptionSettings) {
+            if (!name && !templates && !subscriptionSettings && !hostOverrides) {
                 return {
                     isOk: false,
                     ...ERRORS.NAME_OR_TEMPLATES_REQUIRED,
                 };
             }
 
-            if (name || subscriptionSettings) {
+            if (name || subscriptionSettings || hostOverrides) {
                 await this.externalSquadRepository.update({
                     uuid,
                     name: name || undefined,
                     subscriptionSettings: subscriptionSettings || undefined,
+                    hostOverrides: hostOverrides || undefined,
                 });
             }
 

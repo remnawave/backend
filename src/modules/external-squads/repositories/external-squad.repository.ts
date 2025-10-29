@@ -62,8 +62,13 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
     }
 
     public async findByCriteria(dto: Partial<ExternalSquadEntity>): Promise<ExternalSquadEntity[]> {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { subscriptionSettings: _subscriptionSettings, ...rest } = dto;
+        const {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            subscriptionSettings: _subscriptionSettings,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            hostOverrides: _hostOverrides,
+            ...rest
+        } = dto;
         const externalSquadList = await this.prisma.tx.externalSquads.findMany({
             where: {
                 ...rest,
@@ -75,8 +80,13 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
     public async findFirstByCriteria(
         dto: Partial<ExternalSquadEntity>,
     ): Promise<ExternalSquadEntity | null> {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { subscriptionSettings: _subscriptionSettings, ...rest } = dto;
+        const {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            subscriptionSettings: _subscriptionSettings,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            hostOverrides: _hostOverrides,
+            ...rest
+        } = dto;
         const result = await this.prisma.tx.externalSquads.findFirst({
             where: {
                 ...rest,
@@ -102,6 +112,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.uuid',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
+                'externalSquads.hostOverrides',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -132,6 +143,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.uuid',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
+                'externalSquads.hostOverrides',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -139,7 +151,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                     .selectFrom('users')
                     .select(eb.fn.countAll().as('count'))
                     .whereRef('users.externalSquadUuid', '=', 'externalSquads.uuid')
-                    .as('usersCount'),
+                    .as('membersCount'),
 
                 jsonArrayFrom(
                     eb
@@ -252,13 +264,14 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         return result.templateName;
     }
 
-    public async getExternalSquadSubscriptionSettings(
+    public async getExternalSquadSettings(
         externalSquadUuid: string,
-    ): Promise<Pick<ExternalSquadEntity, 'subscriptionSettings'> | null> {
+    ): Promise<Pick<ExternalSquadEntity, 'subscriptionSettings' | 'hostOverrides'> | null> {
         const result = await this.prisma.tx.externalSquads.findUnique({
             where: { uuid: externalSquadUuid },
             select: {
                 subscriptionSettings: true,
+                hostOverrides: true,
             },
         });
 

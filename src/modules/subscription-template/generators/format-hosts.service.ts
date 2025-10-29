@@ -28,9 +28,17 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
+
+interface IGenerateFormattedHostsOptions {
+    hosts: HostWithRawInbound[];
+    user: UserEntity;
+    hostsOverrides?: ExternalSquadEntity['hostOverrides'];
+    returnDbHost?: boolean;
+}
 
 @Injectable()
 export class FormatHostsService {
@@ -46,10 +54,11 @@ export class FormatHostsService {
     }
 
     public async generateFormattedHosts(
-        hosts: HostWithRawInbound[],
-        user: UserEntity,
-        returnDbHost: boolean = false,
+        options: IGenerateFormattedHostsOptions,
     ): Promise<IFormattedHost[]> {
+        let hosts = options.hosts;
+        const { user, hostsOverrides, returnDbHost = false } = options;
+
         const formattedHosts: IFormattedHost[] = [];
 
         let specialRemarks: string[] = [];
@@ -127,6 +136,15 @@ export class FormatHostsService {
         }
 
         for (const inputHost of hosts) {
+            if (hostsOverrides) {
+                if (hostsOverrides.vlessRouteId !== undefined) {
+                    inputHost.vlessRouteId = hostsOverrides.vlessRouteId;
+                }
+                if (hostsOverrides.serverDescription !== undefined) {
+                    inputHost.serverDescription = hostsOverrides.serverDescription;
+                }
+            }
+
             const remark = TemplateEngine.formatWithUser(
                 inputHost.remark,
                 user,

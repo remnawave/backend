@@ -4,8 +4,8 @@ import { ICommandResponse } from '@common/types/command-response.type';
 
 import { ExternalSquadEntity } from '@modules/external-squads/entities';
 
-export class GetExternalSquadSubscriptionSettingsQuery extends Query<
-    ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings'> | null>
+export class GetExternalSquadSettingsQuery extends Query<
+    ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings' | 'hostOverrides'> | null>
 > {
     constructor(public readonly externalSquadUuid: string) {
         super();

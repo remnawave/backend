@@ -15,6 +15,7 @@ const entityToModel = (entity: ExternalSquadEntity): ExternalSquads => {
         uuid: entity.uuid,
         name: entity.name,
         subscriptionSettings: entity.subscriptionSettings,
+        hostOverrides: entity.hostOverrides,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

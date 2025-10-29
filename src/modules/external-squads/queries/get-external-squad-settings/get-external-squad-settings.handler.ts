@@ -7,24 +7,29 @@ import { ERRORS } from '@libs/contracts/constants';
 import { ExternalSquadRepository } from '@modules/external-squads/repositories/external-squad.repository';
 import { ExternalSquadEntity } from '@modules/external-squads/entities';
 
-import { GetExternalSquadSubscriptionSettingsQuery } from './get-external-squad-subscription-settings.query';
+import { GetExternalSquadSettingsQuery } from './get-external-squad-settings.query';
 
-@QueryHandler(GetExternalSquadSubscriptionSettingsQuery)
-export class GetExternalSquadSubscriptionSettingsHandler
+@QueryHandler(GetExternalSquadSettingsQuery)
+export class GetExternalSquadSettingsHandler
     implements
         IQueryHandler<
-            GetExternalSquadSubscriptionSettingsQuery,
-            ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings'> | null>
+            GetExternalSquadSettingsQuery,
+            ICommandResponse<Pick<
+                ExternalSquadEntity,
+                'subscriptionSettings' | 'hostOverrides'
+            > | null>
         >
 {
-    private readonly logger = new Logger(GetExternalSquadSubscriptionSettingsHandler.name);
+    private readonly logger = new Logger(GetExternalSquadSettingsHandler.name);
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
 
     async execute(
-        query: GetExternalSquadSubscriptionSettingsQuery,
-    ): Promise<ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings'> | null>> {
+        query: GetExternalSquadSettingsQuery,
+    ): Promise<
+        ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings' | 'hostOverrides'> | null>
+    > {
         try {
-            const result = await this.externalSquadRepository.getExternalSquadSubscriptionSettings(
+            const result = await this.externalSquadRepository.getExternalSquadSettings(
                 query.externalSquadUuid,
             );
 
