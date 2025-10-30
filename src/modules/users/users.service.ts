@@ -129,6 +129,13 @@ export class UsersService {
                     };
                 }
 
+                if (user.code === 'A023') {
+                    return {
+                        isOk: false,
+                        ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
+                    };
+                }
+
                 return {
                     isOk: false,
                     ...ERRORS.UPDATE_USER_ERROR,
@@ -198,7 +205,7 @@ export class UsersService {
             });
 
             if (!user) {
-                throw new Error(ERRORS.USER_NOT_FOUND.message);
+                throw new Error(ERRORS.USER_NOT_FOUND.code);
             }
 
             const newUserEntity = new BaseUserEntity({
@@ -288,7 +295,7 @@ export class UsersService {
             );
 
             if (!userWithInbounds) {
-                throw new Error(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.message);
+                throw new Error(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code);
             }
 
             return {
@@ -300,6 +307,23 @@ export class UsersService {
                 },
             };
         } catch (error) {
+            if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
+                return {
+                    isOk: false,
+                    ...ERRORS.USER_NOT_FOUND,
+                };
+            }
+
+            if (
+                error instanceof Error &&
+                error.message === ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code
+            ) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
+                };
+            }
+
             throw error;
         }
     }
