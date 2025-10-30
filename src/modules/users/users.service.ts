@@ -122,20 +122,6 @@ export class UsersService {
             const user = await this.updateUserTransactional(dto);
 
             if (!user.isOk || !user.response) {
-                if (user.code === 'A025') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.USER_NOT_FOUND,
-                    };
-                }
-
-                if (user.code === 'A023') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
-                    };
-                }
-
                 return {
                     isOk: false,
                     ...ERRORS.UPDATE_USER_ERROR,
@@ -172,6 +158,23 @@ export class UsersService {
                 response: user.response.user,
             };
         } catch (error) {
+            if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
+                return {
+                    isOk: false,
+                    ...ERRORS.USER_NOT_FOUND,
+                };
+            }
+
+            if (
+                error instanceof Error &&
+                error.message === ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code
+            ) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
+                };
+            }
+
             this.logger.error(error);
 
             return { isOk: false, ...ERRORS.UPDATE_USER_ERROR };
@@ -307,23 +310,6 @@ export class UsersService {
                 },
             };
         } catch (error) {
-            if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
-            }
-
-            if (
-                error instanceof Error &&
-                error.message === ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code
-            ) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
-                };
-            }
-
             throw error;
         }
     }
