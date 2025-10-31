@@ -1009,4 +1009,9 @@ export const ERRORS = {
         message: 'Get computed config profile by UUID error',
         httpCode: 500,
     },
+    RESET_NODE_TRAFFIC_ERROR: {
+        code: 'A201',
+        message: 'Reset node traffic error',
+        httpCode: 500,
+    },
 } as const;

@@ -8,8 +8,8 @@ import { ICommandResponse } from '@common/types/command-response.type';
 
 import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usage-history/commands/create-node-traffic-usage-history';
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
-import { GetEnabledNodesQuery } from '@modules/nodes/queries/get-enabled-nodes/get-enabled-nodes.query';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
+import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
 import { JOBS_INTERVALS } from '@scheduler/intervals';
@@ -30,7 +30,7 @@ export class ResetNodeTrafficTask {
     })
     async handleCron() {
         try {
-            const nodesResponse = await this.getEnabledNodes();
+            const nodesResponse = await this.getAllNodes();
             if (!nodesResponse.isOk || !nodesResponse.response) {
                 return;
             }
@@ -73,9 +73,9 @@ export class ResetNodeTrafficTask {
         }
     }
 
-    private async getEnabledNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetEnabledNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetEnabledNodesQuery(),
+    private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
+        return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
+            new GetAllNodesQuery(),
         );
     }
 

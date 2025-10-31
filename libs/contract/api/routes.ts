@@ -61,6 +61,10 @@ export const REST_API = {
                     uuid,
                 )}`,
             RESTART_ALL: `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.RESTART_ALL}`,
+            RESET_TRAFFIC: (uuid: string) =>
+                `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.RESET_TRAFFIC(
+                    uuid,
+                )}`,
             REORDER: `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.REORDER}`,
         },
 

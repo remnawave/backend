@@ -5,20 +5,26 @@ import { ERRORS, EVENTS } from '@contract/constants';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { toNano } from '@common/utils/nano';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
+import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usage-history/commands/create-node-traffic-usage-history';
+import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 
 import { StartNodeQueueService } from '@queue/start-node/start-node.service';
 import { StopNodeQueueService } from '@queue/stop-node/stop-node.service';
 
+import {
+    BaseEventResponseModel,
+    DeleteNodeResponseModel,
+    RestartNodeResponseModel,
+} from './models';
 import { CreateNodeRequestDto, ReorderNodeRequestDto, UpdateNodeRequestDto } from './dtos';
-import { DeleteNodeResponseModel, RestartNodeResponseModel } from './models';
 import { NodesRepository } from './repositories/nodes.repository';
 import { NodesEntity } from './entities';
 
@@ -33,6 +39,7 @@ export class NodesService {
         private readonly startNodeQueue: StartNodeQueueService,
         private readonly stopNodeQueue: StopNodeQueueService,
         private readonly queryBus: QueryBus,
+        private readonly commandBus: CommandBus,
     ) {}
 
     public async createNode(body: CreateNodeRequestDto): Promise<ICommandResponse<NodesEntity>> {
@@ -167,6 +174,47 @@ export class NodesService {
             return {
                 isOk: false,
                 ...ERRORS.RESTART_NODE_ERROR,
+            };
+        }
+    }
+
+    public async resetNodeTraffic(uuid: string): Promise<ICommandResponse<BaseEventResponseModel>> {
+        try {
+            const node = await this.nodesRepository.findByUUID(uuid);
+            if (!node) {
+                return {
+                    isOk: false,
+                    ...ERRORS.NODE_NOT_FOUND,
+                };
+            }
+
+            await this.commandBus.execute<
+                CreateNodeTrafficUsageHistoryCommand,
+                ICommandResponse<NodesTrafficUsageHistoryEntity>
+            >(
+                new CreateNodeTrafficUsageHistoryCommand(
+                    new NodesTrafficUsageHistoryEntity({
+                        nodeUuid: node.uuid,
+                        trafficBytes: node.trafficUsedBytes || BigInt(0),
+                        resetAt: new Date(),
+                    }),
+                ),
+            );
+
+            await this.nodesRepository.update({
+                uuid: node.uuid,
+                trafficUsedBytes: BigInt(0),
+            });
+
+            return {
+                isOk: true,
+                response: new BaseEventResponseModel(true),
+            };
+        } catch (error) {
+            this.logger.error(JSON.stringify(error));
+            return {
+                isOk: false,
+                ...ERRORS.RESET_NODE_TRAFFIC_ERROR,
             };
         }
     }
