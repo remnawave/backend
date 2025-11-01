@@ -9,6 +9,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { toNano } from '@common/utils/nano';
+import { wrapBigInt } from '@common/utils';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -54,9 +55,7 @@ export class NodesService {
                 isDisabled: false,
                 isNodeOnline: false,
                 isXrayRunning: false,
-                trafficLimitBytes: nodeData.trafficLimitBytes
-                    ? BigInt(nodeData.trafficLimitBytes)
-                    : undefined,
+                trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: nodeData.consumptionMultiplier
                     ? toNano(nodeData.consumptionMultiplier)
                     : undefined,
@@ -350,9 +349,7 @@ export class NodesService {
             const result = await this.nodesRepository.update({
                 ...nodeData,
                 address: nodeData.address ? nodeData.address.trim() : undefined,
-                trafficLimitBytes: nodeData.trafficLimitBytes
-                    ? BigInt(nodeData.trafficLimitBytes)
-                    : undefined,
+                trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: nodeData.consumptionMultiplier
                     ? toNano(nodeData.consumptionMultiplier)
                     : undefined,
