@@ -285,6 +285,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     continue;
                 }
 
+                if (filter.id === 'externalSquadUuid') {
+                    whereBuilder = whereBuilder.where(
+                        'externalSquadUuid',
+                        '=',
+                        getKyselyUuid(filter.value as string),
+                    );
+                    continue;
+                }
+
                 const field = filter.id as keyof DB['users'];
 
                 switch (mode) {
@@ -393,6 +402,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                             sql`"uuid"::text`,
                             'ilike',
                             `%${filter.value}%`,
+                        );
+                        continue;
+                    }
+
+                    if (filter.id === 'externalSquadUuid') {
+                        countBuilder = countBuilder.where(
+                            'externalSquadUuid',
+                            '=',
+                            getKyselyUuid(filter.value as string),
                         );
                         continue;
                     }
