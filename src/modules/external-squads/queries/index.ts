@@ -1,4 +1,4 @@
-import { GetExternalSquadSubscriptionSettingsHandler } from './get-external-squad-subscription-settings';
+import { GetExternalSquadSettingsHandler } from './get-external-squad-settings';
 import { GetTemplateNameHandler } from './get-template-name';
 
-export const QUERIES = [GetTemplateNameHandler, GetExternalSquadSubscriptionSettingsHandler];
+export const QUERIES = [GetTemplateNameHandler, GetExternalSquadSettingsHandler];

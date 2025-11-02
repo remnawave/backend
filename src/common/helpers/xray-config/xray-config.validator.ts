@@ -280,6 +280,25 @@ export class XRayConfig {
         }
     }
 
+    public fixIncorrectServerNames(): void {
+        for (const inbound of this.config.inbounds) {
+            const realitySettings =
+                inbound.protocol === 'vless' ? inbound.streamSettings?.realitySettings : null;
+
+            if (!realitySettings?.serverNames?.length) {
+                continue;
+            }
+
+            realitySettings.serverNames = [
+                ...new Set(
+                    realitySettings.serverNames.flatMap((name) =>
+                        name.split(',').map((part) => part.trim()),
+                    ),
+                ),
+            ];
+        }
+    }
+
     public getSortedConfig(): IXrayConfig {
         return this.sortObjectByKeys<IXrayConfig>(this.config);
     }

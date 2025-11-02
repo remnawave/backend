@@ -39,7 +39,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         try {
             const { nodeUuid, nodeAddress, nodePort } = job.data;
 
-            const response = await this.axios.getAllOutboundStats(
+            const outboundsStats = await this.axios.getAllOutboundStats(
                 {
                     reset: true,
                 },
@@ -47,7 +47,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
                 nodePort,
             );
 
-            const inboundsResponse = await this.axios.getAllInboundStats(
+            const inboundsStats = await this.axios.getAllInboundStats(
                 {
                     reset: true,
                 },
@@ -55,13 +55,28 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
                 nodePort,
             );
 
-            if (response.isOk && inboundsResponse.isOk) {
-                return this.handleOk(nodeUuid, response.response!, inboundsResponse.response!);
+            if (outboundsStats.isOk && inboundsStats.isOk) {
+                return this.handleOk(nodeUuid, outboundsStats.response!, inboundsStats.response!);
             }
 
-            this.logger.error(
-                `Failed to get nodes stats, node: ${nodeUuid} – ${nodeAddress}:${nodePort}, error: ${JSON.stringify(response)}`,
+            if (outboundsStats.isOk && !inboundsStats.isOk) {
+                this.logger.error(
+                    `Failed to get inbound stats, node: ${nodeUuid} – ${nodeAddress}:${nodePort}, error: ${JSON.stringify(inboundsStats)}`,
+                );
+                return;
+            }
+
+            if (!outboundsStats.isOk && inboundsStats.isOk) {
+                this.logger.error(
+                    `Failed to get outbound stats, node: ${nodeUuid} – ${nodeAddress}:${nodePort}, error: ${JSON.stringify(outboundsStats)}`,
+                );
+                return;
+            }
+
+            this.logger.warn(
+                `Node ${nodeUuid}, ${nodeAddress}:${nodePort} – stats are not available, skipping`,
             );
+
             return;
         } catch (error) {
             this.logger.error(

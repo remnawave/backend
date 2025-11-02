@@ -33,9 +33,13 @@ export class RenderTemplatesService {
         contentType: string;
         subscription: string;
     }> {
-        const { srrContext, user, hosts } = params;
+        const { srrContext, user, hosts, hostsOverrides } = params;
 
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts(hosts, user);
+        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+            hosts,
+            user,
+            hostsOverrides,
+        });
 
         switch (srrContext.matchedResponseType) {
             case 'XRAY_BASE64':
@@ -45,6 +49,7 @@ export class RenderTemplatesService {
                             subscription: await this.xrayJsonGeneratorService.generateConfig(
                                 formattedHosts,
                                 srrContext.isXrayExtSupported,
+                                srrContext.overrideTemplateName,
                             ),
                             contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                         };
@@ -123,11 +128,11 @@ export class RenderTemplatesService {
     }> {
         const { user, hosts } = params;
 
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts(
+        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
             hosts,
             user,
-            true,
-        );
+            returnDbHost: true,
+        });
 
         const rawHosts = await this.rawHostsGeneratorService.generateConfig(formattedHosts);
 
@@ -144,7 +149,10 @@ export class RenderTemplatesService {
         contentType: string;
         subscription: string;
     }> {
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts(hosts, user);
+        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+            hosts,
+            user,
+        });
 
         return {
             subscription: this.outlineGeneratorService.generateConfig(formattedHosts, encodedTag),

@@ -22,6 +22,11 @@ services:
       interval: 3s
       timeout: 10s
       retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '10'
 
   remnawave:
     image: remnawave/backend:2
@@ -45,6 +50,11 @@ services:
         condition: service_healthy
       remnawave-redis:
         condition: service_healthy
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '10'
 
   remnawave-redis:
     image: valkey/valkey:8.1-alpine
@@ -60,6 +70,11 @@ services:
       interval: 3s
       timeout: 10s
       retries: 3
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '100m'
+        max-file: '10'
 
 networks:
   remnawave-network:

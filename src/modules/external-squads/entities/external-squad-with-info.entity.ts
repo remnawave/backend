@@ -1,7 +1,10 @@
 import { ExternalSquads } from '@prisma/client';
 import z from 'zod';
 
-import { ExternalSquadSubscriptionSettingsSchema } from '@libs/contracts/models';
+import {
+    ExternalSquadHostOverridesSchema,
+    ExternalSquadSubscriptionSettingsSchema,
+} from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 export class ExternalSquadWithInfoEntity implements ExternalSquads {
@@ -16,6 +19,7 @@ export class ExternalSquadWithInfoEntity implements ExternalSquads {
     }[];
 
     public subscriptionSettings: z.infer<typeof ExternalSquadSubscriptionSettingsSchema> | null;
+    public hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;
 
     public createdAt: Date;
     public updatedAt: Date;

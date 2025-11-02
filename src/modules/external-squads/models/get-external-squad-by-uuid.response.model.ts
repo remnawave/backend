@@ -1,9 +1,12 @@
 import z from 'zod';
 
-import { ExternalSquadSubscriptionSettingsSchema } from '@libs/contracts/models';
+import {
+    ExternalSquadHostOverridesSchema,
+    ExternalSquadSubscriptionSettingsSchema,
+} from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
-import { ExternalSquadWithInfoEntity } from '../entities/internal-squad-with-info.entity';
+import { ExternalSquadWithInfoEntity } from '../entities/external-squad-with-info.entity';
 
 export class GetExternalSquadByUuidResponseModel {
     public readonly uuid: string;
@@ -21,6 +24,8 @@ export class GetExternalSquadByUuidResponseModel {
         typeof ExternalSquadSubscriptionSettingsSchema
     > | null;
 
+    public readonly hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;
+
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
 
@@ -37,6 +42,8 @@ export class GetExternalSquadByUuidResponseModel {
         }));
 
         this.subscriptionSettings = entity.subscriptionSettings;
+
+        this.hostOverrides = entity.hostOverrides;
 
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;

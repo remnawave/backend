@@ -25,9 +25,9 @@ import {
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
-import { GetExternalSquadSubscriptionSettingsQuery } from '@modules/external-squads/queries/get-external-squad-subscription-settings';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
+import { GetExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-external-squad-settings';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
 import { FormatHostsService } from '@modules/subscription-template/generators/format-hosts.service';
@@ -36,6 +36,7 @@ import { RenderTemplatesService } from '@modules/subscription-template/render-te
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
 import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
+import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { GetTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
@@ -110,10 +111,17 @@ export class SubscriptionService {
 
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
+                    let templateTypeMatcher = matchedResponseType as TSubscriptionTemplateType;
+
+                    if (matchedResponseType === 'XRAY_BASE64') {
+                        // In case if XRAY_BASE64 matched as fallback
+                        templateTypeMatcher = 'XRAY_JSON';
+                    }
+
                     const templateName = await this.queryBus.execute(
                         new GetTemplateNameQuery(
                             user.response.externalSquadUuid,
-                            matchedResponseType as TSubscriptionTemplateType,
+                            templateTypeMatcher,
                         ),
                     );
 
@@ -123,21 +131,27 @@ export class SubscriptionService {
                 }
             }
 
+            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
             // Override subscription settings with External Squad subscription settings
             if (user.response.externalSquadUuid) {
                 const externalSquadSubscriptionSettings = await this.queryBus.execute(
-                    new GetExternalSquadSubscriptionSettingsQuery(user.response.externalSquadUuid),
+                    new GetExternalSquadSettingsQuery(user.response.externalSquadUuid),
                 );
 
                 if (
                     externalSquadSubscriptionSettings.isOk &&
-                    externalSquadSubscriptionSettings.response &&
-                    externalSquadSubscriptionSettings.response.subscriptionSettings !== null
+                    externalSquadSubscriptionSettings.response
                 ) {
-                    srrContext.subscriptionSettings = {
-                        ...srrContext.subscriptionSettings,
-                        ...externalSquadSubscriptionSettings.response.subscriptionSettings,
-                    };
+                    if (externalSquadSubscriptionSettings.response.subscriptionSettings !== null) {
+                        srrContext.subscriptionSettings = {
+                            ...srrContext.subscriptionSettings,
+                            ...externalSquadSubscriptionSettings.response.subscriptionSettings,
+                        };
+                    }
+
+                    if (externalSquadSubscriptionSettings.response.hostOverrides !== null) {
+                        hostsOverrides = externalSquadSubscriptionSettings.response.hostOverrides;
+                    }
                 }
             }
 
@@ -207,6 +221,7 @@ export class SubscriptionService {
                 srrContext,
                 user: user.response,
                 hosts: hosts.response,
+                hostsOverrides,
             });
 
             return new SubscriptionWithConfigResponse({
@@ -435,10 +450,10 @@ export class SubscriptionService {
                     returnHiddenHosts: false,
                 });
 
-                formattedHosts = await this.formatHostsService.generateFormattedHosts(
-                    hostsResponse.response || [],
-                    user.response,
-                );
+                formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                    hosts: hostsResponse.response || [],
+                    user: user.response,
+                });
 
                 xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
 
@@ -555,10 +570,10 @@ export class SubscriptionService {
                         returnDisabledHosts: false,
                         returnHiddenHosts: false,
                     });
-                    const formattedHosts = await this.formatHostsService.generateFormattedHosts(
-                        hosts.response || [],
-                        user,
-                    );
+                    const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                        hosts: hosts.response || [],
+                        user: user,
+                    });
 
                     const xrayLinks = this.xrayGeneratorService.generateLinks(
                         formattedHosts,
@@ -706,7 +721,12 @@ export class SubscriptionService {
 
         if (settings.customResponseHeaders) {
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.formatWithUser(value, user, this.subPublicDomain);
+                headers[key] = TemplateEngine.formatWithUser(
+                    value,
+                    user,
+                    this.subPublicDomain,
+                    true,
+                );
             }
         }
 

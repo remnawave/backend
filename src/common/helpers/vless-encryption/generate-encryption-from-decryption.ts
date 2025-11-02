@@ -15,7 +15,7 @@ interface IDecryptionParsed {
     protocol: string; // 'mlkem768x25519plus'
     mode: string; // 'native' | 'xorpub' | 'random'
     ticketLifetime: string; // '600s' | '0s' | '300-600s'
-    padding: string; // '100-111-1111.75-0-111.50-0-3333' or empty
+    padding?: string; // '100-111-1111.75-0-111.50-0-3333'
     keys: IKeyWithType[]; // array of keys (can be X25519 or ML-KEM-768 in any order)
 }
 
@@ -64,13 +64,6 @@ export function parseDecryption(decryption: string): IDecryptionParsed {
     }
 
     const parts = decryption.split('.');
-
-    if (parts.length < 5) {
-        throw new Error(
-            `Invalid decryption format. Expected at least 5 parts, got ${parts.length}. ` +
-                `Format: mlkem768x25519plus.{mode}.{ticket}.{padding}.{keys}...`,
-        );
-    }
 
     const [protocol, mode, ticketLifetime, ...rest] = parts;
 
@@ -145,7 +138,7 @@ export function parseDecryption(decryption: string): IDecryptionParsed {
         throw new Error('No valid keys found in decryption string');
     }
 
-    const padding = paddingParts.join('.') || '';
+    const padding = paddingParts.join('.') || undefined;
 
     return {
         protocol,
@@ -251,12 +244,12 @@ export async function generateEncryptionFromDecryption(
         }
     }
 
-    let rttMode = '0rtt';
+    let rttMode = '1rtt';
 
     if (parsed.ticketLifetime === '0s') {
-        rttMode = '0rtt';
-    } else {
         rttMode = '1rtt';
+    } else {
+        rttMode = '0rtt';
     }
 
     const flatKeys: string[] = publicKeys.map((key) => key.value);
@@ -265,9 +258,13 @@ export async function generateEncryptionFromDecryption(
         parsed.protocol, // mlkem768x25519plus
         parsed.mode, // native/xorpub/random
         rttMode, // 0rtt/1rtt
-        parsed.padding, // padding parameters (can be empty)
-        ...flatKeys, // public keys in the same order
     ];
+
+    if (parsed.padding) {
+        encryptionParts.push(parsed.padding);
+    }
+
+    encryptionParts.push(...flatKeys);
 
     const encryption = encryptionParts.join('.');
 

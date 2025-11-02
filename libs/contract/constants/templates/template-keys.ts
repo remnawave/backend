@@ -9,5 +9,6 @@ export const TEMPLATE_KEYS = [
     'TELEGRAM_ID',
     'SUBSCRIPTION_URL',
     'TAG',
+    'EXPIRE_UNIX',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];

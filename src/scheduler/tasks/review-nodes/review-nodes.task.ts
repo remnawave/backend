@@ -42,13 +42,16 @@ export class ReviewNodesTask {
 
             for (const node of nodes) {
                 if (node.isTrafficTrackingActive === false) continue;
+                if (node.notifyPercent === null || node.notifyPercent === 0) continue;
+                if (node.trafficLimitBytes === null || node.trafficLimitBytes === BigInt(0))
+                    continue;
 
                 const limit = node.trafficLimitBytes || BigInt(0);
                 const used = node.trafficUsedBytes || BigInt(0);
 
-                const notifyPercent = node.notifyPercent || 0;
+                const notifyPercent = node.notifyPercent;
 
-                const currentPercent = limit > 0 ? Number((used * BigInt(100)) / limit) : 0;
+                const currentPercent = Number((used * BigInt(100)) / limit);
 
                 if (currentPercent >= notifyPercent && !this.notifiedNodes.get(node.uuid)) {
                     this.logger.log(

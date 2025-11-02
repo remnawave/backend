@@ -24,11 +24,11 @@ export const HostsSchema = z.object({
         configProfileInboundUuid: z.string().uuid().nullable(),
     }),
 
-    serverDescription: z.string().nullable(),
+    serverDescription: z.string().max(30).nullable(),
     tag: z.string().nullable(),
     isHidden: z.boolean().default(false),
     overrideSniFromAddress: z.boolean().default(false),
-    vlessRouteId: z.number().int().nullable(),
+    vlessRouteId: z.number().int().min(0).max(65535).nullable(),
     allowInsecure: z.boolean().default(false),
     shuffleHost: z.boolean(),
     mihomoX25519: z.boolean(),

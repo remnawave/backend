@@ -1,4 +1,4 @@
-import { SubscriptionSettingsSchema } from './subscription-settings.schema';
+import { SubscriptionSettingsSchema } from '../subscription-settings.schema';
 
 export const ExternalSquadSubscriptionSettingsSchema = SubscriptionSettingsSchema.pick({
     profileTitle: true,

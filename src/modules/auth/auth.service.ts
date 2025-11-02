@@ -1193,7 +1193,7 @@ export class AuthService {
                     id: passkey.id,
                     transports: passkey.getTransports(),
                 })),
-                userVerification: 'preferred',
+                userVerification: 'required',
             });
 
             await this.cacheManager.set(
@@ -1318,6 +1318,7 @@ export class AuthService {
                     counter: Number(passkey.response.counter),
                     transports: passkey.response.getTransports(),
                 },
+                requireUserVerification: true,
             });
 
             await this.cacheManager.del(
