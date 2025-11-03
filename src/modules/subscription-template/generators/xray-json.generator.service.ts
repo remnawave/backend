@@ -13,6 +13,7 @@ interface StreamSettings {
     tlsSettings?: unknown;
     httpupgradeSettings?: unknown;
     realitySettings?: unknown;
+    grpcSettings?: unknown;
     sockopt?: unknown;
 }
 
@@ -25,7 +26,6 @@ interface OutboundSettings {
             security?: string;
             encryption?: string;
             flow?: string | undefined;
-
             alterId?: number;
             email?: string;
         }>;
@@ -230,6 +230,10 @@ export class XrayJsonGeneratorService {
                 streamSettings.xhttpSettings = this.createXHttpSettings(host);
 
                 break;
+
+            case 'grpc':
+                streamSettings.grpcSettings = this.createGrpcSettings(host);
+                break;
         }
 
         if (host.tls === 'tls') {
@@ -369,6 +373,16 @@ export class XrayJsonGeneratorService {
         if (host.fingerprint !== '') {
             settings.fingerprint = host.fingerprint;
         }
+
+        return settings;
+    }
+
+    private createGrpcSettings(host: IFormattedHost): Record<string, unknown> {
+        const settings: Record<string, unknown> = {
+            serviceName: host.path,
+            authority: host.host,
+            mode: host.additionalParams?.grpcMultiMode ? true : false,
+        };
 
         return settings;
     }
