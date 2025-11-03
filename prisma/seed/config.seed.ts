@@ -289,7 +289,7 @@ async function seedSubscriptionSettings() {
     await prisma.subscriptionSettings.create({
         data: {
             profileTitle: 'Remnawave',
-            supportLink: 'https://remna.st',
+            supportLink: 'https://docs.rw',
             profileUpdateInterval: 12,
             isProfileWebpageUrlEnabled: true,
             expiredUsersRemarks: expiredUserRemarks,

@@ -17,7 +17,7 @@ export const PasskeySettingsSchema = z.object({
                 return false;
             },
             {
-                message: 'Must be a valid fully qualified domain name (FQDN), e.g. "remna.st"',
+                message: 'Must be a valid fully qualified domain name (FQDN), e.g. "docs.rw"',
             },
         ),
     ),
@@ -35,7 +35,7 @@ export const PasskeySettingsSchema = z.object({
                 return false;
             },
             {
-                message: 'Must be a valid plain URL, e.g. "https://remna.st".',
+                message: 'Must be a valid plain URL, e.g. "https://docs.rw".',
             },
         ),
     ),
