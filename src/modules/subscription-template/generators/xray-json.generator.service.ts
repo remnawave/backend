@@ -380,7 +380,7 @@ export class XrayJsonGeneratorService {
     private createGrpcSettings(host: IFormattedHost): Record<string, unknown> {
         const settings: Record<string, unknown> = {
             serviceName: host.path,
-            // authority: host.host,
+            authority: host.host,
             mode: host.additionalParams?.grpcMultiMode ? true : false,
         };
 
