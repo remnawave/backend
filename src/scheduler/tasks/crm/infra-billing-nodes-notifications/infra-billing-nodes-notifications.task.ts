@@ -46,7 +46,7 @@ export class InfraBillingNodesNotificationsTask {
                         {
                             nodeName: node.nodeName,
                             providerName: node.providerName,
-                            loginUrl: node.loginUrl ?? 'https://remna.st',
+                            loginUrl: node.loginUrl ?? 'https://docs.rw',
                             nextBillingAt: node.nextBillingAt,
                         },
                         EVENTS.CRM[node.notificationType],
