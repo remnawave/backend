@@ -36,6 +36,10 @@ const NETWORK_CONFIGS: Record<
         path: params.path,
         host: params.host,
     }),
+    grpc: (params) => ({
+        authority: params.host,
+        serviceName: params.path,
+    }),
 };
 
 @Injectable()
@@ -153,6 +157,14 @@ export class XrayGeneratorService {
             }
         }
 
+        if (params.network === 'grpc') {
+            if (params.additionalParams?.heartbeatPeriod) {
+                Object.assign(payload, {
+                    mode: params.additionalParams.grpcMultiMode ? 'multi' : 'gun',
+                });
+            }
+        }
+
         const tlsParams: Record<string, unknown> = {};
 
         if (params.tls === 'tls') {
@@ -224,6 +236,14 @@ export class XrayGeneratorService {
             if (params.additionalParams?.heartbeatPeriod) {
                 Object.assign(payload, {
                     heartbeatPeriod: params.additionalParams?.heartbeatPeriod,
+                });
+            }
+        }
+
+        if (params.network === 'grpc') {
+            if (params.additionalParams?.heartbeatPeriod) {
+                Object.assign(payload, {
+                    mode: params.additionalParams.grpcMultiMode ? 'multi' : 'gun',
                 });
             }
         }
