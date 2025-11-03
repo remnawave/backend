@@ -101,6 +101,10 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     continue;
                 }
 
+                this.logger.log(
+                    `Node ${node.uuid} has ${node.activeInbounds.length} active inbounds.`,
+                );
+
                 await this.nodesRepository.update({
                     uuid: node.uuid,
                     isConnecting: true,
