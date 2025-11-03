@@ -158,11 +158,9 @@ export class XrayGeneratorService {
         }
 
         if (params.network === 'grpc') {
-            if (params.additionalParams?.heartbeatPeriod) {
-                Object.assign(payload, {
-                    mode: params.additionalParams.grpcMultiMode ? 'multi' : 'gun',
-                });
-            }
+            Object.assign(payload, {
+                mode: params.additionalParams?.grpcMultiMode ? 'multi' : 'gun',
+            });
         }
 
         const tlsParams: Record<string, unknown> = {};
@@ -241,11 +239,9 @@ export class XrayGeneratorService {
         }
 
         if (params.network === 'grpc') {
-            if (params.additionalParams?.heartbeatPeriod) {
-                Object.assign(payload, {
-                    mode: params.additionalParams.grpcMultiMode ? 'multi' : 'gun',
-                });
-            }
+            Object.assign(payload, {
+                mode: params.additionalParams?.grpcMultiMode ? 'multi' : 'gun',
+            });
         }
 
         const tlsParams: Record<string, unknown> = {};

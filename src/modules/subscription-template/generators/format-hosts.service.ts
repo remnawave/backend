@@ -179,7 +179,14 @@ export class FormatHostsService {
             const port = inputHost.port;
             let network = inbound.streamSettings?.network || 'tcp';
 
-            let streamSettings: WebSocketObject | xHttpObject | RawObject | TcpObject | GrpcObject | undefined;
+            let streamSettings:
+                | WebSocketObject
+                | xHttpObject
+                | RawObject
+                | TcpObject
+                | GrpcObject
+                | undefined;
+
             let pathFromConfig: string | undefined;
             let hostFromConfig: string | undefined;
             let additionalParams: IFormattedHost['additionalParams'] | undefined;
@@ -226,14 +233,14 @@ export class FormatHostsService {
                     break;
                 }
                 case 'grpc': {
-                    const settings = inbound.streamSettings
-                        ?.grpcSettings as GrpcObject;
+                    const settings = inbound.streamSettings?.grpcSettings as GrpcObject;
                     streamSettings = settings;
                     pathFromConfig = settings?.serviceName;
                     hostFromConfig = settings?.authority;
                     additionalParams = {
                         grpcMultiMode: settings?.multiMode,
                     };
+
                     break;
                 }
                 case 'raw': {

@@ -369,6 +369,9 @@ export class MihomoGeneratorService {
             case 'raw':
                 netOpts = this.tcpConfig(pathValue, host);
                 break;
+            case 'grpc':
+                netOpts = this.grpcConfig(pathValue);
+                break;
         }
 
         if (Object.keys(netOpts).length > 0) {
@@ -436,6 +439,14 @@ export class MihomoGeneratorService {
         if (!path && !host) {
             return config;
         }
+
+        return config;
+    }
+
+    private grpcConfig(path = ''): NetworkConfig {
+        const config: NetworkConfig = {};
+
+        config['grpc-service-name'] = path;
 
         return config;
     }
