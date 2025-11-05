@@ -152,6 +152,15 @@ export class SubscriptionService {
                     if (externalSquadSubscriptionSettings.response.hostOverrides !== null) {
                         hostsOverrides = externalSquadSubscriptionSettings.response.hostOverrides;
                     }
+
+                    if (
+                        externalSquadSubscriptionSettings.response.responseHeaders !== null &&
+                        Object.keys(externalSquadSubscriptionSettings.response.responseHeaders)
+                            .length > 0
+                    ) {
+                        srrContext.subscriptionSettings.customResponseHeaders =
+                            externalSquadSubscriptionSettings.response.responseHeaders;
+                    }
                 }
             }
 

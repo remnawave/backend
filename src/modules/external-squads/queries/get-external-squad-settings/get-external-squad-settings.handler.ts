@@ -16,7 +16,7 @@ export class GetExternalSquadSettingsHandler
             GetExternalSquadSettingsQuery,
             ICommandResponse<Pick<
                 ExternalSquadEntity,
-                'subscriptionSettings' | 'hostOverrides'
+                'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
             > | null>
         >
 {
@@ -26,7 +26,10 @@ export class GetExternalSquadSettingsHandler
     async execute(
         query: GetExternalSquadSettingsQuery,
     ): Promise<
-        ICommandResponse<Pick<ExternalSquadEntity, 'subscriptionSettings' | 'hostOverrides'> | null>
+        ICommandResponse<Pick<
+            ExternalSquadEntity,
+            'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+        > | null>
     > {
         try {
             const result = await this.externalSquadRepository.getExternalSquadSettings(
