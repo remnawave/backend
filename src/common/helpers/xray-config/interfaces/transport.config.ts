@@ -115,7 +115,7 @@ export interface DomainSocketObject {
 }
 
 export interface StreamSettingsObject {
-    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | 'httpupgrade';
+    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | 'httpupgrade' | 'grpc';
     security?: 'none' | 'reality' | 'tls';
     tlsSettings?: TLSObject;
     realitySettings?: RealityObject;
@@ -124,17 +124,9 @@ export interface StreamSettingsObject {
     xhttpSettings?: xHttpObject;
     wsSettings?: WebSocketObject;
     httpupgradeSettings?: HttpUpgradeObject;
+    grpcSettings?: GrpcObject;
     sockopt?: unknown;
 }
-
-export type OneOfStreamSettingsObject =
-    | TLSObject
-    | RealityObject
-    | RawObject
-    | TcpObject
-    | xHttpObject
-    | WebSocketObject
-    | HttpUpgradeObject;
 
 export interface WebSocketObject {
     acceptProxyProtocol?: boolean;
@@ -147,3 +139,24 @@ export interface HttpUpgradeObject {
     headers?: Record<string, string>;
     path?: string;
 }
+
+export interface GrpcObject {
+    authority?: string;
+    serviceName?: string;
+    multiMode?: boolean;
+    user_agent?: string;
+    idle_timeout?: number;
+    health_check_timeout?: number;
+    permit_without_stream?: boolean;
+    initial_windows_size?: number;
+}
+
+export type OneOfStreamSettingsObject =
+    | TLSObject
+    | RealityObject
+    | RawObject
+    | TcpObject
+    | xHttpObject
+    | WebSocketObject
+    | HttpUpgradeObject
+    | GrpcObject;

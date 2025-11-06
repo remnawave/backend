@@ -3,6 +3,7 @@ import { z } from 'zod';
 import {
     ExternalSquadSubscriptionSettingsSchema,
     ExternalSquadHostOverridesSchema,
+    ExternalSquadResponseHeadersSchema,
 } from './external-squads';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 
@@ -22,6 +23,7 @@ export const ExternalSquadSchema = z.object({
     ),
     subscriptionSettings: z.nullable(ExternalSquadSubscriptionSettingsSchema),
     hostOverrides: z.nullable(ExternalSquadHostOverridesSchema),
+    responseHeaders: ExternalSquadResponseHeadersSchema,
 
     createdAt: z
         .string()

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import {
     ExternalSquadHostOverridesSchema,
+    ExternalSquadResponseHeadersSchema,
     ExternalSquadSchema,
     ExternalSquadSubscriptionSettingsSchema,
 } from '../../models';
@@ -39,6 +40,7 @@ export namespace UpdateExternalSquadCommand {
             .optional(),
         subscriptionSettings: ExternalSquadSubscriptionSettingsSchema.optional(),
         hostOverrides: ExternalSquadHostOverridesSchema.optional(),
+        responseHeaders: ExternalSquadResponseHeadersSchema.optional(),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

@@ -24,7 +24,6 @@ import { QueueNames } from '../../queue.enum';
 export class WebhookLoggerQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(WebhookLoggerQueueProcessor.name);
 
-    private readonly webhookUrl: string | undefined;
     private readonly webhookSecret: string | undefined;
 
     constructor(
@@ -32,7 +31,6 @@ export class WebhookLoggerQueueProcessor extends WorkerHost {
         private readonly configService: ConfigService,
     ) {
         super();
-        this.webhookUrl = this.configService.get<string>('WEBHOOK_URL');
         this.webhookSecret = this.configService.get<string>('WEBHOOK_SECRET_HEADER');
     }
 
@@ -48,7 +46,7 @@ export class WebhookLoggerQueueProcessor extends WorkerHost {
 
     private async handleSendWebhook(job: Job<IBaseWebhookLogger>) {
         try {
-            if (!this.webhookUrl || !this.webhookSecret) {
+            if (!job.data.url || !this.webhookSecret) {
                 this.logger.error('Webhook URL or secret is not set');
                 return { isOk: false };
             }
@@ -59,7 +57,7 @@ export class WebhookLoggerQueueProcessor extends WorkerHost {
 
             await firstValueFrom(
                 this.httpService
-                    .post(this.webhookUrl, job.data.payload, {
+                    .post(job.data.url, job.data.payload, {
                         headers: {
                             'Content-Type': 'application/json',
                             'X-Remnawave-Signature': signature,

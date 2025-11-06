@@ -26,7 +26,11 @@ export const configSchema = z
                 'JWT_API_TOKENS_SECRET cannot be set to "change_me"',
             ),
 
-        IS_TELEGRAM_NOTIFICATIONS_ENABLED: z.string().default('false'),
+        IS_TELEGRAM_NOTIFICATIONS_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
         TELEGRAM_NOTIFY_USERS_CHAT_ID: z.string().optional(),
         TELEGRAM_NOTIFY_USERS_THREAD_ID: z
@@ -47,13 +51,21 @@ export const configSchema = z
             .optional(),
 
         FRONT_END_DOMAIN: z.string(),
-        IS_DOCS_ENABLED: z.string().default('false'),
+        IS_DOCS_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         SCALAR_PATH: z.string().default('/scalar'),
         SWAGGER_PATH: z.string().default('/docs'),
         METRICS_USER: z.string(),
         METRICS_PASS: z.string(),
         SUB_PUBLIC_DOMAIN: z.string(),
-        WEBHOOK_ENABLED: z.string().default('false'),
+        WEBHOOK_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         WEBHOOK_URL: z.string().optional(),
         WEBHOOK_SECRET_HEADER: z.string().optional(),
         REDIS_HOST: z.string(),
@@ -72,11 +84,23 @@ export const configSchema = z
             .default('16')
             .transform((val) => parseInt(val, 10))
             .refine((val) => val >= 16 && val <= 64, 'SHORT_UUID_LENGTH must be between 16 and 64'),
-        IS_HTTP_LOGGING_ENABLED: z.string().default('false'),
-        IS_CROWDIN_EDITOR_ENABLED: z.string().default('false'),
+        IS_HTTP_LOGGING_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
+        IS_CROWDIN_EDITOR_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         REMNAWAVE_BRANCH: z.string().default('dev'),
 
-        HWID_DEVICE_LIMIT_ENABLED: z.string().default('false'),
+        HWID_DEVICE_LIMIT_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         HWID_FALLBACK_DEVICE_LIMIT: z.optional(
             z
                 .string()
@@ -94,9 +118,17 @@ export const configSchema = z
         //     .transform((val) => val === 'true'),
         // COOKIE_AUTH_NONCE: z.optional(z.string()),
 
-        SERVICE_CLEAN_USAGE_HISTORY: z.string().default('false'),
+        SERVICE_CLEAN_USAGE_HISTORY: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
 
-        BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED: z.string().default('false'),
+        BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         BANDWIDTH_USAGE_NOTIFICATIONS_THRESHOLD: z
             .string()
             .optional()
@@ -112,7 +144,11 @@ export const configSchema = z
             })
             .pipe(z.array(z.number()).optional()),
 
-        NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED: z.string().default('false'),
+        NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS: z
             .string()
             .optional()
@@ -167,6 +203,24 @@ export const configSchema = z
                         message: 'WEBHOOK_SECRET_HEADER must contain only letters and numbers',
                         path: ['WEBHOOK_SECRET_HEADER'],
                     });
+                }
+            }
+
+            if (data.WEBHOOK_URL) {
+                if (data.WEBHOOK_URL.includes(',')) {
+                    const webhookUrls = data.WEBHOOK_URL.split(',');
+                    for (const webhookUrl of webhookUrls) {
+                        if (
+                            !webhookUrl.startsWith('http://') &&
+                            !webhookUrl.startsWith('https://')
+                        ) {
+                            ctx.addIssue({
+                                code: z.ZodIssueCode.custom,
+                                message: 'WEBHOOK_URL must start with http:// or https://',
+                                path: ['WEBHOOK_URL'],
+                            });
+                        }
+                    }
                 }
             }
         }

@@ -3,6 +3,7 @@ import z from 'zod';
 
 import {
     ExternalSquadHostOverridesSchema,
+    ExternalSquadResponseHeadersSchema,
     ExternalSquadSubscriptionSettingsSchema,
 } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
@@ -20,6 +21,7 @@ export class ExternalSquadWithInfoEntity implements ExternalSquads {
 
     public subscriptionSettings: z.infer<typeof ExternalSquadSubscriptionSettingsSchema> | null;
     public hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;
+    public responseHeaders: z.infer<typeof ExternalSquadResponseHeadersSchema> | null;
 
     public createdAt: Date;
     public updatedAt: Date;

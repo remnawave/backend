@@ -549,6 +549,7 @@ model ExternalSquads {
   name                 String @unique @map("name") @db.VarChar(30)
   subscriptionSettings Json?  @map("subscription_settings")
   hostOverrides        Json?  @map("host_overrides")
+  responseHeaders      Json?  @map("response_headers")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")

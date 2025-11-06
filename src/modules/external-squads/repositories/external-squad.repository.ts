@@ -67,6 +67,8 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             subscriptionSettings: _subscriptionSettings,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             hostOverrides: _hostOverrides,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            responseHeaders: _responseHeaders,
             ...rest
         } = dto;
         const externalSquadList = await this.prisma.tx.externalSquads.findMany({
@@ -85,6 +87,8 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             subscriptionSettings: _subscriptionSettings,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             hostOverrides: _hostOverrides,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            responseHeaders: _responseHeaders,
             ...rest
         } = dto;
         const result = await this.prisma.tx.externalSquads.findFirst({
@@ -113,6 +117,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
+                'externalSquads.responseHeaders',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -144,6 +149,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
+                'externalSquads.responseHeaders',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -266,12 +272,16 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
 
     public async getExternalSquadSettings(
         externalSquadUuid: string,
-    ): Promise<Pick<ExternalSquadEntity, 'subscriptionSettings' | 'hostOverrides'> | null> {
+    ): Promise<Pick<
+        ExternalSquadEntity,
+        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+    > | null> {
         const result = await this.prisma.tx.externalSquads.findUnique({
             where: { uuid: externalSquadUuid },
             select: {
                 subscriptionSettings: true,
                 hostOverrides: true,
+                responseHeaders: true,
             },
         });
 

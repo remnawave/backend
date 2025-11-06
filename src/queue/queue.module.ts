@@ -64,7 +64,7 @@ const bullBoard = [
             uiConfig: {
                 boardTitle: 'Remnawave',
                 boardLogo: {
-                    path: 'https://remna.st/img/logo.svg',
+                    path: 'https://docs.rw/img/logo.svg',
                     width: 32,
                     height: 32,
                 },
@@ -82,7 +82,7 @@ const bullBoard = [
                     },
                     {
                         text: 'Remnawave',
-                        url: 'https://remna.st',
+                        url: 'https://docs.rw',
                     },
                     {
                         text: 'Telegram',

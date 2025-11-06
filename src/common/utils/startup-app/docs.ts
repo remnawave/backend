@@ -16,7 +16,7 @@ Remnawave is a powerful proxy management tool, built on top of Xray-core, with a
 ## Resources
 * https://t.me/remnawave
 * https://github.com/remnawave
-* https://remna.st
+* https://docs.rw
 `;
 
 export async function getDocs(app: INestApplication<unknown>, config: ConfigService) {

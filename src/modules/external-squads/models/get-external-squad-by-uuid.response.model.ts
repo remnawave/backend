@@ -2,6 +2,7 @@ import z from 'zod';
 
 import {
     ExternalSquadHostOverridesSchema,
+    ExternalSquadResponseHeadersSchema,
     ExternalSquadSubscriptionSettingsSchema,
 } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
@@ -26,6 +27,8 @@ export class GetExternalSquadByUuidResponseModel {
 
     public readonly hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;
 
+    public readonly responseHeaders: z.infer<typeof ExternalSquadResponseHeadersSchema> | null;
+
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
 
@@ -44,6 +47,7 @@ export class GetExternalSquadByUuidResponseModel {
         this.subscriptionSettings = entity.subscriptionSettings;
 
         this.hostOverrides = entity.hostOverrides;
+        this.responseHeaders = entity.responseHeaders;
 
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;
