@@ -36,4 +36,16 @@ export class WebhookLoggerQueueService
     public async sendWebhook(payload: IBaseWebhookLogger) {
         return this.addJob(WebhookLoggerJobNames.sendWebhook, payload);
     }
+
+    public async sendWebhooks(payload: IBaseWebhookLogger, webhookUrls: string[]) {
+        return this.addBulk(
+            webhookUrls.map((url) => ({
+                name: WebhookLoggerJobNames.sendWebhook,
+                data: {
+                    ...payload,
+                    url: url,
+                },
+            })),
+        );
+    }
 }

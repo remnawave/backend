@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { ConfigService } from '@nestjs/config';
 
 import { EVENTS } from '@libs/contracts/constants';
 
@@ -20,8 +21,17 @@ import { WebhookLoggerQueueService } from '@queue/notifications/webhook-logger/w
 @Injectable()
 export class WebhookEvents {
     private readonly logger = new Logger(WebhookEvents.name);
+    private readonly webhookUrls: string[];
 
-    constructor(private readonly webhookLoggerQueueService: WebhookLoggerQueueService) {}
+    constructor(
+        private readonly webhookLoggerQueueService: WebhookLoggerQueueService,
+        private readonly configService: ConfigService,
+    ) {
+        this.webhookUrls = this.configService
+            .getOrThrow<string>('WEBHOOK_URL')
+            .split(',')
+            .map((url) => url.trim());
+    }
 
     @OnEvent(EVENTS.CATCH_ALL_USER_EVENTS)
     async onCatchAllUserEvents(event: UserEvent): Promise<void> {
@@ -35,10 +45,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
@@ -55,10 +68,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
@@ -75,10 +91,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
@@ -95,10 +114,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
@@ -115,10 +137,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
@@ -135,10 +160,13 @@ export class WebhookEvents {
 
             const { json } = serialize(payload);
 
-            await this.webhookLoggerQueueService.sendWebhook({
-                payload: JSON.stringify(json),
-                timestamp: payload.timestamp,
-            });
+            await this.webhookLoggerQueueService.sendWebhooks(
+                {
+                    payload: JSON.stringify(json),
+                    timestamp: payload.timestamp,
+                },
+                this.webhookUrls,
+            );
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }

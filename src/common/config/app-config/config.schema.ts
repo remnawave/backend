@@ -205,6 +205,24 @@ export const configSchema = z
                     });
                 }
             }
+
+            if (data.WEBHOOK_URL) {
+                if (data.WEBHOOK_URL.includes(',')) {
+                    const webhookUrls = data.WEBHOOK_URL.split(',');
+                    for (const webhookUrl of webhookUrls) {
+                        if (
+                            !webhookUrl.startsWith('http://') &&
+                            !webhookUrl.startsWith('https://')
+                        ) {
+                            ctx.addIssue({
+                                code: z.ZodIssueCode.custom,
+                                message: 'WEBHOOK_URL must start with http:// or https://',
+                                path: ['WEBHOOK_URL'],
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         if (data.IS_TELEGRAM_NOTIFICATIONS_ENABLED === 'true') {
