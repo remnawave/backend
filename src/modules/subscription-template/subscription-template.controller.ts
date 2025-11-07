@@ -61,6 +61,7 @@ export class SubscriptionTemplateController {
         type: GetTemplateResponseDto,
         description: 'Template retrieved successfully',
     })
+    @ApiParam({ name: 'uuid', type: String, description: 'Template UUID' })
     @Endpoint({
         command: GetSubscriptionTemplateCommand,
         httpCode: HttpStatus.OK,
