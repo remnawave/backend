@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import {
+    GrpcObject,
     HttpUpgradeObject,
     RawObject,
     StreamSettingsObject,
@@ -14,8 +15,12 @@ import {
     WebSocketObject,
     xHttpObject,
 } from '@common/helpers/xray-config/interfaces/transport.config';
+import {
+    resolveEncryptionFromDecryption,
+    resolveInboundAndMlDsa65PublicKey,
+    resolveInboundAndPublicKey,
+} from '@common/helpers/xray-config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
-import { resolveInboundAndPublicKey } from '@common/helpers/xray-config';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { InboundObject } from '@common/helpers/xray-config/interfaces';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
@@ -25,9 +30,17 @@ import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entit
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
+
+interface IGenerateFormattedHostsOptions {
+    hosts: HostWithRawInbound[];
+    user: UserEntity;
+    hostsOverrides?: ExternalSquadEntity['hostOverrides'];
+    returnDbHost?: boolean;
+}
 
 @Injectable()
 export class FormatHostsService {
@@ -43,10 +56,11 @@ export class FormatHostsService {
     }
 
     public async generateFormattedHosts(
-        hosts: HostWithRawInbound[],
-        user: UserEntity,
-        returnDbHost: boolean = false,
+        options: IGenerateFormattedHostsOptions,
     ): Promise<IFormattedHost[]> {
+        let hosts = options.hosts;
+        const { user, hostsOverrides, returnDbHost = false } = options;
+
         const formattedHosts: IFormattedHost[] = [];
 
         let specialRemarks: string[] = [];
@@ -115,6 +129,12 @@ export class FormatHostsService {
         }
 
         const publicKeyMap = await resolveInboundAndPublicKey(hosts.map((host) => host.rawInbound));
+        const mldsa65PublicKeyMap = await resolveInboundAndMlDsa65PublicKey(
+            hosts.map((host) => host.rawInbound),
+        );
+        const encryptionMap = await resolveEncryptionFromDecryption(
+            hosts.map((host) => host.rawInbound),
+        );
 
         const knownRemarks = new Map<string, number>();
 
@@ -126,6 +146,15 @@ export class FormatHostsService {
         }
 
         for (const inputHost of hosts) {
+            if (hostsOverrides) {
+                if (hostsOverrides.vlessRouteId !== undefined) {
+                    inputHost.vlessRouteId = hostsOverrides.vlessRouteId;
+                }
+                if (hostsOverrides.serverDescription !== undefined) {
+                    inputHost.serverDescription = hostsOverrides.serverDescription;
+                }
+            }
+
             const remark = TemplateEngine.formatWithUser(inputHost.remark, user, subscriptionUrl);
 
             const currentCount = knownRemarks.get(remark) || 0;
@@ -155,7 +184,14 @@ export class FormatHostsService {
             const port = inputHost.port;
             let network = inbound.streamSettings?.network || 'tcp';
 
-            let streamSettings: WebSocketObject | xHttpObject | RawObject | TcpObject | undefined;
+            let streamSettings:
+                | WebSocketObject
+                | xHttpObject
+                | RawObject
+                | TcpObject
+                | GrpcObject
+                | undefined;
+
             let pathFromConfig: string | undefined;
             let hostFromConfig: string | undefined;
             let additionalParams: IFormattedHost['additionalParams'] | undefined;
@@ -201,6 +237,17 @@ export class FormatHostsService {
                     pathFromConfig = settings?.path;
                     break;
                 }
+                case 'grpc': {
+                    const settings = inbound.streamSettings?.grpcSettings as GrpcObject;
+                    streamSettings = settings;
+                    pathFromConfig = settings?.serviceName;
+                    hostFromConfig = settings?.authority;
+                    additionalParams = {
+                        grpcMultiMode: settings?.multiMode,
+                    };
+
+                    break;
+                }
                 case 'raw': {
                     const settings = inbound.streamSettings?.rawSettings as RawObject;
 
@@ -233,6 +280,7 @@ export class FormatHostsService {
             let publicKeyFromConfig: string | undefined;
             let shortIdFromConfig: string | undefined;
             let spiderXFromConfig: string | undefined;
+            let mldsa65PublicKeyFromConfig: string | undefined;
 
             switch (inbound.streamSettings?.security) {
                 case 'tls':
@@ -257,6 +305,7 @@ export class FormatHostsService {
                     fingerprintFromConfig = realitySettings?.fingerprint;
 
                     publicKeyFromConfig = publicKeyMap.get(inbound.tag);
+                    mldsa65PublicKeyFromConfig = mldsa65PublicKeyMap.get(inbound.tag);
 
                     spiderXFromConfig = realitySettings?.spiderX;
                     const shortIds = inbound.streamSettings?.realitySettings?.shortIds || [];
@@ -341,6 +390,9 @@ export class FormatHostsService {
 
             if (sni.includes('*.')) {
                 sni = sni.replace('*', this.nanoid());
+            } else if (sni.includes(',')) {
+                const sniList = sni.split(',');
+                sni = sniList[Math.floor(Math.random() * sniList.length)].trim();
             }
 
             // Fingerprint
@@ -411,6 +463,8 @@ export class FormatHostsService {
                 shuffleHost: inputHost.shuffleHost,
                 mihomoX25519: inputHost.mihomoX25519,
                 dbData,
+                mldsa65Verify: mldsa65PublicKeyFromConfig,
+                encryption: encryptionMap.get(inputHost.inboundTag),
             });
         }
 

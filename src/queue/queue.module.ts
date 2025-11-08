@@ -14,6 +14,7 @@ import { UserSubscriptionRequestHistoryQueueModule } from './user-subscription-r
 import { StartAllNodesByProfileQueueModule } from './start-all-nodes-by-profile/start-all-nodes-by-profile.module';
 import { ExpireUserNotificationsQueueModule } from './expire-user-notifications/expire-user-notifications.module';
 import { InternalSquadActionsQueueModule } from './internal-squad-actions/internal-squad-actions.module';
+import { ExternalSquadActionsQueueModule } from './external-squad-actions/external-squad-actions.module';
 import { FirstConnectedUsersQueueModule } from './first-connected-users/first-connected-users.module';
 import { BulkUserOperationsQueueModule } from './bulk-user-operations/bulk-user-operations.module';
 import { ResetUserTrafficQueueModule } from './reset-user-traffic/reset-user-traffic.module';
@@ -49,6 +50,7 @@ const queueModules = [
     UserActionsQueueModule,
     ServiceQueueModule,
     InternalSquadActionsQueueModule,
+    ExternalSquadActionsQueueModule,
     UserSubscriptionRequestHistoryQueueModule,
 
     ...NOTIFICATIONS_MODULES,
@@ -62,7 +64,7 @@ const bullBoard = [
             uiConfig: {
                 boardTitle: 'Remnawave',
                 boardLogo: {
-                    path: 'https://remna.st/img/logo.svg',
+                    path: 'https://docs.rw/img/logo.svg',
                     width: 32,
                     height: 32,
                 },
@@ -80,7 +82,7 @@ const bullBoard = [
                     },
                     {
                         text: 'Remnawave',
-                        url: 'https://remna.st',
+                        url: 'https://docs.rw',
                     },
                     {
                         text: 'Telegram',

@@ -83,9 +83,12 @@ export class XRayConfig {
         for (const inbound of this.config.inbounds) {
             const network = inbound.streamSettings?.network;
 
-            if (network && !['httpupgrade', 'raw', 'tcp', 'ws', 'xhttp'].includes(network)) {
+            if (
+                network &&
+                !['grpc', 'httpupgrade', 'raw', 'tcp', 'ws', 'xhttp'].includes(network)
+            ) {
                 throw new Error(
-                    `Invalid network type "${network}" in inbound "${inbound.tag}". Allowed values are: httpupgrade, raw, xhttp, ws, tcp`,
+                    `Invalid network type "${network}" in inbound "${inbound.tag}". Allowed values are: raw (or tcp), ws, httpupgrade, xhttp and grpc`,
                 );
             }
 
@@ -260,6 +263,43 @@ export class XRayConfig {
                 security: inbound.streamSettings?.security ?? null,
                 port: this.getPort(inbound.port),
             }));
+    }
+
+    public cleanClients(): void {
+        for (const inbound of this.config.inbounds) {
+            switch (inbound.protocol) {
+                case 'trojan':
+                    (inbound.settings as TrojanSettings).clients = [];
+                    break;
+                case 'vless':
+                    (inbound.settings as VLessSettings).clients = [];
+                    break;
+                case 'shadowsocks':
+                    (inbound.settings as ShadowsocksSettings).clients = [];
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    public fixIncorrectServerNames(): void {
+        for (const inbound of this.config.inbounds) {
+            const realitySettings =
+                inbound.protocol === 'vless' ? inbound.streamSettings?.realitySettings : null;
+
+            if (!realitySettings?.serverNames?.length) {
+                continue;
+            }
+
+            realitySettings.serverNames = [
+                ...new Set(
+                    realitySettings.serverNames.flatMap((name) =>
+                        name.split(',').map((part) => part.trim()),
+                    ),
+                ),
+            ];
+        }
     }
 
     public getSortedConfig(): IXrayConfig {
@@ -447,4 +487,35 @@ export class XRayConfig {
     private isInboundWithUsers(protocol: string): boolean {
         return !['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(protocol);
     }
+
+    public replaceSnippets(snippets: Map<string, unknown>): void {
+        if (this.config.outbounds) {
+            this.replaceSnippetsInArray(this.config.outbounds as any[], snippets);
+        }
+        if (this.config.routing) {
+            if (typeof this.config.routing === 'object' && 'rules' in this.config.routing) {
+                this.replaceSnippetsInArray(this.config.routing.rules as any[], snippets);
+            }
+        }
+    }
+
+    private replaceSnippetsInArray = (array: any[], snippetsMap: Map<string, unknown>): void => {
+        for (let i = array.length - 1; i >= 0; i--) {
+            const item = array[i];
+
+            if (item.snippet) {
+                const snippet = snippetsMap.get(item.snippet);
+
+                if (snippet) {
+                    if (Array.isArray(snippet)) {
+                        array.splice(i, 1, ...snippet);
+                    } else {
+                        array[i] = snippet;
+                    }
+                } else {
+                    array.splice(i, 1);
+                }
+            }
+        }
+    };
 }

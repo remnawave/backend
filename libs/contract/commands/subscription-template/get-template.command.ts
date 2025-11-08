@@ -6,16 +6,16 @@ import { getEndpointDetails } from '../../constants';
 
 export namespace GetSubscriptionTemplateCommand {
     export const url = REST_API.SUBSCRIPTION_TEMPLATE.GET;
-    export const TSQ_url = url(':templateType');
+    export const TSQ_url = url(':uuid');
 
     export const endpointDetails = getEndpointDetails(
-        SUBSCRIPTION_TEMPLATE_ROUTES.GET(':templateType'),
+        SUBSCRIPTION_TEMPLATE_ROUTES.GET(':uuid'),
         'get',
-        'Get subscription template',
+        'Get subscription template by uuid',
     );
 
     export const RequestSchema = z.object({
-        templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),
+        uuid: z.string().uuid(),
     });
 
     export type Request = z.infer<typeof RequestSchema>;
@@ -23,6 +23,7 @@ export namespace GetSubscriptionTemplateCommand {
     export const ResponseSchema = z.object({
         response: z.object({
             uuid: z.string().uuid(),
+            name: z.string(),
             templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),
             templateJson: z.nullable(z.unknown()),
             encodedTemplateYaml: z.nullable(z.string()),

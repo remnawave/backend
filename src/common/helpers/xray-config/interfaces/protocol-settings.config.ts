@@ -44,7 +44,7 @@ export interface VLessFallback {
 // VLess Protocol Settings
 export interface VLessSettings {
     clients: VLessUser[];
-    decryption: 'none';
+    decryption: 'none' | string;
     fallbacks?: VLessFallback[];
 }
 

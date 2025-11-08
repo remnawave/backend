@@ -82,4 +82,5 @@ export const UsersSchema = z.object({
         .transform((str) => new Date(str)),
 
     activeInternalSquads: z.array(BaseInternalSquadSchema),
+    externalSquadUuid: z.nullable(z.string().uuid()),
 });

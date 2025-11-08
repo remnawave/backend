@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { XRayConfig } from '@common/helpers/xray-config';
@@ -17,6 +18,8 @@ import { GetConfigProfilesResponseModel } from './models/get-config-profiles.res
 import { ConfigProfileInboundEntity } from './entities/config-profile-inbound.entity';
 import { ConfigProfileRepository } from './repositories/config-profile.repository';
 import { ConfigProfileEntity } from './entities/config-profile.entity';
+import { ConfigProfileWithInboundsAndNodesEntity } from './entities';
+import { GetSnippetsQuery } from './queries/get-snippets';
 
 @Injectable()
 export class ConfigProfileService {
@@ -26,6 +29,7 @@ export class ConfigProfileService {
         private readonly configProfileRepository: ConfigProfileRepository,
         private readonly startAllNodesByProfileQueueService: StartAllNodesByProfileQueueService,
         private readonly stopNodeQueueService: StopNodeQueueService,
+        private readonly queryBus: QueryBus,
     ) {}
 
     public async getConfigProfiles(): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
@@ -77,6 +81,51 @@ export class ConfigProfileService {
             return {
                 isOk: false,
                 ...ERRORS.GET_CONFIG_PROFILE_BY_UUID_ERROR,
+            };
+        }
+    }
+
+    public async getComputedConfigProfileByUUID(
+        uuid: string,
+    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+        try {
+            const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
+
+            if (!configProfile) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
+                };
+            }
+
+            const snippetsMap: Map<string, unknown> = new Map();
+            const snippetsResponse = await this.queryBus.execute(new GetSnippetsQuery());
+
+            if (!snippetsResponse.isOk || !snippetsResponse.response) {
+                return {
+                    isOk: false,
+                    ...ERRORS.INTERNAL_SERVER_ERROR,
+                };
+            }
+
+            for (const snippet of snippetsResponse.response) {
+                snippetsMap.set(snippet.name, snippet.snippet);
+            }
+
+            const config = new XRayConfig(configProfile.config as object);
+            config.replaceSnippets(snippetsMap);
+
+            configProfile.config = config.getSortedConfig();
+
+            return {
+                isOk: true,
+                response: new GetConfigProfileByUuidResponseModel(configProfile),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return {
+                isOk: false,
+                ...ERRORS.GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR,
             };
         }
     }
@@ -185,7 +234,6 @@ export class ConfigProfileService {
         }
     }
 
-    @Transactional()
     public async updateConfigProfile(
         uuid: string,
         name?: string,
@@ -209,40 +257,7 @@ export class ConfigProfileService {
                 };
             }
 
-            const configProfileEntity = new ConfigProfileEntity({
-                uuid,
-            });
-
-            if (name) {
-                configProfileEntity.name = name;
-            }
-
-            if (config) {
-                const existingInbounds = existingConfigProfile.inbounds;
-
-                const validatedConfig = new XRayConfig(config);
-                const sortedConfig = validatedConfig.getSortedConfig();
-                const inbounds = validatedConfig.getAllInbounds();
-
-                const inboundsEntities = inbounds.map(
-                    (inbound) =>
-                        new ConfigProfileInboundEntity({
-                            profileUuid: existingConfigProfile.uuid,
-                            tag: inbound.tag,
-                            type: inbound.type,
-                            network: inbound.network,
-                            security: inbound.security,
-                            port: inbound.port,
-                            rawInbound: inbound.rawInbound as unknown as object,
-                        }),
-                );
-
-                await this.syncInbounds(existingInbounds, inboundsEntities);
-
-                configProfileEntity.config = sortedConfig as object;
-            }
-
-            await this.configProfileRepository.update(configProfileEntity);
+            await this.updateConfigProfileTransactional(existingConfigProfile, uuid, name, config);
 
             if (config) {
                 // No need for now
@@ -285,6 +300,54 @@ export class ConfigProfileService {
                 isOk: false,
                 ...ERRORS.UPDATE_CONFIG_PROFILE_ERROR,
             };
+        }
+    }
+
+    @Transactional()
+    public async updateConfigProfileTransactional(
+        existingConfigProfile: ConfigProfileWithInboundsAndNodesEntity,
+        uuid: string,
+        name?: string,
+        config?: object,
+    ): Promise<boolean> {
+        try {
+            const configProfileEntity = new ConfigProfileEntity({
+                uuid,
+                name,
+            });
+
+            if (config) {
+                const existingInbounds = existingConfigProfile.inbounds;
+
+                const validatedConfig = new XRayConfig(config);
+                validatedConfig.cleanClients();
+                validatedConfig.fixIncorrectServerNames();
+                const sortedConfig = validatedConfig.getSortedConfig();
+                const inbounds = validatedConfig.getAllInbounds();
+
+                const inboundsEntities = inbounds.map(
+                    (inbound) =>
+                        new ConfigProfileInboundEntity({
+                            profileUuid: existingConfigProfile.uuid,
+                            tag: inbound.tag,
+                            type: inbound.type,
+                            network: inbound.network,
+                            security: inbound.security,
+                            port: inbound.port,
+                            rawInbound: inbound.rawInbound as unknown as object,
+                        }),
+                );
+
+                await this.syncInbounds(existingInbounds, inboundsEntities);
+
+                configProfileEntity.config = sortedConfig as object;
+            }
+
+            await this.configProfileRepository.update(configProfileEntity);
+
+            return true;
+        } catch (error) {
+            throw error;
         }
     }
 

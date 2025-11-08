@@ -1,0 +1,59 @@
+import { ZodValidationException } from 'nestjs-zod';
+import { Request, Response } from 'express';
+
+import {
+    ArgumentsHost,
+    Catch,
+    ExceptionFilter,
+    HttpException,
+    HttpStatus,
+    Logger,
+} from '@nestjs/common';
+
+import { HttpExceptionWithErrorCodeType } from './http-exeception-with-error-code.type';
+
+@Catch(HttpExceptionWithErrorCodeType, ZodValidationException)
+export class PublicHttpExceptionFilter implements ExceptionFilter {
+    private readonly logger = new Logger(PublicHttpExceptionFilter.name);
+
+    catch(exception: HttpExceptionWithErrorCodeType | ZodValidationException, host: ArgumentsHost) {
+        const ctx = host.switchToHttp();
+        const response = ctx.getResponse<Response>();
+        const request = ctx.getRequest<Request>();
+
+        let status = HttpStatus.INTERNAL_SERVER_ERROR;
+        if (exception instanceof HttpException && exception.getStatus) {
+            status = exception.getStatus();
+        }
+
+        let errorMessage: string | string[];
+        let errorCode: string = 'E000';
+        if (status === HttpStatus.FORBIDDEN) {
+            errorMessage = 'Forbidden';
+        } else {
+            errorMessage = exception.message;
+            if (exception instanceof HttpExceptionWithErrorCodeType) {
+                errorCode = exception.errorCode;
+            }
+        }
+
+        if (exception instanceof ZodValidationException) {
+            response.removeHeader('x-powered-by');
+            errorMessage = '[ZodValidationException] ' + JSON.stringify(exception.getResponse());
+        }
+
+        this.logger.error({
+            timestamp: new Date().toISOString(),
+            code: errorCode,
+            path: request.url,
+            message: errorMessage,
+        });
+
+        response.status(status).json({
+            timestamp: new Date().toISOString(),
+            path: request.url,
+            statusCode: HttpStatus.FORBIDDEN,
+            message: 'Forbidden',
+        });
+    }
+}

@@ -12,8 +12,8 @@ import { fromNanoToNumber } from '@common/utils/nano';
 import { AxiosService } from '@common/axios';
 
 import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
-import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
+import { GetUuidByUsernameQuery } from '@modules/users/queries/get-uuid-by-username';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 import { NodesEntity } from '@modules/nodes';
 
@@ -85,10 +85,6 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
         let usersOnline = 0;
 
         let users = response.response.users.filter((user) => {
-            if (user.username.startsWith('http')) {
-                this.logger.debug(`Skipping user with https:// or http:// in username`);
-                return false;
-            }
             if (user.downlink === 0 && user.uplink === 0) {
                 return false;
             }
@@ -104,23 +100,16 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
                 users,
                 async (xrayUser) => {
                     const userResponse = await this.queryBus.execute(
-                        new GetUserByUniqueFieldQuery(
-                            {
-                                username: xrayUser.username,
-                            },
-                            {
-                                activeInternalSquads: false,
-                                lastConnectedNode: false,
-                            },
-                        ),
+                        new GetUuidByUsernameQuery(xrayUser.username),
                     );
 
                     if (!userResponse.isOk || !userResponse.response) {
                         return;
                     }
 
-                    const { uuid: userUuid } = userResponse.response;
                     const totalBytes = xrayUser.downlink + xrayUser.uplink;
+
+                    const userUuid = userResponse.response;
 
                     allUsageRecords.push(
                         new NodesUserUsageHistoryEntity({

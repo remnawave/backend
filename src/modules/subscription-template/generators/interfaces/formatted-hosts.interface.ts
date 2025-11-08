@@ -26,6 +26,7 @@ export interface IFormattedHost {
     additionalParams?: {
         mode?: string;
         heartbeatPeriod?: number;
+        grpcMultiMode?: boolean;
     };
     xHttpExtraParams?: null | object;
     muxParams?: null | object;
@@ -35,4 +36,6 @@ export interface IFormattedHost {
     shuffleHost?: boolean;
     mihomoX25519?: boolean;
     dbData?: IDbHostData;
+    mldsa65Verify?: string;
+    encryption?: string;
 }

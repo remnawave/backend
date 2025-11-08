@@ -2,9 +2,11 @@
 
 import { Prisma, PrismaClient } from '@prisma/client';
 import consola from 'consola';
+import Redis from 'ioredis';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
 import { generateNodeCert } from '@common/utils/certs';
+import { CACHE_KEYS } from '@libs/contracts/constants';
 
 const prisma = new PrismaClient({
     datasources: {
@@ -14,7 +16,16 @@ const prisma = new PrismaClient({
     },
 });
 
+const redis = new Redis({
+    host: process.env.REDIS_HOST!,
+    port: parseInt(process.env.REDIS_PORT!),
+    password: process.env.REDIS_PASSWORD,
+    db: parseInt(process.env.REDIS_DB ?? '1'),
+    keyPrefix: 'rmnwv:',
+});
+
 const enum CLI_ACTIONS {
+    ENABLE_PASSWORD_AUTH = 'enable-password-auth',
     EXIT = 'exit',
     FIX_POSTGRES_COLLATION = 'fix-postgres-collation',
     GET_SSL_CERT_FOR_NODE = 'get-ssl-cert-for-node',
@@ -28,6 +39,16 @@ async function checkDatabaseConnection() {
         return true;
     } catch (error) {
         consola.error('❌ Database connection error:', error);
+        return false;
+    }
+}
+
+async function checkRedisConnection() {
+    try {
+        await redis.ping();
+        return true;
+    } catch (error) {
+        consola.error('❌ Redis connection error:', error);
         return false;
     }
 }
@@ -58,6 +79,9 @@ async function resetSuperadmin() {
                 uuid: superadmin.uuid,
             },
         });
+
+        await redis.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+
         consola.success(`✅ Superadmin ${superadmin.username} deleted successfully.`);
     } catch (error) {
         consola.error('❌ Failed to delete superadmin:', error);
@@ -170,8 +194,43 @@ async function fixPostgresCollation() {
     }
 }
 
+async function enablePasswordAuth() {
+    consola.start('🔄 Enabling password authentication...');
+
+    const answer = await consola.prompt(
+        'Are you sure you want to enable password authentication?',
+        {
+            type: 'confirm',
+            required: true,
+        },
+    );
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.remnawaveSettings.update({
+            where: { id: 1 },
+            data: {
+                passwordSettings: {
+                    enabled: true,
+                },
+            },
+        });
+
+        await redis.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+
+        consola.success('✅ Password authentication enabled successfully.');
+        process.exit(0);
+    } catch (error) {
+        consola.error('❌ Failed to enable password authentication:', error);
+        process.exit(1);
+    }
+}
 async function main() {
-    consola.box('Remnawave Rescue CLI v0.2');
+    consola.box('Remnawave Rescue CLI v0.3');
 
     consola.start('🌱 Checking database connection...');
     const isConnected = await checkDatabaseConnection();
@@ -181,6 +240,14 @@ async function main() {
     }
     consola.success('✅ Database connected!');
 
+    consola.start('🌱 Checking Redis connection...');
+    const isRedisConnected = await checkRedisConnection();
+    if (!isRedisConnected) {
+        consola.error('❌ Failed to connect to Redis. Exiting...');
+        process.exit(1);
+    }
+    consola.success('✅ Redis connected!');
+
     const action = await consola.prompt('Select an action', {
         type: 'select',
         required: true,
@@ -189,6 +256,11 @@ async function main() {
                 value: CLI_ACTIONS.RESET_SUPERADMIN,
                 label: 'Reset superadmin',
                 hint: 'Fully reset superadmin',
+            },
+            {
+                value: CLI_ACTIONS.ENABLE_PASSWORD_AUTH,
+                label: 'Enable password authentication',
+                hint: 'Enable password authentication',
             },
             {
                 value: CLI_ACTIONS.RESET_CERTS,
@@ -225,6 +297,9 @@ async function main() {
             break;
         case CLI_ACTIONS.FIX_POSTGRES_COLLATION:
             await fixPostgresCollation();
+            break;
+        case CLI_ACTIONS.ENABLE_PASSWORD_AUTH:
+            await enablePasswordAuth();
             break;
         case CLI_ACTIONS.EXIT:
             consola.info('👋 Exiting...');

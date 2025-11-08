@@ -76,6 +76,7 @@ export namespace CreateHostCommand {
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
         shuffleHost: z.optional(z.boolean().default(false)),
         mihomoX25519: z.optional(z.boolean().default(false)),
+        nodes: z.optional(z.array(z.string().uuid())),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

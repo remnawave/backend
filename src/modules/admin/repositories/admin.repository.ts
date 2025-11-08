@@ -4,8 +4,8 @@ import { Injectable } from '@nestjs/common';
 
 import { ICrud } from '@common/types/crud-port';
 
+import { AdminConverter } from '../converters/admin.converter';
 import { AdminEntity } from '../entities/admin.entity';
-import { AdminConverter } from '../admin.converter';
 
 @Injectable()
 export class AdminRepository implements ICrud<AdminEntity> {

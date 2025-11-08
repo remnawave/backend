@@ -86,6 +86,9 @@ export namespace UpdateUserCommand {
                     invalid_type_error: 'Enabled internal squads must be an array of UUIDs',
                 })
                 .optional(),
+            externalSquadUuid: z
+                .optional(z.nullable(z.string().uuid()))
+                .describe('Optional. External squad UUID.'),
         })
         .refine((data) => data.uuid || data.username, {
             message: 'Either uuid or username must be provided',

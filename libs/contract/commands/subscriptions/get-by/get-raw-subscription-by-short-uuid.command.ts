@@ -79,6 +79,8 @@ export namespace GetRawSubscriptionByShortUuidCommand {
                     allowInsecure: z.optional(z.nullable(z.boolean())),
                     shuffleHost: z.optional(z.nullable(z.boolean())),
                     mihomoX25519: z.optional(z.nullable(z.boolean())),
+                    mldsa65Verify: z.optional(z.nullable(z.string())),
+                    encryption: z.optional(z.nullable(z.string())),
                     protocolOptions: z.optional(
                         z.nullable(
                             z.object({

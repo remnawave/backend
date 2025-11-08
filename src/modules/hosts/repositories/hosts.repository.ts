@@ -15,6 +15,14 @@ import { HostWithRawInbound } from '../entities/host-with-inbound-tag.entity';
 import { HostsEntity } from '../entities/hosts.entity';
 import { HostsConverter } from '../hosts.converter';
 
+const INCLUDE_NODES = {
+    nodes: {
+        select: {
+            nodeUuid: true,
+        },
+    },
+} as const;
+
 @Injectable()
 export class HostsRepository implements ICrud<HostsEntity> {
     constructor(
@@ -32,6 +40,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 muxParams: model.muxParams as Prisma.InputJsonValue,
                 sockoptParams: model.sockoptParams as Prisma.InputJsonValue,
             },
+            include: INCLUDE_NODES,
         });
 
         return this.hostsConverter.fromPrismaModelToEntity(result);
@@ -40,6 +49,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async findByUUID(uuid: string): Promise<HostsEntity | null> {
         const result = await this.prisma.tx.hosts.findUnique({
             where: { uuid },
+            include: INCLUDE_NODES,
         });
         if (!result) {
             return null;
@@ -47,7 +57,10 @@ export class HostsRepository implements ICrud<HostsEntity> {
         return this.hostsConverter.fromPrismaModelToEntity(result);
     }
 
-    public async update({ uuid, ...data }: Partial<HostsEntity>): Promise<HostsEntity> {
+    public async update({
+        uuid,
+        ...data
+    }: Partial<Omit<HostsEntity, 'nodes'>>): Promise<HostsEntity> {
         const result = await this.prisma.tx.hosts.update({
             where: {
                 uuid,
@@ -58,16 +71,21 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 muxParams: data.muxParams as Prisma.InputJsonValue,
                 sockoptParams: data.sockoptParams as Prisma.InputJsonValue,
             },
+            include: INCLUDE_NODES,
         });
 
         return this.hostsConverter.fromPrismaModelToEntity(result);
     }
 
     public async findByCriteria(
-        dto: Omit<Partial<HostsEntity>, 'xHttpExtraParams' | 'muxParams' | 'sockoptParams'>,
+        dto: Omit<
+            Partial<HostsEntity>,
+            'xHttpExtraParams' | 'muxParams' | 'sockoptParams' | 'nodes'
+        >,
     ): Promise<HostsEntity[]> {
         const list = await this.prisma.tx.hosts.findMany({
             where: dto,
+            include: INCLUDE_NODES,
         });
         return this.hostsConverter.fromPrismaModelsToEntities(list);
     }
@@ -77,6 +95,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             orderBy: {
                 viewPosition: 'asc',
             },
+            include: INCLUDE_NODES,
         });
         return this.hostsConverter.fromPrismaModelsToEntities(list);
     }
@@ -196,5 +215,24 @@ export class HostsRepository implements ICrud<HostsEntity> {
         });
 
         return result.map((host) => host.tag).filter((tag) => tag !== null);
+    }
+
+    public async addNodesToHost(hostUuid: string, nodes: string[]): Promise<boolean> {
+        if (nodes.length === 0) {
+            return true;
+        }
+
+        const result = await this.prisma.tx.hostsToNodes.createMany({
+            data: nodes.map((node) => ({ hostUuid, nodeUuid: node })),
+            skipDuplicates: true,
+        });
+        return !!result;
+    }
+
+    public async clearNodesFromHost(hostUuid: string): Promise<boolean> {
+        const result = await this.prisma.tx.hostsToNodes.deleteMany({
+            where: { hostUuid },
+        });
+        return !!result;
     }
 }

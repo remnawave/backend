@@ -1,7 +1,7 @@
 import { Body, Controller, HttpStatus, UseFilters, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { RolesGuard } from '@common/guards/roles/roles.guard';

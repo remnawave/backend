@@ -1,0 +1,15 @@
+diff --git a/node_modules/@nestjs/serve-static/dist/loaders/express.loader.js b/node_modules/@nestjs/serve-static/dist/loaders/express.loader.js
+index 7010659..ee93287 100644
+--- a/node_modules/@nestjs/serve-static/dist/loaders/express.loader.js
++++ b/node_modules/@nestjs/serve-static/dist/loaders/express.loader.js
+@@ -92,9 +92,7 @@ let ExpressLoader = class ExpressLoader extends abstract_loader_1.AbstractLoader
+             }
+             app.use((err, req, _res, next) => {
+                 if ((0, is_route_excluded_util_1.isRouteExcluded)(req, options.exclude)) {
+-                    const method = httpAdapter.getRequestMethod(req);
+-                    const url = httpAdapter.getRequestUrl(req);
+-                    return next(new common_1.NotFoundException(`Cannot ${method} ${url}`));
++                    return next(err);
+                 }
+                 if (err instanceof common_1.HttpException) {
+                     throw err;

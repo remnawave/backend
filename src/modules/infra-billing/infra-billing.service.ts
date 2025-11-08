@@ -227,7 +227,10 @@ export class InfraBillingService {
         dto: UpdateInfraBillingNodeRequestDto,
     ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
         try {
-            await this.infraBillingNodeRepository.update(new InfraBillingNodeEntity(dto));
+            await this.infraBillingNodeRepository.updateManyBillingAt({
+                uuids: dto.uuids,
+                nextBillingAt: dto.nextBillingAt,
+            });
 
             return await this.getBillingNodes();
         } catch (error) {

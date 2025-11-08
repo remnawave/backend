@@ -35,6 +35,8 @@ export class UpdateHostResponseModel {
         configProfileInboundUuid: string | null;
     };
 
+    public nodes: string[];
+
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
 
@@ -68,5 +70,7 @@ export class UpdateHostResponseModel {
 
         this.overrideSniFromAddress = data.overrideSniFromAddress;
         this.vlessRouteId = data.vlessRouteId;
+
+        this.nodes = data.nodes.map((node) => node.nodeUuid);
     }
 }

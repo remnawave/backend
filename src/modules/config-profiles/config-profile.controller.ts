@@ -8,7 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Endpoint } from '@common/decorators/base-endpoint';
@@ -18,6 +18,7 @@ import {
     CreateConfigProfileCommand,
     DeleteConfigProfileCommand,
     GetAllInboundsCommand,
+    GetComputedConfigProfileByUuidCommand,
     GetConfigProfileByUuidCommand,
     GetConfigProfilesCommand,
     GetInboundsByProfileUuidCommand,
@@ -31,6 +32,7 @@ import {
     CreateConfigProfileResponseDto,
     DeleteConfigProfileResponseDto,
     GetAllInboundsResponseDto,
+    GetComputedConfigProfileByUuidResponseDto,
     GetConfigProfileByUuidResponseDto,
     GetConfigProfilesResponseDto,
     GetInboundsByProfileUuidResponseDto,
@@ -119,6 +121,28 @@ export class ConfigProfileController {
         @Param('uuid') uuid: string,
     ): Promise<GetConfigProfileByUuidResponseDto> {
         const result = await this.configProfileService.getConfigProfileByUUID(uuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'Config profile not found',
+    })
+    @ApiOkResponse({
+        type: GetComputedConfigProfileByUuidResponseDto,
+        description: 'Computed config profile retrieved successfully',
+    })
+    @Endpoint({
+        command: GetComputedConfigProfileByUuidCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getComputedConfigProfileByUuid(
+        @Param('uuid') uuid: string,
+    ): Promise<GetComputedConfigProfileByUuidResponseDto> {
+        const result = await this.configProfileService.getComputedConfigProfileByUUID(uuid);
 
         const data = errorHandler(result);
         return {

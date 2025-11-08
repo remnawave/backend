@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { ResponseRulesConfigSchema } from './response-rules';
+
 export const SubscriptionSettingsSchema = z.object({
     uuid: z.string().uuid(),
 
@@ -25,6 +27,8 @@ export const SubscriptionSettingsSchema = z.object({
     customResponseHeaders: z.nullable(z.record(z.string(), z.string())),
 
     randomizeHosts: z.boolean(),
+
+    responseRules: z.nullable(ResponseRulesConfigSchema),
 
     createdAt: z
         .string()

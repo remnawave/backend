@@ -36,6 +36,8 @@ export class GetOneHostResponseModel {
 
     public serverDescription: null | string;
 
+    public nodes: string[];
+
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
 
@@ -71,5 +73,7 @@ export class GetOneHostResponseModel {
 
         this.overrideSniFromAddress = data.overrideSniFromAddress;
         this.vlessRouteId = data.vlessRouteId;
+
+        this.nodes = data.nodes.map((node) => node.nodeUuid);
     }
 }

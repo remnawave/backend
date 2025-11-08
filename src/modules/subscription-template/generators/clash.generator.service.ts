@@ -53,7 +53,10 @@ export class ClashGeneratorService {
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    public async generateConfig(hosts: IFormattedHost[], isStash = false): Promise<string> {
+    public async generateConfig(
+        hosts: IFormattedHost[],
+        overrideTemplateName?: string,
+    ): Promise<string> {
         try {
             const data: ClashData = {
                 proxies: [],
@@ -69,7 +72,7 @@ export class ClashGeneratorService {
                 this.addProxy(host, data, proxyRemarks);
             }
 
-            return await this.renderConfig(data, proxyRemarks, isStash);
+            return await this.renderConfig(data, proxyRemarks, overrideTemplateName);
         } catch (error) {
             this.logger.error('Error generating clash config:', error);
             return '';
@@ -79,15 +82,16 @@ export class ClashGeneratorService {
     private async renderConfig(
         data: ClashData,
         proxyRemarks: string[],
-        isStash: boolean,
+        overrideTemplateName?: string,
     ): Promise<string> {
-        const yamlConfigRaw = await this.subscriptionTemplateService.getYamlTemplateByType(
-            isStash ? 'STASH' : 'CLASH',
+        const yamlConfigDb = await this.subscriptionTemplateService.getCachedTemplateByType(
+            'CLASH',
+            overrideTemplateName,
         );
 
-        try {
-            const yamlConfig = yaml.parse(yamlConfigRaw);
+        const yamlConfig = yamlConfigDb as unknown as any;
 
+        try {
             if (!Array.isArray(yamlConfig.proxies)) {
                 yamlConfig.proxies = [];
             }
@@ -294,6 +298,9 @@ export class ClashGeneratorService {
             case 'raw':
                 netOpts = this.tcpConfig(pathValue, host);
                 break;
+            case 'grpc':
+                netOpts = this.grpcConfig(pathValue);
+                break;
         }
 
         if (Object.keys(netOpts).length > 0) {
@@ -346,6 +353,14 @@ export class ClashGeneratorService {
         if (!path && !host) {
             return config;
         }
+
+        return config;
+    }
+
+    private grpcConfig(path = ''): NetworkConfig {
+        const config: NetworkConfig = {};
+
+        config['grpc-service-name'] = path;
 
         return config;
     }

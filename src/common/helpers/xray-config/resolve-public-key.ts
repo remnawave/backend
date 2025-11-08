@@ -1,4 +1,7 @@
 import { createPrivateKey, createPublicKey, KeyObject } from 'node:crypto';
+import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
+
+import { generateEncryptionFromDecryption } from '../vless-encryption/generate-encryption-from-decryption';
 
 export async function resolveInboundAndPublicKey(inbounds: any[]): Promise<Map<string, string>> {
     const publicKeyMap = new Map<string, string>();
@@ -36,6 +39,74 @@ export async function resolveInboundAndPublicKey(inbounds: any[]): Promise<Map<s
     return publicKeyMap;
 }
 
+export async function resolveInboundAndMlDsa65PublicKey(
+    inbounds: any[],
+): Promise<Map<string, string>> {
+    const mldsa65PublicKeyMap = new Map<string, string>();
+
+    for (const inbound of inbounds) {
+        if (inbound.streamSettings?.realitySettings?.mldsa65Seed) {
+            try {
+                if (mldsa65PublicKeyMap.has(inbound.tag)) {
+                    continue;
+                }
+
+                const publicKey = getMlDsa65PublicKey(
+                    inbound.streamSettings.realitySettings.mldsa65Seed,
+                );
+
+                if (!publicKey) {
+                    continue;
+                }
+
+                mldsa65PublicKeyMap.set(inbound.tag, publicKey);
+            } catch {
+                continue;
+            }
+        }
+    }
+
+    return mldsa65PublicKeyMap;
+}
+
+export async function resolveEncryptionFromDecryption(
+    inbounds: any[],
+): Promise<Map<string, string>> {
+    const encryptionMap = new Map<string, string>();
+
+    for (const inbound of inbounds) {
+        try {
+            if (inbound.protocol !== 'vless') {
+                continue;
+            }
+
+            if (!inbound.settings) {
+                continue;
+            }
+
+            if (!inbound.settings.decryption) {
+                continue;
+            }
+
+            if (inbound.settings.decryption === 'none') {
+                continue;
+            }
+
+            if (encryptionMap.has(inbound.tag)) {
+                continue;
+            }
+
+            const encryption = await generateEncryptionFromDecryption(inbound.settings.decryption);
+
+            encryptionMap.set(inbound.tag, encryption.encryption);
+        } catch {
+            continue;
+        }
+    }
+
+    return encryptionMap;
+}
+
 async function createX25519KeyPairFromBase64(base64PrivateKey: string): Promise<{
     publicKey: KeyObject;
     privateKey: KeyObject;
@@ -63,4 +134,14 @@ async function createX25519KeyPairFromBase64(base64PrivateKey: string): Promise<
             reject(error);
         }
     });
+}
+
+export function getMlDsa65PublicKey(seed: string): string | null {
+    try {
+        const seedBuffer = Buffer.from(seed, 'base64');
+        const { publicKey } = ml_dsa65.keygen(seedBuffer);
+        return Buffer.from(publicKey).toString('base64url');
+    } catch {
+        return null;
+    }
 }

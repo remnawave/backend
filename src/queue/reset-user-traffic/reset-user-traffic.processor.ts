@@ -125,7 +125,10 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
 
                         this.eventEmitter.emit(
                             EVENTS.USER.ENABLED,
-                            new UserEvent(userResponse.response, EVENTS.USER.ENABLED),
+                            new UserEvent({
+                                user: userResponse.response,
+                                event: EVENTS.USER.ENABLED,
+                            }),
                         );
 
                         this.eventBus.publish(new AddUserToNodeEvent(userResponse.response.uuid));

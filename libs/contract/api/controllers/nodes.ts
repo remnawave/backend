@@ -13,6 +13,7 @@ export const NODES_ROUTES = {
         ENABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/enable`,
         DISABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/disable`,
         RESTART: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/restart`,
+        RESET_TRAFFIC: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/reset-traffic`,
 
         RESTART_ALL: `${NODE_ACTIONS_ROUTE}/restart-all`,
         REORDER: `${NODE_ACTIONS_ROUTE}/reorder`,

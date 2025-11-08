@@ -48,6 +48,7 @@ interface ProxyNode {
     type: string;
     udp: boolean;
     uuid?: string;
+    serverDescription?: string;
 }
 
 @Injectable()
@@ -56,7 +57,12 @@ export class MihomoGeneratorService {
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    async generateConfig(hosts: IFormattedHost[], isStash = false): Promise<string> {
+    async generateConfig(
+        hosts: IFormattedHost[],
+        isStash: boolean = false,
+        isFlClashX = false,
+        overrideTemplateName?: string,
+    ): Promise<string> {
         try {
             const data: ClashData = {
                 proxies: [],
@@ -68,10 +74,10 @@ export class MihomoGeneratorService {
                 if (!host) {
                     continue;
                 }
-                this.addProxy(host, data, proxyRemarks);
+                this.addProxy(host, data, proxyRemarks, isFlClashX);
             }
 
-            return await this.renderConfig(data, proxyRemarks, isStash);
+            return await this.renderConfig(data, proxyRemarks, isStash, overrideTemplateName);
         } catch (error) {
             this.logger.error('Error generating clash config:', error);
             return '';
@@ -82,13 +88,15 @@ export class MihomoGeneratorService {
         data: ClashData,
         proxyRemarks: string[],
         isStash: boolean,
+        overrideTemplateName?: string,
     ): Promise<string> {
-        const yamlConfigRaw = await this.subscriptionTemplateService.getYamlTemplateByType(
+        const yamlConfigDb = await this.subscriptionTemplateService.getCachedTemplateByType(
             isStash ? 'STASH' : 'MIHOMO',
+            overrideTemplateName,
         );
 
         try {
-            const yamlConfig = yaml.parse(yamlConfigRaw);
+            const yamlConfig = yamlConfigDb as unknown as any;
 
             if (!Array.isArray(yamlConfig.proxies)) {
                 yamlConfig.proxies = [];
@@ -181,7 +189,12 @@ export class MihomoGeneratorService {
         }
     }
 
-    private addProxy(host: IFormattedHost, data: ClashData, proxyRemarks: string[]): void {
+    private addProxy(
+        host: IFormattedHost,
+        data: ClashData,
+        proxyRemarks: string[],
+        isFlClashX: boolean,
+    ): void {
         if (host.network === 'xhttp') {
             return;
         }
@@ -229,6 +242,11 @@ export class MihomoGeneratorService {
                 // ) {
                 //     node.flow = settings.flow || '';
                 // }
+
+                if (host.encryption && host.encryption !== 'none') {
+                    node.encryption = host.encryption;
+                }
+
                 break;
             case 'trojan':
                 node.password = host.password.trojanPassword;
@@ -239,6 +257,11 @@ export class MihomoGeneratorService {
                 break;
             default:
                 return;
+        }
+
+        if (host.serverDescription && isFlClashX) {
+            // supported in FlClashX, custom field
+            node.serverDescription = Buffer.from(host.serverDescription, 'base64').toString();
         }
 
         data.proxies.push(node);
@@ -328,9 +351,6 @@ export class MihomoGeneratorService {
             if (alpn) {
                 node.alpn = alpn.split(',');
             }
-            if (allowInsecure) {
-                node['skip-cert-verify'] = allowInsecure;
-            }
         }
 
         let netOpts: NetworkConfig = {};
@@ -349,6 +369,9 @@ export class MihomoGeneratorService {
             case 'raw':
                 netOpts = this.tcpConfig(pathValue, host);
                 break;
+            case 'grpc':
+                netOpts = this.grpcConfig(pathValue);
+                break;
         }
 
         if (Object.keys(netOpts).length > 0) {
@@ -364,6 +387,10 @@ export class MihomoGeneratorService {
             if (mihomoX25519) {
                 node['reality-opts']['support-x25519mlkem768'] = true;
             }
+        }
+
+        if (allowInsecure && type !== 'ss') {
+            node['skip-cert-verify'] = allowInsecure;
         }
 
         node['client-fingerprint'] = clientFingerprint || 'chrome';
@@ -412,6 +439,14 @@ export class MihomoGeneratorService {
         if (!path && !host) {
             return config;
         }
+
+        return config;
+    }
+
+    private grpcConfig(path = ''): NetworkConfig {
+        const config: NetworkConfig = {};
+
+        config['grpc-service-name'] = path;
 
         return config;
     }

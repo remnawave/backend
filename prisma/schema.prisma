@@ -18,9 +18,32 @@ generator kysely {
   enumFileName       = "kyselyEnums"
 }
 
+generator json {
+  provider  = "prisma-json-types-generator"
+  namespace = "PrismaJson"
+  allowAny  = false
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model RemnawaveSettings {
+  id Int @id @default(1)
+
+  /// [PasskeySettings]
+  passkeySettings  Json? @map("passkey_settings")
+  /// [Oauth2Settings]
+  oauth2Settings   Json? @map("oauth2_settings")
+  /// [TgAuthSettings]
+  tgAuthSettings   Json? @map("tg_auth_settings")
+  /// [PasswordAuthSettings]
+  passwordSettings Json? @map("password_settings")
+  /// [BrandingSettings]
+  brandingSettings Json? @map("branding_settings")
+
+  @@map("remnawave_settings")
 }
 
 model Users {
@@ -65,13 +88,17 @@ model Users {
   firstConnectedAt       DateTime? @map("first_connected_at")
   lastTriggeredThreshold Int       @default(0) @map("last_triggered_threshold") // 1-99
 
+  externalSquadUuid String? @map("external_squad_uuid") @db.Uuid
+
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
   nodesUserUsageHistory NodesUserUsageHistory[]
   userTrafficHistory    UserTrafficHistory[]
   hwidUserDevices       HwidUserDevices[]
-  lastConnectedNode     Nodes?                  @relation("UserLastConnectedNode", fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
+
+  lastConnectedNode Nodes?          @relation("UserLastConnectedNode", fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
+  externalSquad     ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
   activeInternalSquads           InternalSquadMembers[]
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
@@ -102,7 +129,29 @@ model Admin {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
+  passkeys Passkeys[]
+
   @@map("admin")
+}
+
+model Passkeys {
+  id              String  @id @map("id") // Base64URL encoded credential ID
+  adminUuid       String  @map("admin_uuid") @db.Uuid
+  publicKey       Bytes   @map("public_key") // Raw bytes of the public key
+  counter         BigInt  @map("counter") // Signature counter
+  deviceType      String  @map("device_type") // 'singleDevice' | 'multiDevice'
+  backedUp        Boolean @map("backed_up")
+  transports      String? @map("transports") // CSV string of transports
+  passkeyProvider String? @map("passkey_provider")
+
+  admin Admin @relation(fields: [adminUuid], references: [uuid], onDelete: Cascade)
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  @@index([id])
+  @@index([adminUuid])
+  @@map("passkeys")
 }
 
 model Keygen {
@@ -171,6 +220,8 @@ model Nodes {
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
+
+  hosts HostsToNodes[]
 
   @@map("nodes")
 }
@@ -266,11 +317,14 @@ model Hosts {
   configProfileInbounds ConfigProfileInbounds? @relation(fields: [configProfileInboundUuid], references: [uuid], onDelete: SetNull)
   configProfiles        ConfigProfiles?        @relation(fields: [configProfileUuid], references: [uuid], onDelete: SetNull)
 
+  nodes HostsToNodes[]
+
   @@map("hosts")
 }
 
 model SubscriptionTemplate {
   uuid         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String  @default("Default") @map("name") @db.VarChar(255)
   templateType String  @map("template_type")
   templateYaml String? @map("template_yaml")
   templateJson Json?   @map("template_json")
@@ -278,7 +332,9 @@ model SubscriptionTemplate {
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  @@unique([templateType])
+  externalSquadsTemplates ExternalSquadsTemplates[]
+
+  @@unique([templateType, name])
   @@map("subscription_templates")
 }
 
@@ -298,6 +354,7 @@ model SubscriptionSettings {
   disabledUsersRemarks          Json    @map("disabled_users_remarks")
   customResponseHeaders         Json?   @map("custom_response_headers")
   randomizeHosts                Boolean @default(false) @map("randomize_hosts")
+  responseRules                 Json?   @map("response_rules")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
@@ -465,4 +522,52 @@ model UserSubscriptionRequestHistory {
   @@index([userUuid])
   @@index([requestAt(sort: Asc)])
   @@map("user_subscription_request_history")
+}
+
+model HostsToNodes {
+  hostUuid String @map("host_uuid") @db.Uuid
+  nodeUuid String @map("node_uuid") @db.Uuid
+
+  host Hosts @relation(fields: [hostUuid], references: [uuid], onDelete: Cascade)
+  node Nodes @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([hostUuid, nodeUuid])
+  @@map("hosts_to_nodes")
+}
+
+model ConfigProfileSnippets {
+  name    String @id @map("name") @db.VarChar(255)
+  snippet Json   @map("snippet")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+
+  @@map("config_profile_snippets")
+}
+
+model ExternalSquads {
+  uuid                 String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String @unique @map("name") @db.VarChar(30)
+  subscriptionSettings Json?  @map("subscription_settings")
+  hostOverrides        Json?  @map("host_overrides")
+  responseHeaders      Json?  @map("response_headers")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  externalSquadsTemplates ExternalSquadsTemplates[]
+  users                   Users[]
+
+  @@map("external_squads")
+}
+
+model ExternalSquadsTemplates {
+  externalSquadUuid String @map("external_squad_uuid") @db.Uuid
+  templateUuid      String @map("template_uuid") @db.Uuid
+  templateType      String @map("template_type") // ENUM: XRAY_JSON, MIHOMO, STASH, CLASH, SINGBOX
+
+  externalSquad ExternalSquads       @relation(fields: [externalSquadUuid], references: [uuid], onDelete: Cascade)
+  template      SubscriptionTemplate @relation(fields: [templateUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([externalSquadUuid, templateType])
+  @@map("external_squads_templates")
 }

@@ -1,7 +1,18 @@
-import { Body, Controller, HttpStatus, Query, UseFilters, UseGuards } from '@nestjs/common';
+import { Request, Response } from 'express';
+
+import {
+    Body,
+    Controller,
+    HttpStatus,
+    Query,
+    Req,
+    Res,
+    UseFilters,
+    UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Endpoint } from '@common/decorators/base-endpoint';
@@ -15,6 +26,7 @@ import {
     GetNodesStatisticsCommand,
     GetRemnawaveHealthCommand,
     GetStatsCommand,
+    TestSrrMatcherCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, SYSTEM_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
@@ -29,6 +41,8 @@ import {
     GenerateX25519ResponseDto,
     EncryptHappCryptoLinkResponseDto,
     EncryptHappCryptoLinkRequestDto,
+    DebugSrrMatcherRequestDto,
+    DebugSrrMatcherResponseDto,
 } from './dtos';
 import { EncryptHappCryptoLinkResponseModel } from './models';
 import { SystemService } from './system.service';
@@ -170,5 +184,22 @@ export class SystemController {
         return {
             response: new EncryptHappCryptoLinkResponseModel(data),
         };
+    }
+
+    @ApiCreatedResponse({
+        type: DebugSrrMatcherResponseDto,
+        description: 'Debug SRR matcher information',
+    })
+    @Endpoint({
+        command: TestSrrMatcherCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: DebugSrrMatcherRequestDto,
+    })
+    async debugSrrMatcher(
+        @Res() response: Response,
+        @Req() request: Request,
+        @Body() body: DebugSrrMatcherRequestDto,
+    ): Promise<Response> {
+        return await this.systemService.debugSrrMatcher(request, response, body);
     }
 }

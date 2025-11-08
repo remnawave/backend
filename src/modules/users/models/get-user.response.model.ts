@@ -40,6 +40,8 @@ export class GetUserResponseModel {
 
     public readonly subscriptionUrl: string;
 
+    public readonly externalSquadUuid: string | null;
+
     public readonly activeInternalSquads: Omit<InternalSquadEntity, 'createdAt' | 'updatedAt'>[];
     public readonly lastConnectedNode: ILastConnectedNode | null;
 
@@ -83,6 +85,8 @@ export class GetUserResponseModel {
 
         this.activeInternalSquads = entity.activeInternalSquads;
         this.lastConnectedNode = entity.lastConnectedNode;
+
+        this.externalSquadUuid = entity.externalSquadUuid;
 
         this.happ = {
             cryptoLink: createHappCryptoLink(this.subscriptionUrl),

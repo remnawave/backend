@@ -13,11 +13,9 @@ interface OutlineOutbound {
 export class OutlineGeneratorService {
     private readonly logger = new Logger(OutlineGeneratorService.name);
 
-    generateConfig(hosts: IFormattedHost[], encodedTag?: string): string {
+    generateConfig(hosts: IFormattedHost[], encodedTag: string): string {
         try {
-            const decodedTag = encodedTag
-                ? Buffer.from(encodedTag, 'base64').toString('utf-8')
-                : '';
+            const decodedTag = Buffer.from(encodedTag, 'base64').toString('utf-8');
 
             const config: OutlineOutbound = {} as OutlineOutbound;
 

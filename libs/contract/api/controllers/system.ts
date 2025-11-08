@@ -12,4 +12,7 @@ export const SYSTEM_ROUTES = {
         ENCRYPT_HAPP_CRYPTO_LINK: 'tools/happ/encrypt',
     },
     HEALTH: 'health',
+    TESTERS: {
+        SRR_MATCHER: 'testers/srr-matcher',
+    },
 } as const;

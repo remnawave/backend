@@ -61,6 +61,9 @@ export namespace BulkUpdateUsersCommand {
             hwidDeviceLimit: z.optional(
                 z.number().int().min(0, 'Device limit must be non-negative').nullable(),
             ),
+            externalSquadUuid: z
+                .optional(z.nullable(z.string().uuid()))
+                .describe('Optional. External squad UUID.'),
         }),
     });
 

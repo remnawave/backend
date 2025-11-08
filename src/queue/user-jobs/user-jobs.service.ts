@@ -62,4 +62,16 @@ export class UserJobsQueueService extends AbstractQueueService implements OnAppl
             },
         );
     }
+
+    public async findNotConnectedUsersNotification() {
+        return this.addJob(
+            UserJobsJobNames.findNotConnectedUsersNotification,
+            {},
+            {
+                jobId: `${UserJobsJobNames.findNotConnectedUsersNotification}`,
+                removeOnComplete: true,
+                removeOnFail: true,
+            },
+        );
+    }
 }

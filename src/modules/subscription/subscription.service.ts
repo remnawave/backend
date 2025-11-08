@@ -18,9 +18,7 @@ import {
     CACHE_KEYS,
     ERRORS,
     EVENTS,
-    REQUEST_TEMPLATE_TYPE,
-    SUBSCRIPTION_TEMPLATE_TYPE,
-    TRequestTemplateTypeKeys,
+    RESPONSE_RULES_RESPONSE_TYPES,
     TSubscriptionTemplateType,
     USERS_STATUS,
 } from '@libs/contracts/constants';
@@ -29,6 +27,7 @@ import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfac
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
+import { GetExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-external-squad-settings';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
 import { FormatHostsService } from '@modules/subscription-template/generators/format-hosts.service';
@@ -37,9 +36,12 @@ import { RenderTemplatesService } from '@modules/subscription-template/render-te
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
 import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
+import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
 import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
+import { GetTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
+import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
 import { GetUserResponseModel } from '@modules/users/models';
 
@@ -85,12 +87,8 @@ export class SubscriptionService {
     }
 
     public async getSubscriptionByShortUuid(
+        srrContext: ISRRContext,
         shortUuid: string,
-        userAgent: string,
-        isHtml: boolean,
-        clientType: TRequestTemplateTypeKeys | undefined,
-        hwidHeaders: HwidHeaders | null,
-        requestIp?: string,
     ): Promise<
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
@@ -110,11 +108,64 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const settingEntity = await this.getCachedSubscriptionSettings();
+            const { userAgent, hwidHeaders, matchedResponseType, isXrayExtSupported } = srrContext;
 
-            if (!settingEntity) {
-                return new SubscriptionNotFoundResponse();
+            if (!srrContext.overrideTemplateName) {
+                if (user.response.externalSquadUuid) {
+                    let templateTypeMatcher = matchedResponseType as TSubscriptionTemplateType;
+
+                    if (matchedResponseType === 'XRAY_BASE64') {
+                        // In case if XRAY_BASE64 matched as fallback
+                        templateTypeMatcher = 'XRAY_JSON';
+                    }
+
+                    const templateName = await this.queryBus.execute(
+                        new GetTemplateNameQuery(
+                            user.response.externalSquadUuid,
+                            templateTypeMatcher,
+                        ),
+                    );
+
+                    if (templateName.isOk && templateName.response) {
+                        srrContext.overrideTemplateName = templateName.response;
+                    }
+                }
             }
+
+            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
+            // Override subscription settings with External Squad subscription settings
+            if (user.response.externalSquadUuid) {
+                const externalSquadSubscriptionSettings = await this.queryBus.execute(
+                    new GetExternalSquadSettingsQuery(user.response.externalSquadUuid),
+                );
+
+                if (
+                    externalSquadSubscriptionSettings.isOk &&
+                    externalSquadSubscriptionSettings.response
+                ) {
+                    if (externalSquadSubscriptionSettings.response.subscriptionSettings !== null) {
+                        srrContext.subscriptionSettings = {
+                            ...srrContext.subscriptionSettings,
+                            ...externalSquadSubscriptionSettings.response.subscriptionSettings,
+                        };
+                    }
+
+                    if (externalSquadSubscriptionSettings.response.hostOverrides !== null) {
+                        hostsOverrides = externalSquadSubscriptionSettings.response.hostOverrides;
+                    }
+
+                    if (
+                        externalSquadSubscriptionSettings.response.responseHeaders !== null &&
+                        Object.keys(externalSquadSubscriptionSettings.response.responseHeaders)
+                            .length > 0
+                    ) {
+                        srrContext.subscriptionSettings.customResponseHeaders =
+                            externalSquadSubscriptionSettings.response.responseHeaders;
+                    }
+                }
+            }
+
+            const subscriptionSettings = srrContext.subscriptionSettings;
 
             if (this.hwidDeviceLimitEnabled) {
                 const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);
@@ -127,8 +178,8 @@ export class SubscriptionService {
                     const response = new SubscriptionWithConfigResponse({
                         headers: await this.getUserProfileHeadersInfo(
                             user.response,
-                            /^Happ\//.test(userAgent),
-                            settingEntity,
+                            isXrayExtSupported,
+                            subscriptionSettings,
                         ),
                         body: '',
                         contentType: 'text/plain',
@@ -137,6 +188,7 @@ export class SubscriptionService {
                     response.headers.announce = `base64:${Buffer.from(
                         this.configService.getOrThrow<string>('HWID_MAX_DEVICES_ANNOUNCE'),
                     ).toString('base64')}`;
+                    response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     return response;
                 }
@@ -144,42 +196,15 @@ export class SubscriptionService {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
             }
 
-            let clientOverride: TSubscriptionTemplateType | undefined;
-
-            switch (clientType) {
-                case REQUEST_TEMPLATE_TYPE.STASH:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.STASH;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.SINGBOX:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.SINGBOX_LEGACY:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX_LEGACY;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.MIHOMO:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.MIHOMO;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.XRAY_JSON:
-                case REQUEST_TEMPLATE_TYPE.V2RAY_JSON:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON;
-                    break;
-                case REQUEST_TEMPLATE_TYPE.CLASH:
-                    clientOverride = SUBSCRIPTION_TEMPLATE_TYPE.CLASH;
-                    break;
-                default:
-                    clientOverride = undefined;
-                    break;
-            }
-
-            if (isHtml) {
-                const result = await this.getSubscriptionInfoByShortUuid(
+            if (matchedResponseType === RESPONSE_RULES_RESPONSE_TYPES.BROWSER) {
+                const subscriptionInfo = await this.getSubscriptionInfoByShortUuid(
                     user.response.shortUuid,
-                    settingEntity,
+                    subscriptionSettings,
                 );
-                if (!result.isOk || !result.response) {
+                if (!subscriptionInfo.isOk || !subscriptionInfo.response) {
                     return new SubscriptionNotFoundResponse();
                 }
-                return result.response;
+                return subscriptionInfo.response;
             }
 
             const hosts = await this.getHostsByUserUuid({
@@ -192,45 +217,30 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            if (settingEntity.randomizeHosts) {
+            if (subscriptionSettings.randomizeHosts) {
                 hosts.response = _.shuffle(hosts.response);
             }
 
-            await this.updateAndReportSubscriptionRequest(user.response.uuid, userAgent, requestIp);
+            await this.updateAndReportSubscriptionRequest(
+                user.response.uuid,
+                userAgent,
+                srrContext.ip,
+            );
 
-            let subscription: { contentType: string; sub: string };
-
-            if (clientOverride !== undefined) {
-                subscription = await this.renderTemplatesService.generateSubscriptionByClientType({
-                    userAgent,
-                    user: user.response,
-                    hosts: hosts.response,
-
-                    clientType: clientOverride,
-                });
-            } else {
-                let isServeJson = clientOverride === SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON;
-
-                if (!isServeJson && settingEntity.serveJsonAtBaseSubscription) {
-                    isServeJson = true;
-                }
-
-                subscription = await this.renderTemplatesService.generateSubscription({
-                    userAgent: userAgent,
-                    user: user.response,
-                    hosts: hosts.response,
-                    isOutlineConfig: false,
-                    needJsonSubscription: isServeJson,
-                });
-            }
+            const subscription = await this.renderTemplatesService.generateSubscription({
+                srrContext,
+                user: user.response,
+                hosts: hosts.response,
+                hostsOverrides,
+            });
 
             return new SubscriptionWithConfigResponse({
                 headers: await this.getUserProfileHeadersInfo(
                     user.response,
-                    /^Happ\//.test(userAgent),
-                    settingEntity,
+                    isXrayExtSupported,
+                    subscriptionSettings,
                 ),
-                body: subscription.sub,
+                body: subscription.subscription,
                 contentType: subscription.contentType,
             });
         } catch (error) {
@@ -300,6 +310,7 @@ export class SubscriptionService {
                     headers.announce = `base64:${Buffer.from(
                         this.configService.getOrThrow<string>('HWID_MAX_DEVICES_ANNOUNCE'),
                     ).toString('base64')}`;
+                    headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     isHwidLimited = true;
                 }
@@ -363,12 +374,11 @@ export class SubscriptionService {
         }
     }
 
+    /** @deprecated Will be removed soon */
     public async getOutlineSubscriptionByShortUuid(
         shortUuid: string,
         userAgent: string,
-        isHtml: boolean,
-        isOutlineConfig: boolean = false,
-        encodedTag?: string,
+        encodedTag: string,
     ): Promise<
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
@@ -389,20 +399,6 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const settingEntity = await this.getCachedSubscriptionSettings();
-
-            if (!settingEntity) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            if (isHtml) {
-                const result = await this.getSubscriptionInfoByShortUuid(user.response.shortUuid);
-                if (!result.isOk || !result.response) {
-                    return new SubscriptionNotFoundResponse();
-                }
-                return result.response;
-            }
-
             const hosts = await this.getHostsByUserUuid({
                 userUuid: user.response.uuid,
                 returnDisabledHosts: false,
@@ -419,21 +415,15 @@ export class SubscriptionService {
                 subLastUserAgent: userAgent,
             });
 
-            const subscription = await this.renderTemplatesService.generateSubscription({
-                userAgent: userAgent,
-                user: user.response,
-                hosts: hosts.response,
-                isOutlineConfig,
+            const subscription = await this.renderTemplatesService.generateOutlineSubscription(
                 encodedTag,
-            });
+                user.response,
+                hosts.response,
+            );
 
             return new SubscriptionWithConfigResponse({
-                headers: await this.getUserProfileHeadersInfo(
-                    user.response,
-                    /^Happ\//.test(userAgent),
-                    settingEntity,
-                ),
-                body: subscription.sub,
+                headers: {},
+                body: subscription.subscription,
                 contentType: subscription.contentType,
             });
         } catch {
@@ -477,10 +467,10 @@ export class SubscriptionService {
                     returnHiddenHosts: false,
                 });
 
-                formattedHosts = await this.formatHostsService.generateFormattedHosts(
-                    hostsResponse.response || [],
-                    user.response,
-                );
+                formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                    hosts: hostsResponse.response || [],
+                    user: user.response,
+                });
 
                 xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
 
@@ -598,10 +588,10 @@ export class SubscriptionService {
                         returnDisabledHosts: false,
                         returnHiddenHosts: false,
                     });
-                    const formattedHosts = await this.formatHostsService.generateFormattedHosts(
-                        hosts.response || [],
-                        user,
-                    );
+                    const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                        hosts: hosts.response || [],
+                        user: user,
+                    });
 
                     const xrayLinks = this.xrayGeneratorService.generateLinks(
                         formattedHosts,
@@ -793,7 +783,7 @@ export class SubscriptionService {
             headers.routing = settings.happRouting;
         }
 
-        if (settings.isProfileWebpageUrlEnabled && !this.hwidDeviceLimitEnabled) {
+        if (settings.isProfileWebpageUrlEnabled) {
             headers['profile-web-page-url'] = subscriptionLink;
         }
 
@@ -804,7 +794,7 @@ export class SubscriptionService {
 
         if (settings.customResponseHeaders) {
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.formatWithUser(value, user, subscriptionLink);
+                headers[key] = TemplateEngine.formatWithUser(value, user, subscriptionLink, true);
             }
         }
 

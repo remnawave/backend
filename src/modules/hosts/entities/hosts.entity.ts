@@ -32,6 +32,10 @@ export class HostsEntity implements Hosts {
     configProfileUuid: string | null;
     configProfileInboundUuid: string | null;
 
+    nodes: {
+        nodeUuid: string;
+    }[];
+
     constructor(data: Partial<Hosts>) {
         Object.assign(this, data);
     }

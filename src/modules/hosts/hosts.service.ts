@@ -67,7 +67,7 @@ export class HostsService {
                 serverDescription = undefined;
             }
 
-            const { inbound: inboundObj, ...rest } = dto;
+            const { inbound: inboundObj, nodes, ...rest } = dto;
 
             const configProfile = await this.queryBus.execute(
                 new GetConfigProfileByUuidQuery(inboundObj.configProfileUuid),
@@ -104,6 +104,15 @@ export class HostsService {
 
             const result = await this.hostsRepository.create(hostEntity);
 
+            if (nodes !== undefined && nodes.length > 0) {
+                await this.hostsRepository.addNodesToHost(result.uuid, nodes);
+                result.nodes = nodes.map((node) => {
+                    return {
+                        nodeUuid: node,
+                    };
+                });
+            }
+
             return {
                 isOk: true,
                 response: result,
@@ -117,7 +126,7 @@ export class HostsService {
 
     public async updateHost(dto: UpdateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
         try {
-            const { inbound: inboundObj, ...rest } = dto;
+            const { inbound: inboundObj, nodes, ...rest } = dto;
 
             const host = await this.hostsRepository.findByUUID(dto.uuid);
             if (!host) {
@@ -198,6 +207,11 @@ export class HostsService {
 
                 configProfileUuid = configProfile.response.uuid;
                 configProfileInboundUuid = configProfileInbound.uuid;
+            }
+
+            if (nodes !== undefined) {
+                await this.hostsRepository.clearNodesFromHost(host.uuid);
+                await this.hostsRepository.addNodesToHost(host.uuid, nodes);
             }
 
             const result = await this.hostsRepository.update({

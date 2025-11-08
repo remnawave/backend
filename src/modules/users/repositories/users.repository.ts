@@ -285,6 +285,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     continue;
                 }
 
+                if (filter.id === 'externalSquadUuid') {
+                    whereBuilder = whereBuilder.where(
+                        'externalSquadUuid',
+                        '=',
+                        getKyselyUuid(filter.value as string),
+                    );
+                    continue;
+                }
+
                 const field = filter.id as keyof DB['users'];
 
                 switch (mode) {
@@ -393,6 +402,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                             sql`"uuid"::text`,
                             'ilike',
                             `%${filter.value}%`,
+                        );
+                        continue;
+                    }
+
+                    if (filter.id === 'externalSquadUuid') {
+                        countBuilder = countBuilder.where(
+                            'externalSquadUuid',
+                            '=',
+                            getKyselyUuid(filter.value as string),
                         );
                         continue;
                     }
@@ -1194,6 +1212,34 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                 .select(['internalSquads.uuid', 'internalSquads.name'])
                 .whereRef('internalSquadMembers.userUuid', '=', 'users.uuid'),
         ).as('activeInternalSquads');
+    }
+
+    public async getUserUuidByUsername(username: string): Promise<string | null> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select('uuid')
+            .where('username', '=', username)
+            .executeTakeFirst();
+
+        if (!result) {
+            return null;
+        }
+
+        return result.uuid;
+    }
+
+    public async findNotConnectedUsers(startDate: Date, endDate: Date): Promise<UserEntity[]> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .selectAll()
+            .where('status', '=', 'ACTIVE')
+            .where('firstConnectedAt', 'is', null)
+            .where('onlineAt', 'is', null)
+            .where('createdAt', '>=', startDate)
+            .where('createdAt', '<', endDate)
+            .execute();
+
+        return result.map((value) => new UserEntity(value));
     }
 
     private includeLastConnectedNode(eb: ExpressionBuilder<DB, 'users'>) {

@@ -36,6 +36,10 @@ const NETWORK_CONFIGS: Record<
         path: params.path,
         host: params.host,
     }),
+    grpc: (params) => ({
+        authority: params.host,
+        serviceName: params.path,
+    }),
 };
 
 @Injectable()
@@ -153,6 +157,12 @@ export class XrayGeneratorService {
             }
         }
 
+        if (params.network === 'grpc') {
+            Object.assign(payload, {
+                mode: params.additionalParams?.grpcMultiMode ? 'multi' : 'gun',
+            });
+        }
+
         const tlsParams: Record<string, unknown> = {};
 
         if (params.tls === 'tls') {
@@ -162,7 +172,7 @@ export class XrayGeneratorService {
                 ...(params.alpn && { alpn: params.alpn }),
             });
             if (params.allowInsecure) {
-                tlsParams.allowInsecure = params.allowInsecure;
+                tlsParams.allowInsecure = 1;
             }
         } else if (params.tls === 'reality') {
             Object.assign(tlsParams, {
@@ -170,6 +180,7 @@ export class XrayGeneratorService {
                 fp: params.fingerprint,
                 pbk: params.publicKey,
                 sid: params.shortId,
+                pqv: params.mldsa65Verify,
                 ...(params.spiderX && { spx: params.spiderX }),
             });
         }
@@ -227,6 +238,12 @@ export class XrayGeneratorService {
             }
         }
 
+        if (params.network === 'grpc') {
+            Object.assign(payload, {
+                mode: params.additionalParams?.grpcMultiMode ? 'multi' : 'gun',
+            });
+        }
+
         const tlsParams: Record<string, unknown> = {};
 
         if (params.tls === 'tls') {
@@ -236,7 +253,7 @@ export class XrayGeneratorService {
                 ...(params.alpn && { alpn: params.alpn }),
             });
             if (params.allowInsecure) {
-                tlsParams.allowInsecure = params.allowInsecure;
+                tlsParams.allowInsecure = 1;
             }
         } else if (params.tls === 'reality') {
             Object.assign(tlsParams, {
@@ -244,11 +261,18 @@ export class XrayGeneratorService {
                 fp: params.fingerprint,
                 pbk: params.publicKey,
                 sid: params.shortId,
+                pqv: params.mldsa65Verify,
                 ...(params.spiderX && { spx: params.spiderX }),
             });
         }
 
         Object.assign(payload, tlsParams);
+
+        if (params.encryption) {
+            Object.assign(payload, {
+                encryption: params.encryption,
+            });
+        }
 
         const stringPayload = this.convertPayloadToString(payload);
         return `vless://${params.password.vlessPassword}@${params.address}:${params.port}?${new URLSearchParams(stringPayload).toString()}#${encodeURIComponent(params.remark)}`;

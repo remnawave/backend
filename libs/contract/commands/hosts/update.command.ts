@@ -80,6 +80,7 @@ export namespace UpdateHostCommand {
         allowInsecure: z.optional(z.boolean()),
         shuffleHost: z.optional(z.boolean()),
         mihomoX25519: z.optional(z.boolean()),
+        nodes: z.optional(z.array(z.string().uuid())),
     });
     export type Request = z.infer<typeof RequestSchema>;
 

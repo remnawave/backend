@@ -10,7 +10,12 @@ import {
     HttpCode,
     Type,
 } from '@nestjs/common';
-import { ApiBody, ApiInternalServerErrorResponse, ApiOperation } from '@nestjs/swagger';
+import {
+    ApiBadRequestResponse,
+    ApiBody,
+    ApiInternalServerErrorResponse,
+    ApiOperation,
+} from '@nestjs/swagger';
 
 import { EndpointDetails, ERRORS } from '@libs/contracts/constants';
 
@@ -41,6 +46,17 @@ export function Endpoint(options: ApiEndpointOptions) {
                     path: { type: 'string' },
                     message: { type: 'string' },
                     errorCode: { type: 'string' },
+                },
+            },
+        }),
+        ApiBadRequestResponse({
+            description: 'Validation error',
+            schema: {
+                type: 'object',
+                properties: {
+                    message: { type: 'string' },
+                    statusCode: { type: 'number', example: 400 },
+                    error: { type: 'string' },
                 },
             },
         }),

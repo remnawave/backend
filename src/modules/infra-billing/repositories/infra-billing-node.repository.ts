@@ -58,6 +58,23 @@ export class InfraBillingNodeRepository implements ICrud<InfraBillingNodeEntity>
         return this.infraBillingNodeConverter.fromPrismaModelToEntity(result);
     }
 
+    public async updateManyBillingAt({
+        uuids,
+        nextBillingAt,
+    }: {
+        uuids: string[];
+        nextBillingAt: Date;
+    }): Promise<boolean> {
+        const result = await this.prisma.tx.infraBillingNodes.updateMany({
+            where: {
+                uuid: { in: uuids },
+            },
+            data: { nextBillingAt },
+        });
+
+        return !!result;
+    }
+
     public async findByCriteria(
         dto: Partial<InfraBillingNodeEntity>,
     ): Promise<InfraBillingNodeEntity[]> {

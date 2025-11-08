@@ -799,4 +799,219 @@ export const ERRORS = {
         message: 'Get user subscription request history stats error',
         httpCode: 500,
     },
+    GET_SNIPPETS_ERROR: {
+        code: 'A161',
+        message: 'Get snippets error',
+        httpCode: 500,
+    },
+    SNIPPET_NOT_FOUND: {
+        code: 'A162',
+        message: 'Snippet not found',
+        httpCode: 404,
+    },
+    DELETE_SNIPPET_BY_NAME_ERROR: {
+        code: 'A163',
+        message: 'Delete snippet by name error',
+        httpCode: 500,
+    },
+    SNIPPET_NAME_ALREADY_EXISTS: {
+        code: 'A164',
+        message: 'Snippet name already exists',
+        httpCode: 400,
+    },
+    UPDATE_SNIPPET_ERROR: {
+        code: 'A165',
+        message: 'Update snippet error',
+        httpCode: 500,
+    },
+    SNIPPET_CANNOT_BE_EMPTY: {
+        code: 'A166',
+        message: 'Snippet cannot be empty',
+        httpCode: 400,
+    },
+    SNIPPET_CANNOT_CONTAIN_EMPTY_OBJECTS: {
+        code: 'A167',
+        message: 'Snippet cannot contain empty objects',
+        httpCode: 400,
+    },
+    GET_ALL_SUBSCRIPTION_TEMPLATES_ERROR: {
+        code: 'A168',
+        message: 'Get all subscription templates error',
+        httpCode: 500,
+    },
+    GET_SUBSCRIPTION_TEMPLATE_BY_UUID_ERROR: {
+        code: 'A169',
+        message: 'Get subscription template by UUID error',
+        httpCode: 500,
+    },
+    SUBSCRIPTION_TEMPLATE_NOT_FOUND: {
+        code: 'A170',
+        message: 'Subscription template not found',
+        httpCode: 404,
+    },
+    UPDATE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A171',
+        message: 'Update subscription template error',
+        httpCode: 500,
+    },
+    RESERVED_TEMPLATE_NAME: {
+        code: 'A172',
+        message: 'This name is reserved. Please use a different name.',
+        httpCode: 400,
+    },
+    TEMPLATE_JSON_NOT_ALLOWED_FOR_YAML_TEMPLATE: {
+        code: 'A173',
+        message: 'Template JSON is not allowed for YAML template',
+        httpCode: 400,
+    },
+    TEMPLATE_YAML_NOT_ALLOWED_FOR_JSON_TEMPLATE: {
+        code: 'A174',
+        message: 'Template YAML is not allowed for JSON template',
+        httpCode: 400,
+    },
+    TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY: {
+        code: 'A175',
+        message: 'Template JSON and YAML cannot be updated simultaneously',
+        httpCode: 400,
+    },
+    TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE: {
+        code: 'A176',
+        message: 'Template name already exists for this type',
+        httpCode: 400,
+    },
+    DELETE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A177',
+        message: 'Delete subscription template error',
+        httpCode: 500,
+    },
+    RESERVED_TEMPLATE_CANNOT_BE_DELETED: {
+        code: 'A178',
+        message: 'Reserved template cannot be deleted',
+        httpCode: 400,
+    },
+    CREATE_SUBSCRIPTION_TEMPLATE_ERROR: {
+        code: 'A179',
+        message: 'Create subscription template error',
+        httpCode: 500,
+    },
+    TEMPLATE_TYPE_NOT_ALLOWED: {
+        code: 'A180',
+        message: 'Template type not allowed',
+        httpCode: 400,
+    },
+    GET_EXTERNAL_SQUADS_ERROR: {
+        code: 'A181',
+        message: 'Get external squads error',
+        httpCode: 500,
+    },
+    EXTERNAL_SQUAD_NOT_FOUND: {
+        code: 'A182',
+        message: 'External squad not found',
+        httpCode: 404,
+    },
+    CREATE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A183',
+        message: 'Create external squad error',
+        httpCode: 500,
+    },
+    UPDATE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A184',
+        message: 'Update external squad error',
+        httpCode: 500,
+    },
+    DELETE_EXTERNAL_SQUAD_ERROR: {
+        code: 'A185',
+        message: 'Delete external squad error',
+        httpCode: 500,
+    },
+    ADD_USERS_TO_EXTERNAL_SQUAD_ERROR: {
+        code: 'A186',
+        message: 'Add users to external squad error',
+        httpCode: 500,
+    },
+    REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR: {
+        code: 'A187',
+        message: 'Remove users from external squad error',
+        httpCode: 500,
+    },
+    GET_EXTERNAL_SQUAD_BY_UUID_ERROR: {
+        code: 'A188',
+        message: 'Get external squad by UUID error',
+        httpCode: 500,
+    },
+    EXTERNAL_SQUAD_NAME_ALREADY_EXISTS: {
+        code: 'A189',
+        message: 'External squad name already exists',
+        httpCode: 400,
+    },
+    NAME_OR_TEMPLATES_REQUIRED: {
+        code: 'A190',
+        message: 'Name or templates are required',
+        httpCode: 400,
+    },
+    PASSKEY_NOT_FOUND: {
+        code: 'A191',
+        message: 'Passkey not found',
+        httpCode: 404,
+    },
+    GET_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A192',
+        message: 'Get Remnawave settings error',
+        httpCode: 500,
+    },
+    UPDATE_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A193',
+        message: 'Update Remnawave settings error',
+        httpCode: 500,
+    },
+    PASSKEYS_NOT_CONFIGURED: {
+        code: 'A194',
+        message: 'Passkeys not configured',
+        httpCode: 400,
+    },
+    PASSKEYS_NOT_ENABLED: {
+        code: 'A195',
+        message: 'Passkeys not enabled. Please enable it first.',
+        httpCode: 400,
+    },
+    GENERATE_PASSKEY_REGISTRATION_OPTIONS: {
+        code: 'A196',
+        message: 'Generate passkey registration options error',
+        httpCode: 500,
+    },
+    VERIFY_PASSKEY_REGISTRATION_ERROR: {
+        code: 'A197',
+        message: 'Verify passkey registration error',
+        httpCode: 500,
+    },
+    GET_ACTIVE_PASSKEYS_ERROR: {
+        code: 'A198',
+        message: 'Get active passkeys error',
+        httpCode: 500,
+    },
+    DELETE_PASSKEY_ERROR: {
+        code: 'A199',
+        message: 'Delete passkey error',
+        httpCode: 500,
+    },
+    VALIDATE_REMNAAWAVE_SETTINGS_ERROR: {
+        code: 'A199',
+        message: 'Validate Remnawave settings error',
+        httpCode: 500,
+        withMessage: (message: string) => ({
+            code: 'A199',
+            message,
+            httpCode: 500,
+        }),
+    },
+    GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR: {
+        code: 'A200',
+        message: 'Get computed config profile by UUID error',
+        httpCode: 500,
+    },
+    RESET_NODE_TRAFFIC_ERROR: {
+        code: 'A201',
+        message: 'Reset node traffic error',
+        httpCode: 500,
+    },
 } as const;

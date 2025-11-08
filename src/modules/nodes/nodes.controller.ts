@@ -10,7 +10,7 @@ import {
 } from '@nestjs/swagger';
 import { Body, Controller, HttpStatus, Param, UseFilters, UseGuards } from '@nestjs/common';
 
-import { HttpExceptionFilter } from '@common/exception/httpException.filter';
+import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { RolesGuard } from '@common/guards/roles/roles.guard';
@@ -24,6 +24,7 @@ import {
     GetAllNodesCommand,
     GetOneNodeCommand,
     ReorderNodeCommand,
+    ResetNodeTrafficCommand,
     RestartAllNodesCommand,
     RestartNodeCommand,
     UpdateNodeCommand,
@@ -42,6 +43,8 @@ import {
     GetOneNodeResponseDto,
     ReorderNodeRequestDto,
     ReorderNodeResponseDto,
+    ResetNodeTrafficRequestDto,
+    ResetNodeTrafficResponseDto,
     RestartAllNodesRequestBodyDto,
     RestartAllNodesResponseDto,
     RestartNodeRequestDto,
@@ -196,6 +199,25 @@ export class NodesController {
     })
     async restartNode(@Param() uuid: RestartNodeRequestDto): Promise<RestartNodeResponseDto> {
         const res = await this.nodesService.restartNode(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: ResetNodeTrafficResponseDto,
+        description: 'Event sent',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: ResetNodeTrafficCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async resetNodeTraffic(
+        @Param() uuid: ResetNodeTrafficRequestDto,
+    ): Promise<ResetNodeTrafficResponseDto> {
+        const res = await this.nodesService.resetNodeTraffic(uuid.uuid);
         const data = errorHandler(res);
         return {
             response: data,

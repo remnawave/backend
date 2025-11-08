@@ -158,6 +158,9 @@ export namespace CreateUserCommand {
                     'Optional. Pass UUID to create user with specific UUID, otherwise it will be generated automatically.',
                 ),
         ),
+        externalSquadUuid: z
+            .optional(z.nullable(z.string().uuid()))
+            .describe('Optional. External squad UUID.'),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

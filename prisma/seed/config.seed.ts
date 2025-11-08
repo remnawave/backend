@@ -5,10 +5,35 @@ import {
     SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
 } from '@libs/contracts/constants';
 import { KeygenEntity } from '@modules/keygen/entities/keygen.entity';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient, RemnawaveSettings } from '@prisma/client';
 import consola from 'consola';
 import _ from 'lodash';
 import { Redis } from 'ioredis';
+import { hasher } from 'node-object-hash';
+import {
+    DEFAULT_TEMPLATE_CLASH,
+    DEFAULT_TEMPLATE_MIHOMO,
+    DEFAULT_TEMPLATE_SINGBOX,
+    DEFAULT_TEMPLATE_STASH,
+    DEFAULT_TEMPLATE_XRAY_JSON,
+} from '@modules/subscription-template/constants';
+import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
+import {
+    PasskeySettingsSchema,
+    TBrandingSettings,
+    TOauth2Settings,
+    TPasswordAuthSettings,
+    TRemnawavePasskeySettings,
+    TTgAuthSettings,
+} from '@libs/contracts/models';
+
+const hash = hasher({
+    trim: true,
+    sort: {
+        array: false,
+        object: true,
+    },
+}).hash;
 
 export const XTLSDefaultConfig = {
     log: {
@@ -44,497 +69,97 @@ export const XTLSDefaultConfig = {
     },
 };
 
-export const MihomoDefaultConfig = `mixed-port: 7890
-socks-port: 7891
-redir-port: 7892
-allow-lan: true
-mode: global
-log-level: info
-external-controller: 127.0.0.1:9090
-dns:
-  enable: true
-  use-hosts: true
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  default-nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-  nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-  fake-ip-filter:
-    - '*.lan'
-    - stun.*.*.*
-    - stun.*.*
-    - time.windows.com
-    - time.nist.gov
-    - time.apple.com
-    - time.asia.apple.com
-    - '*.openwrt.pool.ntp.org'
-    - pool.ntp.org
-    - ntp.ubuntu.com
-    - time1.apple.com
-    - time2.apple.com
-    - time3.apple.com
-    - time4.apple.com
-    - time5.apple.com
-    - time6.apple.com
-    - time7.apple.com
-    - time1.google.com
-    - time2.google.com
-    - time3.google.com
-    - time4.google.com
-    - api.joox.com
-    - joox.com
-    - '*.xiami.com'
-    - '*.msftconnecttest.com'
-    - '*.msftncsi.com'
-    - '+.xboxlive.com'
-    - '*.*.stun.playstation.net'
-    - xbox.*.*.microsoft.com
-    - '*.ipv6.microsoft.com'
-    - speedtest.cros.wr.pvp.net
-
-proxies: # LEAVE THIS LINE!
-
-proxy-groups:
-  - name: '→ Remnawave'
-    type: 'select'
-    proxies: # LEAVE THIS LINE!
-
-rules:
-  - MATCH,→ Remnawave
-`;
-
-export const StashDefaultConfig = `proxy-groups:
-  - name: → Remnawave
-    type: select
-    proxies: # LEAVE THIS LINE!
-
-proxies: # LEAVE THIS LINE!
-
-rules:
-  - SCRIPT,quic,REJECT
-  - DOMAIN-SUFFIX,iphone-ld.apple.com,DIRECT
-  - DOMAIN-SUFFIX,lcdn-locator.apple.com,DIRECT
-  - DOMAIN-SUFFIX,lcdn-registration.apple.com,DIRECT
-  - DOMAIN-SUFFIX,push.apple.com,DIRECT
-  - PROCESS-NAME,v2ray,DIRECT
-  - PROCESS-NAME,Surge,DIRECT
-  - PROCESS-NAME,ss-local,DIRECT
-  - PROCESS-NAME,privoxy,DIRECT
-  - PROCESS-NAME,trojan,DIRECT
-  - PROCESS-NAME,trojan-go,DIRECT
-  - PROCESS-NAME,naive,DIRECT
-  - PROCESS-NAME,CloudflareWARP,DIRECT
-  - PROCESS-NAME,Cloudflare WARP,DIRECT
-  - IP-CIDR,162.159.193.0/24,DIRECT,no-resolve
-  - PROCESS-NAME,p4pclient,DIRECT
-  - PROCESS-NAME,Thunder,DIRECT
-  - PROCESS-NAME,DownloadService,DIRECT
-  - PROCESS-NAME,qbittorrent,DIRECT
-  - PROCESS-NAME,Transmission,DIRECT
-  - PROCESS-NAME,fdm,DIRECT
-  - PROCESS-NAME,aria2c,DIRECT
-  - PROCESS-NAME,Folx,DIRECT
-  - PROCESS-NAME,NetTransport,DIRECT
-  - PROCESS-NAME,uTorrent,DIRECT
-  - PROCESS-NAME,WebTorrent,DIRECT
-  - GEOIP,LAN,DIRECT
-  - MATCH,→ Remnawave
-script:
-  shortcuts:
-    quic: network == 'udp' and dst_port == 443
-dns:
-  default-nameserver:
-    - 1.1.1.1
-    - 1.0.0.1
-  nameserver:
-    - 1.1.1.1
-    - 1.0.0.1
-log-level: warning
-mode: rule
-
-`;
-
-export const ClashDefaultConfig = `mixed-port: 7890
-socks-port: 7891
-redir-port: 7892
-allow-lan: true
-mode: global
-log-level: info
-external-controller: 127.0.0.1:9090
-dns:
-  enable: true
-  use-hosts: true
-  enhanced-mode: fake-ip
-  fake-ip-range: 198.18.0.1/16
-  default-nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-  nameserver:
-    - 1.1.1.1
-    - 8.8.8.8
-  fake-ip-filter:
-    - '*.lan'
-    - stun.*.*.*
-    - stun.*.*
-    - time.windows.com
-    - time.nist.gov
-    - time.apple.com
-    - time.asia.apple.com
-    - '*.openwrt.pool.ntp.org'
-    - pool.ntp.org
-    - ntp.ubuntu.com
-    - time1.apple.com
-    - time2.apple.com
-    - time3.apple.com
-    - time4.apple.com
-    - time5.apple.com
-    - time6.apple.com
-    - time7.apple.com
-    - time1.google.com
-    - time2.google.com
-    - time3.google.com
-    - time4.google.com
-    - api.joox.com
-    - joox.com
-    - '*.xiami.com'
-    - '*.msftconnecttest.com'
-    - '*.msftncsi.com'
-    - '+.xboxlive.com'
-    - '*.*.stun.playstation.net'
-    - xbox.*.*.microsoft.com
-    - '*.ipv6.microsoft.com'
-    - speedtest.cros.wr.pvp.net
-
-proxies: # LEAVE THIS LINE!
-
-proxy-groups:
-  - name: '→ Remnawave'
-    type: 'select'
-    proxies: # LEAVE THIS LINE!
-
-rules:
-  - MATCH,→ Remnawave`;
-
-export const SingboxLegacyDefaultConfig = {
-    log: {
-        disabled: true,
-        level: 'debug',
-        timestamp: true,
-    },
-    dns: {
-        servers: [
-            {
-                tag: 'cf-dns',
-                address: 'tls://1.1.1.1',
-            },
-            {
-                tag: 'local',
-                address: 'tcp://1.1.1.1',
-                address_strategy: 'prefer_ipv4',
-                strategy: 'ipv4_only',
-                detour: 'direct',
-            },
-            {
-                tag: 'remote',
-                address: 'fakeip',
-            },
-        ],
-        rules: [
-            {
-                query_type: ['A', 'AAAA'],
-                server: 'remote',
-            },
-            {
-                outbound: 'any',
-                server: 'local',
-            },
-        ],
-        fakeip: {
-            enabled: true,
-            inet4_range: '198.18.0.0/15',
-            inet6_range: 'fc00::/18',
-        },
-        independent_cache: true,
-    },
-    inbounds: [
+export const ResponseRulesDefaultConfig = {
+    version: '1',
+    rules: [
         {
-            type: 'tun',
-            mtu: 9000,
-            interface_name: 'tun125',
-            tag: 'tun-in',
-            inet4_address: '172.19.0.1/30',
-            inet6_address: 'fdfe:dcba:9876::1/126',
-            auto_route: true,
-            strict_route: true,
-            endpoint_independent_nat: true,
-            stack: 'mixed',
-            sniff: true,
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: '127.0.0.1',
-                    server_port: 2412,
+            name: 'Browser Subscription',
+            description: 'System critical: do not delete or disable this rule.',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'accept',
+                    operator: 'CONTAINS',
+                    value: 'text/html',
+                    caseSensitive: true,
                 },
-            },
+            ],
+            responseType: 'BROWSER',
         },
         {
-            type: 'mixed',
-            tag: 'mixed-in',
-            listen: '127.0.0.1',
-            listen_port: 2412,
-            sniff: true,
-            users: [],
-            set_system_proxy: false,
-        },
-    ],
-    outbounds: [
-        {
-            type: 'selector',
-            tag: '→ Remnawave',
-            interrupt_exist_connections: true,
-            outbounds: null,
-        },
-        {
-            type: 'direct',
-            tag: 'direct',
-        },
-        {
-            type: 'block',
-            tag: 'block',
-        },
-        {
-            type: 'dns',
-            tag: 'dns-out',
-        },
-    ],
-    route: {
-        rules: [
-            {
-                type: 'logical',
-                mode: 'or',
-                rules: [
-                    {
-                        protocol: 'dns',
-                    },
-                    {
-                        port: 53,
-                    },
-                ],
-                outbound: 'dns-out',
-            },
-            {
-                ip_is_private: true,
-                outbound: 'direct',
-            },
-        ],
-        auto_detect_interface: true,
-        override_android_vpn: true,
-    },
-    experimental: {
-        clash_api: {
-            external_controller: '127.0.0.1:9090',
-            external_ui: 'yacd',
-            external_ui_download_url: 'https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip',
-            external_ui_download_detour: 'direct',
-            default_mode: 'rule',
-        },
-        cache_file: {
+            name: 'Mihomo Clients',
+            description: 'Response with generated YAML config (Mihomo Template)',
             enabled: true,
-            path: 'remnawave.db',
-            cache_id: 'remnawave',
-            store_fakeip: true,
-        },
-    },
-};
-
-export const SingboxDefaultConfig = {
-    log: {
-        disabled: true,
-        level: 'debug',
-        timestamp: true,
-    },
-    dns: {
-        servers: [
-            {
-                tag: 'cf-dns',
-                address: 'tls://1.1.1.1',
-            },
-            {
-                tag: 'local',
-                address: 'tcp://1.1.1.1',
-                address_strategy: 'prefer_ipv4',
-                strategy: 'ipv4_only',
-                detour: 'direct',
-            },
-            {
-                tag: 'remote',
-                address: 'fakeip',
-            },
-        ],
-        rules: [
-            {
-                query_type: ['A', 'AAAA'],
-                server: 'remote',
-            },
-            {
-                outbound: 'any',
-                server: 'local',
-            },
-        ],
-        fakeip: {
-            enabled: true,
-            inet4_range: '198.18.0.0/15',
-            inet6_range: 'fc00::/18',
-        },
-        independent_cache: true,
-    },
-    inbounds: [
-        {
-            type: 'tun',
-            mtu: 9000,
-            interface_name: 'tun125',
-            tag: 'tun-in',
-            inet4_address: '172.19.0.1/30',
-            inet6_address: 'fdfe:dcba:9876::1/126',
-            auto_route: true,
-            strict_route: true,
-            endpoint_independent_nat: true,
-            stack: 'mixed',
-            sniff: true,
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: '127.0.0.1',
-                    server_port: 2412,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^(?:FlClash|FlClashX|Flowvy|[Cc]lash-[Vv]erge|[Kk]oala-[Cc]lash|[Cc]lash-?[Mm]eta|[Mm]urge|[Cc]lashX [Mm]eta|[Mm]ihomo|[Cc]lash-nyanpasu|clash.meta|prizrak-box)',
+                    caseSensitive: false,
                 },
-            },
+            ],
+            responseType: 'MIHOMO',
         },
         {
-            type: 'mixed',
-            tag: 'mixed-in',
-            listen: '127.0.0.1',
-            listen_port: 2412,
-            sniff: true,
-            users: [],
-            set_system_proxy: false,
-        },
-    ],
-    outbounds: [
-        {
-            type: 'selector',
-            tag: '→ Remnawave',
-            interrupt_exist_connections: true,
-            outbounds: null,
-        },
-        {
-            type: 'direct',
-            tag: 'direct',
-        },
-    ],
-    route: {
-        rules: [
-            {
-                action: 'sniff',
-            },
-            {
-                type: 'logical',
-                mode: 'or',
-                rules: [
-                    {
-                        protocol: 'dns',
-                    },
-                    {
-                        port: 53,
-                    },
-                ],
-                action: 'hijack-dns',
-            },
-            {
-                ip_is_private: true,
-                outbound: 'direct',
-            },
-        ],
-        auto_detect_interface: true,
-        override_android_vpn: true,
-    },
-    experimental: {
-        clash_api: {
-            external_controller: '127.0.0.1:9090',
-            external_ui: 'yacd',
-            external_ui_download_url: 'https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip',
-            external_ui_download_detour: 'direct',
-            default_mode: 'rule',
-        },
-        cache_file: {
+            name: 'Stash (iOS, macOS)',
+            description: 'Response with generated YAML config (Stash Template)',
             enabled: true,
-            path: 'remnawave.db',
-            cache_id: 'remnawave',
-            store_fakeip: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^stash',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'STASH',
         },
-    },
+        {
+            name: 'Sing-box clients',
+            description: 'Resonse with generated JSON config (Singbox template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^sfa|sfi|sfm|sft|karing|singbox|rabbithole',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'SINGBOX',
+        },
+        {
+            name: 'Clash Core Clients',
+            description: 'Response with generated YAML config (Clash Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^clash',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'CLASH',
+        },
+        {
+            name: 'Fallback Base64',
+            description: 'System critical: do not delete or disable this rule.',
+            enabled: true,
+            operator: 'AND',
+            conditions: [],
+            responseType: 'XRAY_BASE64',
+        },
+    ],
 };
 
-export const XrayJsonDefaultConfig = {
-    dns: {
-        servers: ['1.1.1.1', '1.0.0.1'],
-        queryStrategy: 'UseIP',
-    },
-    routing: {
-        rules: [
-            {
-                type: 'field',
-                protocol: ['bittorrent'],
-                outboundTag: 'direct',
-            },
-        ],
-        domainMatcher: 'hybrid',
-        domainStrategy: 'IPIfNonMatch',
-    },
-    inbounds: [
-        {
-            tag: 'socks',
-            port: 10808,
-            listen: '127.0.0.1',
-            protocol: 'socks',
-            settings: {
-                udp: true,
-                auth: 'noauth',
-            },
-            sniffing: {
-                enabled: true,
-                routeOnly: false,
-                destOverride: ['http', 'tls', 'quic'],
-            },
-        },
-        {
-            tag: 'http',
-            port: 10809,
-            listen: '127.0.0.1',
-            protocol: 'http',
-            settings: {
-                allowTransparent: false,
-            },
-            sniffing: {
-                enabled: true,
-                routeOnly: false,
-                destOverride: ['http', 'tls', 'quic'],
-            },
-        },
-    ],
-    outbounds: [
-        {
-            tag: 'direct',
-            protocol: 'freedom',
-        },
-        {
-            tag: 'block',
-            protocol: 'blackhole',
-        },
-    ],
-};
+export const PreviousResponseRulesConfigHash =
+    '0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4';
 
 const prisma = new PrismaClient({
     datasources: {
@@ -561,10 +186,24 @@ async function fixOldMigrations() {
 
 async function seedSubscriptionTemplate() {
     consola.start('Seeding subscription templates...');
+
+    const deletedTemplates = await prisma.subscriptionTemplate.deleteMany({
+        where: {
+            templateType: {
+                notIn: [...SUBSCRIPTION_TEMPLATE_TYPE_VALUES],
+            },
+        },
+    });
+
+    consola.success(`🔐 Deleted unknown templates: ${deletedTemplates.count}!`);
+
     for (const templateType of SUBSCRIPTION_TEMPLATE_TYPE_VALUES) {
         const existingConfig = await prisma.subscriptionTemplate.findUnique({
             where: {
-                templateType,
+                templateType_name: {
+                    templateType,
+                    name: 'Default',
+                },
             },
         });
 
@@ -576,7 +215,7 @@ async function seedSubscriptionTemplate() {
                 }
 
                 await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateYaml: StashDefaultConfig },
+                    data: { templateType, name: 'Default', templateYaml: DEFAULT_TEMPLATE_STASH },
                 });
 
                 break;
@@ -587,7 +226,7 @@ async function seedSubscriptionTemplate() {
                 }
 
                 await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateYaml: MihomoDefaultConfig },
+                    data: { templateType, name: 'Default', templateYaml: DEFAULT_TEMPLATE_MIHOMO },
                 });
                 break;
             case SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX:
@@ -597,17 +236,7 @@ async function seedSubscriptionTemplate() {
                 }
 
                 await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateJson: SingboxDefaultConfig },
-                });
-                break;
-            case SUBSCRIPTION_TEMPLATE_TYPE.SINGBOX_LEGACY:
-                if (existingConfig) {
-                    consola.info(`Default ${templateType} config already exists!`);
-                    continue;
-                }
-
-                await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateJson: SingboxLegacyDefaultConfig },
+                    data: { templateType, name: 'Default', templateJson: DEFAULT_TEMPLATE_SINGBOX },
                 });
                 break;
             case SUBSCRIPTION_TEMPLATE_TYPE.XRAY_JSON:
@@ -617,7 +246,11 @@ async function seedSubscriptionTemplate() {
                 }
 
                 await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateJson: XrayJsonDefaultConfig },
+                    data: {
+                        templateType,
+                        name: 'Default',
+                        templateJson: DEFAULT_TEMPLATE_XRAY_JSON,
+                    },
                 });
 
                 break;
@@ -628,9 +261,11 @@ async function seedSubscriptionTemplate() {
                 }
 
                 await prisma.subscriptionTemplate.create({
-                    data: { templateType, templateYaml: ClashDefaultConfig },
+                    data: { templateType, name: 'Default', templateYaml: DEFAULT_TEMPLATE_CLASH },
                 });
 
+                break;
+            case SUBSCRIPTION_TEMPLATE_TYPE.XRAY_BASE64:
                 break;
             default:
                 consola.error(`Unknown template type: ${templateType}`);
@@ -654,7 +289,7 @@ async function seedSubscriptionSettings() {
     await prisma.subscriptionSettings.create({
         data: {
             profileTitle: 'Remnawave',
-            supportLink: 'https://remna.st',
+            supportLink: 'https://docs.rw',
             profileUpdateInterval: 12,
             isProfileWebpageUrlEnabled: true,
             expiredUsersRemarks: expiredUserRemarks,
@@ -666,6 +301,45 @@ async function seedSubscriptionSettings() {
             randomizeHosts: false,
         },
     });
+}
+
+async function seedResponseRules() {
+    const existingConfig = await prisma.subscriptionSettings.findFirst();
+
+    if (!existingConfig) {
+        consola.error('🔐 Subscription settings not found!');
+        process.exit(1);
+    }
+
+    if (existingConfig.responseRules === null) {
+        consola.info('🔐 No response rules found! Seeding default response rules...');
+        await prisma.subscriptionSettings.update({
+            where: { uuid: existingConfig.uuid },
+            data: { responseRules: ResponseRulesDefaultConfig },
+        });
+
+        consola.success('🔐 Default response rules seeded!');
+        return;
+    }
+
+    consola.info('Existing SRR hash:', hash(existingConfig.responseRules));
+    consola.info('Default SRR hash:', hash(ResponseRulesDefaultConfig));
+    consola.info('Previous SRR hash:', PreviousResponseRulesConfigHash);
+
+    if (PreviousResponseRulesConfigHash === hash(existingConfig.responseRules)) {
+        consola.info('User have old default response rules... is default one is newer?');
+        if (PreviousResponseRulesConfigHash !== hash(ResponseRulesDefaultConfig)) {
+            consola.info(
+                'Default response rules have been changed... updating to new default response rules...',
+            );
+            await prisma.subscriptionSettings.update({
+                where: { uuid: existingConfig.uuid },
+                data: { responseRules: ResponseRulesDefaultConfig },
+            });
+        }
+    }
+
+    consola.success('🔐 Response rules seeded!');
 }
 
 async function seedDefaultConfigProfile() {
@@ -980,6 +654,108 @@ async function syncInbounds() {
     consola.success('Inbounds synced successfully');
 }
 
+async function seedRemnawaveSettings() {
+    const DEFAULT_PASSKEY_SETTINGS: TRemnawavePasskeySettings = {
+        enabled: false,
+        rpId: null,
+        origin: null,
+    };
+
+    const DEFAULT_OAUTH2_SETTINGS: TOauth2Settings = {
+        github: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+        },
+        pocketid: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            plainDomain: null,
+            allowedEmails: [],
+        },
+        yandex: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedEmails: [],
+        },
+    };
+
+    const DEFAULT_TG_AUTH_SETTINGS: TTgAuthSettings = {
+        enabled: false,
+        botToken: null,
+        adminIds: [],
+    };
+
+    const DEFAULT_PASSWORD_AUTH_SETTINGS: TPasswordAuthSettings = {
+        enabled: true,
+    };
+
+    const settingsMapping = {
+        passkeySettings: DEFAULT_PASSKEY_SETTINGS,
+        oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
+        tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
+        passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
+    };
+
+    const DEFAULT_BRANDING_SETTINGS: TBrandingSettings = {
+        title: null,
+        logoUrl: null,
+    };
+
+    const existingConfig = await prisma.remnawaveSettings.findFirst();
+    if (existingConfig) {
+        for (const [key, value] of Object.entries(settingsMapping)) {
+            if (existingConfig[key as keyof RemnawaveSettings] === null) {
+                await prisma.remnawaveSettings.update({
+                    where: { id: existingConfig.id },
+                    data: { [key]: value },
+                });
+            } else {
+                if (key === 'passkeySettings') {
+                    if (!PasskeySettingsSchema.safeParse(existingConfig.passkeySettings).success) {
+                        consola.warn(`${key} is not valid! Falling back to default...`);
+                        await prisma.remnawaveSettings.update({
+                            where: { id: existingConfig.id },
+                            data: { [key]: DEFAULT_PASSKEY_SETTINGS },
+                        });
+                        consola.success(`${key} updated to default!`);
+                        consola.info('Enabling password authentication...');
+                        await prisma.remnawaveSettings.update({
+                            where: { id: existingConfig.id },
+                            data: { passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS },
+                        });
+                        consola.success('Password authentication enabled!');
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+    if (!existingConfig) {
+        const defaultRemnawaveSettings = new RemnawaveSettingsEntity({
+            passkeySettings: DEFAULT_PASSKEY_SETTINGS,
+            oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
+            tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
+            passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
+            brandingSettings: DEFAULT_BRANDING_SETTINGS,
+        });
+
+        await prisma.remnawaveSettings.create({
+            data: defaultRemnawaveSettings,
+        });
+
+        consola.success('🔐 Remnawave settings seeded!');
+
+        return;
+    }
+
+    consola.success('🔐 Remnawave settings seeded!');
+}
+
 async function checkDatabaseConnection() {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -1018,6 +794,8 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function seedAll() {
     let isConnected = false;
 
+    // console.log('ResponseRulesDefaultConfig hash:', hash(ResponseRulesDefaultConfig));
+
     while (!isConnected) {
         isConnected = await checkDatabaseConnection();
 
@@ -1025,12 +803,14 @@ async function seedAll() {
             await clearRedis();
             consola.start('Database connected. Starting seeding...');
             await fixOldMigrations();
+            await seedRemnawaveSettings();
             await seedSubscriptionTemplate();
             await seedDefaultConfigProfile();
             await syncInbounds();
             await seedDefaultInternalSquad();
             await seedSubscriptionSettings();
             await seedKeygen();
+            await seedResponseRules();
             break;
         } else {
             consola.info('Failed to connect to database. Retrying in 5 seconds...');

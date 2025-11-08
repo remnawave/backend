@@ -37,6 +37,8 @@ export class CreateHostResponseModel {
         configProfileInboundUuid: string | null;
     };
 
+    public nodes: string[];
+
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
 
@@ -69,5 +71,7 @@ export class CreateHostResponseModel {
             configProfileUuid: data.configProfileUuid,
             configProfileInboundUuid: data.configProfileInboundUuid,
         };
+
+        this.nodes = data.nodes.map((node) => node.nodeUuid);
     }
 }

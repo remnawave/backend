@@ -1,5 +1,7 @@
 import { SubscriptionSettings } from '@prisma/client';
 
+import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
+
 export class SubscriptionSettingsEntity implements SubscriptionSettings {
     uuid: string;
     profileTitle: string;
@@ -20,6 +22,8 @@ export class SubscriptionSettingsEntity implements SubscriptionSettings {
     customResponseHeaders: Record<string, string> | null;
 
     randomizeHosts: boolean;
+
+    responseRules: TResponseRulesConfig | null;
 
     createdAt: Date;
     updatedAt: Date;

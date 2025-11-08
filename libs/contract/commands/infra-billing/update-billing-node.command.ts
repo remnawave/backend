@@ -11,11 +11,11 @@ export namespace UpdateInfraBillingNodeCommand {
     export const endpointDetails = getEndpointDetails(
         INFRA_BILLING_ROUTES.UPDATE_BILLING_NODE,
         'patch',
-        'Update infra billing node',
+        'Update infra billing nodes',
     );
 
     export const RequestSchema = z.object({
-        uuid: z.string().uuid(),
+        uuids: z.array(z.string().uuid()),
         nextBillingAt: z
             .string({
                 invalid_type_error: 'Invalid date format',

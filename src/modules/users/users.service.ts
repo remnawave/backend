@@ -12,6 +12,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { ICommandResponse } from '@common/types/command-response.type';
+import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
@@ -99,7 +100,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.CREATED,
-                new UserEvent(user.response, EVENTS.USER.CREATED),
+                new UserEvent({
+                    user: user.response,
+                    event: EVENTS.USER.CREATED,
+                }),
             );
             return {
                 isOk: true,
@@ -139,13 +143,6 @@ export class UsersService {
             const user = await this.updateUserTransactional(dto);
 
             if (!user.isOk || !user.response) {
-                if (user.code === 'A025') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.USER_NOT_FOUND,
-                    };
-                }
-
                 return {
                     isOk: false,
                     ...ERRORS.UPDATE_USER_ERROR,
@@ -163,7 +160,8 @@ export class UsersService {
 
             if (
                 user.response.user.status === USERS_STATUS.ACTIVE &&
-                user.response.isNeedToBeAddedToNode
+                user.response.isNeedToBeAddedToNode &&
+                !user.response.isNeedToBeRemovedFromNode
             ) {
                 this.eventBus.publish(new AddUserToNodeEvent(user.response.user.uuid));
             }
@@ -179,7 +177,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.MODIFIED,
-                new UserEvent(user.response.user, EVENTS.USER.MODIFIED),
+                new UserEvent({
+                    user: user.response.user,
+                    event: EVENTS.USER.MODIFIED,
+                }),
             );
 
             return {
@@ -190,6 +191,23 @@ export class UsersService {
                 },
             };
         } catch (error) {
+            if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
+                return {
+                    isOk: false,
+                    ...ERRORS.USER_NOT_FOUND,
+                };
+            }
+
+            if (
+                error instanceof Error &&
+                error.message === ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code
+            ) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
+                };
+            }
+
             this.logger.error(error);
 
             return { isOk: false, ...ERRORS.UPDATE_USER_ERROR };
@@ -206,18 +224,13 @@ export class UsersService {
     > {
         try {
             const {
-                uuid,
                 username,
-                expireAt,
+                uuid,
                 trafficLimitBytes,
-                trafficLimitStrategy,
-                status,
-                description,
                 telegramId,
-                email,
-                hwidDeviceLimit,
-                tag,
                 activeInternalSquads,
+                status,
+                ...rest
             } = dto;
 
             const userCriteria = uuid ? { uuid } : { username };
@@ -228,60 +241,56 @@ export class UsersService {
             });
 
             if (!user) {
-                throw new Error(ERRORS.USER_NOT_FOUND.message);
+                throw new Error(ERRORS.USER_NOT_FOUND.code);
             }
 
-            let newStatus = status;
+            const newUserEntity = new BaseUserEntity({
+                ...rest,
+                uuid: user.uuid,
+                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
+                telegramId: wrapBigIntNullable(telegramId),
+                lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
+            });
 
-            let isNeedToBeAddedToNode =
-                user.status !== USERS_STATUS.ACTIVE && status === USERS_STATUS.ACTIVE;
+            let isNeedToBeAddedToNode = false;
+            let isNeedToBeRemovedFromNode = false;
 
-            let isNeedToBeRemovedFromNode = status === USERS_STATUS.DISABLED;
+            if (user.status !== 'ACTIVE' && status === 'ACTIVE') {
+                isNeedToBeAddedToNode = true;
+                newUserEntity.status = 'ACTIVE';
+            }
+
+            if (user.status === 'ACTIVE' && status === 'DISABLED') {
+                isNeedToBeRemovedFromNode = true;
+                newUserEntity.status = 'DISABLED';
+            }
 
             if (trafficLimitBytes !== undefined) {
-                if (user.status === USERS_STATUS.LIMITED && trafficLimitBytes >= 0) {
+                if (user.status === 'LIMITED' && trafficLimitBytes >= 0) {
                     if (
                         BigInt(trafficLimitBytes) > user.trafficLimitBytes ||
                         trafficLimitBytes === 0
                     ) {
-                        newStatus = USERS_STATUS.ACTIVE;
+                        newUserEntity.status = 'ACTIVE';
                         isNeedToBeAddedToNode = true;
                     }
                 }
             }
 
-            if (user.status === USERS_STATUS.EXPIRED && expireAt && !status) {
-                const newExpireDate = dayjs.utc(expireAt);
-                const currentExpireDate = dayjs.utc(user.expireAt);
+            if (user.status === 'EXPIRED' && dto.expireAt && !dto.status) {
                 const now = dayjs.utc();
+                const newExpireDate = dayjs.utc(dto.expireAt);
+                const currentExpireDate = dayjs.utc(user.expireAt);
 
                 if (!currentExpireDate.isSame(newExpireDate)) {
                     if (newExpireDate.isAfter(now)) {
-                        newStatus = USERS_STATUS.ACTIVE;
+                        newUserEntity.status = 'ACTIVE';
                         isNeedToBeAddedToNode = true;
                     }
                 }
             }
 
-            const result = await this.userRepository.update({
-                uuid: user.uuid,
-                expireAt: expireAt ? new Date(expireAt) : undefined,
-                trafficLimitBytes:
-                    trafficLimitBytes !== undefined ? BigInt(trafficLimitBytes) : undefined,
-                trafficLimitStrategy: trafficLimitStrategy || undefined,
-                status: newStatus || undefined,
-                description: description,
-                telegramId:
-                    telegramId !== undefined
-                        ? telegramId === null
-                            ? null
-                            : BigInt(telegramId)
-                        : undefined,
-                email: email,
-                hwidDeviceLimit: hwidDeviceLimit,
-                tag: tag,
-                lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
-            });
+            const result = await this.userRepository.update(newUserEntity);
 
             if (activeInternalSquads) {
                 const newActiveInternalSquadsUuids = activeInternalSquads;
@@ -322,7 +331,7 @@ export class UsersService {
             );
 
             if (!userWithInbounds) {
-                throw new Error(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.message);
+                throw new Error(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code);
             }
 
             return {
@@ -361,6 +370,7 @@ export class UsersService {
                 hwidDeviceLimit,
                 tag,
                 activeInternalSquads,
+                externalSquadUuid,
                 uuid,
             } = dto;
 
@@ -371,18 +381,18 @@ export class UsersService {
                 vlessUuid: vlessUuid || this.createUuid(),
                 ssPassword: ssPassword || this.createSSPassword(),
                 status,
-                trafficLimitBytes:
-                    trafficLimitBytes !== undefined ? BigInt(trafficLimitBytes) : undefined,
+                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
                 trafficLimitStrategy,
-                email: email || null,
-                telegramId: telegramId ? BigInt(telegramId) : null,
-                expireAt: new Date(expireAt),
-                createdAt: createdAt ? new Date(createdAt) : undefined,
-                lastTrafficResetAt: lastTrafficResetAt ? new Date(lastTrafficResetAt) : undefined,
-                description: description || undefined,
+                email: email,
+                telegramId: wrapBigIntNullable(telegramId),
+                expireAt: expireAt,
+                createdAt: createdAt,
+                lastTrafficResetAt: lastTrafficResetAt,
+                description: description,
                 hwidDeviceLimit: hwidDeviceLimit,
                 tag: tag,
-                uuid: uuid || undefined,
+                uuid: uuid,
+                externalSquadUuid: externalSquadUuid,
             });
 
             const result = await this.userRepository.create(userEntity);
@@ -590,7 +600,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.REVOKED,
-                new UserEvent(updatedUser, EVENTS.USER.REVOKED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.REVOKED,
+                }),
             );
 
             return {
@@ -627,7 +640,13 @@ export class UsersService {
 
             this.eventBus.publish(new RemoveUserFromNodeEvent(user.username, user.vlessUuid));
 
-            this.eventEmitter.emit(EVENTS.USER.DELETED, new UserEvent(user, EVENTS.USER.DELETED));
+            this.eventEmitter.emit(
+                EVENTS.USER.DELETED,
+                new UserEvent({
+                    user,
+                    event: EVENTS.USER.DELETED,
+                }),
+            );
             return {
                 isOk: true,
                 response: new DeleteUserResponseModel(result),
@@ -685,7 +704,10 @@ export class UsersService {
             );
             this.eventEmitter.emit(
                 EVENTS.USER.DISABLED,
-                new UserEvent(updatedUser, EVENTS.USER.DISABLED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.DISABLED,
+                }),
             );
 
             return {
@@ -747,7 +769,10 @@ export class UsersService {
 
             this.eventEmitter.emit(
                 EVENTS.USER.ENABLED,
-                new UserEvent(updatedUser, EVENTS.USER.ENABLED),
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.ENABLED,
+                }),
             );
 
             return {
@@ -826,13 +851,19 @@ export class UsersService {
             if (user.status === USERS_STATUS.LIMITED) {
                 this.eventEmitter.emit(
                     EVENTS.USER.ENABLED,
-                    new UserEvent(newUser, EVENTS.USER.ENABLED),
+                    new UserEvent({
+                        user: newUser,
+                        event: EVENTS.USER.ENABLED,
+                    }),
                 );
             }
 
             this.eventEmitter.emit(
                 EVENTS.USER.TRAFFIC_RESET,
-                new UserEvent(newUser, EVENTS.USER.TRAFFIC_RESET),
+                new UserEvent({
+                    user: newUser,
+                    event: EVENTS.USER.TRAFFIC_RESET,
+                }),
             );
 
             return {
@@ -1021,14 +1052,8 @@ export class UsersService {
             await this.userRepository.bulkUpdateAllUsers({
                 ...dto,
                 lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
-                trafficLimitBytes:
-                    dto.trafficLimitBytes !== undefined ? BigInt(dto.trafficLimitBytes) : undefined,
-                telegramId:
-                    dto.telegramId !== undefined
-                        ? dto.telegramId === null
-                            ? null
-                            : BigInt(dto.telegramId)
-                        : undefined,
+                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                telegramId: wrapBigIntNullable(dto.telegramId),
                 hwidDeviceLimit: dto.hwidDeviceLimit,
             });
 

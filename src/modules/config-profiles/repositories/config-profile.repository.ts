@@ -14,8 +14,8 @@ import { getKyselyUuid } from '@common/helpers';
 
 import { ConfigProfileWithInboundsAndNodesEntity } from '../entities/config-profile-with-inbounds-and-nodes.entity';
 import { ConfigProfileInboundEntity } from '../entities/config-profile-inbound.entity';
+import { ConfigProfileConverter } from '../converters/config-profile.converter';
 import { ConfigProfileEntity } from '../entities/config-profile.entity';
-import { ConfigProfileConverter } from '../config-profile.converter';
 import { ConfigProfileInboundWithSquadsEntity } from '../entities';
 
 @Injectable()
