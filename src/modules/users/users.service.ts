@@ -21,6 +21,8 @@ import { UserEvent } from '@integration-modules/notifications/interfaces';
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
 import { CreateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/create-user-traffic-history';
 import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
+import { GetUsersSubscriptionUrlQuery } from '@modules/subscription/queries/get-users-subscription-url';
+import { GetSubscriptionUrlQuery } from '@modules/subscription/queries/get-subscription-url';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
@@ -73,12 +75,23 @@ export class UsersService {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }
 
-    public async createUser(dto: CreateUserRequestDto): Promise<ICommandResponse<UserEntity>> {
+    public async createUser(
+        dto: CreateUserRequestDto,
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.createUserTransactional(dto);
 
             if (!user.isOk || !user.response) {
-                return user;
+                return { ...user, response: undefined };
+            }
+
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                user.response.shortUuid,
+                user.response.username,
+            );
+
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
             }
 
             if (user.response.status === USERS_STATUS.ACTIVE) {
@@ -92,7 +105,13 @@ export class UsersService {
                     event: EVENTS.USER.CREATED,
                 }),
             );
-            return user;
+            return {
+                isOk: true,
+                response: {
+                    user: user.response,
+                    subscriptionUrl: subscriptionUrlResult.response,
+                },
+            };
         } catch (error) {
             this.logger.error(error);
             if (
@@ -117,7 +136,9 @@ export class UsersService {
         }
     }
 
-    public async updateUser(dto: UpdateUserRequestDto): Promise<ICommandResponse<UserEntity>> {
+    public async updateUser(
+        dto: UpdateUserRequestDto,
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.updateUserTransactional(dto);
 
@@ -126,6 +147,15 @@ export class UsersService {
                     isOk: false,
                     ...ERRORS.UPDATE_USER_ERROR,
                 };
+            }
+
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                user.response.user.shortUuid,
+                user.response.user.username,
+            );
+
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
             }
 
             if (
@@ -155,7 +185,10 @@ export class UsersService {
 
             return {
                 isOk: true,
-                response: user.response.user,
+                response: {
+                    user: user.response.user,
+                    subscriptionUrl: subscriptionUrlResult.response,
+                },
             };
         } catch (error) {
             if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
@@ -408,16 +441,23 @@ export class UsersService {
         ICommandResponse<{
             total: number;
             users: UserEntity[];
+            subscriptionUrls: Record<string, string>;
         }>
     > {
         try {
             const [users, total] = await this.userRepository.getAllUsersV2(dto);
+
+            const subscriptionUrlsResult = await this.getUsersSubscriptionUrl(users);
+            if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
+                return { ...subscriptionUrlsResult, response: undefined };
+            }
 
             return {
                 isOk: true,
                 response: {
                     users,
                     total,
+                    subscriptionUrls: subscriptionUrlsResult.response,
                 },
             };
         } catch (error) {
@@ -431,7 +471,7 @@ export class UsersService {
 
     public async getUserByUniqueFields(
         dto: IGetUserByUnique,
-    ): Promise<ICommandResponse<UserEntity>> {
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const result = await this.userRepository.findUniqueByCriteria({
                 username: dto.username || undefined,
@@ -446,9 +486,17 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                result.shortUuid,
+                result.username,
+            );
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
+            }
+
             return {
                 isOk: true,
-                response: result,
+                response: { user: result, subscriptionUrl: subscriptionUrlResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -461,7 +509,9 @@ export class UsersService {
 
     public async getUsersByNonUniqueFields(
         dto: IGetUsersByTelegramIdOrEmail,
-    ): Promise<ICommandResponse<UserEntity[]>> {
+    ): Promise<
+        ICommandResponse<{ users: UserEntity[]; subscriptionUrls: Record<string, string> }>
+    > {
         try {
             const result = await this.userRepository.findByNonUniqueCriteria({
                 email: dto.email || undefined,
@@ -476,9 +526,14 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlsResult = await this.getUsersSubscriptionUrl(result);
+            if (!subscriptionUrlsResult.isOk || !subscriptionUrlsResult.response) {
+                return { ...subscriptionUrlsResult, response: undefined };
+            }
+
             return {
                 isOk: true,
-                response: result,
+                response: { users: result, subscriptionUrls: subscriptionUrlsResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -492,7 +547,7 @@ export class UsersService {
     public async revokeUserSubscription(
         userUuid: string,
         shortUuid?: string,
-    ): Promise<ICommandResponse<UserEntity>> {
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
@@ -531,6 +586,14 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
+            }
+
             if (updatedUser.status === USERS_STATUS.ACTIVE) {
                 this.eventBus.publish(new AddUserToNodeEvent(updatedUser.uuid, user.vlessUuid));
             }
@@ -545,7 +608,7 @@ export class UsersService {
 
             return {
                 isOk: true,
-                response: updatedUser,
+                response: { user: updatedUser, subscriptionUrl: subscriptionUrlResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -594,7 +657,9 @@ export class UsersService {
         }
     }
 
-    public async disableUser(userUuid: string): Promise<ICommandResponse<UserEntity>> {
+    public async disableUser(
+        userUuid: string,
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
@@ -626,6 +691,14 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
+            }
+
             this.eventBus.publish(
                 new RemoveUserFromNodeEvent(updatedUser.username, updatedUser.vlessUuid),
             );
@@ -639,7 +712,7 @@ export class UsersService {
 
             return {
                 isOk: true,
-                response: updatedUser,
+                response: { user: updatedUser, subscriptionUrl: subscriptionUrlResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -650,7 +723,9 @@ export class UsersService {
         }
     }
 
-    public async enableUser(userUuid: string): Promise<ICommandResponse<UserEntity>> {
+    public async enableUser(
+        userUuid: string,
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
@@ -682,6 +757,14 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                updatedUser.shortUuid,
+                updatedUser.username,
+            );
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
+            }
+
             this.eventBus.publish(new AddUserToNodeEvent(user.uuid));
 
             this.eventEmitter.emit(
@@ -694,7 +777,7 @@ export class UsersService {
 
             return {
                 isOk: true,
-                response: updatedUser,
+                response: { user: updatedUser, subscriptionUrl: subscriptionUrlResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -706,7 +789,9 @@ export class UsersService {
     }
 
     @Transactional()
-    public async resetUserTraffic(userUuid: string): Promise<ICommandResponse<UserEntity>> {
+    public async resetUserTraffic(
+        userUuid: string,
+    ): Promise<ICommandResponse<{ user: UserEntity; subscriptionUrl: string }>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
@@ -755,6 +840,14 @@ export class UsersService {
                 };
             }
 
+            const subscriptionUrlResult = await this.getSubscriptionUrl(
+                newUser.shortUuid,
+                newUser.username,
+            );
+            if (!subscriptionUrlResult.isOk || !subscriptionUrlResult.response) {
+                return { ...subscriptionUrlResult, response: undefined };
+            }
+
             if (user.status === USERS_STATUS.LIMITED) {
                 this.eventEmitter.emit(
                     EVENTS.USER.ENABLED,
@@ -775,7 +868,7 @@ export class UsersService {
 
             return {
                 isOk: true,
-                response: newUser,
+                response: { user: newUser, subscriptionUrl: subscriptionUrlResult.response },
             };
         } catch (error) {
             this.logger.error(error);
@@ -1178,4 +1271,22 @@ export class UsersService {
             ICommandResponse<IGetUserUsageByRange[]>
         >(new GetUserUsageByRangeQuery(userUuid, start, end));
     }
+
+    private getSubscriptionUrl = async (
+        shortUuid: string,
+        username: string,
+    ): Promise<ICommandResponse<string>> => {
+        return this.queryBus.execute<GetSubscriptionUrlQuery, ICommandResponse<string>>(
+            new GetSubscriptionUrlQuery(shortUuid, username),
+        );
+    };
+
+    private getUsersSubscriptionUrl = async (
+        users: Pick<UserEntity, 'shortUuid' | 'username'>[],
+    ): Promise<ICommandResponse<Record<string, string>>> => {
+        return this.queryBus.execute<
+            GetUsersSubscriptionUrlQuery,
+            ICommandResponse<Record<string, string>>
+        >(new GetUsersSubscriptionUrlQuery(users));
+    };
 }

@@ -29,7 +29,7 @@ export class TemplateEngine {
     static formatWithUser(
         template: string,
         user: UserEntity,
-        subPublicDomain: string,
+        subscriptionLink: string,
         forHeader: boolean = false,
     ): string {
         return this.replace(template, {
@@ -43,7 +43,7 @@ export class TemplateEngine {
             USERNAME: user.username,
             EMAIL: user.email || '',
             TELEGRAM_ID: user.telegramId?.toString() || '',
-            SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
+            SUBSCRIPTION_URL: subscriptionLink,
             TAG: user.tag || '',
             EXPIRE_UNIX: dayjs(user.expireAt).unix(),
         });

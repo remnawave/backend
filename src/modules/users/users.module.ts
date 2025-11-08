@@ -1,7 +1,7 @@
 import { CqrsModule } from '@nestjs/cqrs';
 import { Module } from '@nestjs/common';
 
-import { UsersController, UsersBulkActionsController, UsersStatsController } from './controllers';
+import { UsersBulkActionsController, UsersController, UsersStatsController } from './controllers';
 import { UsersRepository } from './repositories/users.repository';
 import { UserConverter } from './users.converter';
 import { UsersService } from './users.service';

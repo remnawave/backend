@@ -44,7 +44,7 @@ export class CreateUserResponseModel {
         cryptoLink: string;
     };
 
-    constructor(entity: UserEntity, subPublicDomain: string) {
+    constructor(entity: UserEntity, subscriptionUrl: string) {
         this.uuid = entity.uuid;
         this.username = entity.username;
         this.shortUuid = entity.shortUuid;
@@ -75,7 +75,7 @@ export class CreateUserResponseModel {
         this.firstConnectedAt = entity.firstConnectedAt;
         this.lastTriggeredThreshold = entity.lastTriggeredThreshold;
 
-        this.subscriptionUrl = `https://${subPublicDomain}/${entity.shortUuid}`;
+        this.subscriptionUrl = subscriptionUrl;
 
         this.activeInternalSquads = entity.activeInternalSquads;
         this.lastConnectedNode = entity.lastConnectedNode;

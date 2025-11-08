@@ -9,6 +9,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import {
     GrpcObject,
     HttpUpgradeObject,
+    RawObject,
     StreamSettingsObject,
     TcpObject,
     WebSocketObject,
@@ -19,7 +20,6 @@ import {
     resolveInboundAndMlDsa65PublicKey,
     resolveInboundAndPublicKey,
 } from '@common/helpers/xray-config';
-import { RawObject } from '@common/helpers/xray-config/interfaces/transport.config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { InboundObject } from '@common/helpers/xray-config/interfaces';
@@ -28,6 +28,7 @@ import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
+import { resolveSubscriptionUrl } from '@modules/subscription/utils/resolve-subscription-url';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
 import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
@@ -64,12 +65,20 @@ export class FormatHostsService {
 
         let specialRemarks: string[] = [];
 
-        if (user.status !== USERS_STATUS.ACTIVE) {
-            const settings = await this.getSubscriptionSettings();
-            if (!settings) {
-                return formattedHosts;
-            }
+        const settings = await this.getSubscriptionSettings();
 
+        if (!settings) {
+            return formattedHosts;
+        }
+
+        const subscriptionUrl = resolveSubscriptionUrl(
+            user.shortUuid,
+            user.username,
+            settings?.addUsernameToBaseSubscription,
+            this.subPublicDomain,
+        );
+
+        if (user.status !== USERS_STATUS.ACTIVE) {
             if (settings.isShowCustomRemarks) {
                 switch (user.status) {
                     case USERS_STATUS.EXPIRED:
@@ -84,7 +93,7 @@ export class FormatHostsService {
                 }
 
                 const templatedRemarks = specialRemarks.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    TemplateEngine.formatWithUser(remark, user, subscriptionUrl),
                 );
 
                 formattedHosts.push(...this.createFallbackHosts(templatedRemarks));
@@ -146,11 +155,7 @@ export class FormatHostsService {
                 }
             }
 
-            const remark = TemplateEngine.formatWithUser(
-                inputHost.remark,
-                user,
-                this.subPublicDomain,
-            );
+            const remark = TemplateEngine.formatWithUser(inputHost.remark, user, subscriptionUrl);
 
             const currentCount = knownRemarks.get(remark) || 0;
             knownRemarks.set(remark, currentCount + 1);
