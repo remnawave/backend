@@ -28,7 +28,7 @@ export class GetCachedSubscriptionSettingsHandler
                 CACHE_KEYS.SUBSCRIPTION_SETTINGS,
             );
 
-            if (cached !== undefined) {
+            if (cached) {
                 return cached;
             }
 

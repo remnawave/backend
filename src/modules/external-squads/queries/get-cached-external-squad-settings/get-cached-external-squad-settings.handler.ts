@@ -23,12 +23,14 @@ export class GetCachedExternalSquadSettingsHandler
 
     async execute(query: GetCachedExternalSquadSettingsQuery) {
         try {
-            const cached = await this.cacheManager.get<Pick<
-                ExternalSquadEntity,
-                'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
-            > | null>(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(query.externalSquadUuid));
+            const cached = await this.cacheManager.get<
+                Pick<
+                    ExternalSquadEntity,
+                    'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
+                >
+            >(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(query.externalSquadUuid));
 
-            if (cached !== undefined) {
+            if (cached) {
                 return cached;
             }
 
