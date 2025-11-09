@@ -1014,4 +1014,9 @@ export const ERRORS = {
         message: 'Reset node traffic error',
         httpCode: 500,
     },
+    UPDATE_PASSKEY_ERROR: {
+        code: 'A202',
+        message: 'Update passkey error',
+        httpCode: 500,
+    },
 } as const;
