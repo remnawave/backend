@@ -5,6 +5,7 @@ import {
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
 } from './external-squads';
+import { HwidSettingsSchema } from './subscription-settings/hwid-settings.schema';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 
 export const ExternalSquadSchema = z.object({
@@ -24,6 +25,7 @@ export const ExternalSquadSchema = z.object({
     subscriptionSettings: z.nullable(ExternalSquadSubscriptionSettingsSchema),
     hostOverrides: z.nullable(ExternalSquadHostOverridesSchema),
     responseHeaders: ExternalSquadResponseHeadersSchema,
+    hwidSettings: z.nullable(HwidSettingsSchema),
 
     createdAt: z
         .string()

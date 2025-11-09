@@ -1,6 +1,8 @@
+import { THwidSettings } from '@libs/contracts/models';
+
 import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
 
-import { SubscriptionSettingsEntity } from '../entities/subscription-settings.entity';
+import { SubscriptionSettingsEntity } from '../entities';
 
 export class SubscriptionSettingsResponseModel {
     public uuid: string;
@@ -22,6 +24,7 @@ export class SubscriptionSettingsResponseModel {
     public randomizeHosts: boolean;
 
     public responseRules: TResponseRulesConfig | null;
+    public hwidSettings: THwidSettings | null;
 
     public createdAt: Date;
     public updatedAt: Date;
@@ -43,6 +46,7 @@ export class SubscriptionSettingsResponseModel {
         this.customResponseHeaders = entity.customResponseHeaders;
         this.randomizeHosts = entity.randomizeHosts;
         this.responseRules = entity.responseRules;
+        this.hwidSettings = entity.hwidSettings;
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;
     }

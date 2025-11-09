@@ -33,7 +33,7 @@ const entityToModel = (entity: SubscriptionSettingsEntity): SubscriptionSettings
         randomizeHosts: entity.randomizeHosts,
 
         responseRules: entity.responseRules,
-
+        hwidSettings: entity.hwidSettings,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

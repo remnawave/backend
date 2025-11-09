@@ -21,6 +21,7 @@ import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/re
 import {
     PasskeySettingsSchema,
     TBrandingSettings,
+    THwidSettings,
     TOauth2Settings,
     TPasswordAuthSettings,
     TRemnawavePasskeySettings,
@@ -34,6 +35,12 @@ const hash = hasher({
         object: true,
     },
 }).hash;
+
+const DEFAULT_HWID_SETTINGS: THwidSettings = {
+    enabled: false,
+    fallbackDeviceLimit: 999,
+    maxDevicesAnnounce: null,
+};
 
 export const XTLSDefaultConfig = {
     log: {
@@ -278,6 +285,15 @@ async function seedSubscriptionSettings() {
     const existingConfig = await prisma.subscriptionSettings.findFirst();
 
     if (existingConfig) {
+        if (existingConfig.hwidSettings === null) {
+            await prisma.subscriptionSettings.update({
+                where: { uuid: existingConfig.uuid },
+                data: { hwidSettings: DEFAULT_HWID_SETTINGS },
+            });
+
+            consola.success('🔐 Default HWID Settings have been seeded!');
+        }
+
         consola.info('Default subscription settings already seeded!');
         return;
     }
@@ -299,6 +315,7 @@ async function seedSubscriptionSettings() {
             addUsernameToBaseSubscription: false,
             isShowCustomRemarks: true,
             randomizeHosts: false,
+            hwidSettings: DEFAULT_HWID_SETTINGS,
         },
     });
 }

@@ -16,7 +16,7 @@ export class GetExternalSquadSettingsHandler
             GetExternalSquadSettingsQuery,
             ICommandResponse<Pick<
                 ExternalSquadEntity,
-                'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+                'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
             > | null>
         >
 {
@@ -28,7 +28,7 @@ export class GetExternalSquadSettingsHandler
     ): Promise<
         ICommandResponse<Pick<
             ExternalSquadEntity,
-            'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+            'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
         > | null>
     > {
         try {

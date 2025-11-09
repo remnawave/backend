@@ -81,6 +81,8 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
             disabledUsersRemarks: __disabledUsersRemarks,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             customResponseHeaders: __customResponseHeaders,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            hwidSettings: __hwidSettings,
             ...rest
         } = model;
         const list = await this.prisma.tx.subscriptionSettings.findMany({

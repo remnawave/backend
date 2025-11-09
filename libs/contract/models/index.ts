@@ -22,6 +22,7 @@ export * from './response-rules';
 export * from './snippets.schema';
 export * from './subscription-info.schema';
 export * from './subscription-request-history.schema';
+export * from './subscription-settings';
 export * from './subscription-settings.schema';
 export * from './tanstack-query';
 export * from './users.schema';

@@ -1,4 +1,5 @@
-import { Cache } from 'cache-manager';
+import type { Cache } from 'cache-manager';
+
 import dayjs from 'dayjs';
 import pMap from 'p-map';
 import _ from 'lodash';
@@ -14,20 +15,14 @@ import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
 import { createHappCryptoLink } from '@common/utils';
-import {
-    CACHE_KEYS,
-    ERRORS,
-    EVENTS,
-    RESPONSE_RULES_RESPONSE_TYPES,
-    TSubscriptionTemplateType,
-    USERS_STATUS,
-} from '@libs/contracts/constants';
+import { ERRORS, EVENTS, TSubscriptionTemplateType, USERS_STATUS } from '@libs/contracts/constants';
+import { THwidSettings } from '@libs/contracts/models';
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
+import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
-import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
-import { GetExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-external-squad-settings';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
 import { FormatHostsService } from '@modules/subscription-template/generators/format-hosts.service';
@@ -55,16 +50,14 @@ import {
 import { UpdateSubLastOpenedAndUserAgentCommand } from '../users/commands/update-sub-last-opened-and-user-agent';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
 import { HostWithRawInbound } from '../hosts/entities/host-with-inbound-tag.entity';
-import { ISubscriptionHeaders } from './interfaces/subscription-headers.interface';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
+import { ISubscriptionHeaders, IGetSubscriptionInfo } from './interfaces';
 import { GetAllSubscriptionsQueryDto } from './dto';
 
 @Injectable()
 export class SubscriptionService {
     private readonly logger = new Logger(SubscriptionService.name);
-    private readonly hwidDeviceLimitEnabled: boolean;
     private readonly subPublicDomain: string;
-    private readonly hwidFallbackDeviceLimit: number | undefined;
 
     constructor(
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -77,12 +70,7 @@ export class SubscriptionService {
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly userSubscriptionRequestHistoryQueue: UserSubscriptionRequestHistoryQueueService,
     ) {
-        this.hwidDeviceLimitEnabled =
-            this.configService.getOrThrow<string>('HWID_DEVICE_LIMIT_ENABLED') === 'true';
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
-        this.hwidFallbackDeviceLimit = this.configService.get<number | undefined>(
-            'HWID_FALLBACK_DEVICE_LIMIT',
-        );
     }
 
     public async getSubscriptionByShortUuid(
@@ -92,6 +80,24 @@ export class SubscriptionService {
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
         try {
+            const { userAgent, hwidHeaders, matchedResponseType, isXrayExtSupported } = srrContext;
+
+            if (matchedResponseType === 'BROWSER') {
+                const subscriptionInfo = await this.getSubscriptionInfo({
+                    searchBy: {
+                        uniqueFieldKey: 'shortUuid',
+                        uniqueField: shortUuid,
+                    },
+                    authenticated: false,
+                });
+
+                if (!subscriptionInfo.isOk || !subscriptionInfo.response) {
+                    return new SubscriptionNotFoundResponse();
+                }
+
+                return subscriptionInfo.response;
+            }
+
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
                     {
@@ -103,11 +109,10 @@ export class SubscriptionService {
                     },
                 ),
             );
+
             if (!user.isOk || !user.response) {
                 return new SubscriptionNotFoundResponse();
             }
-
-            const { userAgent, hwidHeaders, matchedResponseType, isXrayExtSupported } = srrContext;
 
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
@@ -131,43 +136,22 @@ export class SubscriptionService {
                 }
             }
 
-            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
-            // Override subscription settings with External Squad subscription settings
-            if (user.response.externalSquadUuid) {
-                const externalSquadSubscriptionSettings = await this.queryBus.execute(
-                    new GetExternalSquadSettingsQuery(user.response.externalSquadUuid),
+            const { subscriptionSettings: patchedSubscriptionSettings, hostsOverrides } =
+                await this.applyMaybeExternalSquadOverrides(
+                    srrContext.subscriptionSettings,
+                    user.response.externalSquadUuid,
                 );
 
-                if (
-                    externalSquadSubscriptionSettings.isOk &&
-                    externalSquadSubscriptionSettings.response
-                ) {
-                    if (externalSquadSubscriptionSettings.response.subscriptionSettings !== null) {
-                        srrContext.subscriptionSettings = {
-                            ...srrContext.subscriptionSettings,
-                            ...externalSquadSubscriptionSettings.response.subscriptionSettings,
-                        };
-                    }
-
-                    if (externalSquadSubscriptionSettings.response.hostOverrides !== null) {
-                        hostsOverrides = externalSquadSubscriptionSettings.response.hostOverrides;
-                    }
-
-                    if (
-                        externalSquadSubscriptionSettings.response.responseHeaders !== null &&
-                        Object.keys(externalSquadSubscriptionSettings.response.responseHeaders)
-                            .length > 0
-                    ) {
-                        srrContext.subscriptionSettings.customResponseHeaders =
-                            externalSquadSubscriptionSettings.response.responseHeaders;
-                    }
-                }
-            }
+            srrContext.subscriptionSettings = patchedSubscriptionSettings;
 
             const subscriptionSettings = srrContext.subscriptionSettings;
 
-            if (this.hwidDeviceLimitEnabled) {
-                const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);
+            if (subscriptionSettings.hwidSettings.enabled) {
+                const isAllowed = await this.checkHwidDeviceLimit(
+                    user.response,
+                    hwidHeaders,
+                    subscriptionSettings.hwidSettings,
+                );
 
                 if (
                     isAllowed.isOk &&
@@ -184,26 +168,18 @@ export class SubscriptionService {
                         contentType: 'text/plain',
                     });
 
-                    response.headers.announce = `base64:${Buffer.from(
-                        this.configService.getOrThrow<string>('HWID_MAX_DEVICES_ANNOUNCE'),
-                    ).toString('base64')}`;
+                    if (subscriptionSettings.hwidSettings.maxDevicesAnnounce) {
+                        response.headers.announce = `base64:${Buffer.from(
+                            subscriptionSettings.hwidSettings.maxDevicesAnnounce,
+                        ).toString('base64')}`;
+                    }
+
                     response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     return response;
                 }
             } else {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
-            }
-
-            if (matchedResponseType === RESPONSE_RULES_RESPONSE_TYPES.BROWSER) {
-                const subscriptionInfo = await this.getSubscriptionInfoByShortUuid(
-                    user.response.shortUuid,
-                    subscriptionSettings,
-                );
-                if (!subscriptionInfo.isOk || !subscriptionInfo.response) {
-                    return new SubscriptionNotFoundResponse();
-                }
-                return subscriptionInfo.response;
             }
 
             const hosts = await this.getHostsByUserUuid({
@@ -274,7 +250,9 @@ export class SubscriptionService {
                 };
             }
 
-            const settingEntity = await this.getCachedSubscriptionSettings();
+            const settingEntity = await this.queryBus.execute(
+                new GetCachedSubscriptionSettingsQuery(),
+            );
 
             if (!settingEntity) {
                 return {
@@ -283,25 +261,40 @@ export class SubscriptionService {
                 };
             }
 
+            const {
+                subscriptionSettings: patchedSettingEntity,
+                hostsOverrides: patchedHostsOverrides,
+            } = await this.applyMaybeExternalSquadOverrides(
+                settingEntity,
+                user.response.externalSquadUuid,
+            );
+
             let isHwidLimited: boolean | undefined;
 
             const headers = await this.getUserProfileHeadersInfo(
                 user.response,
                 /^Happ\//.test(userAgent),
-                settingEntity,
+                patchedSettingEntity,
             );
 
-            if (this.hwidDeviceLimitEnabled) {
-                const isAllowed = await this.checkHwidDeviceLimit(user.response, hwidHeaders);
+            if (patchedSettingEntity.hwidSettings.enabled) {
+                const isAllowed = await this.checkHwidDeviceLimit(
+                    user.response,
+                    hwidHeaders,
+                    patchedSettingEntity.hwidSettings,
+                );
 
                 if (
                     isAllowed.isOk &&
                     isAllowed.response &&
                     !isAllowed.response.isSubscriptionAllowed
                 ) {
-                    headers.announce = `base64:${Buffer.from(
-                        this.configService.getOrThrow<string>('HWID_MAX_DEVICES_ANNOUNCE'),
-                    ).toString('base64')}`;
+                    if (patchedSettingEntity.hwidSettings.maxDevicesAnnounce) {
+                        headers.announce = `base64:${Buffer.from(
+                            patchedSettingEntity.hwidSettings.maxDevicesAnnounce,
+                        ).toString('base64')}`;
+                    }
+
                     headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     isHwidLimited = true;
@@ -337,6 +330,7 @@ export class SubscriptionService {
                 subscription = await this.renderTemplatesService.generateRawSubscription({
                     user: user.response,
                     hosts: hosts.response,
+                    hostsOverrides: patchedHostsOverrides,
                 });
             }
 
@@ -423,77 +417,104 @@ export class SubscriptionService {
         }
     }
 
-    public async getSubscriptionInfoByShortUuid(
-        shortUuid: string,
-        settingEntity?: SubscriptionSettingsEntity,
-        authenticatedFromBrowser: boolean = false,
+    public async getSubscriptionInfo(
+        params: IGetSubscriptionInfo,
     ): Promise<ICommandResponse<SubscriptionRawResponse>> {
         try {
-            const user = await this.queryBus.execute(
-                new GetUserByUniqueFieldQuery(
-                    {
-                        shortUuid,
-                    },
-                    {
-                        activeInternalSquads: true,
-                        lastConnectedNode: false,
-                    },
-                ),
-            );
+            const { searchBy, authenticated } = params;
 
-            if (!user.isOk || !user.response) {
+            let userEntity: UserEntity | undefined;
+
+            if (!userEntity && searchBy) {
+                const user = await this.queryBus.execute(
+                    new GetUserByUniqueFieldQuery(
+                        {
+                            [searchBy.uniqueFieldKey]: searchBy.uniqueField,
+                        },
+                        {
+                            activeInternalSquads: false,
+                            lastConnectedNode: false,
+                        },
+                    ),
+                );
+
+                if (!user.isOk || !user.response) {
+                    return {
+                        isOk: false,
+                        ...ERRORS.USER_NOT_FOUND,
+                    };
+                }
+
+                userEntity = user.response;
+            }
+
+            if (!userEntity) {
                 return {
                     isOk: false,
                     ...ERRORS.USER_NOT_FOUND,
                 };
             }
 
+            let settings: SubscriptionSettingsEntity | null = null;
+            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
+
+            if (params.overrides) {
+                settings = params.overrides.subscriptionSettings;
+                hostsOverrides = params.overrides.hostsOverrides;
+            } else if (params.subscriptionSettingsRaw) {
+                settings = params.subscriptionSettingsRaw;
+            } else {
+                settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
+            }
+
+            if (!settings) {
+                return {
+                    isOk: false,
+                    ...ERRORS.INTERNAL_SERVER_ERROR,
+                };
+            }
+
+            if (userEntity.externalSquadUuid && !params.overrides) {
+                const {
+                    subscriptionSettings: patchedSubscriptionSettings,
+                    hostsOverrides: patchedHostsOverrides,
+                } = await this.applyMaybeExternalSquadOverrides(
+                    settings,
+                    userEntity.externalSquadUuid,
+                );
+
+                settings = patchedSubscriptionSettings;
+                hostsOverrides = patchedHostsOverrides;
+            }
+
             let formattedHosts: IFormattedHost[] = [];
             let xrayLinks: string[] = [];
             let ssConfLinks: Record<string, string> = {};
 
-            if (!this.hwidDeviceLimitEnabled || authenticatedFromBrowser) {
+            if (!settings.hwidSettings.enabled || authenticated) {
                 const hostsResponse = await this.getHostsByUserUuid({
-                    userUuid: user.response.uuid,
+                    userUuid: userEntity.uuid,
                     returnDisabledHosts: false,
                     returnHiddenHosts: false,
                 });
 
                 formattedHosts = await this.formatHostsService.generateFormattedHosts({
                     hosts: hostsResponse.response || [],
-                    user: user.response,
+                    user: userEntity,
+                    hostsOverrides,
                 });
 
                 xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
 
-                ssConfLinks = await this.generateSsConfLinks(
-                    user.response.shortUuid,
-                    formattedHosts,
-                );
-            }
-
-            let settings: SubscriptionSettingsEntity;
-            if (!settingEntity) {
-                const settingsResponse = await this.getCachedSubscriptionSettings();
-
-                if (!settingsResponse) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.INTERNAL_SERVER_ERROR,
-                    };
-                }
-
-                settings = settingsResponse;
-            } else {
-                settings = settingEntity;
+                ssConfLinks = await this.generateSsConfLinks(userEntity.shortUuid, formattedHosts);
             }
 
             return {
                 isOk: true,
-                response: await this.getUserInfo(user.response, xrayLinks, ssConfLinks, settings),
+                response: await this.getUserInfo(userEntity, xrayLinks, ssConfLinks, settings),
             };
         } catch (error) {
-            this.logger.error(`Error getting subscription info by short uuid: ${error}`);
+            this.logger.error(`Error getting subscription info: ${error}`);
             return {
                 isOk: false,
                 ...ERRORS.INTERNAL_SERVER_ERROR,
@@ -560,7 +581,7 @@ export class SubscriptionService {
             const users = usersResponse.response.users;
             const total = usersResponse.response.total;
 
-            const settings = await this.getCachedSubscriptionSettings();
+            const settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
 
             if (!settings) {
                 return {
@@ -574,31 +595,19 @@ export class SubscriptionService {
             await pMap(
                 users,
                 async (user) => {
-                    const hosts = await this.getHostsByUserUuid({
-                        userUuid: user.uuid,
-                        returnDisabledHosts: false,
-                        returnHiddenHosts: false,
-                    });
-                    const formattedHosts = await this.formatHostsService.generateFormattedHosts({
-                        hosts: hosts.response || [],
-                        user: user,
+                    const subscriptionInfo = await this.getSubscriptionInfo({
+                        userEntity: user,
+                        authenticated: true,
+                        subscriptionSettingsRaw: settings,
                     });
 
-                    const xrayLinks = this.xrayGeneratorService.generateLinks(
-                        formattedHosts,
-                        false,
-                    );
+                    if (!subscriptionInfo.isOk || !subscriptionInfo.response) {
+                        return;
+                    }
 
-                    const ssConfLinks = await this.generateSsConfLinks(
-                        user.shortUuid,
-                        formattedHosts,
-                    );
-
-                    subscriptions.push(
-                        await this.getUserInfo(user, xrayLinks, ssConfLinks, settings),
-                    );
+                    subscriptions.push(subscriptionInfo.response);
                 },
-                { concurrency: 100 },
+                { concurrency: 70 },
             );
 
             return {
@@ -613,56 +622,6 @@ export class SubscriptionService {
             return {
                 isOk: false,
                 ...ERRORS.GETTING_ALL_SUBSCRIPTIONS_ERROR,
-            };
-        }
-    }
-
-    public async getSubscriptionByUniqueField(
-        uniqueField: string,
-        uniqueFieldKey: 'username' | 'shortUuid' | 'uuid',
-    ): Promise<ICommandResponse<SubscriptionRawResponse>> {
-        try {
-            const user = await this.queryBus.execute(
-                new GetUserByUniqueFieldQuery(
-                    {
-                        [uniqueFieldKey]: uniqueField,
-                    },
-                    {
-                        activeInternalSquads: false,
-                        lastConnectedNode: false,
-                    },
-                ),
-            );
-
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
-            }
-
-            const result = await this.getSubscriptionInfoByShortUuid(
-                user.response.shortUuid,
-                undefined,
-                true,
-            );
-
-            if (!result.isOk || !result.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
-            }
-
-            return {
-                isOk: true,
-                response: result.response,
-            };
-        } catch (error) {
-            this.logger.error(`Error getting subscription by username: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
             };
         }
     }
@@ -742,6 +701,67 @@ export class SubscriptionService {
         return headers;
     }
 
+    private async applyMaybeExternalSquadOverrides(
+        subscriptionSettings: SubscriptionSettingsEntity,
+        externalSquadUuid: string | null | undefined,
+    ): Promise<{
+        subscriptionSettings: SubscriptionSettingsEntity;
+        hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
+    }> {
+        let patchedSubscriptionSettings: SubscriptionSettingsEntity = subscriptionSettings;
+
+        try {
+            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined = undefined;
+
+            if (externalSquadUuid !== null && externalSquadUuid !== undefined) {
+                const externalSquadSubscriptionSettings = await this.queryBus.execute(
+                    new GetCachedExternalSquadSettingsQuery(externalSquadUuid),
+                );
+
+                if (externalSquadSubscriptionSettings !== null) {
+                    // Host overrides
+                    if (externalSquadSubscriptionSettings.hostOverrides !== null) {
+                        hostsOverrides = externalSquadSubscriptionSettings.hostOverrides;
+                    }
+
+                    // Subscription settings override
+                    if (externalSquadSubscriptionSettings.subscriptionSettings !== null) {
+                        patchedSubscriptionSettings = {
+                            ...patchedSubscriptionSettings,
+                            ...externalSquadSubscriptionSettings.subscriptionSettings,
+                        };
+                    }
+
+                    // Response headers override
+                    if (
+                        externalSquadSubscriptionSettings.responseHeaders !== null &&
+                        Object.keys(externalSquadSubscriptionSettings.responseHeaders).length > 0
+                    ) {
+                        patchedSubscriptionSettings.customResponseHeaders =
+                            externalSquadSubscriptionSettings.responseHeaders;
+                    }
+
+                    // HWID settings override
+                    if (externalSquadSubscriptionSettings.hwidSettings !== null) {
+                        patchedSubscriptionSettings.hwidSettings =
+                            externalSquadSubscriptionSettings.hwidSettings;
+                    }
+                }
+            }
+
+            return {
+                subscriptionSettings: patchedSubscriptionSettings,
+                hostsOverrides,
+            };
+        } catch (error) {
+            this.logger.error(`Error applying external squad overrides: ${error}`);
+            return {
+                subscriptionSettings: patchedSubscriptionSettings,
+                hostsOverrides: undefined,
+            };
+        }
+    }
+
     private async getUsersWithPagination(
         dto: GetUsersWithPaginationQuery,
     ): Promise<ICommandResponse<{ users: UserEntity[]; total: number }>> {
@@ -757,30 +777,6 @@ export class SubscriptionService {
         return this.queryBus.execute<GetHostsForUserQuery, ICommandResponse<HostWithRawInbound[]>>(
             new GetHostsForUserQuery(dto.userUuid, dto.returnDisabledHosts, dto.returnHiddenHosts),
         );
-    }
-
-    private async getSubscriptionSettings(): Promise<ICommandResponse<SubscriptionSettingsEntity>> {
-        return this.queryBus.execute<
-            GetSubscriptionSettingsQuery,
-            ICommandResponse<SubscriptionSettingsEntity>
-        >(new GetSubscriptionSettingsQuery());
-    }
-
-    private async getCachedSubscriptionSettings(): Promise<SubscriptionSettingsEntity | null> {
-        const cached = await this.cacheManager.get<SubscriptionSettingsEntity>(
-            CACHE_KEYS.SUBSCRIPTION_SETTINGS,
-        );
-        if (cached) {
-            return cached;
-        }
-
-        const settings = await this.getSubscriptionSettings();
-        if (!settings.isOk || !settings.response) {
-            return null;
-        }
-
-        await this.cacheManager.set(CACHE_KEYS.SUBSCRIPTION_SETTINGS, settings.response, 3_600_000);
-        return settings.response;
     }
 
     private async updateSubLastOpenedAndUserAgent(
@@ -826,6 +822,7 @@ export class SubscriptionService {
     private async checkHwidDeviceLimit(
         user: UserEntity,
         hwidHeaders: HwidHeaders | null,
+        hwidSettings: THwidSettings,
     ): Promise<
         ICommandResponse<{
             isSubscriptionAllowed: boolean;
@@ -877,7 +874,7 @@ export class SubscriptionService {
 
             const count = await this.countHwidUserDevices({ userUuid: user.uuid });
 
-            const deviceLimit = user.hwidDeviceLimit ?? this.hwidFallbackDeviceLimit ?? 0;
+            const deviceLimit = user.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
             if (!count.isOk || count.response === undefined) {
                 return { isOk: true, response: { isSubscriptionAllowed: false } };

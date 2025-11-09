@@ -1,6 +1,10 @@
 import { z } from 'zod';
 
-import { ResponseRulesConfigSchema, SubscriptionSettingsSchema } from '../../models';
+import {
+    HwidSettingsSchema,
+    ResponseRulesConfigSchema,
+    SubscriptionSettingsSchema,
+} from '../../models';
 import { REST_API, SUBSCRIPTION_SETTINGS_ROUTES } from '../../api';
 import { getEndpointDetails } from '../../constants';
 
@@ -52,6 +56,7 @@ export namespace UpdateSubscriptionSettingsCommand {
         randomizeHosts: z.optional(z.boolean()),
 
         responseRules: z.optional(ResponseRulesConfigSchema),
+        hwidSettings: z.optional(HwidSettingsSchema),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

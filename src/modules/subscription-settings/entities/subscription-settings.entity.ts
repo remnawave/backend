@@ -1,5 +1,7 @@
 import { SubscriptionSettings } from '@prisma/client';
 
+import { THwidSettings } from '@libs/contracts/models';
+
 import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
 
 export class SubscriptionSettingsEntity implements SubscriptionSettings {
@@ -24,6 +26,7 @@ export class SubscriptionSettingsEntity implements SubscriptionSettings {
     randomizeHosts: boolean;
 
     responseRules: TResponseRulesConfig | null;
+    hwidSettings: THwidSettings;
 
     createdAt: Date;
     updatedAt: Date;

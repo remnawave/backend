@@ -355,6 +355,7 @@ model SubscriptionSettings {
   customResponseHeaders         Json?   @map("custom_response_headers")
   randomizeHosts                Boolean @default(false) @map("randomize_hosts")
   responseRules                 Json?   @map("response_rules")
+  hwidSettings                  Json?   @map("hwid_settings")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
@@ -550,6 +551,8 @@ model ExternalSquads {
   subscriptionSettings Json?  @map("subscription_settings")
   hostOverrides        Json?  @map("host_overrides")
   responseHeaders      Json?  @map("response_headers")
+
+  hwidSettings Json? @map("hwid_settings")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")

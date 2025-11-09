@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { HwidSettingsSchema } from './subscription-settings/hwid-settings.schema';
 import { ResponseRulesConfigSchema } from './response-rules';
 
 export const SubscriptionSettingsSchema = z.object({
@@ -29,6 +30,8 @@ export const SubscriptionSettingsSchema = z.object({
     randomizeHosts: z.boolean(),
 
     responseRules: z.nullable(ResponseRulesConfigSchema),
+
+    hwidSettings: z.nullable(HwidSettingsSchema),
 
     createdAt: z
         .string()

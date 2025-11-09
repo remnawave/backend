@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { XrayJsonGeneratorService } from './generators/xray-json.generator.service';
@@ -123,14 +124,16 @@ export class RenderTemplatesService {
     public async generateRawSubscription(params: {
         user: UserEntity;
         hosts: HostWithRawInbound[];
+        hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
     }): Promise<{
         rawHosts: IRawHost[];
     }> {
-        const { user, hosts } = params;
+        const { user, hosts, hostsOverrides } = params;
 
         const formattedHosts = await this.formatHostsService.generateFormattedHosts({
             hosts,
             user,
+            hostsOverrides,
             returnDbHost: true,
         });
 

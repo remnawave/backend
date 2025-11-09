@@ -1,21 +1,10 @@
 import { Request, Response } from 'express';
 
-import {
-    Controller,
-    Get,
-    HttpStatus,
-    Param,
-    Req,
-    Res,
-    UseFilters,
-    UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Req, Res, UseFilters } from '@nestjs/common';
 import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { PublicHttpExceptionFilter } from '@common/exception/public-http-exception.filter';
-import { OptionalJwtGuard } from '@common/guards/jwt-guards/optional-jwt-guard';
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
-import { GetOptionalAuth } from '@common/decorators/get-optional-auth';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { GetSrrContext } from '@common/decorators/get-srr-context';
 import { Endpoint } from '@common/decorators/base-endpoint';
@@ -60,16 +49,16 @@ export class SubscriptionController {
         command: GetSubscriptionInfoByShortUuidCommand,
         httpCode: HttpStatus.OK,
     })
-    @UseGuards(OptionalJwtGuard)
     async getSubscriptionInfoByShortUuid(
         @Param() { shortUuid }: GetSubscriptionInfoRequestDto,
-        @GetOptionalAuth() authenticatedFromBrowser: boolean,
     ): Promise<GetSubscriptionInfoResponseDto> {
-        const result = await this.subscriptionService.getSubscriptionInfoByShortUuid(
-            shortUuid,
-            undefined,
-            authenticatedFromBrowser,
-        );
+        const result = await this.subscriptionService.getSubscriptionInfo({
+            searchBy: {
+                uniqueField: shortUuid,
+                uniqueFieldKey: 'shortUuid',
+            },
+            authenticated: false,
+        });
 
         const data = errorHandler(result);
         return {

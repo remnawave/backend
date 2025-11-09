@@ -1,10 +1,13 @@
+import type { Cache } from 'cache-manager';
+
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { ICommandResponse } from '@common/types/command-response.type';
-import { TSubscriptionTemplateType } from '@libs/contracts/constants';
+import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { ExternalSquadActionsQueueService } from '@queue/external-squad-actions';
@@ -26,6 +29,7 @@ export class ExternalSquadService {
     constructor(
         private readonly externalSquadRepository: ExternalSquadRepository,
         private readonly externalSquadActionsQueueService: ExternalSquadActionsQueueService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
     public async getExternalSquads(): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
@@ -107,7 +111,15 @@ export class ExternalSquadService {
     public async updateExternalSquad(
         dto: UpdateExternalSquadRequestDto,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
-        const { uuid, name, templates, subscriptionSettings, hostOverrides, responseHeaders } = dto;
+        const {
+            uuid,
+            name,
+            templates,
+            subscriptionSettings,
+            hostOverrides,
+            responseHeaders,
+            hwidSettings,
+        } = dto;
 
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
@@ -124,7 +136,8 @@ export class ExternalSquadService {
                 !templates &&
                 !subscriptionSettings &&
                 !hostOverrides &&
-                !responseHeaders
+                !responseHeaders &&
+                hwidSettings === undefined
             ) {
                 return {
                     isOk: false,
@@ -132,19 +145,20 @@ export class ExternalSquadService {
                 };
             }
 
-            if (name || subscriptionSettings || hostOverrides || responseHeaders) {
-                await this.externalSquadRepository.update({
-                    uuid,
-                    name: name || undefined,
-                    subscriptionSettings: subscriptionSettings || undefined,
-                    hostOverrides: hostOverrides || undefined,
-                    responseHeaders: responseHeaders || undefined,
-                });
-            }
+            await this.externalSquadRepository.update({
+                uuid,
+                name: name || undefined,
+                subscriptionSettings: subscriptionSettings || undefined,
+                hostOverrides: hostOverrides || undefined,
+                responseHeaders: responseHeaders || undefined,
+                hwidSettings: hwidSettings,
+            });
 
             if (templates !== undefined) {
                 await this.syncExternalSquadTemplates(externalSquad, templates);
             }
+
+            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
 
             return await this.getExternalSquadByUuid(externalSquad.uuid);
         } catch (error) {
