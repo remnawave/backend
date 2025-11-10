@@ -10,5 +10,6 @@ export const TEMPLATE_KEYS = [
     'SUBSCRIPTION_URL',
     'TAG',
     'EXPIRE_UNIX',
+    'SHORT_UUID',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];

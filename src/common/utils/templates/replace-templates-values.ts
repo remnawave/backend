@@ -46,6 +46,7 @@ export class TemplateEngine {
             SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
             TAG: user.tag || '',
             EXPIRE_UNIX: dayjs(user.expireAt).unix(),
+            SHORT_UUID: user.shortUuid,
         });
     }
 }
