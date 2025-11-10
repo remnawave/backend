@@ -24,7 +24,7 @@ import { RecordUserUsageJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.recordUserUsage, {
-    concurrency: 100,
+    concurrency: 50,
 })
 export class RecordUserUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordUserUsageQueueProcessor.name);
@@ -109,12 +109,12 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
                     const totalBytes = xrayUser.downlink + xrayUser.uplink;
 
-                    const userUuid = userResponse.response;
+                    const { uuid, tId } = userResponse.response;
 
                     allUsageRecords.push(
                         new NodesUserUsageHistoryEntity({
                             nodeUuid,
-                            userUuid,
+                            userUuid: uuid,
                             totalBytes: BigInt(totalBytes),
                             uploadBytes: BigInt(xrayUser.uplink),
                             downloadBytes: BigInt(xrayUser.downlink),
@@ -122,7 +122,7 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
                     );
 
                     userUsageList.push({
-                        u: userUuid,
+                        u: tId.toString(),
                         b: this.multiplyConsumption(consumptionMultiplier, totalBytes).toString(),
                         n: nodeUuid,
                     });

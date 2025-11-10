@@ -1214,10 +1214,13 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         ).as('activeInternalSquads');
     }
 
-    public async getUserUuidByUsername(username: string): Promise<string | null> {
+    public async getUserUuidByUsername(
+        username: string,
+    ): Promise<{ uuid: string; tId: bigint } | null> {
         const result = await this.qb.kysely
             .selectFrom('users')
-            .select('uuid')
+            .select(['uuid'])
+            .select(sql.ref<bigint>('t_id').as('tId'))
             .where('username', '=', username)
             .executeTakeFirst();
 
@@ -1225,7 +1228,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             return null;
         }
 
-        return result.uuid;
+        return { uuid: result.uuid, tId: result.tId };
     }
 
     public async findNotConnectedUsers(startDate: Date, endDate: Date): Promise<UserEntity[]> {

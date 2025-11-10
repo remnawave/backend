@@ -34,7 +34,7 @@ export class UpdateUsersUsageQueueService
         await this.checkConnection();
     }
 
-    public async updateUserUsage(payload: Array<{ u: string; b: string; n: string }>) {
+    public async updateUserUsage(payload: { u: string; b: string; n: string }[]) {
         const chunks = this.chunks(payload, 1500);
         for await (const chunk of chunks) {
             await this.addJob(UpdateUsersUsageJobNames.UpdateUsersUsage, chunk, {

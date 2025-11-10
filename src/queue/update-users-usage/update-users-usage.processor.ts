@@ -14,7 +14,7 @@ import { UpdateUsersUsageJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.updateUsersUsage, {
-    concurrency: 1,
+    concurrency: 10,
 })
 export class UpdateUsersUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(UpdateUsersUsageQueueProcessor.name);
