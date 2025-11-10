@@ -24,7 +24,7 @@ RUN if [ "$BRANCH" = "dev" ]; then \
     mkdir -p frontend_crowdin_temp/dist; \
     fi
 
-FROM node:22.18.0-alpine AS backend-build
+FROM node:22.21-alpine AS backend-build
 WORKDIR /opt/app
 
 # RUN apk add python3 python3-dev build-base pkgconfig libunwind-dev
@@ -49,7 +49,7 @@ RUN npm cache clean --force
 
 RUN npm prune --omit=dev
 
-FROM node:22.18.0-alpine
+FROM node:22.21-alpine
 WORKDIR /opt/app
 
 ARG BRANCH=main
