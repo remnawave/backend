@@ -23,6 +23,7 @@ export class GetUserByUniqueFieldHandler
                     username: query.field.username || undefined,
                     shortUuid: query.field.shortUuid || undefined,
                     uuid: query.field.uuid || undefined,
+                    tId: query.field.tId || undefined,
                 },
                 query.includeOptions,
             );

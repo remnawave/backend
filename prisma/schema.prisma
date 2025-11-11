@@ -48,7 +48,7 @@ model RemnawaveSettings {
 
 model Users {
   uuid      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tId       BigInt @unique @default(autoincrement()) @map("t_id") @ignore
+  tId       BigInt @unique @default(autoincrement()) @map("t_id")
   shortUuid String @unique @map("short_uuid")
   username  String @unique @map("username")
 

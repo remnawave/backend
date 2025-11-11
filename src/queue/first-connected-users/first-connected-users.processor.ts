@@ -39,14 +39,14 @@ export class FirstConnectedUsersQueueProcessor extends WorkerHost {
         return { isOk: true };
     }
 
-    private async handleFirstConnectedUsers(job: Job<{ uuid: string }>) {
+    private async handleFirstConnectedUsers(job: Job<{ tId: string }>) {
         try {
-            const userUuids = job.data;
+            const { tId } = job.data;
 
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
                     {
-                        uuid: userUuids.uuid,
+                        tId: BigInt(tId),
                     },
                     {
                         activeInternalSquads: true,

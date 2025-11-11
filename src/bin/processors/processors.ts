@@ -1,3 +1,7 @@
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+};
+
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { createLogger } from 'winston';
 import * as winston from 'winston';

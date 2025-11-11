@@ -14,7 +14,7 @@ import { UpdateUsersUsageJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.updateUsersUsage, {
-    concurrency: 10,
+    concurrency: 1,
 })
 export class UpdateUsersUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(UpdateUsersUsageQueueProcessor.name);
@@ -68,10 +68,10 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
 
     private async bulkIncrementUsedTraffic(
         dto: BulkIncrementUsedTrafficCommand,
-    ): Promise<ICommandResponse<{ uuid: string }[]>> {
+    ): Promise<ICommandResponse<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             BulkIncrementUsedTrafficCommand,
-            ICommandResponse<{ uuid: string }[]>
+            ICommandResponse<{ tId: bigint }[]>
         >(new BulkIncrementUsedTrafficCommand(dto.userUsageList));
     }
 }

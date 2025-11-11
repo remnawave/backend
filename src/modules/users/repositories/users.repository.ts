@@ -71,9 +71,11 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
 
     public async bulkIncrementUsedTraffic(
         userUsageList: { u: string; b: string; n: string }[],
-    ): Promise<{ uuid: string }[]> {
+    ): Promise<{ tId: bigint }[]> {
         const { query } = new BulkUpdateUserUsedTrafficBuilder(userUsageList);
-        return await this.prisma.tx.$queryRaw<{ uuid: string }[]>(query);
+        const result = await this.prisma.tx.$queryRaw<{ tId: bigint }[]>(query);
+
+        return result;
     }
 
     public async triggerThresholdNotifications(percentages: number[]): Promise<{ uuid: string }[]> {
@@ -507,7 +509,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async findUniqueByCriteria(
-        dto: Partial<Pick<BaseUserEntity, 'uuid' | 'shortUuid' | 'username'>>,
+        dto: Partial<Pick<BaseUserEntity, 'uuid' | 'shortUuid' | 'username' | 'tId'>>,
         includeOptions: {
             activeInternalSquads: boolean;
             lastConnectedNode: boolean;
@@ -531,6 +533,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                 if (dto.uuid) conditions.push(eb('uuid', '=', getKyselyUuid(dto.uuid)));
                 if (dto.shortUuid) conditions.push(eb('shortUuid', '=', dto.shortUuid));
                 if (dto.username) conditions.push(eb('username', '=', dto.username));
+                if (dto.tId) conditions.push(eb('tId', '=', dto.tId));
 
                 return eb.or(conditions);
             })

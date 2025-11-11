@@ -37,13 +37,13 @@ export class FirstConnectedUsersQueueService
 
     public async addFirstConnectedUsersBulkJob(
         users: {
-            uuid: string;
+            tId: bigint;
         }[],
     ) {
         return this.addBulk(
             users.map((user) => ({
                 name: FirstConnectedUsersJobNames.handleFirstConnectedUsers,
-                data: { uuid: user.uuid },
+                data: { tId: user.tId.toString() },
                 options: {
                     removeOnComplete: true,
                     removeOnFail: true,
