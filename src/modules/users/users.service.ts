@@ -45,7 +45,6 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
 } from './dtos';
-import { UpdateStatusAndTrafficAndResetAtCommand } from './commands/update-status-and-traffic-and-reset-at';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
@@ -726,11 +725,11 @@ export class UsersService {
                 this.eventBus.publish(new AddUserToNodeEvent(user.uuid));
             }
 
-            await this.updateUserStatusAndTrafficAndResetAt({
-                userUuid: user.uuid,
-                lastResetAt: new Date(),
+            await this.userRepository.updateStatusAndTrafficAndResetAt(
+                user.uuid,
+                new Date(),
                 status,
-            });
+            );
 
             await this.createUserUsageHistory({
                 userTrafficHistory: new UserTrafficHistoryEntity({
@@ -1149,15 +1148,6 @@ export class UsersService {
         const nanoid = customAlphabet(alphabet, 32);
 
         return nanoid();
-    }
-
-    private async updateUserStatusAndTrafficAndResetAt(
-        dto: UpdateStatusAndTrafficAndResetAtCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<
-            UpdateStatusAndTrafficAndResetAtCommand,
-            ICommandResponse<void>
-        >(new UpdateStatusAndTrafficAndResetAtCommand(dto.userUuid, dto.lastResetAt, dto.status));
     }
 
     private async createUserUsageHistory(

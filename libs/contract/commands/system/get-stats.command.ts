@@ -41,7 +41,6 @@ export namespace GetStatsCommand {
                     z.number(),
                 ),
                 totalUsers: z.number(),
-                totalTrafficBytes: z.string(),
             }),
             onlineStats: z.object({
                 lastDay: z.number(),

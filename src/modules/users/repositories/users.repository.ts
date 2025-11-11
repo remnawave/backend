@@ -58,17 +58,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         return this.userConverter.fromPrismaModelToEntity(result);
     }
 
-    public async incrementUsedTraffic(userUuid: string, bytes: bigint): Promise<void> {
-        await this.prisma.tx.users.update({
-            where: { uuid: userUuid },
-            data: {
-                usedTrafficBytes: { increment: bytes },
-                onlineAt: new Date(),
-                lifetimeUsedTrafficBytes: { increment: bytes },
-            },
-        });
-    }
-
     public async bulkIncrementUsedTraffic(
         userUsageList: { u: string; b: string; n: string }[],
     ): Promise<{ tId: bigint }[]> {
@@ -81,13 +70,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     public async triggerThresholdNotifications(percentages: number[]): Promise<{ uuid: string }[]> {
         const { query } = new TriggerThresholdNotificationsBuilder(percentages);
         return await this.prisma.tx.$queryRaw<{ uuid: string }[]>(query);
-    }
-
-    public async changeUserStatus(userUuid: string, status: TUsersStatus): Promise<void> {
-        await this.prisma.tx.users.update({
-            where: { uuid: userUuid },
-            data: { status },
-        });
     }
 
     public async updateStatusAndTrafficAndResetAt(
@@ -115,23 +97,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             where: { uuid: userUuid },
             data: { subLastOpenedAt, subLastUserAgent },
         });
-    }
-
-    public async findExceededTrafficUsers(): Promise<UserEntity[]> {
-        const result = await this.qb.kysely
-            .selectFrom('users')
-            .selectAll()
-            .select((eb) => [
-                this.includeActiveInternalSquads(eb),
-                this.includeLastConnectedNode(eb),
-            ])
-            .where('status', '=', USERS_STATUS.ACTIVE)
-            .where('trafficLimitBytes', '!=', 0n)
-            .where((eb) => eb('usedTrafficBytes', '>=', eb.ref('trafficLimitBytes')))
-
-            .execute();
-
-        return result.map((value) => new UserEntity(value));
     }
 
     public async updateExceededTrafficUsers(): Promise<{ uuid: string }[]> {
@@ -165,7 +130,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async findUsersByExpireAt(start: Date, end: Date): Promise<UserEntity[]> {
-        // TODO: check this
         const result = await this.qb.kysely
             .selectFrom('users')
             .selectAll()
@@ -602,25 +566,17 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async getUserStats(): Promise<IUserStats> {
-        const [statusCounts, totalTraffic] = await Promise.all([
-            this.prisma.tx.users.groupBy({
-                by: ['status'],
-                _count: {
-                    status: true,
+        const statusCounts = await this.prisma.tx.users.groupBy({
+            by: ['status'],
+            _count: {
+                status: true,
+            },
+            where: {
+                status: {
+                    in: Object.values(USERS_STATUS),
                 },
-                where: {
-                    status: {
-                        in: Object.values(USERS_STATUS),
-                    },
-                },
-            }),
-
-            this.prisma.tx.nodesUserUsageHistory.aggregate({
-                _sum: {
-                    totalBytes: true,
-                },
-            }),
-        ]);
+            },
+        });
 
         const formattedStatusCounts = Object.values(USERS_STATUS).reduce(
             (acc, status) => ({
@@ -638,7 +594,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         return {
             statusCounts: formattedStatusCounts,
             totalUsers,
-            totalTrafficBytes: totalTraffic._sum.totalBytes || BigInt(0),
         };
     }
 
@@ -649,19 +604,19 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             .selectFrom('users')
             .select((eb) => [
                 eb.fn
-                    .count('users.uuid')
+                    .count('users.tId')
                     .filterWhere('users.onlineAt', '>=', now.subtract(1, 'minute').toDate())
                     .as('onlineNow'),
                 eb.fn
-                    .count('users.uuid')
+                    .count('users.tId')
                     .filterWhere('users.onlineAt', '>=', now.subtract(1, 'day').toDate())
                     .as('lastDay'),
                 eb.fn
-                    .count('users.uuid')
+                    .count('users.tId')
                     .filterWhere('users.onlineAt', '>=', now.subtract(1, 'week').toDate())
                     .as('lastWeek'),
                 eb.fn
-                    .count('users.uuid')
+                    .count('users.tId')
                     .filterWhere('users.onlineAt', 'is', null)
                     .as('neverOnline'),
             ])
@@ -737,14 +692,14 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     'configProfileInbounds.uuid',
                     'internalSquadInbounds.inboundUuid',
                 )
-                .$if(lastTId !== null, (qb) => qb.where(sql.ref('users.t_id'), '>', lastTId!))
+                .$if(lastTId !== null, (qb) => qb.where('users.tId', '>', lastTId!))
                 .where(
                     'internalSquadInbounds.inboundUuid',
                     'in',
                     activeInbounds.map((inbound) => getKyselyUuid(inbound.uuid)),
                 )
                 .select((eb) => [
-                    sql.ref<bigint>('users.t_id').as('tId'),
+                    'users.tId',
                     'users.username',
                     'users.trojanPassword',
                     'users.vlessUuid',
@@ -756,7 +711,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     ),
                 ])
                 .groupBy([
-                    sql.ref<bigint>('users.t_id'),
+                    'users.tId',
                     'users.username',
                     'users.trojanPassword',
                     'users.vlessUuid',
@@ -948,10 +903,9 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async getPartialUserByUniqueFields<T extends SelectExpression<DB, 'users'>>(
-        dto: Partial<Pick<BaseUserEntity, 'uuid' | 'shortUuid' | 'username'>>,
+        dto: Partial<Pick<BaseUserEntity, 'uuid' | 'shortUuid' | 'username' | 'tId'>>,
         select: T[],
     ) {
-        // TODO: check this
         const user = await this.qb.kysely
             .selectFrom('users')
             .select(select)
@@ -961,6 +915,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                 if (dto.uuid) conditions.push(eb('uuid', '=', getKyselyUuid(dto.uuid)));
                 if (dto.shortUuid) conditions.push(eb('shortUuid', '=', dto.shortUuid));
                 if (dto.username) conditions.push(eb('username', '=', dto.username));
+                if (dto.tId) conditions.push(eb('tId', '=', dto.tId));
 
                 return eb.or(conditions);
             })
@@ -990,94 +945,9 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         return !!result;
     }
 
-    // public async getUserWithResolvedInbounds(
-    //     userUuid: string,
-    // ): Promise<UserWithResolvedInboundEntity> {
-    //     // TODO: check later
-    //     const result = await this.prisma.tx.tx.$kysely
-    //         .selectFrom('internalSquadMembers')
-    //         .innerJoin(
-    //             'internalSquads',
-    //             'internalSquadMembers.internalSquadUuid',
-    //             'internalSquads.uuid',
-    //         )
-    //         .innerJoin(
-    //             'internalSquadInbounds',
-    //             'internalSquads.uuid',
-    //             'internalSquadInbounds.internalSquadUuid',
-    //         )
-    //         .innerJoin(
-    //             'configProfileInbounds',
-    //             'internalSquadInbounds.inboundUuid',
-    //             'configProfileInbounds.uuid',
-    //         )
-    //         .innerJoin('users', 'internalSquadMembers.userUuid', 'users.uuid')
-    //         .select((eb) => [
-    //             'users.uuid as userUuid',
-    //             'users.username',
-    //             'users.trojanPassword',
-    //             'users.vlessUuid',
-    //             'users.ssPassword',
-    //             'configProfileInbounds.profileUuid',
-    //             'configProfileInbounds.uuid as inboundUuid',
-    //             'configProfileInbounds.tag',
-    //             'configProfileInbounds.type',
-    //             'configProfileInbounds.network',
-    //             'configProfileInbounds.security',
-    //             'configProfileInbounds.port',
-
-    //             // jsonObjectFrom(
-    //             //     eb
-    //             //         .selectFrom('configProfileInbounds')
-    //             //         .select([
-    //             //             'uuid',
-    //             //             'tag',
-    //             //             'type',
-    //             //             'network',
-    //             //             'security',
-    //             //             'port',
-    //             //             'profileUuid',
-    //             //         ])
-    //             //         .whereRef(
-    //             //             'configProfileInbounds.uuid',
-    //             //             '=',
-    //             //             'internalSquadInbounds.inboundUuid',
-    //             //         ),
-    //             // ).as('inbound'),
-    //         ])
-    //         .where('users.uuid', '=', getKyselyUuid(userUuid))
-    //         .execute();
-
-    //     if (result.length === 0) {
-    //         throw new Error('User not found or no inbounds');
-    //     }
-
-    //     const { userUuid: uuid, username, trojanPassword, vlessUuid, ssPassword } = result[0];
-
-    //     const inbounds = result.map((row) => ({
-    //         profileUuid: row.profileUuid,
-    //         inboundUuid: row.inboundUuid,
-    //         tag: row.tag,
-    //         type: row.type,
-    //         network: row.network,
-    //         security: row.security,
-    //         port: row.port,
-    //     }));
-
-    //     return new UserWithResolvedInboundEntity({
-    //         userUuid: uuid,
-    //         username,
-    //         trojanPassword,
-    //         vlessUuid,
-    //         ssPassword,
-    //         inbounds,
-    //     });
-    // }
-
     public async getUserWithResolvedInbounds(
         userUuid: string,
     ): Promise<UserWithResolvedInboundEntity | null> {
-        // TODO: check later
         const result = await this.qb.kysely
             .selectFrom('users')
             .select((eb) => [

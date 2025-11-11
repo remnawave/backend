@@ -22,7 +22,6 @@ interface IGetStatsResponseData {
     uptime: number;
     users: {
         statusCounts: Record<TUsersStatus, number>;
-        totalTrafficBytes: bigint;
         totalUsers: number;
     };
     nodes: {
@@ -46,7 +45,6 @@ export class GetStatsResponseModel {
     timestamp: number;
     users: {
         statusCounts: Record<TUsersStatus, number>;
-        totalTrafficBytes: string;
         totalUsers: number;
     };
     onlineStats: {
@@ -64,10 +62,7 @@ export class GetStatsResponseModel {
         this.memory = data.memory;
         this.uptime = data.uptime;
         this.timestamp = data.timestamp;
-        this.users = {
-            ...data.users,
-            totalTrafficBytes: data.users.totalTrafficBytes.toString(),
-        };
+        this.users = data.users;
         this.onlineStats = data.onlineStats;
         this.nodes = data.nodes;
     }

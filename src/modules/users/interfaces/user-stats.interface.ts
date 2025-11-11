@@ -9,7 +9,6 @@ export interface IUserOnlineStats {
 
 export interface IUserStats {
     statusCounts: Record<TUsersStatus, number>;
-    totalTrafficBytes: bigint;
     totalUsers: number;
 }
 

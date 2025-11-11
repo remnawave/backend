@@ -60,7 +60,7 @@ export class SystemService {
         private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
 
-    public async getStats(): Promise<ICommandResponse<any>> {
+    public async getStats(): Promise<ICommandResponse<GetStatsResponseModel>> {
         try {
             const userStats = await this.getShortUserStats();
             const onlineUsers = await this.getOnlineUsers();
