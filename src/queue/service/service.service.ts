@@ -30,4 +30,8 @@ export class ServiceQueueService extends AbstractQueueService implements OnAppli
     public async cleanOldUsageRecords(payload: Record<string, string>) {
         return this.addJob(ServiceJobNames.CLEAN_OLD_USAGE_RECORDS, payload);
     }
+
+    public async vacuumTables(payload: Record<string, string>) {
+        return this.addJob(ServiceJobNames.VACUUM_TABLES, payload);
+    }
 }
