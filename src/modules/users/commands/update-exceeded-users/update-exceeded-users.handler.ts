@@ -13,7 +13,7 @@ import { UsersRepository } from '../../repositories/users.repository';
 @CommandHandler(UpdateExceededTrafficUsersCommand)
 export class UpdateExceededTrafficUsersHandler
     implements
-        ICommandHandler<UpdateExceededTrafficUsersCommand, ICommandResponse<{ uuid: string }[]>>
+        ICommandHandler<UpdateExceededTrafficUsersCommand, ICommandResponse<{ tId: bigint }[]>>
 {
     public readonly logger = new Logger(UpdateExceededTrafficUsersHandler.name);
 
@@ -23,7 +23,7 @@ export class UpdateExceededTrafficUsersHandler
         maxWait: 20_000,
         timeout: 120_000,
     })
-    async execute(): Promise<ICommandResponse<{ uuid: string }[]>> {
+    async execute(): Promise<ICommandResponse<{ tId: bigint }[]>> {
         try {
             const result = await this.usersRepository.updateExceededTrafficUsers();
 

@@ -1,5 +1,3 @@
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -9,9 +7,6 @@ import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesUserUsageHistoryRepository } from './repositories/nodes-user-usage-history.repository';
 import { IGetNodesRealtimeUsage, IGetNodeUserUsageByRange } from './interfaces';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 @Injectable()
 export class NodesUserUsageHistoryService {

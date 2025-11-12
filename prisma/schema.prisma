@@ -7,7 +7,7 @@
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
-  // previewFeatures = ["queryCompiler", "driverAdapters"]
+  // previewFeatures = ["queryCompiler", "driverAdapters", "views"]
 }
 
 generator kysely {
@@ -47,66 +47,64 @@ model RemnawaveSettings {
 }
 
 model Users {
-  uuid      String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tId       BigInt @unique @default(autoincrement()) @map("t_id")
-  shortUuid String @unique @map("short_uuid")
-  username  String @unique @map("username")
-
+  uuid                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tId                    BigInt    @unique @default(autoincrement()) @map("t_id")
+  shortUuid              String    @unique @map("short_uuid")
+  username               String    @unique @map("username")
   /// @kyselyType('ACTIVE' | 'DISABLED' | 'LIMITED' | 'EXPIRED')
-  status String @default("ACTIVE") @map("status") // ENUM: active, disabled, limimted, expired
-
-  usedTrafficBytes         BigInt @default(0) @map("used_traffic_bytes")
-  lifetimeUsedTrafficBytes BigInt @default(0) @map("lifetime_used_traffic_bytes")
-  trafficLimitBytes        BigInt @default(0) @map("traffic_limit_bytes")
-
+  status                 String    @default("ACTIVE") @map("status")
+  trafficLimitBytes      BigInt    @default(0) @map("traffic_limit_bytes")
   /// @kyselyType('NO_RESET' | 'DAY' | 'WEEK' | 'MONTH')
-  trafficLimitStrategy String @default("NO_RESET") @map("traffic_limit_strategy") // ENUM: no_reset, day, week, month, year
-
-  subLastUserAgent String?   @map("sub_last_user_agent")
-  subLastOpenedAt  DateTime? @map("sub_last_opened_at")
-
-  expireAt DateTime @map("expire_at")
-
-  onlineAt              DateTime? @map("online_at")
-  lastConnectedNodeUuid String?   @map("last_connected_node_uuid") @db.Uuid
-
-  subRevokedAt       DateTime? @map("sub_revoked_at")
-  lastTrafficResetAt DateTime? @map("last_traffic_reset_at")
-
-  trojanPassword String @map("trojan_password")
-  vlessUuid      String @map("vless_uuid") @db.Uuid
-  ssPassword     String @map("ss_password")
-
-  description String? @map("description")
-  tag         String? @map("tag")
-
-  telegramId BigInt? @map("telegram_id")
-  email      String? @map("email")
-
-  hwidDeviceLimit Int? @map("hwid_device_limit")
-
-  firstConnectedAt       DateTime? @map("first_connected_at")
-  lastTriggeredThreshold Int       @default(0) @map("last_triggered_threshold") // 1-99
-
-  externalSquadUuid String? @map("external_squad_uuid") @db.Uuid
+  trafficLimitStrategy   String    @default("NO_RESET") @map("traffic_limit_strategy")
+  expireAt               DateTime  @map("expire_at")
+  subLastUserAgent       String?   @map("sub_last_user_agent")
+  subLastOpenedAt        DateTime? @map("sub_last_opened_at")
+  lastTrafficResetAt     DateTime? @map("last_traffic_reset_at")
+  subRevokedAt           DateTime? @map("sub_revoked_at")
+  trojanPassword         String    @map("trojan_password")
+  vlessUuid              String    @map("vless_uuid") @db.Uuid
+  ssPassword             String    @map("ss_password")
+  description            String?   @map("description")
+  tag                    String?   @map("tag")
+  telegramId             BigInt?   @map("telegram_id")
+  email                  String?   @map("email")
+  hwidDeviceLimit        Int?      @map("hwid_device_limit")
+  externalSquadUuid      String?   @map("external_squad_uuid") @db.Uuid
+  lastTriggeredThreshold Int       @default(0) @map("last_triggered_threshold")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  nodesUserUsageHistory NodesUserUsageHistory[]
-  userTrafficHistory    UserTrafficHistory[]
-  hwidUserDevices       HwidUserDevices[]
-
-  lastConnectedNode Nodes?          @relation("UserLastConnectedNode", fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
-  externalSquad     ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
-
+  nodesUserUsageHistory          NodesUserUsageHistory[]
+  userTrafficHistory             UserTrafficHistory[]
+  hwidUserDevices                HwidUserDevices[]
   activeInternalSquads           InternalSquadMembers[]
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
+  traffic                        UserTraffic?
+
+  externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
   @@index([tag])
   @@index([status], type: Hash)
   @@index([createdAt(sort: Asc)])
   @@map("users")
+}
+
+model UserTraffic {
+  tId BigInt @id @map("t_id")
+
+  usedTrafficBytes         BigInt @default(0) @map("used_traffic_bytes")
+  lifetimeUsedTrafficBytes BigInt @default(0) @map("lifetime_used_traffic_bytes")
+
+  onlineAt              DateTime? @map("online_at")
+  lastConnectedNodeUuid String?   @map("last_connected_node_uuid") @db.Uuid
+
+  firstConnectedAt DateTime? @map("first_connected_at")
+
+  user              Users  @relation(fields: [tId], references: [tId], onDelete: Cascade)
+  lastConnectedNode Nodes? @relation(fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
+
+  @@map("user_traffic")
 }
 
 model ApiTokens {
@@ -170,6 +168,7 @@ model Keygen {
 }
 
 model Nodes {
+  id      BigInt @unique @default(autoincrement()) @map("id")
   uuid    String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name    String @unique @map("name")
   address String @unique @map("address")
@@ -214,14 +213,13 @@ model Nodes {
   nodesTrafficUsageHistory     NodesTrafficUsageHistory[]
   nodesUserUsageHistory        NodesUserUsageHistory[]
   nodesUsageHistory            NodesUsageHistory[]
-  usersWithLastConnection      Users[]                        @relation("UserLastConnectedNode")
   configProfileInboundsToNodes ConfigProfileInboundsToNodes[]
   infraBillingNodes            InfraBillingNodes[]
+  hosts                        HostsToNodes[]
+  connectedUsers               UserTraffic[]
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
-
-  hosts HostsToNodes[]
 
   @@map("nodes")
 }
@@ -238,19 +236,18 @@ model NodesTrafficUsageHistory {
 }
 
 model NodesUserUsageHistory {
-  nodeUuid      String @map("node_uuid") @db.Uuid
-  userUuid      String @map("user_uuid") @db.Uuid
-  downloadBytes BigInt @map("download_bytes")
-  uploadBytes   BigInt @map("upload_bytes")
-  totalBytes    BigInt @map("total_bytes")
+  nodeId BigInt @map("node_id")
+  userId BigInt @map("user_id")
+
+  totalBytes BigInt @map("total_bytes")
 
   createdAt DateTime @default(dbgenerated("CURRENT_DATE")) @map("created_at") @db.Date
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  node Nodes @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
-  user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [tId], onDelete: Cascade)
 
-  @@id([nodeUuid, userUuid, createdAt])
+  @@id([nodeId, createdAt, userId])
   @@map("nodes_user_usage_history")
 }
 

@@ -40,7 +40,7 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
     async process(job: Job<RecordUserUsagePayload>) {
         try {
-            const { nodeUuid, nodeAddress, nodePort, consumptionMultiplier } = job.data;
+            const { nodeUuid, nodeAddress, nodePort, consumptionMultiplier, nodeId } = job.data;
 
             const response = await this.axios.getUsersStats(
                 {
@@ -52,7 +52,12 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
             switch (response.isOk) {
                 case true:
-                    return await this.handleOk(nodeUuid, response.response!, consumptionMultiplier);
+                    return await this.handleOk(
+                        nodeUuid,
+                        BigInt(nodeId),
+                        response.response!,
+                        consumptionMultiplier,
+                    );
                 case false:
                     await this.updateNode({
                         node: {
@@ -79,6 +84,7 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
     private async handleOk(
         nodeUuid: string,
+        nodeId: bigint,
         response: GetUsersStatsCommand.Response,
         consumptionMultiplier: string,
     ) {
@@ -109,15 +115,13 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
                     const totalBytes = xrayUser.downlink + xrayUser.uplink;
 
-                    const { uuid, tId } = userResponse.response;
+                    const { tId } = userResponse.response;
 
                     allUsageRecords.push(
                         new NodesUserUsageHistoryEntity({
-                            nodeUuid,
-                            userUuid: uuid,
+                            nodeId: nodeId,
+                            userId: tId,
                             totalBytes: BigInt(totalBytes),
-                            uploadBytes: BigInt(xrayUser.uplink),
-                            downloadBytes: BigInt(xrayUser.downlink),
                         }),
                     );
 

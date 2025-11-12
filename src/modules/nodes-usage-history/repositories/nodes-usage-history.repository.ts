@@ -97,4 +97,16 @@ export class NodesUsageHistoryRepository
             ORDER BY "date" ASC
         `;
     }
+
+    public async getSumLifetime(): Promise<string> {
+        const result = await this.prisma.tx.nodesUsageHistory.aggregate({
+            _sum: { totalBytes: true },
+        });
+
+        if (!result._sum.totalBytes) {
+            return '0';
+        }
+
+        return result._sum.totalBytes.toString();
+    }
 }

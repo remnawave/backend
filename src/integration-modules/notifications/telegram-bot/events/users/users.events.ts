@@ -95,7 +95,7 @@ export class UsersEvents {
 🔄 <b>#traffic_reset</b>
 ➖➖➖➖➖➖➖➖➖
 <b>Username:</b> <code>${event.user.username}</code>
-<b>Traffic:</b> <code>${prettyBytesUtil(event.user.usedTrafficBytes)}</code>
+<b>Traffic:</b> <code>${prettyBytesUtil(event.user.userTraffic.usedTrafficBytes)}</code>
         `;
         await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
             message: msg,
@@ -265,7 +265,7 @@ export class UsersEvents {
 ⚠️ <b>#bandwidth_usage_threshold_reached</b>
 ➖➖➖➖➖➖➖➖➖
 <b>Username:</b> <code>${event.user.username}</code>
-<b>Traffic:</b> <code>${prettyBytesUtil(event.user.usedTrafficBytes)}</code>
+<b>Traffic:</b> <code>${prettyBytesUtil(event.user.userTraffic.usedTrafficBytes)}</code>
 <b>Limit:</b> <code>${prettyBytesUtil(event.user.trafficLimitBytes)}</code>
 
 <b>Threshold:</b> <code>${event.user.lastTriggeredThreshold}%</code>

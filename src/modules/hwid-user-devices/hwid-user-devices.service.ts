@@ -39,7 +39,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -141,7 +140,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -182,7 +180,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -240,7 +237,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );

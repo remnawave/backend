@@ -8,8 +8,6 @@ export class BaseUserEntity implements Users {
     public shortUuid: string;
     public username: string;
     public status: TUsersStatus;
-    public usedTrafficBytes: bigint;
-    public lifetimeUsedTrafficBytes: bigint;
 
     public trafficLimitBytes: bigint;
     public trafficLimitStrategy: TResetPeriods;
@@ -19,6 +17,7 @@ export class BaseUserEntity implements Users {
     public expireAt: Date;
     public subRevokedAt: Date | null;
     public lastTrafficResetAt: Date | null;
+    public lastTriggeredThreshold: number;
 
     public trojanPassword: string;
     public vlessUuid: string;
@@ -31,12 +30,6 @@ export class BaseUserEntity implements Users {
 
     public hwidDeviceLimit: number | null;
 
-    public firstConnectedAt: Date | null;
-    public lastTriggeredThreshold: number;
-
-    public onlineAt: Date | null;
-    public lastConnectedNodeUuid: string | null;
-
     public externalSquadUuid: string | null;
 
     public createdAt: Date;
@@ -44,6 +37,5 @@ export class BaseUserEntity implements Users {
 
     constructor(user: Partial<Users>) {
         Object.assign(this, user);
-        return this;
     }
 }

@@ -6,6 +6,7 @@ import { InfraProviderEntity } from '@modules/infra-billing/entities';
 import { INodesWithResolvedInbounds } from '../repositories/nodes.repository';
 
 export class NodesEntity implements Nodes {
+    public id: bigint;
     public uuid: string;
     public name: string;
     public address: string;

@@ -13,8 +13,8 @@ export class BulkDeleteByStatusBuilder {
     public getQuery(status: TUsersStatus, limit: number): Prisma.Sql {
         const query = `
         DELETE FROM users
-        WHERE "uuid" IN (
-            SELECT "uuid" FROM users 
+        WHERE "t_id" IN (
+            SELECT "t_id" FROM users 
             WHERE "status" = '${status}' 
             LIMIT ${limit}
         );

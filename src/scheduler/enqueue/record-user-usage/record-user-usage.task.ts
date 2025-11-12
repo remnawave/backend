@@ -45,6 +45,7 @@ export class RecordUserUsageTask {
                     nodeAddress: node.address,
                     nodePort: node.port,
                     consumptionMultiplier: node.consumptionMultiplier.toString(),
+                    nodeId: node.id.toString(),
                 })),
             );
 

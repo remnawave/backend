@@ -3,30 +3,31 @@ import { Prisma } from '@prisma/client';
 export class GetNodeUsersUsageByRangeBuilder {
     public query: Prisma.Sql;
 
-    constructor(nodeUuid: string, start: Date, end: Date) {
-        this.query = this.getQuery(nodeUuid, start, end);
+    constructor(nodeId: bigint, start: Date, end: Date) {
+        this.query = this.getQuery(nodeId, start, end);
         return this;
     }
 
-    public getQuery(nodeUuid: string, start: Date, end: Date): Prisma.Sql {
+    public getQuery(nodeId: bigint, start: Date, end: Date): Prisma.Sql {
         return Prisma.sql`
         SELECT
             DATE(h.created_at) AS "date",
-            h.user_uuid as "userUuid",
+            n.uuid as "nodeUuid",
+            u.uuid as "userUuid",
             u.username as "username",
-            h.node_uuid as "nodeUuid",
             COALESCE(SUM(h.total_bytes), 0) AS "total"
         FROM
             nodes_user_usage_history h
-            JOIN users u ON h.user_uuid = u.uuid
+            JOIN users u ON h.user_id = u.t_id
+            JOIN nodes n ON h.node_id = n.id
         WHERE
-            h.node_uuid = ${nodeUuid}::uuid
+            h.node_id = ${nodeId}
             AND h.created_at >= ${start}
             AND h.created_at <= ${end}
         GROUP BY
             "date",
-            h.user_uuid,
-            h.node_uuid,
+            n.uuid,
+            u.uuid,
             u.username
         ORDER BY
             "date" ASC

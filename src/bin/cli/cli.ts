@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 
 import { Prisma, PrismaClient } from '@prisma/client';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 import consola from 'consola';
 import Redis from 'ioredis';
+import dayjs from 'dayjs';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
 import { generateNodeCert } from '@common/utils/certs';
 import { CACHE_KEYS } from '@libs/contracts/constants';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 const prisma = new PrismaClient({
     datasources: {

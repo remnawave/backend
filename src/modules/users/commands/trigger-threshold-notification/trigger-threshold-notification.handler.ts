@@ -13,7 +13,7 @@ import { UsersRepository } from '../../repositories/users.repository';
 @CommandHandler(TriggerThresholdNotificationCommand)
 export class TriggerThresholdNotificationHandler
     implements
-        ICommandHandler<TriggerThresholdNotificationCommand, ICommandResponse<{ uuid: string }[]>>
+        ICommandHandler<TriggerThresholdNotificationCommand, ICommandResponse<{ tId: bigint }[]>>
 {
     public readonly logger = new Logger(TriggerThresholdNotificationHandler.name);
 
@@ -25,7 +25,7 @@ export class TriggerThresholdNotificationHandler
     })
     async execute(
         command: TriggerThresholdNotificationCommand,
-    ): Promise<ICommandResponse<{ uuid: string }[]>> {
+    ): Promise<ICommandResponse<{ tId: bigint }[]>> {
         try {
             const result = await this.usersRepository.triggerThresholdNotifications(
                 command.percentages,

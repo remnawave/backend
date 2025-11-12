@@ -50,6 +50,7 @@ export namespace GetStatsCommand {
             }),
             nodes: z.object({
                 totalOnline: z.number(),
+                totalBytesLifetime: z.string(),
             }),
         }),
     });

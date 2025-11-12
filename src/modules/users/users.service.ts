@@ -1,8 +1,6 @@
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
@@ -48,9 +46,6 @@ import {
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 @Injectable()
 export class UsersService {
@@ -203,7 +198,6 @@ export class UsersService {
 
             const user = await this.userRepository.findUniqueByCriteria(userCriteria, {
                 activeInternalSquads: true,
-                lastConnectedNode: false,
             });
 
             if (!user) {
@@ -292,7 +286,6 @@ export class UsersService {
                 { uuid: result.uuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -383,7 +376,6 @@ export class UsersService {
                 },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -561,7 +553,6 @@ export class UsersService {
                 { uuid: userUuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -704,12 +695,11 @@ export class UsersService {
         }
     }
 
-    @Transactional()
     public async resetUserTraffic(userUuid: string): Promise<ICommandResponse<UserEntity>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
-                ['uuid', 'status', 'usedTrafficBytes'],
+                ['uuid', 'status', 'tId'],
             );
 
             if (!user) {
@@ -718,6 +708,8 @@ export class UsersService {
                     ...ERRORS.USER_NOT_FOUND,
                 };
             }
+
+            const userTraffic = await this.userRepository.getUserTrafficByTId(user.tId);
 
             let status = undefined;
             if (user.status === USERS_STATUS.LIMITED) {
@@ -735,7 +727,7 @@ export class UsersService {
                 userTrafficHistory: new UserTrafficHistoryEntity({
                     userUuid: user.uuid,
                     resetAt: new Date(),
-                    usedBytes: BigInt(user.usedTrafficBytes),
+                    usedBytes: BigInt(userTraffic.usedTrafficBytes),
                 }),
             });
 
@@ -743,7 +735,6 @@ export class UsersService {
                 { uuid: userUuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 

@@ -12,6 +12,7 @@ const modelToEntity = (model: Nodes): NodesEntity => {
 
 const entityToModel = (entity: NodesEntity): Nodes => {
     return {
+        id: entity.id,
         uuid: entity.uuid,
         name: entity.name,
         address: entity.address,
