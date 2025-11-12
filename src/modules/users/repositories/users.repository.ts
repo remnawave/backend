@@ -83,9 +83,9 @@ export class UsersRepository {
         return result;
     }
 
-    public async triggerThresholdNotifications(percentages: number[]): Promise<{ uuid: string }[]> {
+    public async triggerThresholdNotifications(percentages: number[]): Promise<{ tId: bigint }[]> {
         const { query } = new TriggerThresholdNotificationsBuilder(percentages);
-        return await this.prisma.tx.$queryRaw<{ uuid: string }[]>(query);
+        return await this.prisma.tx.$queryRaw<{ tId: bigint }[]>(query);
     }
 
     public async updateStatusAndTrafficAndResetAt(
@@ -121,7 +121,7 @@ export class UsersRepository {
             .execute();
     }
 
-    public async updateExceededTrafficUsers(): Promise<{ uuid: string }[]> {
+    public async updateExceededTrafficUsers(): Promise<{ tId: bigint }[]> {
         const result = await this.qb.kysely
             .updateTable('users')
             .set({ status: USERS_STATUS.LIMITED })
@@ -130,7 +130,7 @@ export class UsersRepository {
             .where('users.status', '=', USERS_STATUS.ACTIVE)
             .where('users.trafficLimitBytes', '!=', 0n)
             .whereRef('userTraffic.usedTrafficBytes', '>=', 'users.trafficLimitBytes')
-            .returning(['users.uuid'])
+            .returning(['users.tId'])
             .execute();
 
         return result;
@@ -148,11 +148,11 @@ export class UsersRepository {
         return result.map((value) => new UserEntity(value));
     }
 
-    public async updateExpiredUsers(): Promise<{ uuid: string }[]> {
+    public async updateExpiredUsers(): Promise<{ tId: bigint }[]> {
         // UPDATE "public"."users" SET "status" = $1, "updated_at" = $2 WHERE ("public"."users"."status" IN ($3,$4) AND "public"."users"."expire_at" < $5) RETURNING "public"."users"."uuid"
         const result = await this.prisma.tx.users.updateManyAndReturn({
             select: {
-                uuid: true,
+                tId: true,
             },
             where: {
                 AND: [

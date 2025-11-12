@@ -15,7 +15,7 @@ export class TriggerThresholdNotificationsBuilder {
       WITH thresholds(pct) AS (VALUES ${pctValues}),
       candidates AS (
         SELECT
-          u."uuid",
+          u."t_id",
           MIN(u."created_at") AS created_at_for_order,
           MAX(t.pct)          AS new_threshold
         FROM "users" u
@@ -26,7 +26,7 @@ export class TriggerThresholdNotificationsBuilder {
          AND u."traffic_limit_bytes" > 0
          AND ut."used_traffic_bytes" >= (u."traffic_limit_bytes" * t.pct / 100)
          AND u."last_triggered_threshold" < t.pct
-        GROUP BY u."uuid"
+        GROUP BY u."t_id"
         ORDER BY created_at_for_order
         LIMIT 5000
       )
@@ -34,8 +34,8 @@ export class TriggerThresholdNotificationsBuilder {
       SET "last_triggered_threshold" = c.new_threshold,
           "updated_at"               = NOW()
       FROM candidates c
-      WHERE u."uuid" = c."uuid"
-      RETURNING u."uuid";
+      WHERE u."t_id" = c."t_id"
+      RETURNING u."t_id" AS "tId";
     `;
     }
 }

@@ -87,12 +87,12 @@ export class UserJobsQueueProcessor extends WorkerHost {
                 `Job ${job.name} Found ${usersResponse.response.length} expired users.`,
             );
 
-            await pMap(usersResponse.response, async (userUuid) => {
+            await pMap(usersResponse.response, async (userIterator) => {
                 try {
                     const userResponse = await this.queryBus.execute(
                         new GetUserByUniqueFieldQuery(
                             {
-                                uuid: userUuid.uuid,
+                                tId: userIterator.tId,
                             },
                             {
                                 activeInternalSquads: true,
@@ -161,11 +161,11 @@ export class UserJobsQueueProcessor extends WorkerHost {
                 `Job ${job.name} has found ${usersResponse.response.length} exceeded traffic usage users.`,
             );
 
-            await pMap(usersResponse.response, async (userUuid) => {
+            await pMap(usersResponse.response, async (userIterator) => {
                 try {
                     const userResponse = await this.queryBus.execute(
                         new GetUserByUniqueFieldQuery({
-                            uuid: userUuid.uuid,
+                            tId: userIterator.tId,
                         }),
                     );
 
@@ -246,11 +246,11 @@ export class UserJobsQueueProcessor extends WorkerHost {
 
                 await pMap(
                     usersResponse.response,
-                    async (userUuid) => {
+                    async (userIterator) => {
                         try {
                             const userResponse = await this.queryBus.execute(
                                 new GetUserByUniqueFieldQuery({
-                                    uuid: userUuid.uuid,
+                                    tId: userIterator.tId,
                                 }),
                             );
 
@@ -275,7 +275,7 @@ export class UserJobsQueueProcessor extends WorkerHost {
                             );
                         }
                     },
-                    { concurrency: 100 },
+                    { concurrency: 80 },
                 );
 
                 continue;
@@ -358,26 +358,26 @@ export class UserJobsQueueProcessor extends WorkerHost {
         }
     }
 
-    private async updateExpiredUsers(): Promise<ICommandResponse<{ uuid: string }[]>> {
+    private async updateExpiredUsers(): Promise<ICommandResponse<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             UpdateExpiredUsersCommand,
-            ICommandResponse<{ uuid: string }[]>
+            ICommandResponse<{ tId: bigint }[]>
         >(new UpdateExpiredUsersCommand());
     }
 
-    private async updateExceededTrafficUsers(): Promise<ICommandResponse<{ uuid: string }[]>> {
+    private async updateExceededTrafficUsers(): Promise<ICommandResponse<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             UpdateExceededTrafficUsersCommand,
-            ICommandResponse<{ uuid: string }[]>
+            ICommandResponse<{ tId: bigint }[]>
         >(new UpdateExceededTrafficUsersCommand());
     }
 
     private async triggerThresholdNotifications(
         percentages: number[],
-    ): Promise<ICommandResponse<{ uuid: string }[]>> {
+    ): Promise<ICommandResponse<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             TriggerThresholdNotificationCommand,
-            ICommandResponse<{ uuid: string }[]>
+            ICommandResponse<{ tId: bigint }[]>
         >(new TriggerThresholdNotificationCommand(percentages));
     }
 }

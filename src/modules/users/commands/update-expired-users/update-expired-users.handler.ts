@@ -12,7 +12,7 @@ import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(UpdateExpiredUsersCommand)
 export class UpdateExpiredUsersHandler
-    implements ICommandHandler<UpdateExpiredUsersCommand, ICommandResponse<{ uuid: string }[]>>
+    implements ICommandHandler<UpdateExpiredUsersCommand, ICommandResponse<{ tId: bigint }[]>>
 {
     public readonly logger = new Logger(UpdateExpiredUsersHandler.name);
 
@@ -22,7 +22,7 @@ export class UpdateExpiredUsersHandler
         maxWait: 20_000,
         timeout: 120_000,
     })
-    async execute(): Promise<ICommandResponse<{ uuid: string }[]>> {
+    async execute(): Promise<ICommandResponse<{ tId: bigint }[]>> {
         try {
             const result = await this.usersRepository.updateExpiredUsers();
 
