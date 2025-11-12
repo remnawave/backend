@@ -986,9 +986,12 @@ export class UsersService {
             await this.resetUserTrafficQueueService.resetWeeklyUserTraffic();
             await this.resetUserTrafficQueueService.resetNoResetUserTraffic();
 
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
-                emitter: 'bulkAllResetUserTraffic',
-            });
+            await this.startAllNodesQueue.startAllNodesWithoutDeduplication(
+                {
+                    emitter: 'bulkAllResetUserTraffic',
+                },
+                20_000,
+            );
 
             return {
                 isOk: true,

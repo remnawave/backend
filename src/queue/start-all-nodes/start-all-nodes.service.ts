@@ -40,7 +40,9 @@ export class StartAllNodesQueueService
         });
     }
 
-    public async startAllNodesWithoutDeduplication(payload: { emitter: string }) {
-        return this.addJob(StartAllNodesJobNames.startAllNodes, payload, {});
+    public async startAllNodesWithoutDeduplication(payload: { emitter: string }, delay?: number) {
+        return this.addJob(StartAllNodesJobNames.startAllNodes, payload, {
+            delay,
+        });
     }
 }
