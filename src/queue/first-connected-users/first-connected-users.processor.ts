@@ -50,7 +50,6 @@ export class FirstConnectedUsersQueueProcessor extends WorkerHost {
                     },
                     {
                         activeInternalSquads: true,
-                        lastConnectedNode: true,
                     },
                 ),
             );

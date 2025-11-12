@@ -1,5 +1,5 @@
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { SelectExpression, sql, ExpressionBuilder } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
@@ -12,7 +12,6 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { TxKyselyService } from '@common/database/tx-kysely.service';
 import { getKyselyUuid } from '@common/helpers/kysely';
-import { ICrud } from '@common/types/crud-port';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
@@ -35,12 +34,13 @@ import {
     UserWithResolvedInboundEntity,
 } from '../entities';
 import { TriggerThresholdNotificationsBuilder } from '../builders/trigger-threshold-notifications-builder';
+import { UserTrafficEntity } from '../entities/user-traffic.entity';
 import { UserConverter } from '../users.converter';
 
 dayjs.extend(utc);
 
 @Injectable()
-export class UsersRepository implements ICrud<BaseUserEntity> {
+export class UsersRepository {
     private readonly logger = new Logger(UsersRepository.name);
 
     constructor(
@@ -49,13 +49,32 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         private readonly userConverter: UserConverter,
     ) {}
 
-    public async create(entity: BaseUserEntity): Promise<BaseUserEntity> {
+    public async create(entity: BaseUserEntity): Promise<{
+        uuid: string;
+    }> {
         const model = this.userConverter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.users.create({
-            data: model,
+            select: {
+                uuid: true,
+                tId: true,
+            },
+            data: {
+                ...model,
+            },
         });
 
-        return this.userConverter.fromPrismaModelToEntity(result);
+        await this.prisma.tx.userTraffic.create({
+            select: {
+                tId: true,
+            },
+            data: {
+                tId: result.tId,
+            },
+        });
+
+        return {
+            uuid: result.uuid,
+        };
     }
 
     public async bulkIncrementUsedTraffic(
@@ -80,10 +99,14 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         await this.prisma.tx.users.update({
             where: { uuid: userUuid },
             data: {
-                lastTrafficResetAt: lastResetAt,
                 status,
-                usedTrafficBytes: 0,
+                lastTrafficResetAt: lastResetAt,
                 lastTriggeredThreshold: 0,
+                traffic: {
+                    update: {
+                        usedTrafficBytes: 0,
+                    },
+                },
             },
         });
     }
@@ -93,38 +116,25 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         subLastOpenedAt: Date,
         subLastUserAgent: string,
     ): Promise<void> {
-        await this.prisma.tx.users.update({
-            where: { uuid: userUuid },
-            data: { subLastOpenedAt, subLastUserAgent },
-        });
+        await this.qb.kysely
+            .updateTable('users')
+            .set({ subLastOpenedAt, subLastUserAgent })
+            .where('uuid', '=', getKyselyUuid(userUuid))
+            .clearReturning()
+            .execute();
     }
 
     public async updateExceededTrafficUsers(): Promise<{ uuid: string }[]> {
-        const result = await this.prisma.tx.users.updateManyAndReturn({
-            select: {
-                uuid: true,
-            },
-            where: {
-                AND: [
-                    {
-                        status: USERS_STATUS.ACTIVE,
-                    },
-                    {
-                        trafficLimitBytes: {
-                            not: 0,
-                        },
-                    },
-                    {
-                        usedTrafficBytes: {
-                            gte: this.prisma.tx.users.fields.trafficLimitBytes,
-                        },
-                    },
-                ],
-            },
-            data: {
-                status: USERS_STATUS.LIMITED,
-            },
-        });
+        const result = await this.qb.kysely
+            .updateTable('users')
+            .set({ status: USERS_STATUS.LIMITED })
+            .from('userTraffic')
+            .whereRef('userTraffic.tId', '=', 'users.tId')
+            .where('users.status', '=', USERS_STATUS.ACTIVE)
+            .where('users.trafficLimitBytes', '!=', 0n)
+            .whereRef('userTraffic.usedTrafficBytes', '>=', 'users.trafficLimitBytes')
+            .returning(['users.uuid'])
+            .execute();
 
         return result;
     }
@@ -132,9 +142,9 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     public async findUsersByExpireAt(start: Date, end: Date): Promise<UserEntity[]> {
         const result = await this.qb.kysely
             .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
             .selectAll()
             .select((eb) => this.includeActiveInternalSquads(eb))
-            .select((eb) => this.includeLastConnectedNode(eb))
             .where('expireAt', '>=', start)
             .where('expireAt', '<=', end)
             .execute();
@@ -142,6 +152,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async updateExpiredUsers(): Promise<{ uuid: string }[]> {
+        // UPDATE "public"."users" SET "status" = $1, "updated_at" = $2 WHERE ("public"."users"."status" IN ($3,$4) AND "public"."users"."expire_at" < $5) RETURNING "public"."users"."uuid"
         const result = await this.prisma.tx.users.updateManyAndReturn({
             select: {
                 uuid: true,
@@ -175,7 +186,9 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         filterModes,
         sorting,
     }: GetAllUsersCommand.RequestQuery): Promise<[UserEntity[], number]> {
-        const qb = this.qb.kysely.selectFrom('users');
+        const qb = this.qb.kysely
+            .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId');
 
         let isFiltersEmpty = true;
 
@@ -191,8 +204,8 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                         'createdAt',
                         'expireAt',
                         'lastTrafficResetAt',
-                        'onlineAt',
                         'subLastOpenedAt',
+                        'userTraffic.onlineAt',
                     ].includes(filter.id)
                 ) {
                     whereBuilder = whereBuilder.where(
@@ -235,7 +248,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
 
                 if (filter.id === 'nodeName') {
                     whereBuilder = whereBuilder.where(
-                        'lastConnectedNodeUuid',
+                        'userTraffic.lastConnectedNodeUuid',
                         '=',
                         getKyselyUuid(filter.value as string),
                     );
@@ -296,11 +309,11 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             .selectAll()
             .offset(start)
             .limit(size)
-            .select((eb) => this.includeActiveInternalSquads(eb))
-            .select((eb) => this.includeLastConnectedNode(eb));
+            .select((eb) => this.includeActiveInternalSquads(eb));
 
         const { count } = await this.qb.kysely
             .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
             .select((eb) => eb.fn.countAll().as('count'))
             .$if(!isFiltersEmpty, (qb) => {
                 let countBuilder = qb;
@@ -312,8 +325,8 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                             'createdAt',
                             'expireAt',
                             'lastTrafficResetAt',
-                            'onlineAt',
                             'subLastOpenedAt',
+                            'userTraffic.onlineAt',
                         ].includes(filter.id)
                     ) {
                         countBuilder = countBuilder.where(
@@ -356,7 +369,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
 
                     if (filter.id === 'nodeName') {
                         countBuilder = countBuilder.where(
-                            'lastConnectedNodeUuid',
+                            'userTraffic.lastConnectedNodeUuid',
                             '=',
                             getKyselyUuid(filter.value as string),
                         );
@@ -415,9 +428,9 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         const [users, total] = await Promise.all([
             this.qb.kysely
                 .selectFrom('users')
+                .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
                 .selectAll()
                 .select((eb) => this.includeActiveInternalSquads(eb))
-                .select((eb) => this.includeLastConnectedNode(eb))
                 .offset(start)
                 .limit(size)
                 .orderBy('createdAt', 'desc')
@@ -431,16 +444,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         const usersResult = users.map((user) => new UserEntity(user));
 
         return [usersResult, Number(total.count)];
-    }
-
-    public async findByUUID(uuid: string): Promise<null | BaseUserEntity> {
-        const result = await this.prisma.tx.users.findUnique({
-            where: { uuid },
-        });
-        if (!result) {
-            return null;
-        }
-        return this.userConverter.fromPrismaModelToEntity(result);
     }
 
     public async update({ uuid, ...data }: Partial<BaseUserEntity>): Promise<BaseUserEntity> {
@@ -465,31 +468,20 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         return !!result;
     }
 
-    public async findByCriteria(dto: Partial<BaseUserEntity>): Promise<BaseUserEntity[]> {
-        const bannerList = await this.prisma.tx.users.findMany({
-            where: dto,
-        });
-        return this.userConverter.fromPrismaModelsToEntities(bannerList);
-    }
-
     public async findUniqueByCriteria(
         dto: Partial<Pick<BaseUserEntity, 'uuid' | 'shortUuid' | 'username' | 'tId'>>,
         includeOptions: {
             activeInternalSquads: boolean;
-            lastConnectedNode: boolean;
         } = {
             activeInternalSquads: true,
-            lastConnectedNode: true,
         },
     ): Promise<UserEntity | null> {
         const result = await this.qb.kysely
             .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
             .selectAll()
             .$if(includeOptions.activeInternalSquads, (qb) =>
                 qb.select((eb) => this.includeActiveInternalSquads(eb)),
-            )
-            .$if(includeOptions.lastConnectedNode, (qb) =>
-                qb.select((eb) => this.includeLastConnectedNode(eb)),
             )
             .where((eb) => {
                 const conditions = [];
@@ -497,7 +489,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                 if (dto.uuid) conditions.push(eb('uuid', '=', getKyselyUuid(dto.uuid)));
                 if (dto.shortUuid) conditions.push(eb('shortUuid', '=', dto.shortUuid));
                 if (dto.username) conditions.push(eb('username', '=', dto.username));
-                if (dto.tId) conditions.push(eb('tId', '=', dto.tId));
+                if (dto.tId) conditions.push(eb('users.tId', '=', dto.tId));
 
                 return eb.or(conditions);
             })
@@ -514,25 +506,16 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         dto: Partial<Pick<BaseUserEntity, 'telegramId' | 'email' | 'tag'>>,
         includeOptions: {
             activeInternalSquads: boolean;
-            lastConnectedNode: boolean;
         } = {
             activeInternalSquads: true,
-            lastConnectedNode: true,
         },
     ): Promise<UserEntity[]> {
-        // TODO: check this
         const user = await this.qb.kysely
             .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
             .selectAll()
-            // .select((eb) => [
-            //     this.includeActiveInternalSquads(eb),
-            //     this.includeLastConnectedNode(eb),
-            // ])
             .$if(includeOptions.activeInternalSquads, (qb) =>
                 qb.select((eb) => this.includeActiveInternalSquads(eb)),
-            )
-            .$if(includeOptions.lastConnectedNode, (qb) =>
-                qb.select((eb) => this.includeLastConnectedNode(eb)),
             )
             .where((eb) => {
                 const conditions = [];
@@ -601,23 +584,23 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         const now = dayjs().utc();
 
         const result = await this.qb.kysely
-            .selectFrom('users')
+            .selectFrom('userTraffic')
             .select((eb) => [
                 eb.fn
-                    .count('users.tId')
-                    .filterWhere('users.onlineAt', '>=', now.subtract(1, 'minute').toDate())
+                    .count('userTraffic.tId')
+                    .filterWhere('userTraffic.onlineAt', '>=', now.subtract(1, 'minute').toDate())
                     .as('onlineNow'),
                 eb.fn
-                    .count('users.tId')
-                    .filterWhere('users.onlineAt', '>=', now.subtract(1, 'day').toDate())
+                    .count('userTraffic.tId')
+                    .filterWhere('userTraffic.onlineAt', '>=', now.subtract(1, 'day').toDate())
                     .as('lastDay'),
                 eb.fn
-                    .count('users.tId')
-                    .filterWhere('users.onlineAt', '>=', now.subtract(1, 'week').toDate())
+                    .count('userTraffic.tId')
+                    .filterWhere('userTraffic.onlineAt', '>=', now.subtract(1, 'week').toDate())
                     .as('lastWeek'),
                 eb.fn
-                    .count('users.tId')
-                    .filterWhere('users.onlineAt', 'is', null)
+                    .count('userTraffic.tId')
+                    .filterWhere('userTraffic.onlineAt', 'is', null)
                     .as('neverOnline'),
             ])
             .executeTakeFirstOrThrow();
@@ -635,7 +618,12 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             .with('usersToReset', (db) =>
                 db
                     .selectFrom('users')
-                    .select(['uuid', 'usedTrafficBytes'])
+                    .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
+                    .select([
+                        'users.uuid as uuid',
+                        'users.tId as tId',
+                        'userTraffic.usedTrafficBytes as usedTrafficBytes',
+                    ])
                     .where('trafficLimitStrategy', '=', strategy)
                     .where('status', '!=', USERS_STATUS.LIMITED),
             )
@@ -645,15 +633,61 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
                     .columns(['userUuid', 'usedBytes'])
                     .expression(db.selectFrom('usersToReset').select(['uuid', 'usedTrafficBytes'])),
             )
-            .updateTable('users')
+            .with('updateUsers', (db) =>
+                db
+                    .updateTable('users')
+                    .set({
+                        lastTrafficResetAt: new Date(),
+                        lastTriggeredThreshold: 0,
+                    })
+                    .where('uuid', 'in', (eb) => eb.selectFrom('usersToReset').select('uuid'))
+                    .returning('tId'),
+            )
+            .updateTable('userTraffic')
             .set({
                 usedTrafficBytes: 0n,
-                lastTrafficResetAt: new Date(),
-                lastTriggeredThreshold: 0,
             })
-            .where('uuid', 'in', (eb) => eb.selectFrom('usersToReset').select('uuid'))
+            .where('tId', 'in', (eb) => eb.selectFrom('usersToReset').select('tId'))
             .execute();
     }
+
+    // public async resetUserTraffic(strategy: TResetPeriods): Promise<void> {
+    //     const whereExpression = (eb: ExpressionBuilder<DB, 'users'>) => {
+    //         return eb.and([
+    //             eb('trafficLimitStrategy', '=', strategy),
+    //             eb('status', '!=', USERS_STATUS.LIMITED),
+    //         ]);
+    //     };
+
+    //     await this.qb.kysely
+    //         .insertInto('userTrafficHistory')
+    //         .columns(['userUuid', 'usedBytes'])
+    //         .expression((db) =>
+    //             db
+    //                 .selectFrom('users')
+    //                 .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
+    //                 .select(['users.uuid as userUuid', 'userTraffic.usedTrafficBytes as usedBytes'])
+    //                 .where(whereExpression),
+    //         )
+    //         .execute();
+
+    //     await this.qb.kysely
+    //         .updateTable('userTraffic')
+    //         .set({ usedTrafficBytes: 0n })
+    //         .from('users')
+    //         .whereRef('userTraffic.tId', '=', 'users.tId')
+    //         .where(whereExpression)
+    //         .execute();
+
+    //     await this.qb.kysely
+    //         .updateTable('users')
+    //         .set({
+    //             lastTrafficResetAt: new Date(),
+    //             lastTriggeredThreshold: 0,
+    //         })
+    //         .where(whereExpression)
+    //         .execute();
+    // }
 
     public async resetLimitedUsersTraffic(strategy: TResetPeriods): Promise<{ uuid: string }[]> {
         const { query } = new BatchResetLimitedUsersUsageBuilder(strategy);
@@ -754,40 +788,29 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async bulkSyncLimitedUsers(): Promise<number> {
-        const result = await this.prisma.tx.users.updateMany({
-            where: {
-                status: 'LIMITED',
-                OR: [
-                    {
-                        trafficLimitBytes: {
-                            equals: 0n,
-                        },
-                    },
-                    {
-                        AND: [
-                            {
-                                trafficLimitBytes: { gt: 0n },
-                            },
-                            {
-                                usedTrafficBytes: {
-                                    lt: this.prisma.tx.users.fields.trafficLimitBytes,
-                                },
-                            },
-                        ],
-                    },
-                    {
-                        usedTrafficBytes: {
-                            equals: 0n,
-                        },
-                    },
-                ],
-            },
-            data: {
-                status: 'ACTIVE',
-            },
-        });
+        const res = await this.qb.kysely
+            .updateTable('users')
+            .set({ status: USERS_STATUS.ACTIVE })
+            .from('userTraffic')
+            .whereRef('userTraffic.tId', '=', 'users.tId')
+            .where('users.status', '=', USERS_STATUS.LIMITED)
+            .where((eb) =>
+                eb.or([
+                    // trafficLimitBytes = 0
+                    eb('users.trafficLimitBytes', '=', 0n),
 
-        return result.count;
+                    // trafficLimitBytes > 0 AND usedTrafficBytes < trafficLimitBytes
+                    eb.and([
+                        eb('users.trafficLimitBytes', '>', 0n),
+                        eb('userTraffic.usedTrafficBytes', '<', eb.ref('users.trafficLimitBytes')),
+                    ]),
+
+                    eb('userTraffic.usedTrafficBytes', '=', 0n),
+                ]),
+            )
+            .executeTakeFirst();
+
+        return Number(res?.numUpdatedRows ?? 0n);
     }
 
     public async bulkSyncExpiredUsers(): Promise<number> {
@@ -823,12 +846,7 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async getAllTags(): Promise<string[]> {
-        const result = await this.prisma.tx.users.findMany({
-            select: {
-                tag: true,
-            },
-            distinct: ['tag'],
-        });
+        const result = await this.qb.kysely.selectFrom('users').select('tag').distinct().execute();
 
         return result.map((user) => user.tag).filter((tag) => tag !== null);
     }
@@ -840,7 +858,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     }
 
     public async removeUsersFromInternalSquads(usersUuids: string[]): Promise<void> {
-        // TODO: check this
         await this.qb.kysely
             .deleteFrom('internalSquadMembers')
             .where(
@@ -855,7 +872,6 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
         usersUuids: string[],
         internalSquadsUuids: string[],
     ): Promise<void> {
-        // TODO: check this
         await this.qb.kysely
             .insertInto('internalSquadMembers')
             .columns(['userUuid', 'internalSquadUuid'])
@@ -922,6 +938,16 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
             .executeTakeFirst();
 
         return user;
+    }
+
+    public async getUserTrafficByTId(tId: bigint): Promise<UserTrafficEntity> {
+        const result = await this.qb.kysely
+            .selectFrom('userTraffic')
+            .selectAll()
+            .where('tId', '=', tId)
+            .executeTakeFirstOrThrow();
+
+        return new UserTrafficEntity(result);
     }
 
     public async revokeUserSubscription(
@@ -1107,23 +1133,15 @@ export class UsersRepository implements ICrud<BaseUserEntity> {
     public async findNotConnectedUsers(startDate: Date, endDate: Date): Promise<UserEntity[]> {
         const result = await this.qb.kysely
             .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
             .selectAll()
             .where('status', '=', 'ACTIVE')
-            .where('firstConnectedAt', 'is', null)
-            .where('onlineAt', 'is', null)
+            .where('userTraffic.firstConnectedAt', 'is', null)
+            .where('userTraffic.onlineAt', 'is', null)
             .where('createdAt', '>=', startDate)
             .where('createdAt', '<', endDate)
             .execute();
 
         return result.map((value) => new UserEntity(value));
-    }
-
-    private includeLastConnectedNode(eb: ExpressionBuilder<DB, 'users'>) {
-        return jsonObjectFrom(
-            eb
-                .selectFrom('nodes')
-                .select(['name', 'countryCode'])
-                .whereRef('nodes.uuid', '=', 'users.lastConnectedNodeUuid'),
-        ).as('lastConnectedNode');
     }
 }

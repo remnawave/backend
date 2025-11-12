@@ -11,10 +11,8 @@ export class GetUserByUniqueFieldQuery extends Query<ICommandResponse<UserEntity
         >,
         public readonly includeOptions: {
             activeInternalSquads: boolean;
-            lastConnectedNode: boolean;
         } = {
             activeInternalSquads: true,
-            lastConnectedNode: true,
         },
     ) {
         super();

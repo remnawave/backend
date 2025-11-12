@@ -71,16 +71,14 @@ import {
     UpdateUserResponseDto,
 } from '../dtos';
 import {
-    CreateUserResponseModel,
-    GetAllTagsResponseModel,
-    GetAllUsersResponseModel,
-    GetFullUserResponseModel,
-    GetUserResponseModel,
-} from '../models';
-import {
     GetUserByTelegramIdRequestDto,
     GetUserByTelegramIdResponseDto,
 } from '../dtos/get-user-by-telegram-id.dto';
+import {
+    GetAllTagsResponseModel,
+    GetAllUsersResponseModel,
+    GetFullUserResponseModel,
+} from '../models';
 import { GetUserByEmailResponseDto } from '../dtos/get-user-by-email.dto';
 import { GetUserByEmailRequestDto } from '../dtos/get-user-by-email.dto';
 import { UsersService } from '../users.service';
@@ -114,7 +112,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new CreateUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -132,7 +130,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -474,7 +472,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -495,7 +493,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -516,7 +514,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -539,7 +537,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 }

@@ -96,7 +96,6 @@ export class UserJobsQueueProcessor extends WorkerHost {
                             },
                             {
                                 activeInternalSquads: true,
-                                lastConnectedNode: true,
                             },
                         ),
                     );

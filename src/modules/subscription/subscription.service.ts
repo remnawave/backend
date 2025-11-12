@@ -14,7 +14,6 @@ import { TemplateEngine } from '@common/utils/templates/replace-templates-values
 import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
-import { createHappCryptoLink } from '@common/utils';
 import { ERRORS, EVENTS, TSubscriptionTemplateType, USERS_STATUS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
 
@@ -37,7 +36,7 @@ import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-un
 import { GetTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
-import { GetUserResponseModel } from '@modules/users/models';
+import { GetFullUserResponseModel } from '@modules/users/models';
 
 import { UserSubscriptionRequestHistoryQueueService } from '@queue/user-subscription-request-history/user-subscription-request-history.service';
 
@@ -105,7 +104,6 @@ export class SubscriptionService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -239,7 +237,6 @@ export class SubscriptionService {
                     },
                     {
                         activeInternalSquads: true,
-                        lastConnectedNode: true,
                     },
                 ),
             );
@@ -337,13 +334,13 @@ export class SubscriptionService {
             return {
                 isOk: true,
                 response: new RawSubscriptionWithHostsResponse({
-                    user: new GetUserResponseModel(user.response, this.subPublicDomain),
+                    user: new GetFullUserResponseModel(user.response, this.subPublicDomain),
                     convertedUserInfo: {
                         daysLeft: dayjs(user.response.expireAt).diff(dayjs(), 'day'),
-                        trafficUsed: prettyBytesUtil(user.response.usedTrafficBytes),
+                        trafficUsed: prettyBytesUtil(user.response.userTraffic.usedTrafficBytes),
                         trafficLimit: prettyBytesUtil(user.response.trafficLimitBytes),
                         lifetimeTrafficUsed: prettyBytesUtil(
-                            user.response.lifetimeUsedTrafficBytes,
+                            user.response.userTraffic.lifetimeUsedTrafficBytes,
                         ),
                         isHwidLimited: isHwidLimited ?? false,
                     },
@@ -376,7 +373,6 @@ export class SubscriptionService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -433,7 +429,6 @@ export class SubscriptionService {
                         },
                         {
                             activeInternalSquads: false,
-                            lastConnectedNode: false,
                         },
                     ),
                 );
@@ -539,12 +534,12 @@ export class SubscriptionService {
             user: {
                 shortUuid: user.shortUuid,
                 daysLeft: dayjs(user.expireAt).diff(dayjs(), 'day'),
-                trafficUsed: prettyBytesUtil(user.usedTrafficBytes),
+                trafficUsed: prettyBytesUtil(user.userTraffic.usedTrafficBytes),
                 trafficLimit: prettyBytesUtil(user.trafficLimitBytes),
-                lifetimeTrafficUsed: prettyBytesUtil(user.lifetimeUsedTrafficBytes),
-                lifetimeTrafficUsedBytes: user.lifetimeUsedTrafficBytes.toString(),
+                lifetimeTrafficUsed: prettyBytesUtil(user.userTraffic.lifetimeUsedTrafficBytes),
+                lifetimeTrafficUsedBytes: user.userTraffic.lifetimeUsedTrafficBytes.toString(),
                 trafficLimitBytes: user.trafficLimitBytes.toString(),
-                trafficUsedBytes: user.usedTrafficBytes.toString(),
+                trafficUsedBytes: user.userTraffic.usedTrafficBytes.toString(),
                 username: user.username,
                 expiresAt: user.expireAt,
                 isActive: user.status === USERS_STATUS.ACTIVE,
@@ -554,9 +549,6 @@ export class SubscriptionService {
             links,
             ssConfLinks,
             subscriptionUrl,
-            happ: {
-                cryptoLink: createHappCryptoLink(subscriptionUrl),
-            },
         });
     }
 

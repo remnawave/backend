@@ -17,16 +17,20 @@ import {
     UserHwidDeviceEvent,
 } from '@integration-modules/notifications/interfaces';
 
+import { GetFullUserResponseModel } from '@modules/users/models';
+
 import { WebhookLoggerQueueService } from '@queue/notifications/webhook-logger/webhook-logger.service';
 @Injectable()
 export class WebhookEvents {
     private readonly logger = new Logger(WebhookEvents.name);
     private readonly webhookUrls: string[];
+    private readonly subPublicDomain: string;
 
     constructor(
         private readonly webhookLoggerQueueService: WebhookLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
+        this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
         this.webhookUrls = this.configService
             .getOrThrow<string>('WEBHOOK_URL')
             .split(',')
@@ -39,7 +43,9 @@ export class WebhookEvents {
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
-                data: instanceToPlain(event.user),
+                data: instanceToPlain(
+                    new GetFullUserResponseModel(event.user, this.subPublicDomain),
+                ),
                 meta: instanceToPlain(event.meta),
             };
 

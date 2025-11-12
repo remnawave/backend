@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities/nodes-user-usage-history.entity';
+import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
 
 export class BulkUpsertHistoryEntryBuilder {
     public query: Prisma.Sql;
