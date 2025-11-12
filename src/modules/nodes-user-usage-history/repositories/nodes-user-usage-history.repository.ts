@@ -34,35 +34,6 @@ export class NodesUserUsageHistoryRepository
         return this.converter.fromPrismaModelToEntity(result);
     }
 
-    public async upsertUsageHistory(
-        entity: NodesUserUsageHistoryEntity,
-    ): Promise<NodesUserUsageHistoryEntity> {
-        const model = this.converter.fromEntityToPrismaModel(entity);
-        const result = await this.prisma.tx.nodesUserUsageHistory.upsert({
-            create: model,
-            update: {
-                downloadBytes: {
-                    increment: model.downloadBytes,
-                },
-                uploadBytes: {
-                    increment: model.uploadBytes,
-                },
-                totalBytes: {
-                    increment: model.totalBytes,
-                },
-            },
-            where: {
-                nodeUuid_userUuid_createdAt: {
-                    nodeUuid: entity.nodeUuid,
-                    userUuid: entity.userUuid,
-                    createdAt: entity.createdAt,
-                },
-            },
-        });
-
-        return this.converter.fromPrismaModelToEntity(result);
-    }
-
     public async findByCriteria(
         dto: Partial<NodesUserUsageHistoryEntity>,
     ): Promise<NodesUserUsageHistoryEntity[]> {
@@ -88,7 +59,16 @@ export class NodesUserUsageHistoryRepository
         start: Date,
         end: Date,
     ): Promise<IGetUserUsageByRange[]> {
-        const { query } = new GetUserUsageByRangeBuilder(userUuid, start, end);
+        const userId = await this.prisma.tx.users.findFirstOrThrow({
+            select: {
+                tId: true,
+            },
+            where: {
+                uuid: userUuid,
+            },
+        });
+
+        const { query } = new GetUserUsageByRangeBuilder(userId.tId, start, end);
         const result = await this.prisma.tx.$queryRaw<IGetUserUsageByRange[]>(query);
         return result;
     }
@@ -98,7 +78,16 @@ export class NodesUserUsageHistoryRepository
         start: Date,
         end: Date,
     ): Promise<IGetNodeUserUsageByRange[]> {
-        const { query } = new GetNodeUsersUsageByRangeBuilder(nodeUuid, start, end);
+        const nodeId = await this.prisma.tx.nodes.findFirstOrThrow({
+            select: {
+                id: true,
+                uuid: true,
+            },
+            where: {
+                uuid: nodeUuid,
+            },
+        });
+        const { query } = new GetNodeUsersUsageByRangeBuilder(nodeId.id, start, end);
         const result = await this.prisma.tx.$queryRaw<IGetNodeUserUsageByRange[]>(query);
         return result;
     }

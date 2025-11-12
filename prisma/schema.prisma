@@ -170,6 +170,7 @@ model Keygen {
 }
 
 model Nodes {
+  id      BigInt @unique @default(autoincrement()) @map("id")
   uuid    String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name    String @unique @map("name")
   address String @unique @map("address")
@@ -238,19 +239,18 @@ model NodesTrafficUsageHistory {
 }
 
 model NodesUserUsageHistory {
-  nodeUuid      String @map("node_uuid") @db.Uuid
-  userUuid      String @map("user_uuid") @db.Uuid
-  downloadBytes BigInt @map("download_bytes")
-  uploadBytes   BigInt @map("upload_bytes")
-  totalBytes    BigInt @map("total_bytes")
+  nodeId BigInt @map("node_id")
+  userId BigInt @map("user_id")
+
+  totalBytes BigInt @map("total_bytes")
 
   createdAt DateTime @default(dbgenerated("CURRENT_DATE")) @map("created_at") @db.Date
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  node Nodes @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
-  user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [tId], onDelete: Cascade)
 
-  @@id([nodeUuid, userUuid, createdAt])
+  @@id([nodeId, createdAt, userId])
   @@map("nodes_user_usage_history")
 }
 
