@@ -1,8 +1,6 @@
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
@@ -48,9 +46,6 @@ import {
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 @Injectable()
 export class UsersService {

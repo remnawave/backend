@@ -26,6 +26,7 @@ interface IGetStatsResponseData {
     };
     nodes: {
         totalOnline: number;
+        totalBytesLifetime: string;
     };
 }
 
@@ -55,6 +56,7 @@ export class GetStatsResponseModel {
     };
     nodes: {
         totalOnline: number;
+        totalBytesLifetime: string;
     };
 
     constructor(data: IGetStatsResponseData) {

@@ -1,6 +1,5 @@
 import { SelectExpression, sql, ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { TResetPeriods, TUsersStatus, USERS_STATUS } from '@contract/constants';
@@ -36,8 +35,6 @@ import {
 import { TriggerThresholdNotificationsBuilder } from '../builders/trigger-threshold-notifications-builder';
 import { UserTrafficEntity } from '../entities/user-traffic.entity';
 import { UserConverter } from '../users.converter';
-
-dayjs.extend(utc);
 
 @Injectable()
 export class UsersRepository {

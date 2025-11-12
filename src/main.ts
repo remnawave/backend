@@ -4,12 +4,16 @@
 
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
 import { createLogger } from 'winston';
 import compression from 'compression';
 import * as winston from 'winston';
+import utc from 'dayjs/plugin/utc';
 import { json } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import dayjs from 'dayjs';
 
 import { ROOT } from '@contract/api';
 
@@ -24,6 +28,10 @@ import { customLogFilter } from '@common/utils/filter-logs';
 import { AxiosService } from '@common/axios';
 
 import { AppModule } from './app.module';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 patchNestJsSwagger();
 

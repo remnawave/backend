@@ -28,6 +28,7 @@ import { prettyBytesUtil } from '@common/utils/bytes';
 
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { ResponseRulesParserService } from '@modules/subscription-response-rules/services/response-rules-parser.service';
+import { GetSumLifetimeQuery } from '@modules/nodes-usage-history/queries/get-sum-lifetime';
 import { Get7DaysStatsQuery } from '@modules/nodes-usage-history/queries/get-7days-stats';
 import { CountOnlineUsersQuery } from '@modules/nodes/queries/count-online-users';
 import { IGet7DaysStats } from '@modules/nodes-usage-history/interfaces';
@@ -64,8 +65,14 @@ export class SystemService {
         try {
             const userStats = await this.getShortUserStats();
             const onlineUsers = await this.getOnlineUsers();
+            const nodesSumLifetime = await this.queryBus.execute(new GetSumLifetimeQuery());
 
-            if (!userStats.isOk || !userStats.response) {
+            if (
+                !userStats.isOk ||
+                !userStats.response ||
+                !nodesSumLifetime.isOk ||
+                !nodesSumLifetime.response
+            ) {
                 return {
                     isOk: false,
                     ...ERRORS.GET_USER_STATS_ERROR,
@@ -94,6 +101,7 @@ export class SystemService {
                     onlineStats: userStats.response.onlineStats,
                     nodes: {
                         totalOnline: onlineUsers.response?.usersOnline || 0,
+                        totalBytesLifetime: nodesSumLifetime.response.totalBytes,
                     },
                 }),
             };

@@ -3,11 +3,15 @@
 };
 
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
 import { createLogger } from 'winston';
 import compression from 'compression';
 import * as winston from 'winston';
+import utc from 'dayjs/plugin/utc';
 import { json } from 'express';
 import helmet from 'helmet';
+import dayjs from 'dayjs';
 
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -20,6 +24,10 @@ import { AxiosService } from '@common/axios';
 import { BULLBOARD_ROOT, HEALTH_ROOT, METRICS_ROOT } from '@libs/contracts/api';
 
 import { SchedulerRootModule } from './scheduler.root.module';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 // const levels = {
 //     error: 0,
