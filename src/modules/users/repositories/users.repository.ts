@@ -1148,11 +1148,11 @@ export class UsersRepository {
     }> {
         const result = await this.qb.kysely
             .selectFrom('users')
-            .select(sql.raw('MIN(LENGTH(short_uuid))').as('minLength'))
-            .select(sql.raw('MAX(LENGTH(short_uuid))').as('maxLength'))
+            .select(sql.raw<number>('COALESCE(MIN(LENGTH(short_uuid)), 0)').as('minLength'))
+            .select(sql.raw<number>('COALESCE(MAX(LENGTH(short_uuid)), 0)').as('maxLength'))
             .executeTakeFirst();
 
-        if (result === undefined || result === null) {
+        if (result === undefined) {
             return {
                 min: 0,
                 max: 0,
