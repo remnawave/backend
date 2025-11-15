@@ -8,10 +8,12 @@ export const CACHE_KEYS = {
     PASSKEY_REGISTRATION_OPTIONS: (uuid: string) => `passkey_registration_options:${uuid}`,
     PASSKEY_AUTHENTICATION_OPTIONS: (uuid: string) => `passkey_authentication_options:${uuid}`,
     REMNAWAVE_SETTINGS: 'remnawave_settings',
+    SHORT_UUID_RANGE: 'short_uuid_range',
 } as const;
 
 export const CACHE_KEYS_TTL = {
     REMNAWAVE_SETTINGS: 86_400_000, // 1 day
     EXTERNAL_SQUAD_SETTINGS: 3_600_000, // 1 hour
     SUBSCRIPTION_SETTINGS: 3_600_000, // 1 hour
+    SHORT_UUID_RANGE: 86_400_000, // 1 day
 } as const;

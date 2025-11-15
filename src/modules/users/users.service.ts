@@ -1,17 +1,20 @@
+import type { Cache } from 'cache-manager';
+
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import dayjs from 'dayjs';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
-import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
+import { ERRORS, USERS_STATUS, EVENTS, CACHE_KEYS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { UserEvent } from '@integration-modules/notifications/interfaces';
@@ -44,6 +47,7 @@ import {
     BulkAllUpdateUsersRequestDto,
 } from './dtos';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
+import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
 
@@ -63,6 +67,7 @@ export class UsersService {
         private readonly startAllNodesQueue: StartAllNodesQueueService,
         private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService,
         private readonly userActionsQueueService: UserActionsQueueService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }
@@ -86,6 +91,9 @@ export class UsersService {
                     event: EVENTS.USER.CREATED,
                 }),
             );
+
+            await this.invalidateShortUuidRangeCache(user.response.shortUuid);
+
             return user;
         } catch (error) {
             this.logger.error(error);
@@ -146,6 +154,8 @@ export class UsersService {
                     event: EVENTS.USER.MODIFIED,
                 }),
             );
+
+            await this.invalidateShortUuidRangeCache(user.response.user.shortUuid);
 
             return {
                 isOk: true,
@@ -533,6 +543,8 @@ export class UsersService {
                     event: EVENTS.USER.REVOKED,
                 }),
             );
+
+            await this.invalidateShortUuidRangeCache(updatedUser.shortUuid);
 
             return {
                 isOk: true,
@@ -1161,5 +1173,17 @@ export class UsersService {
             GetUserUsageByRangeQuery,
             ICommandResponse<IGetUserUsageByRange[]>
         >(new GetUserUsageByRangeQuery(userUuid, start, end));
+    }
+
+    private async invalidateShortUuidRangeCache(shortUuid: string): Promise<void> {
+        try {
+            const { min, max } = await this.queryBus.execute(new GetCachedShortUuidRangeQuery());
+
+            if (shortUuid.length < min || shortUuid.length > max) {
+                await this.cacheManager.del(CACHE_KEYS.SHORT_UUID_RANGE);
+            }
+        } catch (error) {
+            this.logger.error(error);
+        }
     }
 }
