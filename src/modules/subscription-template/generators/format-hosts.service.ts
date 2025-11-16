@@ -462,6 +462,7 @@ export class FormatHostsService {
                 mldsa65Verify: mldsa65PublicKeyFromConfig,
                 encryption: encryptionMap.get(inputHost.inboundTag),
                 flow: getVlessFlow(inbound),
+                xrayJsonTemplate: inputHost.xrayJsonTemplate,
             });
         }
 

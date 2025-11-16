@@ -81,6 +81,7 @@ export namespace UpdateHostCommand {
         shuffleHost: z.optional(z.boolean()),
         mihomoX25519: z.optional(z.boolean()),
         nodes: z.optional(z.array(z.string().uuid())),
+        xrayJsonTemplateUuid: z.optional(z.string().uuid().nullable()),
     });
     export type Request = z.infer<typeof RequestSchema>;
 

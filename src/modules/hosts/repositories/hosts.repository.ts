@@ -172,11 +172,21 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 'configProfileInbounds.uuid',
                 'hosts.configProfileInboundUuid',
             )
+            .leftJoin(
+                'subscriptionTemplates',
+                'subscriptionTemplates.uuid',
+                'hosts.xrayJsonTemplateUuid',
+            )
             .$if(!returnDisabledHosts, (eb) => eb.where('hosts.isDisabled', '=', false))
             .$if(!returnHiddenHosts, (eb) => eb.where('hosts.isHidden', '=', false))
             .where('internalSquadMembers.userUuid', '=', getKyselyUuid(userUuid))
             .selectAll('hosts')
-            .select(['configProfileInbounds.rawInbound', 'configProfileInbounds.tag as inboundTag'])
+
+            .select([
+                'configProfileInbounds.rawInbound',
+                'configProfileInbounds.tag as inboundTag',
+                'subscriptionTemplates.templateJson as xrayJsonTemplate',
+            ])
             .orderBy('hosts.viewPosition', 'asc')
             .execute();
 

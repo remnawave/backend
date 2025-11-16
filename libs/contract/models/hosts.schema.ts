@@ -34,4 +34,5 @@ export const HostsSchema = z.object({
     mihomoX25519: z.boolean(),
 
     nodes: z.array(z.string().uuid()),
+    xrayJsonTemplateUuid: z.string().uuid().nullable(),
 });

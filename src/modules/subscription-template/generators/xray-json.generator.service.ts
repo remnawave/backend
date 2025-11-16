@@ -77,30 +77,26 @@ export class XrayJsonGeneratorService {
 
             const templateContent = templateContentDb as unknown as XrayJsonConfig;
 
-            const templatedOutbounds: XrayJsonConfig[] = [];
+            const preparedXrayJsonConfigs: XrayJsonConfig[] = [];
 
             for (const host of hosts) {
-                if (!host) {
-                    continue;
-                }
-
                 const templatedOutbound = this.createConfigForHost(host, isHapp);
                 if (templatedOutbound) {
-                    templatedOutbounds.push(templatedOutbound);
+                    const baseTemplate = host.xrayJsonTemplate ?? templateContent;
+
+                    preparedXrayJsonConfigs.push({
+                        ...baseTemplate,
+                        outbounds: [
+                            ...templatedOutbound.outbounds,
+                            ...(baseTemplate as XrayJsonConfig).outbounds,
+                        ],
+                        remarks: templatedOutbound.remarks,
+                        meta: templatedOutbound.meta,
+                    });
                 }
             }
 
-            const preparedXrayJsonConfig: XrayJsonConfig[] = [];
-            for (const templatedOutbound of templatedOutbounds) {
-                preparedXrayJsonConfig.push({
-                    ...templateContent,
-                    outbounds: [...templatedOutbound.outbounds, ...templateContent.outbounds],
-                    remarks: templatedOutbound.remarks,
-                    meta: templatedOutbound.meta,
-                });
-            }
-
-            return this.renderConfigs(preparedXrayJsonConfig);
+            return this.renderConfigs(preparedXrayJsonConfigs);
         } catch (error) {
             this.logger.error('Error generating xray-json config:', error);
             return '';

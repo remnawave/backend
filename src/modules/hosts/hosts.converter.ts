@@ -42,6 +42,8 @@ const entityToModel = (entity: HostsEntity): Hosts => {
         configProfileInboundUuid: entity.configProfileInboundUuid,
 
         vlessRouteId: entity.vlessRouteId,
+
+        xrayJsonTemplateUuid: entity.xrayJsonTemplateUuid,
     };
 };
 

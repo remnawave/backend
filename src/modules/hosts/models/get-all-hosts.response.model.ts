@@ -37,6 +37,8 @@ export class GetAllHostsResponseModel {
 
     public nodes: string[];
 
+    public xrayJsonTemplateUuid: string | null;
+
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
 
@@ -73,5 +75,6 @@ export class GetAllHostsResponseModel {
         this.vlessRouteId = data.vlessRouteId;
 
         this.nodes = data.nodes.map((node) => node.nodeUuid);
+        this.xrayJsonTemplateUuid = data.xrayJsonTemplateUuid;
     }
 }

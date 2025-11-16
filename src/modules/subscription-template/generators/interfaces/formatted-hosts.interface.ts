@@ -39,4 +39,5 @@ export interface IFormattedHost {
     mldsa65Verify?: string;
     encryption?: string;
     flow?: 'xtls-rprx-vision' | '';
+    xrayJsonTemplate?: object | null;
 }

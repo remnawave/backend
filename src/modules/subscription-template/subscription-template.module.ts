@@ -7,6 +7,7 @@ import { SubscriptionTemplateConverter } from './subscription-template.converter
 import { SubscriptionTemplateService } from './subscription-template.service';
 import { RenderTemplatesService } from './render-templates.service';
 import { TEMPLATE_RENDERERS } from './generators';
+import { QUERIES } from './queries';
 @Module({
     imports: [CqrsModule],
     controllers: [SubscriptionTemplateController],
@@ -16,6 +17,7 @@ import { TEMPLATE_RENDERERS } from './generators';
         SubscriptionTemplateConverter,
         ...TEMPLATE_RENDERERS,
         RenderTemplatesService,
+        ...QUERIES,
     ],
     exports: [SubscriptionTemplateService, RenderTemplatesService, ...TEMPLATE_RENDERERS],
 })
