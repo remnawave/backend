@@ -255,13 +255,8 @@ export class SingBoxGeneratorService {
             server_port: params.port,
         };
 
-        if (
-            ['raw', 'tcp'].includes(params.network) &&
-            params.headerType !== 'http' &&
-            ['reality', 'tls'].includes(params.tls) &&
-            params.protocol === 'vless'
-        ) {
-            config.flow = 'xtls-rprx-vision';
+        if (params.flow === 'xtls-rprx-vision') {
+            config.flow = params.flow;
         }
 
         if (params.protocol === 'shadowsocks') {

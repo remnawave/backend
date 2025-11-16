@@ -124,17 +124,6 @@ export class XrayGeneratorService {
             );
         }
 
-        if (
-            ['reality', 'tls'].includes(params.tls) &&
-            ['raw', 'tcp'].includes(params.network) &&
-            params.protocol !== 'trojan' &&
-            params.headerType !== 'http'
-        ) {
-            Object.assign(payload, {
-                flow: 'xtls-rprx-vision',
-            });
-        }
-
         if (params.network === 'xhttp') {
             Object.assign(payload, {
                 path: params.path,
@@ -198,7 +187,7 @@ export class XrayGeneratorService {
             headerType: params.headerType || '',
         };
 
-        const network = params.network || 'tcp';
+        const network = params.network;
         if (network in NETWORK_CONFIGS) {
             Object.assign(
                 payload,
@@ -206,13 +195,9 @@ export class XrayGeneratorService {
             );
         }
 
-        if (
-            ['reality', 'tls'].includes(params.tls) &&
-            ['raw', 'tcp'].includes(params.network) &&
-            params.headerType !== 'http'
-        ) {
+        if (params.flow !== undefined) {
             Object.assign(payload, {
-                flow: 'xtls-rprx-vision',
+                flow: params.flow,
             });
         }
 

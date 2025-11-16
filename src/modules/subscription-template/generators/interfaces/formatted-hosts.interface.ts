@@ -38,4 +38,5 @@ export interface IFormattedHost {
     dbData?: IDbHostData;
     mldsa65Verify?: string;
     encryption?: string;
+    flow?: 'xtls-rprx-vision' | '';
 }

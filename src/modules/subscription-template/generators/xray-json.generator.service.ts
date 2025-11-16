@@ -149,7 +149,7 @@ export class XrayJsonGeneratorService {
     private createOutboundSettings(host: IFormattedHost): OutboundSettings {
         switch (host.protocol) {
             case 'vless':
-                const vnextWithoutFlow = {
+                return {
                     vnext: [
                         {
                             address: host.address,
@@ -158,24 +158,12 @@ export class XrayJsonGeneratorService {
                                 {
                                     id: host.password.vlessPassword,
                                     encryption: host.encryption || 'none',
-                                    flow: 'xtls-rprx-vision' as string | undefined,
+                                    flow: host.flow,
                                 },
                             ],
                         },
                     ],
                 };
-
-                if (
-                    !(
-                        ['reality', 'tls'].includes(host.tls) &&
-                        ['raw', 'tcp'].includes(host.network) &&
-                        host.headerType !== 'http'
-                    )
-                ) {
-                    vnextWithoutFlow.vnext[0].users[0].flow = undefined;
-                }
-
-                return vnextWithoutFlow;
 
             case 'trojan':
                 return {

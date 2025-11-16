@@ -24,6 +24,7 @@ import { TemplateEngine } from '@common/utils/templates/replace-templates-values
 import { ICommandResponse } from '@common/types/command-response.type';
 import { InboundObject } from '@common/helpers/xray-config/interfaces';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
+import { getVlessFlow } from '@common/utils/flow';
 import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
@@ -45,6 +46,8 @@ interface IGenerateFormattedHostsOptions {
 export class FormatHostsService {
     private readonly nanoid: ReturnType<typeof customAlphabet>;
     private readonly subPublicDomain: string;
+    private readonly domainRegex =
+        /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
     constructor(
         private readonly queryBus: QueryBus,
@@ -368,9 +371,7 @@ export class FormatHostsService {
             const tls = tlsFromConfig;
 
             const isDomain = (str: string): boolean => {
-                const domainRegex =
-                    /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-                return domainRegex.test(str);
+                return this.domainRegex.test(str);
             };
 
             let sni = inputHost.sni || sniFromConfig;
@@ -460,6 +461,7 @@ export class FormatHostsService {
                 dbData,
                 mldsa65Verify: mldsa65PublicKeyFromConfig,
                 encryption: encryptionMap.get(inputHost.inboundTag),
+                flow: getVlessFlow(inbound),
             });
         }
 
