@@ -12,6 +12,7 @@ import { ExternalSquadWithInfoEntity } from '../entities/external-squad-with-inf
 
 export class GetExternalSquadByUuidResponseModel {
     public readonly uuid: string;
+    public readonly viewPosition: number;
     public readonly name: string;
     public readonly info: {
         membersCount: number;
@@ -37,6 +38,7 @@ export class GetExternalSquadByUuidResponseModel {
 
     constructor(entity: ExternalSquadWithInfoEntity) {
         this.uuid = entity.uuid;
+        this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         this.info = {
             membersCount: Number(entity.membersCount),

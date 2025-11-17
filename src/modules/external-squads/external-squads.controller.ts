@@ -21,6 +21,7 @@ import {
     DeleteUsersFromExternalSquadCommand,
     GetExternalSquadByUuidCommand,
     GetExternalSquadsCommand,
+    ReorderExternalSquadCommand,
     UpdateExternalSquadCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, EXTERNAL_SQUADS_CONTROLLER } from '@libs/contracts/api';
@@ -34,6 +35,8 @@ import {
     GetExternalSquadByUuidResponseDto,
     GetExternalSquadsResponseDto,
     RemoveUsersFromExternalSquadResponseDto,
+    ReorderExternalSquadsRequestDto,
+    ReorderExternalSquadsResponseDto,
     UpdateExternalSquadRequestDto,
     UpdateExternalSquadResponseDto,
 } from './dtos';
@@ -192,6 +195,26 @@ export class ExternalSquadController {
         @Param('uuid') uuid: string,
     ): Promise<RemoveUsersFromExternalSquadResponseDto> {
         const result = await this.externalSquadService.removeUsersFromExternalSquad(uuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: ReorderExternalSquadsResponseDto,
+        description: 'External squads reordered successfully',
+    })
+    @Endpoint({
+        command: ReorderExternalSquadCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ReorderExternalSquadsRequestDto,
+    })
+    async reorderExternalSquads(
+        @Body() body: ReorderExternalSquadsRequestDto,
+    ): Promise<ReorderExternalSquadsResponseDto> {
+        const result = await this.externalSquadService.reorderExternalSquads(body);
 
         const data = errorHandler(result);
         return {

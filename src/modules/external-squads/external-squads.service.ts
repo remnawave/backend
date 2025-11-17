@@ -18,8 +18,8 @@ import {
 } from './models';
 import { GetExternalSquadByUuidResponseModel } from './models/get-external-squad-by-uuid.response.model';
 import { GetExternalSquadsResponseModel } from './models/get-external-squads.response.model';
+import { ReorderExternalSquadsRequestDto, UpdateExternalSquadRequestDto } from './dtos';
 import { ExternalSquadRepository } from './repositories/external-squad.repository';
-import { UpdateExternalSquadRequestDto } from './dtos';
 import { ExternalSquadEntity } from './entities';
 
 @Injectable()
@@ -290,6 +290,19 @@ export class ExternalSquadService {
                 isOk: false,
                 ...ERRORS.REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR,
             };
+        }
+    }
+
+    public async reorderExternalSquads(
+        dto: ReorderExternalSquadsRequestDto,
+    ): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
+        try {
+            await this.externalSquadRepository.reorderMany(dto.items);
+
+            return await this.getExternalSquads();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 }

@@ -21,6 +21,7 @@ import { GetSubscriptionTemplatesResponseModel } from './models/get-templates.re
 import { SubscriptionTemplateEntity } from './entities/subscription-template.entity';
 import { BaseTemplateResponseModel } from './models/base-template.response.model';
 import { DeleteSubscriptionTemplateResponseModel } from './models';
+import { ReorderSubscriptionTemplatesRequestDto } from './dtos';
 
 const DEFAULT_TEMPLATE_NAME = 'Default';
 
@@ -275,6 +276,19 @@ export class SubscriptionTemplateService {
                 isOk: false,
                 ...ERRORS.CREATE_SUBSCRIPTION_TEMPLATE_ERROR,
             };
+        }
+    }
+
+    public async reorderSubscriptionTemplates(
+        dto: ReorderSubscriptionTemplatesRequestDto,
+    ): Promise<ICommandResponse<GetSubscriptionTemplatesResponseModel>> {
+        try {
+            await this.subscriptionTemplateRepository.reorderMany(dto.items);
+
+            return await this.getAllTemplates();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 

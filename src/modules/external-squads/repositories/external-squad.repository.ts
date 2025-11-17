@@ -118,6 +118,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .selectFrom('externalSquads')
             .select((eb) => [
                 'externalSquads.uuid',
+                'externalSquads.viewPosition',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
@@ -139,7 +140,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                         .select(['est.templateType', 'est.templateUuid']),
                 ).as('templates'),
             ])
-            .orderBy('externalSquads.createdAt', 'asc')
+            .orderBy('externalSquads.viewPosition', 'asc')
             .execute();
 
         return result.map((item) => new ExternalSquadWithInfoEntity(item));
@@ -151,6 +152,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .where('externalSquads.uuid', '=', getKyselyUuid(uuid))
             .select((eb) => [
                 'externalSquads.uuid',
+                'externalSquads.viewPosition',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
@@ -297,5 +299,26 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         }
 
         return new ExternalSquadEntity(result);
+    }
+
+    public async reorderMany(
+        dto: {
+            uuid: string;
+            viewPosition: number;
+        }[],
+    ): Promise<boolean> {
+        await this.prisma.withTransaction(async () => {
+            for (const { uuid, viewPosition } of dto) {
+                await this.prisma.tx.externalSquads.updateMany({
+                    where: { uuid },
+                    data: { viewPosition },
+                });
+            }
+        });
+
+        await this.prisma.tx
+            .$executeRaw`SELECT setval('external_squads_view_position_seq', (SELECT MAX(view_position) FROM external_squads) + 1)`;
+
+        return true;
     }
 }

@@ -6,6 +6,7 @@ import {
     GetSubscriptionTemplatesCommand,
     DeleteSubscriptionTemplateCommand,
     CreateSubscriptionTemplateCommand,
+    ReorderSubscriptionTemplateCommand,
 } from '@libs/contracts/commands';
 
 export class GetTemplatesResponseDto extends createZodDto(
@@ -43,3 +44,10 @@ export class CreateSubscriptionTemplateRequestDto extends createZodDto(
 export class CreateSubscriptionTemplateResponseDto extends createZodDto(
     CreateSubscriptionTemplateCommand.ResponseSchema,
 ) {} // CREATE
+
+export class ReorderSubscriptionTemplatesRequestDto extends createZodDto(
+    ReorderSubscriptionTemplateCommand.RequestSchema,
+) {} // REORDER
+export class ReorderSubscriptionTemplatesResponseDto extends createZodDto(
+    ReorderSubscriptionTemplateCommand.ResponseSchema,
+) {} // REORDER

@@ -22,6 +22,7 @@ import {
     GetConfigProfileByUuidCommand,
     GetConfigProfilesCommand,
     GetInboundsByProfileUuidCommand,
+    ReorderConfigProfileCommand,
     UpdateConfigProfileCommand,
 } from '@libs/contracts/commands';
 import { CONFIG_PROFILES_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
@@ -36,6 +37,8 @@ import {
     GetConfigProfileByUuidResponseDto,
     GetConfigProfilesResponseDto,
     GetInboundsByProfileUuidResponseDto,
+    ReorderConfigProfilesRequestDto,
+    ReorderConfigProfilesResponseDto,
     UpdateConfigProfileRequestDto,
     UpdateConfigProfileResponseDto,
 } from './dtos';
@@ -221,6 +224,26 @@ export class ConfigProfileController {
             updateConfigProfileDto.name,
             updateConfigProfileDto.config,
         );
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: ReorderConfigProfilesResponseDto,
+        description: 'Config profiles reordered successfully',
+    })
+    @Endpoint({
+        command: ReorderConfigProfileCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ReorderConfigProfilesRequestDto,
+    })
+    async reorderConfigProfiles(
+        @Body() body: ReorderConfigProfilesRequestDto,
+    ): Promise<ReorderConfigProfilesResponseDto> {
+        const result = await this.configProfileService.reorderConfigProfiles(body);
 
         const data = errorHandler(result);
         return {

@@ -85,6 +85,7 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
             .selectFrom('internalSquads')
             .select((eb) => [
                 'internalSquads.uuid',
+                'internalSquads.viewPosition',
                 'internalSquads.name',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
@@ -150,11 +151,12 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
 
             .groupBy([
                 'internalSquads.uuid',
+                'internalSquads.viewPosition',
                 'internalSquads.name',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
             ])
-            .orderBy('internalSquads.createdAt', 'asc')
+            .orderBy('internalSquads.viewPosition', 'asc')
             .execute();
 
         return result.map((item) => new InternalSquadWithInfoEntity(item));
@@ -168,6 +170,7 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
             .where('internalSquads.uuid', '=', getKyselyUuid(uuid))
             .select((eb) => [
                 'internalSquads.uuid',
+                'internalSquads.viewPosition',
                 'internalSquads.name',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
@@ -205,11 +208,12 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
 
             .groupBy([
                 'internalSquads.uuid',
+                'internalSquads.viewPosition',
                 'internalSquads.name',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
             ])
-            .orderBy('internalSquads.createdAt', 'asc')
+            .orderBy('internalSquads.viewPosition', 'asc')
             .executeTakeFirst();
 
         if (!result) {
@@ -389,5 +393,26 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
         };
 
         return result;
+    }
+
+    public async reorderMany(
+        dto: {
+            uuid: string;
+            viewPosition: number;
+        }[],
+    ): Promise<boolean> {
+        await this.prisma.withTransaction(async () => {
+            for (const { uuid, viewPosition } of dto) {
+                await this.prisma.tx.internalSquads.updateMany({
+                    where: { uuid },
+                    data: { viewPosition },
+                });
+            }
+        });
+
+        await this.prisma.tx
+            .$executeRaw`SELECT setval('internal_squads_view_position_seq', (SELECT MAX(view_position) FROM internal_squads) + 1)`;
+
+        return true;
     }
 }

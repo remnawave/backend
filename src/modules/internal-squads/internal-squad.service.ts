@@ -16,6 +16,7 @@ import { GetInternalSquadsResponseModel } from './models/get-internal-squads.res
 import { InternalSquadRepository } from './repositories/internal-squad.repository';
 import { GetInternalSquadAccessibleNodesResponseModel } from './models';
 import { InternalSquadEntity } from './entities/internal-squad.entity';
+import { ReorderInternalSquadsRequestDto } from './dtos';
 
 @Injectable()
 export class InternalSquadService {
@@ -375,6 +376,19 @@ export class InternalSquadService {
         } catch (error) {
             this.logger.error(error);
             return { isOk: false, ...ERRORS.GET_INTERNAL_SQUAD_ACCESSIBLE_NODES_ERROR };
+        }
+    }
+
+    public async reorderInternalSquads(
+        dto: ReorderInternalSquadsRequestDto,
+    ): Promise<ICommandResponse<GetInternalSquadsResponseModel>> {
+        try {
+            await this.internalSquadRepository.reorderMany(dto.items);
+
+            return await this.getInternalSquads();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 }

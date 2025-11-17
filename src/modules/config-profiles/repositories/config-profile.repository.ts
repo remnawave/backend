@@ -99,7 +99,7 @@ export class ConfigProfileRepository implements ICrud<ConfigProfileEntity> {
         const result = await this.qb.kysely
             .selectFrom('configProfiles')
             .selectAll('configProfiles')
-            .orderBy('configProfiles.createdAt', 'asc')
+            .orderBy('configProfiles.viewPosition', 'asc')
             .select((eb) => [
                 // inbounds
                 this.includeInbounds(eb),
@@ -117,7 +117,6 @@ export class ConfigProfileRepository implements ICrud<ConfigProfileEntity> {
         const result = await this.qb.kysely
             .selectFrom('configProfiles')
             .selectAll('configProfiles')
-            .orderBy('configProfiles.createdAt', 'asc')
             .where('configProfiles.uuid', '=', getKyselyUuid(uuid))
             .select((eb) => [
                 // inbounds
@@ -228,6 +227,27 @@ export class ConfigProfileRepository implements ICrud<ConfigProfileEntity> {
             .execute();
 
         return result.map((item) => new ConfigProfileInboundWithSquadsEntity(item));
+    }
+
+    public async reorderMany(
+        dto: {
+            uuid: string;
+            viewPosition: number;
+        }[],
+    ): Promise<boolean> {
+        await this.prisma.withTransaction(async () => {
+            for (const { uuid, viewPosition } of dto) {
+                await this.prisma.tx.configProfiles.updateMany({
+                    where: { uuid },
+                    data: { viewPosition },
+                });
+            }
+        });
+
+        await this.prisma.tx
+            .$executeRaw`SELECT setval('config_profiles_view_position_seq', (SELECT MAX(view_position) FROM config_profiles) + 1)`;
+
+        return true;
     }
 
     /* 

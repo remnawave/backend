@@ -23,5 +23,6 @@ export * from './subscription-info.schema';
 export * from './subscription-request-history.schema';
 export * from './subscription-settings';
 export * from './subscription-settings.schema';
+export * from './subscription-template.schema';
 export * from './tanstack-query';
 export * from './users.schema';

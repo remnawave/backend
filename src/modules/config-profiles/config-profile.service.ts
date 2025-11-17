@@ -20,6 +20,7 @@ import { ConfigProfileRepository } from './repositories/config-profile.repositor
 import { ConfigProfileEntity } from './entities/config-profile.entity';
 import { ConfigProfileWithInboundsAndNodesEntity } from './entities';
 import { GetSnippetsQuery } from './queries/get-snippets';
+import { ReorderConfigProfilesRequestDto } from './dtos';
 
 @Injectable()
 export class ConfigProfileService {
@@ -395,6 +396,19 @@ export class ConfigProfileService {
                 isOk: false,
                 ...ERRORS.GET_ALL_INBOUNDS_ERROR,
             };
+        }
+    }
+
+    public async reorderConfigProfiles(
+        dto: ReorderConfigProfilesRequestDto,
+    ): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
+        try {
+            await this.configProfileRepository.reorderMany(dto.items);
+
+            return await this.getConfigProfiles();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 

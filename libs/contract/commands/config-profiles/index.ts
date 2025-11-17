@@ -1,3 +1,4 @@
+export * from './actions';
 export * from './create-config-profile.command';
 export * from './delete-config-profile.command';
 export * from './get-all-inbounds.command';

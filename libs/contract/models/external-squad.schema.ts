@@ -10,6 +10,7 @@ import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 
 export const ExternalSquadSchema = z.object({
     uuid: z.string().uuid(),
+    viewPosition: z.number().int(),
     name: z.string(),
 
     info: z.object({

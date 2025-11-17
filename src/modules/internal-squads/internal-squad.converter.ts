@@ -13,6 +13,7 @@ const modelToEntity = (model: InternalSquads): InternalSquadEntity => {
 const entityToModel = (entity: InternalSquadEntity): InternalSquads => {
     return {
         uuid: entity.uuid,
+        viewPosition: entity.viewPosition,
         name: entity.name,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,

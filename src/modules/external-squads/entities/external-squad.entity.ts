@@ -10,6 +10,7 @@ import {
 
 export class ExternalSquadEntity implements ExternalSquads {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
 
     public subscriptionSettings: z.infer<typeof ExternalSquadSubscriptionSettingsSchema> | null;

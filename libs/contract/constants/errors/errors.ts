@@ -1019,4 +1019,9 @@ export const ERRORS = {
         message: 'Update passkey error',
         httpCode: 500,
     },
+    GENERIC_REORDER_ERROR: {
+        code: 'A203',
+        message: 'Generic reorder error',
+        httpCode: 500,
+    },
 } as const;

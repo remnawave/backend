@@ -4,6 +4,7 @@ import { ConfigProfileInboundsSchema } from './config-profile-inbounds.schema';
 
 export const InternalSquadSchema = z.object({
     uuid: z.string().uuid(),
+    viewPosition: z.number().int(),
     name: z.string(),
 
     info: z.object({

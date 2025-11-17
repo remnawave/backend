@@ -2,6 +2,7 @@ import { ConfigProfiles } from '@prisma/client';
 
 export class ConfigProfileEntity implements ConfigProfiles {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
     public config: object;
 
