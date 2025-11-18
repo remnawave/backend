@@ -166,6 +166,10 @@ export class ExportMetricsTask {
 
             const nodes = nodesResponse.response;
 
+            // Clear stale metrics for deleted nodes
+            this.nodeOnlineUsers.reset();
+            this.nodeStatus.reset();
+
             nodes.forEach((node) => {
                 this.nodeOnlineUsers.set(
                     {
