@@ -22,6 +22,7 @@ import {
     DisableNodeCommand,
     EnableNodeCommand,
     GetAllNodesCommand,
+    GetAllNodesTagsCommand,
     GetOneNodeCommand,
     ReorderNodeCommand,
     ResetNodeTrafficCommand,
@@ -39,6 +40,7 @@ import {
     DisableNodeResponseDto,
     EnableNodeResponseDto,
     GetAllNodesResponseDto,
+    GetAllNodesTagsResponseDto,
     GetOneNodeRequestParamDto,
     GetOneNodeResponseDto,
     ReorderNodeRequestDto,
@@ -55,6 +57,7 @@ import {
 import {
     CreateNodeResponseModel,
     GetAllNodesResponseModel,
+    GetAllNodesTagsResponseModel,
     GetOneNodeResponseModel,
 } from './models';
 import { EnableNodeRequestParamDto } from './dtos';
@@ -68,6 +71,22 @@ import { NodesService } from './nodes.service';
 @Controller(NODES_CONTROLLER)
 export class NodesController {
     constructor(private readonly nodesService: NodesService) {}
+
+    @ApiOkResponse({
+        type: GetAllNodesTagsResponseDto,
+        description: 'Nodes tags fetched',
+    })
+    @Endpoint({
+        command: GetAllNodesTagsCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getAllNodesTags(): Promise<GetAllNodesTagsResponseDto> {
+        const res = await this.nodesService.getAllNodesTags();
+        const data = errorHandler(res);
+        return {
+            response: new GetAllNodesTagsResponseModel(data),
+        };
+    }
 
     @ApiCreatedResponse({
         type: CreateNodeResponseDto,

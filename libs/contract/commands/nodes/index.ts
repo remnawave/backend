@@ -4,4 +4,5 @@ export * from './delete.command';
 export * from './get-all.command';
 export * from './get-one.command';
 export * from './stats';
+export * from './tags';
 export * from './update.command';

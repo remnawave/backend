@@ -54,6 +54,19 @@ export namespace UpdateNodeCommand {
             .optional(),
 
         providerUuid: z.optional(z.nullable(z.string().uuid())),
+        tags: z.optional(
+            z
+                .array(
+                    z
+                        .string()
+                        .regex(
+                            /^[A-Z0-9_:]+$/,
+                            'Tag can only contain uppercase letters, numbers, underscores and colons',
+                        )
+                        .max(36, 'Each tag must be less than 36 characters'),
+                )
+                .max(10, 'Maximum 10 tags'),
+        ),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

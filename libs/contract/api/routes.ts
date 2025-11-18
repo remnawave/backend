@@ -47,6 +47,9 @@ export const REST_API = {
         UPDATE: `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.UPDATE}`,
         DELETE: (uuid: string) =>
             `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.DELETE(uuid)}`,
+        TAGS: {
+            GET: `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.TAGS.GET}`,
+        },
 
         ACTIONS: {
             ENABLE: (uuid: string) =>

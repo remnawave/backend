@@ -529,4 +529,16 @@ export class NodesService {
             return { isOk: false, ...ERRORS.REORDER_NODES_ERROR };
         }
     }
+
+    public async getAllNodesTags(): Promise<ICommandResponse<string[]>> {
+        try {
+            return {
+                isOk: true,
+                response: await this.nodesRepository.findAllTags(),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.INTERNAL_SERVER_ERROR };
+        }
+    }
 }

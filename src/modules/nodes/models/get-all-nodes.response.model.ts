@@ -33,7 +33,7 @@ export class GetAllNodesResponseModel {
 
     public viewPosition: number;
     public countryCode: string;
-
+    public tags: string[];
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -72,6 +72,7 @@ export class GetAllNodesResponseModel {
         this.cpuModel = data.cpuModel;
         this.totalRam = data.totalRam;
 
+        this.tags = data.tags;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
         this.viewPosition = data.viewPosition;

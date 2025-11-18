@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { sql } from 'kysely';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -133,8 +134,10 @@ export class NodesRepository implements ICrud<NodesEntity> {
     }
 
     public async findByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity[]> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tags, ...rest } = dto;
         const nodesList = await this.prisma.tx.nodes.findMany({
-            where: dto,
+            where: rest,
             orderBy: {
                 viewPosition: 'asc',
             },
@@ -144,8 +147,10 @@ export class NodesRepository implements ICrud<NodesEntity> {
     }
 
     public async findFirstByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity | null> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tags, ...rest } = dto;
         const result = await this.prisma.tx.nodes.findFirst({
-            where: dto,
+            where: rest,
             include: INCLUDE_RESOLVED_INBOUNDS,
         });
 
@@ -233,5 +238,17 @@ export class NodesRepository implements ICrud<NodesEntity> {
             .executeTakeFirst();
 
         return Number(result.numUpdatedRows || 0);
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
     }
 }

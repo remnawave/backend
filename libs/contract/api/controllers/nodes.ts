@@ -24,4 +24,8 @@ export const NODES_ROUTES = {
         USAGE_BY_RANGE_USER: (uuid: string) => `usage/${uuid}/users/range`,
         USAGE_REALTIME: 'usage/realtime',
     },
+
+    TAGS: {
+        GET: 'tags',
+    },
 } as const;

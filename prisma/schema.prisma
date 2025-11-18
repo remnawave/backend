@@ -200,8 +200,9 @@ model Nodes {
 
   providerUuid String? @map("provider_uuid") @db.Uuid
 
-  viewPosition Int    @default(autoincrement()) @map("view_position")
-  countryCode  String @default("XX") @map("country_code")
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  countryCode  String   @default("XX") @map("country_code")
+  tags         String[] @default([]) @map("tags")
 
   cpuCount Int?    @map("cpu_count")
   cpuModel String? @map("cpu_model")

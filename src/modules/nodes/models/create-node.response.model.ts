@@ -34,6 +34,7 @@ export class CreateNodeResponseModel {
 
     public viewPosition: number;
     public countryCode: string;
+    public tags: string[];
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -72,6 +73,7 @@ export class CreateNodeResponseModel {
         this.viewPosition = data.viewPosition;
         this.consumptionMultiplier = fromNanoToNumber(data.consumptionMultiplier);
         this.countryCode = data.countryCode;
+        this.tags = data.tags;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
 

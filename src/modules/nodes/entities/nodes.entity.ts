@@ -33,6 +33,7 @@ export class NodesEntity implements Nodes {
 
     public viewPosition: number;
     public countryCode: string;
+    public tags: string[];
     public consumptionMultiplier: bigint;
 
     public cpuCount: null | number;

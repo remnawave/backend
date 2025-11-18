@@ -173,6 +173,7 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
+                        tags: node.tags.join(','),
                     },
                     node.usersOnline ?? 0,
                 );
@@ -183,6 +184,7 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
+                        tags: node.tags.join(','),
                     },
                     node.isConnected ? 1 : 0,
                 );
