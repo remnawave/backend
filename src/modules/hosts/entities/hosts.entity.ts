@@ -38,6 +38,10 @@ export class HostsEntity implements Hosts {
         nodeUuid: string;
     }[];
 
+    excludedInternalSquads: {
+        squadUuid: string;
+    }[];
+
     constructor(data: Partial<Hosts>) {
         Object.assign(this, data);
     }

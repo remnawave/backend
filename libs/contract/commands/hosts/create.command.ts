@@ -78,6 +78,9 @@ export namespace CreateHostCommand {
         mihomoX25519: z.optional(z.boolean().default(false)),
         nodes: z.optional(z.array(z.string().uuid())),
         xrayJsonTemplateUuid: z.optional(z.string().uuid().nullable()),
+        excludedInternalSquads: z
+            .optional(z.array(z.string().uuid()))
+            .describe('Optional. Internal squads from which the host will be excluded.'),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

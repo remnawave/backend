@@ -88,7 +88,7 @@ export class HostsService {
                 serverDescription = undefined;
             }
 
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const configProfile = await this.queryBus.execute(
                 new GetConfigProfileByUuidQuery(inboundObj.configProfileUuid),
@@ -134,6 +134,18 @@ export class HostsService {
                 });
             }
 
+            if (excludedInternalSquads !== undefined && excludedInternalSquads.length > 0) {
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    result.uuid,
+                    excludedInternalSquads,
+                );
+                result.excludedInternalSquads = excludedInternalSquads.map((squad) => {
+                    return {
+                        squadUuid: squad,
+                    };
+                });
+            }
+
             return {
                 isOk: true,
                 response: result,
@@ -147,7 +159,7 @@ export class HostsService {
 
     public async updateHost(dto: UpdateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
         try {
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const host = await this.hostsRepository.findByUUID(dto.uuid);
             if (!host) {
@@ -253,6 +265,14 @@ export class HostsService {
             if (nodes !== undefined) {
                 await this.hostsRepository.clearNodesFromHost(host.uuid);
                 await this.hostsRepository.addNodesToHost(host.uuid, nodes);
+            }
+
+            if (excludedInternalSquads !== undefined) {
+                await this.hostsRepository.clearExcludedInternalSquadsFromHost(host.uuid);
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    host.uuid,
+                    excludedInternalSquads,
+                );
             }
 
             const result = await this.hostsRepository.update({

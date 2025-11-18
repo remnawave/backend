@@ -14,8 +14,7 @@ import {
     SetInboundToManyHostsCommand,
     SetPortToManyHostsCommand,
 } from '@libs/contracts/commands';
-import { HOSTS_CONTROLLER } from '@libs/contracts/api/controllers';
-import { CONTROLLERS_INFO } from '@libs/contracts/api';
+import { CONTROLLERS_INFO, HOSTS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -30,8 +29,8 @@ import {
     SetPortToManyHostsRequestDto,
     SetPortToManyHostsResponseDto,
 } from '../dtos/bulk-operations.dto';
-import { GetAllHostsResponseModel } from '../models/get-all-hosts.response.model';
 import { HostsService } from '../hosts.service';
+import { HostResponseModel } from '../models';
 
 @ApiBearerAuth('Authorization')
 @ApiTags(CONTROLLERS_INFO.HOSTS_BULK_ACTIONS.tag)
@@ -57,7 +56,7 @@ export class HostsBulkActionsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 
@@ -76,7 +75,7 @@ export class HostsBulkActionsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 
@@ -95,7 +94,7 @@ export class HostsBulkActionsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 
@@ -118,7 +117,7 @@ export class HostsBulkActionsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 
@@ -137,7 +136,7 @@ export class HostsBulkActionsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 }

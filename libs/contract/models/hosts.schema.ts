@@ -35,4 +35,5 @@ export const HostsSchema = z.object({
 
     nodes: z.array(z.string().uuid()),
     xrayJsonTemplateUuid: z.string().uuid().nullable(),
+    excludedInternalSquads: z.array(z.string().uuid()),
 });

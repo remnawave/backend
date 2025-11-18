@@ -2,7 +2,7 @@ import { TSecurityLayers } from '@libs/contracts/constants';
 
 import { HostsEntity } from '../entities/hosts.entity';
 
-export class CreateHostResponseModel {
+export class HostResponseModel {
     public uuid: string;
 
     public viewPosition: number;
@@ -41,6 +41,8 @@ export class CreateHostResponseModel {
 
     public xrayJsonTemplateUuid: string | null;
 
+    public excludedInternalSquads: string[];
+
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
 
@@ -75,6 +77,9 @@ export class CreateHostResponseModel {
         };
 
         this.nodes = data.nodes.map((node) => node.nodeUuid);
+        this.excludedInternalSquads = data.excludedInternalSquads.map(
+            (exclusion) => exclusion.squadUuid,
+        );
         this.xrayJsonTemplateUuid = data.xrayJsonTemplateUuid;
     }
 }
