@@ -75,8 +75,8 @@
     "@noble/post-quantum": "^0.5.2",
     "@peculiar/webcrypto": "^1.5.0",
     "@peculiar/x509": "^1.14.2",
-    "@prisma/adapter-pg": "^6.15.0",
-    "@prisma/client": "6.15.0",
+    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/client": "6.19.0",
     "@remnawave/hashed-set": "^0.0.4",
     "@remnawave/node-contract": "0.5.9",
     "@remnawave/xtls-sdk": "^0.7.0",
@@ -119,8 +119,8 @@
     "patch-package": "^8.0.1",
     "pkg-types": "2.3.0",
     "pm2": "6.0.13",
-    "prisma": "6.15.0",
-    "prisma-kysely": "2.2.0",
+    "prisma": "6.19.0",
+    "prisma-kysely": "2.2.1",
     "prom-client": "^15.1.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
@@ -171,5 +171,10 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.2",
     "typescript-eslint": "^8.39.1"
+  },
+  "overrides": {
+    "prisma-kysely": {
+      "prisma": "6.19.0"
+    }
   }
 }
