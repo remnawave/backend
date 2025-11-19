@@ -137,3 +137,15 @@ export const METRIC_PROVIDERS = [
         labelNames: ['instance_id', 'instance_name'],
     }),
 ];
+
+export interface INodeBaseMetricLabels {
+    node_uuid: string;
+    node_name: string;
+    node_country_emoji: string;
+    provider_name: string;
+    tags: string;
+}
+
+export interface INodeBandwidthMetricLabels extends INodeBaseMetricLabels {
+    tag: string;
+}
