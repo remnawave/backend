@@ -56,7 +56,7 @@ export function Endpoint(options: ApiEndpointOptions) {
                 properties: {
                     message: { type: 'string' },
                     statusCode: { type: 'number', example: 400 },
-                    error: { type: 'string' },
+                    errors: { type: 'array', items: { type: 'object' } },
                 },
             },
         }),
