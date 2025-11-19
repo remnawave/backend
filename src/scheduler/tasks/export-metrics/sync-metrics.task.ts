@@ -49,6 +49,7 @@ export class SyncMetricsTask {
 
         try {
             const nodesResponse = await this.queryBus.execute(new GetAllNodesQuery());
+
             if (
                 !nodesResponse.isOk ||
                 !nodesResponse.response ||
@@ -122,7 +123,7 @@ export class SyncMetricsTask {
             const labels = stat.labels as INodeBaseMetricLabels;
             const existingNode = nodesMap.get(labels.node_uuid);
 
-            if (!existingNode || !this.compareBaseLabels(existingNode, labels)) {
+            if (!existingNode || !this.compareMetricLabels(existingNode, labels)) {
                 metric.remove(stat.labels);
             }
         }
@@ -137,32 +138,22 @@ export class SyncMetricsTask {
             const labels = stat.labels as INodeBandwidthMetricLabels;
             const existingNode = nodesMap.get(labels.node_uuid);
 
-            if (!existingNode || !this.compareNodeBandwidthLabels(existingNode, labels)) {
+            if (!existingNode || !this.compareMetricLabels(existingNode, labels)) {
                 metric.remove(stat.labels);
             }
         }
     }
 
-    private compareBaseLabels(nodeA: INodeBaseMetricLabels, nodeB: INodeBaseMetricLabels): boolean {
+    private compareMetricLabels(
+        nodeA: INodeBaseMetricLabels,
+        nodeB: INodeBaseMetricLabels | INodeBandwidthMetricLabels,
+    ): boolean {
         return (
             nodeA.node_uuid === nodeB.node_uuid &&
             nodeA.node_name === nodeB.node_name &&
             nodeA.node_country_emoji === nodeB.node_country_emoji &&
             nodeA.provider_name === nodeB.provider_name &&
             nodeA.tags === nodeB.tags
-        );
-    }
-
-    private compareNodeBandwidthLabels(
-        existingNode: INodeBaseMetricLabels,
-        metricLabels: INodeBandwidthMetricLabels,
-    ): boolean {
-        return (
-            existingNode.node_uuid === metricLabels.node_uuid &&
-            existingNode.node_name === metricLabels.node_name &&
-            existingNode.node_country_emoji === metricLabels.node_country_emoji &&
-            existingNode.provider_name === metricLabels.provider_name &&
-            existingNode.tags === metricLabels.tags
         );
     }
 }
