@@ -69,7 +69,7 @@
     "@nestjs/platform-express": "11.1.8",
     "@nestjs/schedule": "6.0.1",
     "@nestjs/serve-static": "5.0.4",
-    "@nestjs/swagger": "11.2.1",
+    "@nestjs/swagger": "11.2.2",
     "@nestjs/terminus": "^11.0.0",
     "@nestjstools/messaging": "^2.22.0",
     "@noble/post-quantum": "^0.5.2",
