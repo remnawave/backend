@@ -327,7 +327,7 @@ export const DEFAULT_TEMPLATE_XRAY_JSON = {
             },
             sniffing: {
                 enabled: true,
-                routeOnly: false,
+                routeOnly: true,
                 destOverride: ['http', 'tls', 'quic'],
             },
         },
@@ -341,7 +341,7 @@ export const DEFAULT_TEMPLATE_XRAY_JSON = {
             },
             sniffing: {
                 enabled: true,
-                routeOnly: false,
+                routeOnly: true,
                 destOverride: ['http', 'tls', 'quic'],
             },
         },
