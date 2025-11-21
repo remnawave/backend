@@ -5,6 +5,7 @@ import {
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
     ExternalSquadSubscriptionSettingsSchema,
+    TCustomRemarks,
     THwidSettings,
 } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
@@ -25,6 +26,7 @@ export class ExternalSquadWithInfoEntity implements ExternalSquads {
     public hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;
     public responseHeaders: z.infer<typeof ExternalSquadResponseHeadersSchema> | null;
     public hwidSettings: THwidSettings | null;
+    public customRemarks: TCustomRemarks | null;
 
     public createdAt: Date;
     public updatedAt: Date;

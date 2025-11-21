@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+    CustomRemarksSchema,
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
     ExternalSquadSchema,
@@ -43,6 +44,7 @@ export namespace UpdateExternalSquadCommand {
         hostOverrides: ExternalSquadHostOverridesSchema.optional(),
         responseHeaders: ExternalSquadResponseHeadersSchema.optional(),
         hwidSettings: z.optional(z.nullable(HwidSettingsSchema)),
+        customRemarks: z.optional(z.nullable(CustomRemarksSchema)),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

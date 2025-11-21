@@ -119,6 +119,7 @@ export class ExternalSquadService {
             hostOverrides,
             responseHeaders,
             hwidSettings,
+            customRemarks,
         } = dto;
 
         try {
@@ -137,7 +138,8 @@ export class ExternalSquadService {
                 !subscriptionSettings &&
                 !hostOverrides &&
                 !responseHeaders &&
-                hwidSettings === undefined
+                hwidSettings === undefined &&
+                customRemarks === undefined
             ) {
                 return {
                     isOk: false,
@@ -152,6 +154,7 @@ export class ExternalSquadService {
                 hostOverrides: hostOverrides || undefined,
                 responseHeaders: responseHeaders || undefined,
                 hwidSettings: hwidSettings,
+                customRemarks: customRemarks,
             });
 
             if (templates !== undefined) {

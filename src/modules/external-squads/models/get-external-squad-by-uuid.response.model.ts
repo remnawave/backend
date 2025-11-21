@@ -4,6 +4,7 @@ import {
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
     ExternalSquadSubscriptionSettingsSchema,
+    TCustomRemarks,
     THwidSettings,
 } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
@@ -32,6 +33,7 @@ export class GetExternalSquadByUuidResponseModel {
     public readonly responseHeaders: z.infer<typeof ExternalSquadResponseHeadersSchema> | null;
 
     public readonly hwidSettings: THwidSettings | null;
+    public readonly customRemarks: TCustomRemarks | null;
 
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
@@ -55,6 +57,7 @@ export class GetExternalSquadByUuidResponseModel {
         this.responseHeaders = entity.responseHeaders;
 
         this.hwidSettings = entity.hwidSettings;
+        this.customRemarks = entity.customRemarks;
 
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;

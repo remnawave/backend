@@ -19,6 +19,7 @@ const entityToModel = (entity: ExternalSquadEntity): ExternalSquads => {
         hostOverrides: entity.hostOverrides,
         responseHeaders: entity.responseHeaders,
         hwidSettings: entity.hwidSettings,
+        customRemarks: entity.customRemarks,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

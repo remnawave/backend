@@ -325,6 +325,7 @@ export class SubscriptionService {
 
             if (!isHwidLimited) {
                 subscription = await this.renderTemplatesService.generateRawSubscription({
+                    subscriptionSettings: patchedSettingEntity,
                     user: user.response,
                     hosts: hosts.response,
                     hostsOverrides: patchedHostsOverrides,
@@ -398,6 +399,7 @@ export class SubscriptionService {
             });
 
             const subscription = await this.renderTemplatesService.generateOutlineSubscription(
+                null,
                 encodedTag,
                 user.response,
                 hosts.response,
@@ -494,6 +496,7 @@ export class SubscriptionService {
                 });
 
                 formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                    subscriptionSettings: settings,
                     hosts: hostsResponse.response || [],
                     user: userEntity,
                     hostsOverrides,
@@ -737,6 +740,12 @@ export class SubscriptionService {
                     if (externalSquadSubscriptionSettings.hwidSettings !== null) {
                         patchedSubscriptionSettings.hwidSettings =
                             externalSquadSubscriptionSettings.hwidSettings;
+                    }
+
+                    // Custom remarks override
+                    if (externalSquadSubscriptionSettings.customRemarks !== null) {
+                        patchedSubscriptionSettings.customRemarks =
+                            externalSquadSubscriptionSettings.customRemarks;
                     }
                 }
             }

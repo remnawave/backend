@@ -26,7 +26,11 @@ export class GetCachedExternalSquadSettingsHandler
             const cached = await this.cacheManager.get<
                 Pick<
                     ExternalSquadEntity,
-                    'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
+                    | 'subscriptionSettings'
+                    | 'hostOverrides'
+                    | 'responseHeaders'
+                    | 'hwidSettings'
+                    | 'customRemarks'
                 >
             >(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(query.externalSquadUuid));
 

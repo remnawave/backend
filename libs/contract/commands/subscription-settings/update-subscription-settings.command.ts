@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import {
+    CustomRemarksSchema,
     HwidSettingsSchema,
     ResponseRulesConfigSchema,
     SubscriptionSettingsSchema,
@@ -27,7 +28,6 @@ export namespace UpdateSubscriptionSettingsCommand {
         isProfileWebpageUrlEnabled: z.optional(z.boolean()),
         serveJsonAtBaseSubscription: z.optional(z.boolean()),
         addUsernameToBaseSubscription: z.optional(z.boolean()),
-        isShowCustomRemarks: z.optional(z.boolean()),
 
         happAnnounce: z.optional(
             z
@@ -37,9 +37,8 @@ export namespace UpdateSubscriptionSettingsCommand {
         ),
         happRouting: z.optional(z.string().nullable()),
 
-        expiredUsersRemarks: z.optional(z.array(z.string())),
-        limitedUsersRemarks: z.optional(z.array(z.string())),
-        disabledUsersRemarks: z.optional(z.array(z.string())),
+        isShowCustomRemarks: z.optional(z.boolean()),
+        customRemarks: z.optional(CustomRemarksSchema),
 
         customResponseHeaders: z.optional(
             z.record(

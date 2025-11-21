@@ -1,4 +1,4 @@
-import { THwidSettings } from '@libs/contracts/models';
+import { TCustomRemarks, THwidSettings } from '@libs/contracts/models';
 
 import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
 
@@ -13,11 +13,10 @@ export class SubscriptionSettingsResponseModel {
     public addUsernameToBaseSubscription: boolean;
     public isProfileWebpageUrlEnabled: boolean;
     public isShowCustomRemarks: boolean;
+    public customRemarks: TCustomRemarks;
+
     public happAnnounce: string | null;
     public happRouting: string | null;
-    public expiredUsersRemarks: string[];
-    public limitedUsersRemarks: string[];
-    public disabledUsersRemarks: string[];
 
     public customResponseHeaders: Record<string, string> | null;
 
@@ -40,9 +39,7 @@ export class SubscriptionSettingsResponseModel {
         this.isShowCustomRemarks = entity.isShowCustomRemarks;
         this.happAnnounce = entity.happAnnounce;
         this.happRouting = entity.happRouting;
-        this.expiredUsersRemarks = entity.expiredUsersRemarks;
-        this.limitedUsersRemarks = entity.limitedUsersRemarks;
-        this.disabledUsersRemarks = entity.disabledUsersRemarks;
+        this.customRemarks = entity.customRemarks;
         this.customResponseHeaders = entity.customResponseHeaders;
         this.randomizeHosts = entity.randomizeHosts;
         this.responseRules = entity.responseRules;

@@ -298,9 +298,23 @@ async function seedSubscriptionSettings() {
         return;
     }
 
-    const expiredUserRemarks = ['🚨 Subscription expired', 'Contact support'];
-    const disabledUserRemarks = ['❌ Subscription disabled', 'Contact support'];
-    const limitedUserRemarks = ['🔴 Subscription limited', 'Contact support'];
+    const customRemarks = {
+        expiredUsers: ['⌛ Subscription expired', 'Contact support'],
+        limitedUsers: ['🚧 Subscription limited', 'Contact support'],
+        disabledUsers: ['🚫 Subscription disabled', 'Contact support'],
+        emptyHosts: [
+            '→ Remnawave',
+            'Did you forget to add hosts?',
+            '→ No hosts found',
+            '→ Check Hosts tab',
+        ],
+        emptyInternal: [
+            '→ Remnawave',
+            'Did you forget to add internal squads?',
+            '→ No internal squads found',
+            'User has no internal squads',
+        ],
+    };
 
     await prisma.subscriptionSettings.create({
         data: {
@@ -308,14 +322,12 @@ async function seedSubscriptionSettings() {
             supportLink: 'https://docs.rw',
             profileUpdateInterval: 12,
             isProfileWebpageUrlEnabled: true,
-            expiredUsersRemarks: expiredUserRemarks,
-            limitedUsersRemarks: limitedUserRemarks,
-            disabledUsersRemarks: disabledUserRemarks,
             serveJsonAtBaseSubscription: false,
             addUsernameToBaseSubscription: false,
-            isShowCustomRemarks: true,
             randomizeHosts: false,
             hwidSettings: DEFAULT_HWID_SETTINGS,
+            isShowCustomRemarks: true,
+            customRemarks,
         },
     });
 }

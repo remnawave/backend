@@ -24,9 +24,7 @@ const entityToModel = (entity: SubscriptionSettingsEntity): SubscriptionSettings
         happAnnounce: entity.happAnnounce,
         happRouting: entity.happRouting,
 
-        expiredUsersRemarks: entity.expiredUsersRemarks,
-        limitedUsersRemarks: entity.limitedUsersRemarks,
-        disabledUsersRemarks: entity.disabledUsersRemarks,
+        customRemarks: entity.customRemarks,
 
         customResponseHeaders: entity.customResponseHeaders,
 

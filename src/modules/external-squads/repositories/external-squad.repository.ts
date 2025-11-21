@@ -61,43 +61,41 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         return this.externalSquadConverter.fromPrismaModelToEntity(result);
     }
 
-    public async findByCriteria(dto: Partial<ExternalSquadEntity>): Promise<ExternalSquadEntity[]> {
-        const {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            subscriptionSettings: _subscriptionSettings,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hostOverrides: _hostOverrides,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            responseHeaders: _responseHeaders,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hwidSettings: _hwidSettings,
-            ...rest
-        } = dto;
+    public async findByCriteria(
+        dto: Partial<
+            Omit<
+                ExternalSquadEntity,
+                | 'customRemarks'
+                | 'subscriptionSettings'
+                | 'hostOverrides'
+                | 'responseHeaders'
+                | 'hwidSettings'
+            >
+        >,
+    ): Promise<ExternalSquadEntity[]> {
         const externalSquadList = await this.prisma.tx.externalSquads.findMany({
             where: {
-                ...rest,
+                ...dto,
             },
         });
         return this.externalSquadConverter.fromPrismaModelsToEntities(externalSquadList);
     }
 
     public async findFirstByCriteria(
-        dto: Partial<ExternalSquadEntity>,
+        dto: Partial<
+            Omit<
+                ExternalSquadEntity,
+                | 'customRemarks'
+                | 'subscriptionSettings'
+                | 'hostOverrides'
+                | 'responseHeaders'
+                | 'hwidSettings'
+            >
+        >,
     ): Promise<ExternalSquadEntity | null> {
-        const {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            subscriptionSettings: _subscriptionSettings,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hostOverrides: _hostOverrides,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            responseHeaders: _responseHeaders,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hwidSettings: _hwidSettings,
-            ...rest
-        } = dto;
         const result = await this.prisma.tx.externalSquads.findFirst({
             where: {
-                ...rest,
+                ...dto,
             },
         });
 
@@ -124,6 +122,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeaders',
                 'externalSquads.hwidSettings',
+                'externalSquads.customRemarks',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -158,6 +157,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeaders',
                 'externalSquads.hwidSettings',
+                'externalSquads.customRemarks',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -282,7 +282,11 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         externalSquadUuid: string,
     ): Promise<Pick<
         ExternalSquadEntity,
-        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
+        | 'subscriptionSettings'
+        | 'hostOverrides'
+        | 'responseHeaders'
+        | 'hwidSettings'
+        | 'customRemarks'
     > | null> {
         const result = await this.prisma.tx.externalSquads.findUnique({
             where: { uuid: externalSquadUuid },
@@ -291,6 +295,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 hostOverrides: true,
                 responseHeaders: true,
                 hwidSettings: true,
+                customRemarks: true,
             },
         });
 

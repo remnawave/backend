@@ -4,7 +4,6 @@ import { customAlphabet } from 'nanoid';
 
 import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
 
 import {
     GrpcObject,
@@ -21,14 +20,12 @@ import {
 } from '@common/helpers/xray-config';
 import { RawObject } from '@common/helpers/xray-config/interfaces/transport.config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
-import { ICommandResponse } from '@common/types/command-response.type';
 import { InboundObject } from '@common/helpers/xray-config/interfaces';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
 import { getVlessFlow } from '@common/utils/flow';
 import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
-import { GetSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-subscription-settings';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
 import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
@@ -36,6 +33,7 @@ import { UserEntity } from '@modules/users/entities';
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
 
 interface IGenerateFormattedHostsOptions {
+    subscriptionSettings: SubscriptionSettingsEntity | null;
     hosts: HostWithRawInbound[];
     user: UserEntity;
     hostsOverrides?: ExternalSquadEntity['hostOverrides'];
@@ -49,10 +47,7 @@ export class FormatHostsService {
     private readonly domainRegex =
         /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
-    constructor(
-        private readonly queryBus: QueryBus,
-        private readonly configService: ConfigService,
-    ) {
+    constructor(private readonly configService: ConfigService) {
         this.nanoid = customAlphabet('0123456789abcdefghjkmnopqrstuvwxyz', 10);
         this.subPublicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
     }
@@ -61,28 +56,27 @@ export class FormatHostsService {
         options: IGenerateFormattedHostsOptions,
     ): Promise<IFormattedHost[]> {
         let hosts = options.hosts;
-        const { user, hostsOverrides, returnDbHost = false } = options;
+        const { user, hostsOverrides, returnDbHost = false, subscriptionSettings } = options;
 
         const formattedHosts: IFormattedHost[] = [];
 
         let specialRemarks: string[] = [];
 
-        if (user.status !== USERS_STATUS.ACTIVE) {
-            const settings = await this.getSubscriptionSettings();
-            if (!settings) {
-                return formattedHosts;
-            }
+        if (subscriptionSettings === null) {
+            return formattedHosts;
+        }
 
-            if (settings.isShowCustomRemarks) {
+        if (user.status !== USERS_STATUS.ACTIVE) {
+            if (subscriptionSettings.isShowCustomRemarks) {
                 switch (user.status) {
                     case USERS_STATUS.EXPIRED:
-                        specialRemarks = settings.expiredUsersRemarks;
+                        specialRemarks = subscriptionSettings.customRemarks.expiredUsers;
                         break;
                     case USERS_STATUS.DISABLED:
-                        specialRemarks = settings.disabledUsersRemarks;
+                        specialRemarks = subscriptionSettings.customRemarks.disabledUsers;
                         break;
                     case USERS_STATUS.LIMITED:
-                        specialRemarks = settings.limitedUsersRemarks;
+                        specialRemarks = subscriptionSettings.customRemarks.limitedUsers;
                         break;
                 }
 
@@ -98,12 +92,11 @@ export class FormatHostsService {
 
         if (hosts.length === 0 && user.activeInternalSquads.length !== 0) {
             formattedHosts.push(
-                ...this.createFallbackHosts([
-                    '→ Remnawave',
-                    'Did you forget to add hosts?',
-                    '→ No hosts found',
-                    '→ Check Hosts tab',
-                ]),
+                ...this.createFallbackHosts(
+                    subscriptionSettings.customRemarks.emptyHosts.map((remark) =>
+                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    ),
+                ),
             );
 
             return formattedHosts;
@@ -111,12 +104,11 @@ export class FormatHostsService {
 
         if (hosts.length === 0 && user.activeInternalSquads.length === 0) {
             formattedHosts.push(
-                ...this.createFallbackHosts([
-                    '→ Remnawave',
-                    'Did you forget to add internal squads?',
-                    '→ No internal squads found',
-                    'User has no internal squads',
-                ]),
+                ...this.createFallbackHosts(
+                    subscriptionSettings.customRemarks.emptyInternalSquads.map((remark) =>
+                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    ),
+                ),
             );
 
             return formattedHosts;
@@ -467,19 +459,6 @@ export class FormatHostsService {
         }
 
         return formattedHosts;
-    }
-
-    private async getSubscriptionSettings(): Promise<SubscriptionSettingsEntity | null> {
-        const settingsResponse = await this.queryBus.execute<
-            GetSubscriptionSettingsQuery,
-            ICommandResponse<SubscriptionSettingsEntity>
-        >(new GetSubscriptionSettingsQuery());
-
-        if (!settingsResponse.isOk || !settingsResponse.response) {
-            return null;
-        }
-
-        return settingsResponse.response;
     }
 
     private createFallbackHosts(remarks: string[]): IFormattedHost[] {

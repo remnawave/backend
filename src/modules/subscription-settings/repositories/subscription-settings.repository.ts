@@ -21,9 +21,7 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
         const result = await this.prisma.tx.subscriptionSettings.create({
             data: {
                 ...model,
-                expiredUsersRemarks: model.expiredUsersRemarks as Prisma.InputJsonValue,
-                limitedUsersRemarks: model.limitedUsersRemarks as Prisma.InputJsonValue,
-                disabledUsersRemarks: model.disabledUsersRemarks as Prisma.InputJsonValue,
+                customRemarks: model.customRemarks as Prisma.InputJsonValue,
                 customResponseHeaders: model.customResponseHeaders as Prisma.InputJsonValue,
                 responseRules: model.responseRules as Prisma.InputJsonValue,
             },
@@ -54,9 +52,7 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
             where: { uuid },
             data: {
                 ...model,
-                expiredUsersRemarks: model.expiredUsersRemarks as Prisma.InputJsonValue,
-                limitedUsersRemarks: model.limitedUsersRemarks as Prisma.InputJsonValue,
-                disabledUsersRemarks: model.disabledUsersRemarks as Prisma.InputJsonValue,
+                customRemarks: model.customRemarks as Prisma.InputJsonValue,
                 customResponseHeaders: model.customResponseHeaders as Prisma.InputJsonValue,
                 responseRules: model.responseRules as Prisma.InputJsonValue,
             },
@@ -74,11 +70,7 @@ export class SubscriptionSettingsRepository implements ICrud<SubscriptionSetting
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             responseRules: __responseRules,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            expiredUsersRemarks: __expiredUsersRemarks,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            limitedUsersRemarks: __limitedUsersRemarks,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            disabledUsersRemarks: __disabledUsersRemarks,
+            customRemarks: __customRemarks,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             customResponseHeaders: __customResponseHeaders,
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
