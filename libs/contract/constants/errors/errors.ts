@@ -1024,4 +1024,9 @@ export const ERRORS = {
         message: 'Generic reorder error',
         httpCode: 500,
     },
+    HWID_DEVICE_NOT_FOUND: {
+        code: 'A204',
+        message: 'HWID device not found',
+        httpCode: 404,
+    },
 } as const;

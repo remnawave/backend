@@ -1,5 +1,12 @@
+import {
+    ApiBearerAuth,
+    ApiNotFoundResponse,
+    ApiOkResponse,
+    ApiParam,
+    ApiQuery,
+    ApiTags,
+} from '@nestjs/swagger';
 import { Body, Controller, HttpStatus, Param, Query, UseFilters, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
@@ -85,6 +92,9 @@ export class HwidUserDevicesController {
         };
     }
 
+    @ApiNotFoundResponse({
+        description: 'One of requested resources not found',
+    })
     @ApiOkResponse({
         type: CreateUserHwidDeviceResponseDto,
         description: 'User HWID device created successfully',
@@ -108,6 +118,9 @@ export class HwidUserDevicesController {
         };
     }
 
+    @ApiNotFoundResponse({
+        description: 'One of requested resources not found',
+    })
     @ApiOkResponse({
         type: DeleteUserHwidDeviceResponseDto,
         description: 'User HWID device deleted successfully',
@@ -134,6 +147,9 @@ export class HwidUserDevicesController {
         };
     }
 
+    @ApiNotFoundResponse({
+        description: 'One of requested resources not found',
+    })
     @ApiOkResponse({
         type: DeleteAllUserHwidDevicesResponseDto,
         description: 'User HWID devices deleted successfully',
@@ -174,6 +190,9 @@ export class HwidUserDevicesController {
         };
     }
 
+    @ApiNotFoundResponse({
+        description: 'One of requested resources not found',
+    })
     @ApiOkResponse({
         type: GetUserHwidDevicesResponseDto,
         description: 'User HWID devices fetched successfully',

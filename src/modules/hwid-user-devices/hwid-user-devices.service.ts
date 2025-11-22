@@ -196,18 +196,23 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
+            if (!hwidDevice) {
+                return {
+                    isOk: false,
+                    ...ERRORS.HWID_DEVICE_NOT_FOUND,
+                };
+            }
+
             await this.hwidUserDevicesRepository.deleteByHwidAndUserUuid(hwid, userUuid);
 
-            if (hwidDevice) {
-                this.eventEmitter.emit(
+            this.eventEmitter.emit(
+                EVENTS.USER_HWID_DEVICES.DELETED,
+                new UserHwidDeviceEvent(
+                    user.response,
+                    hwidDevice,
                     EVENTS.USER_HWID_DEVICES.DELETED,
-                    new UserHwidDeviceEvent(
-                        user.response,
-                        hwidDevice,
-                        EVENTS.USER_HWID_DEVICES.DELETED,
-                    ),
-                );
-            }
+                ),
+            );
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
                 userUuid,
