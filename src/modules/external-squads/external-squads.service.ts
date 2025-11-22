@@ -221,6 +221,8 @@ export class ExternalSquadService {
                 };
             }
 
+            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
+
             const deleted = await this.externalSquadRepository.deleteByUUID(uuid);
 
             return {
