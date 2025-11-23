@@ -4,8 +4,8 @@ import { INFRA_BILLING_ROUTES, REST_API } from '../../api';
 import { getEndpointDetails } from '../../constants';
 
 export namespace DeleteInfraProviderByUuidCommand {
-    export const url = REST_API.INFRA_BILLING.DELETE_PROVIDER(':uuid');
-    export const TSQ_url = url;
+    export const url = REST_API.INFRA_BILLING.DELETE_PROVIDER;
+    export const TSQ_url = url(':uuid');
 
     export const endpointDetails = getEndpointDetails(
         INFRA_BILLING_ROUTES.DELETE_PROVIDER(':uuid'),
