@@ -46,7 +46,6 @@ import {
     SubscriptionRawResponse,
     SubscriptionWithConfigResponse,
 } from './models';
-import { UpdateSubLastOpenedAndUserAgentCommand } from '../users/commands/update-sub-last-opened-and-user-agent';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
 import { HostWithRawInbound } from '../hosts/entities/host-with-inbound-tag.entity';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
@@ -392,7 +391,7 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            await this.updateSubLastOpenedAndUserAgent({
+            await this.userSubscriptionRequestHistoryQueue.updateUserSub({
                 userUuid: user.response.uuid,
                 subLastOpenedAt: new Date(),
                 subLastUserAgent: userAgent,
@@ -780,21 +779,6 @@ export class SubscriptionService {
         );
     }
 
-    private async updateSubLastOpenedAndUserAgent(
-        dto: UpdateSubLastOpenedAndUserAgentCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<
-            UpdateSubLastOpenedAndUserAgentCommand,
-            ICommandResponse<void>
-        >(
-            new UpdateSubLastOpenedAndUserAgentCommand(
-                dto.userUuid,
-                dto.subLastOpenedAt,
-                dto.subLastUserAgent,
-            ),
-        );
-    }
-
     private async countHwidUserDevices(
         dto: CountUsersDevicesQuery,
     ): Promise<ICommandResponse<number>> {
@@ -832,15 +816,13 @@ export class SubscriptionService {
         try {
             if (user.hwidDeviceLimit === 0) {
                 if (hwidHeaders !== null) {
-                    await this.upsertHwidUserDevice({
-                        hwidUserDevice: new HwidUserDeviceEntity({
-                            hwid: hwidHeaders.hwid,
-                            userUuid: user.uuid,
-                            platform: hwidHeaders.platform,
-                            osVersion: hwidHeaders.osVersion,
-                            deviceModel: hwidHeaders.deviceModel,
-                            userAgent: hwidHeaders.userAgent,
-                        }),
+                    await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+                        hwid: hwidHeaders.hwid,
+                        userUuid: user.uuid,
+                        platform: hwidHeaders.platform,
+                        osVersion: hwidHeaders.osVersion,
+                        deviceModel: hwidHeaders.deviceModel,
+                        userAgent: hwidHeaders.userAgent,
                     });
                 }
 
@@ -858,15 +840,13 @@ export class SubscriptionService {
 
             if (isDeviceExists.isOk && isDeviceExists.response) {
                 if (isDeviceExists.response.exists) {
-                    await this.upsertHwidUserDevice({
-                        hwidUserDevice: new HwidUserDeviceEntity({
-                            hwid: hwidHeaders.hwid,
-                            userUuid: user.uuid,
-                            platform: hwidHeaders.platform,
-                            osVersion: hwidHeaders.osVersion,
-                            deviceModel: hwidHeaders.deviceModel,
-                            userAgent: hwidHeaders.userAgent,
-                        }),
+                    await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+                        hwid: hwidHeaders.hwid,
+                        userUuid: user.uuid,
+                        platform: hwidHeaders.platform,
+                        osVersion: hwidHeaders.osVersion,
+                        deviceModel: hwidHeaders.deviceModel,
+                        userAgent: hwidHeaders.userAgent,
                     });
 
                     return { isOk: true, response: { isSubscriptionAllowed: true } };
@@ -922,15 +902,13 @@ export class SubscriptionService {
                 return;
             }
 
-            await this.upsertHwidUserDevice({
-                hwidUserDevice: new HwidUserDeviceEntity({
-                    hwid: hwidHeaders.hwid,
-                    userUuid: user.uuid,
-                    platform: hwidHeaders.platform,
-                    osVersion: hwidHeaders.osVersion,
-                    deviceModel: hwidHeaders.deviceModel,
-                    userAgent: hwidHeaders.userAgent,
-                }),
+            await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+                hwid: hwidHeaders.hwid,
+                userUuid: user.uuid,
+                platform: hwidHeaders.platform,
+                osVersion: hwidHeaders.osVersion,
+                deviceModel: hwidHeaders.deviceModel,
+                userAgent: hwidHeaders.userAgent,
             });
         } catch (error) {
             this.logger.error(`Error upserting hwid user device: ${error}`);
@@ -957,7 +935,7 @@ export class SubscriptionService {
         requestIp?: string,
     ): Promise<void> {
         try {
-            await this.updateSubLastOpenedAndUserAgent({
+            await this.userSubscriptionRequestHistoryQueue.updateUserSub({
                 userUuid,
                 subLastOpenedAt: new Date(),
                 subLastUserAgent: userAgent,
