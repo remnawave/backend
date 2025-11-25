@@ -29,7 +29,8 @@ services:
     hostname: remnawave
     restart: always
     ports:
-      - '127.0.0.1:3000:3000'
+      - '127.0.0.1:3000:${APP_PORT:-3000}'
+      - '127.0.0.1:3001:${METRICS_PORT:-3001}'
     env_file:
       - .env
     networks:
