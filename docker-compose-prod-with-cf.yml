@@ -1,11 +1,24 @@
+x-common: &common
+  restart: always
+  networks:
+    - remnawave-network
+
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: 100m
+      max-file: 5
+
+x-env: &env
+  env_file: .env
+
 services:
   remnawave-db:
     image: postgres:17.6
     container_name: 'remnawave-db'
     hostname: remnawave-db
-    restart: always
-    env_file:
-      - .env
+    <<: [*common, *logging, *env]
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -15,8 +28,6 @@ services:
       - '127.0.0.1:6767:5432'
     volumes:
       - remnawave-db-data:/var/lib/postgresql/data
-    networks:
-      - remnawave-network
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 3s
@@ -27,14 +38,10 @@ services:
     image: remnawave/backend:2
     container_name: 'remnawave'
     hostname: remnawave
-    restart: always
+    <<: [*common, *logging, *env]
     ports:
       - '127.0.0.1:3000:${APP_PORT:-3000}'
       - '127.0.0.1:3001:${METRICS_PORT:-3001}'
-    env_file:
-      - .env
-    networks:
-      - remnawave-network
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:${METRICS_PORT:-3001}/health']
       interval: 30s
@@ -51,11 +58,13 @@ services:
     image: valkey/valkey:8.1-alpine
     container_name: remnawave-redis
     hostname: remnawave-redis
-    restart: always
-    networks:
-      - remnawave-network
-    volumes:
-      - remnawave-redis-data:/data
+    <<: [*common, *logging]
+    command: >
+      valkey-server
+      --save ""
+      --appendonly no
+      --maxmemory-policy noeviction
+      --loglevel warning
     healthcheck:
       test: ['CMD', 'valkey-cli', 'ping']
       interval: 3s
@@ -65,12 +74,7 @@ services:
   remnawave-cloudflared:
     container_name: remnawave-cloudflared
     image: cloudflare/cloudflared:latest
-
-    env_file:
-      - .env
-    networks:
-      - remnawave-network
-    restart: always
+    <<: [*common, *logging, *env]
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TOKEN}
     depends_on:
       - remnawave
@@ -83,10 +87,6 @@ networks:
 
 volumes:
   remnawave-db-data:
-    driver: local
-    external: false
     name: remnawave-db-data
-  remnawave-redis-data:
     driver: local
     external: false
-    name: remnawave-redis-data
