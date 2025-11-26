@@ -19,8 +19,10 @@ import {
 } from '@modules/subscription-template/constants';
 import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
 import {
+    CustomRemarksSchema,
     PasskeySettingsSchema,
     TBrandingSettings,
+    TCustomRemarks,
     THwidSettings,
     TOauth2Settings,
     TPasswordAuthSettings,
@@ -282,6 +284,24 @@ async function seedSubscriptionTemplate() {
 }
 
 async function seedSubscriptionSettings() {
+    const customRemarks = {
+        expiredUsers: ['⌛ Subscription expired', 'Contact support'],
+        limitedUsers: ['🚧 Subscription limited', 'Contact support'],
+        disabledUsers: ['🚫 Subscription disabled', 'Contact support'],
+        emptyHosts: [
+            '→ Remnawave',
+            'Did you forget to add hosts?',
+            '→ No hosts found',
+            '→ Check Hosts tab',
+        ],
+        emptyInternalSquads: [
+            '→ Remnawave',
+            'Did you forget to add internal squads?',
+            '→ No internal squads found',
+            'User has no internal squads',
+        ],
+    } satisfies TCustomRemarks;
+
     const existingConfig = await prisma.subscriptionSettings.findFirst();
 
     if (existingConfig) {
@@ -294,27 +314,22 @@ async function seedSubscriptionSettings() {
             consola.success('🔐 Default HWID Settings have been seeded!');
         }
 
-        consola.info('Default subscription settings already seeded!');
+        if (existingConfig.customRemarks) {
+            const isValid = await CustomRemarksSchema.safeParseAsync(existingConfig.customRemarks);
+            if (!isValid.success) {
+                await prisma.subscriptionSettings.update({
+                    where: { uuid: existingConfig.uuid },
+                    data: { customRemarks: customRemarks },
+                });
+
+                consola.success('🔐 Custom remarks updated!');
+                return;
+            }
+        }
+
+        consola.success('🔐 Custom remarks seeded!');
         return;
     }
-
-    const customRemarks = {
-        expiredUsers: ['⌛ Subscription expired', 'Contact support'],
-        limitedUsers: ['🚧 Subscription limited', 'Contact support'],
-        disabledUsers: ['🚫 Subscription disabled', 'Contact support'],
-        emptyHosts: [
-            '→ Remnawave',
-            'Did you forget to add hosts?',
-            '→ No hosts found',
-            '→ Check Hosts tab',
-        ],
-        emptyInternal: [
-            '→ Remnawave',
-            'Did you forget to add internal squads?',
-            '→ No internal squads found',
-            'User has no internal squads',
-        ],
-    };
 
     await prisma.subscriptionSettings.create({
         data: {
