@@ -185,7 +185,7 @@ export class FormatHostsService {
             let pathFromConfig: string | undefined;
             let hostFromConfig: string | undefined;
             let additionalParams: IFormattedHost['additionalParams'] | undefined;
-            let headerType: string | undefined;
+            let rawSettings: IFormattedHost['rawSettings'] | undefined;
             let xHttpExtraParams: null | object | undefined;
             let muxParams: null | object | undefined;
             let sockoptParams: null | object | undefined;
@@ -242,7 +242,11 @@ export class FormatHostsService {
                     const settings = inbound.streamSettings?.rawSettings as RawObject;
 
                     streamSettings = settings;
-                    headerType = settings?.header?.type;
+
+                    rawSettings = {
+                        headerType: settings?.header?.type,
+                        request: settings?.header?.request,
+                    };
 
                     // fallback to tcp
                     network = 'tcp';
@@ -257,7 +261,10 @@ export class FormatHostsService {
                     const settings = inbound.streamSettings?.tcpSettings as TcpObject;
                     // eslint-disable-next-line
                     streamSettings = settings;
-                    headerType = settings?.header?.type;
+                    rawSettings = {
+                        headerType: settings?.header?.type,
+                        request: settings?.header?.request,
+                    };
 
                     break;
                 }
@@ -434,7 +441,7 @@ export class FormatHostsService {
                 publicKey: pbk,
                 fingerprint: fp,
                 shortId: sid,
-                headerType,
+                rawSettings,
                 spiderX,
                 network,
                 password: {

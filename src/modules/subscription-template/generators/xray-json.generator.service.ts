@@ -266,17 +266,21 @@ export class XrayJsonGeneratorService {
     private createTcpSettings(host: IFormattedHost): Record<string, unknown> {
         const settings: Record<string, any> = {};
 
-        if (host.headerType === 'http') {
+        if (host.rawSettings && host.rawSettings.headerType === 'http') {
             settings.header = { type: 'http' };
-            settings.header.request = {
-                version: '1.1',
-                method: 'GET',
-                headers: {
-                    'Accept-Encoding': ['gzip', 'deflate'],
-                    Connection: ['keep-alive'],
-                    Pragma: 'no-cache',
-                },
-            };
+            if (host.rawSettings.request) {
+                settings.header.request = host.rawSettings.request;
+            } else {
+                settings.header.request = {
+                    version: '1.1',
+                    method: 'GET',
+                    headers: {
+                        'Accept-Encoding': ['gzip', 'deflate'],
+                        Connection: ['keep-alive'],
+                        Pragma: 'no-cache',
+                    },
+                };
+            }
 
             if (host.path) {
                 settings.header.request.path = [host.path];

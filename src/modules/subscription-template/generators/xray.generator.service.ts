@@ -113,7 +113,7 @@ export class XrayGeneratorService {
         const payload: Record<string, unknown> = {
             security: params.tls,
             type: params.network,
-            headerType: params.headerType || '',
+            headerType: params.rawSettings?.headerType || '',
         };
 
         const network = params.network || 'tcp';
@@ -184,7 +184,7 @@ export class XrayGeneratorService {
         const payload: Record<string, unknown> = {
             security: params.tls,
             type: params.network,
-            headerType: params.headerType || '',
+            headerType: params.rawSettings?.headerType || '',
         };
 
         const network = params.network;

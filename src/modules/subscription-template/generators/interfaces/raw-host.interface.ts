@@ -35,7 +35,10 @@ export interface IRawHost {
     sni: string;
     spiderX: string;
     tls: string;
-    headerType?: string;
+    rawSettings?: {
+        headerType?: string;
+        request?: object;
+    };
     additionalParams?: {
         mode?: string;
         heartbeatPeriod?: number;

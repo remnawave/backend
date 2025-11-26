@@ -62,7 +62,14 @@ export namespace GetRawSubscriptionByShortUuidCommand {
                     sni: z.optional(z.nullable(z.string())),
                     spiderX: z.optional(z.nullable(z.string())),
                     tls: z.optional(z.nullable(z.string())),
-                    headerType: z.optional(z.nullable(z.string())),
+                    rawSettings: z.optional(
+                        z.nullable(
+                            z.object({
+                                headerType: z.optional(z.nullable(z.string())),
+                                request: z.optional(z.nullable(z.object({}))),
+                            }),
+                        ),
+                    ),
                     additionalParams: z.optional(
                         z.nullable(
                             z.object({
