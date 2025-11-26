@@ -508,7 +508,7 @@ export class SubscriptionService {
 
             return {
                 isOk: true,
-                response: await this.getUserInfo(userEntity, xrayLinks, ssConfLinks, settings),
+                response: await this.getUserInfo(userEntity, xrayLinks, ssConfLinks),
             };
         } catch (error) {
             this.logger.error(`Error getting subscription info: ${error}`);
@@ -523,14 +523,7 @@ export class SubscriptionService {
         user: UserEntity,
         links: string[],
         ssConfLinks: Record<string, string>,
-        settingEntity: SubscriptionSettingsEntity,
     ): Promise<SubscriptionRawResponse> {
-        const subscriptionUrl = this.resolveSubscriptionUrl(
-            user.shortUuid,
-            user.username,
-            settingEntity.addUsernameToBaseSubscription,
-        );
-
         return new SubscriptionRawResponse({
             isFound: true,
             user: {
@@ -550,7 +543,7 @@ export class SubscriptionService {
             },
             links,
             ssConfLinks,
-            subscriptionUrl,
+            subscriptionUrl: this.resolveSubscriptionUrl(user.shortUuid),
         });
     }
 
@@ -669,11 +662,7 @@ export class SubscriptionService {
         }
 
         if (settings.isProfileWebpageUrlEnabled) {
-            headers['profile-web-page-url'] = this.resolveSubscriptionUrl(
-                user.shortUuid,
-                user.username,
-                settings.addUsernameToBaseSubscription,
-            );
+            headers['profile-web-page-url'] = this.resolveSubscriptionUrl(user.shortUuid);
         }
 
         const refillDate = getSubscriptionRefillDate(user.trafficLimitStrategy);
@@ -917,15 +906,7 @@ export class SubscriptionService {
         }
     }
 
-    private resolveSubscriptionUrl(
-        shortUuid: string,
-        username: string,
-        addUsernameToBaseSubscription: boolean,
-    ): string {
-        if (addUsernameToBaseSubscription) {
-            return `https://${this.subPublicDomain}/${shortUuid}#${username}`;
-        }
-
+    private resolveSubscriptionUrl(shortUuid: string): string {
         return `https://${this.subPublicDomain}/${shortUuid}`;
     }
 

@@ -351,21 +351,20 @@ model SubscriptionTemplate {
 }
 
 model SubscriptionSettings {
-  uuid                          String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profileTitle                  String  @map("profile_title")
-  supportLink                   String  @map("support_link")
-  profileUpdateInterval         Int     @map("profile_update_interval")
-  isProfileWebpageUrlEnabled    Boolean @default(true) @map("is_profile_webpage_url_enabled")
-  serveJsonAtBaseSubscription   Boolean @default(false) @map("serve_json_at_base_subscription")
-  addUsernameToBaseSubscription Boolean @default(false) @map("add_username_to_base_subscription")
-  happAnnounce                  String? @map("happ_announce")
-  happRouting                   String? @map("happ_routing")
-  isShowCustomRemarks           Boolean @default(true) @map("is_show_custom_remarks")
-  customRemarks                 Json    @map("custom_remarks")
-  customResponseHeaders         Json?   @map("custom_response_headers")
-  randomizeHosts                Boolean @default(false) @map("randomize_hosts")
-  responseRules                 Json?   @map("response_rules")
-  hwidSettings                  Json?   @map("hwid_settings")
+  uuid                        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileTitle                String  @map("profile_title")
+  supportLink                 String  @map("support_link")
+  profileUpdateInterval       Int     @map("profile_update_interval")
+  isProfileWebpageUrlEnabled  Boolean @default(true) @map("is_profile_webpage_url_enabled")
+  serveJsonAtBaseSubscription Boolean @default(false) @map("serve_json_at_base_subscription")
+  happAnnounce                String? @map("happ_announce")
+  happRouting                 String? @map("happ_routing")
+  isShowCustomRemarks         Boolean @default(true) @map("is_show_custom_remarks")
+  customRemarks               Json    @map("custom_remarks")
+  customResponseHeaders       Json?   @map("custom_response_headers")
+  randomizeHosts              Boolean @default(false) @map("randomize_hosts")
+  responseRules               Json?   @map("response_rules")
+  hwidSettings                Json?   @map("hwid_settings")
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")

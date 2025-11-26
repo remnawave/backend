@@ -338,7 +338,6 @@ async function seedSubscriptionSettings() {
             profileUpdateInterval: 12,
             isProfileWebpageUrlEnabled: true,
             serveJsonAtBaseSubscription: false,
-            addUsernameToBaseSubscription: false,
             randomizeHosts: false,
             hwidSettings: DEFAULT_HWID_SETTINGS,
             isShowCustomRemarks: true,

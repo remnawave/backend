@@ -10,7 +10,6 @@ export class SubscriptionSettingsResponseModel {
     public supportLink: string;
     public profileUpdateInterval: number;
     public serveJsonAtBaseSubscription: boolean;
-    public addUsernameToBaseSubscription: boolean;
     public isProfileWebpageUrlEnabled: boolean;
     public isShowCustomRemarks: boolean;
     public customRemarks: TCustomRemarks;
@@ -35,7 +34,6 @@ export class SubscriptionSettingsResponseModel {
         this.profileUpdateInterval = entity.profileUpdateInterval;
         this.isProfileWebpageUrlEnabled = entity.isProfileWebpageUrlEnabled;
         this.serveJsonAtBaseSubscription = entity.serveJsonAtBaseSubscription;
-        this.addUsernameToBaseSubscription = entity.addUsernameToBaseSubscription;
         this.isShowCustomRemarks = entity.isShowCustomRemarks;
         this.happAnnounce = entity.happAnnounce;
         this.happRouting = entity.happRouting;
