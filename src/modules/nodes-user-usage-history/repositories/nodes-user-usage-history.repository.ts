@@ -46,7 +46,7 @@ export class NodesUserUsageHistoryRepository
     public async bulkUpsertUsageHistory(
         userUsageHistoryList: NodesUserUsageHistoryEntity[],
     ): Promise<void> {
-        const chunkSize = 4000;
+        const chunkSize = 1500;
         for (let i = 0; i < userUsageHistoryList.length; i += chunkSize) {
             const chunk = userUsageHistoryList.slice(i, i + chunkSize);
             const { query } = new BulkUpsertHistoryEntryBuilder(chunk);
