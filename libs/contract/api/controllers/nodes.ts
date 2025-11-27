@@ -1,6 +1,7 @@
 export const NODES_CONTROLLER = 'nodes' as const;
 
 export const NODE_ACTIONS_ROUTE = 'actions' as const;
+const BULK_ACTIONS_ROUTE = 'bulk-actions' as const;
 
 export const NODES_ROUTES = {
     CREATE: '', // create
@@ -17,6 +18,9 @@ export const NODES_ROUTES = {
 
         RESTART_ALL: `${NODE_ACTIONS_ROUTE}/restart-all`,
         REORDER: `${NODE_ACTIONS_ROUTE}/reorder`,
+    },
+    BULK_ACTIONS: {
+        PROFILE_MODIFICATION: `${BULK_ACTIONS_ROUTE}/profile-modification`,
     },
 
     STATS: {

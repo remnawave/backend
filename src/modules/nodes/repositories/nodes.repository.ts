@@ -218,6 +218,42 @@ export class NodesRepository implements ICrud<NodesEntity> {
         return !!result;
     }
 
+    public async removeInboundsFromNodes(nodeUuids: string[]): Promise<boolean> {
+        const result = await this.qb.kysely
+            .deleteFrom('configProfileInboundsToNodes')
+            .where(
+                'nodeUuid',
+                'in',
+                nodeUuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .executeTakeFirst();
+
+        return !!result;
+    }
+
+    public async addInboundsToNodes(
+        nodeUuids: string[],
+        inboundsUuids: string[],
+    ): Promise<boolean> {
+        const values = nodeUuids.flatMap((nodeUuid) =>
+            inboundsUuids.map((uuid) => ({
+                nodeUuid: getKyselyUuid(nodeUuid),
+                configProfileInboundUuid: getKyselyUuid(uuid),
+            })),
+        );
+
+        if (values.length === 0) {
+            return true;
+        }
+
+        const result = await this.qb.kysely
+            .insertInto('configProfileInboundsToNodes')
+            .values(values)
+            .executeTakeFirst();
+
+        return !!result;
+    }
+
     public async clearActiveConfigProfileForNodesWithoutInbounds(): Promise<number> {
         const result = await this.qb.kysely
             .updateTable('nodes')

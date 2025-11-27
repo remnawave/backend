@@ -24,6 +24,7 @@ import {
     GetAllNodesCommand,
     GetAllNodesTagsCommand,
     GetOneNodeCommand,
+    BulkNodesProfileModificationCommand,
     ReorderNodeCommand,
     ResetNodeTrafficCommand,
     RestartAllNodesCommand,
@@ -43,6 +44,8 @@ import {
     GetAllNodesTagsResponseDto,
     GetOneNodeRequestParamDto,
     GetOneNodeResponseDto,
+    ProfileModificationRequestDto,
+    ProfileModificationResponseDto,
     ReorderNodeRequestDto,
     ReorderNodeResponseDto,
     ResetNodeTrafficRequestDto,
@@ -276,6 +279,26 @@ export class NodesController {
         const data = errorHandler(result);
         return {
             response: data.map((node) => new GetAllNodesResponseModel(node)),
+        };
+    }
+
+    @ApiOkResponse({
+        type: ProfileModificationResponseDto,
+        description: 'Event sent successfully',
+    })
+    @Endpoint({
+        command: BulkNodesProfileModificationCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ProfileModificationRequestDto,
+    })
+    async profileModification(
+        @Body() body: ProfileModificationRequestDto,
+    ): Promise<ProfileModificationResponseDto> {
+        const result = await this.nodesService.profileModification(body);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
         };
     }
 }

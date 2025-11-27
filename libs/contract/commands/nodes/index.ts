@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './bulk-actions';
 export * from './create.command';
 export * from './delete.command';
 export * from './get-all.command';
