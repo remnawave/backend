@@ -121,6 +121,8 @@ export const REST_API = {
         },
 
         GET_BY: {
+            ID: (id: string) =>
+                `${ROOT}/${CONTROLLERS.USERS_CONTROLLER}/${CONTROLLERS.USERS_ROUTES.GET_BY.ID(id)}`,
             SHORT_UUID: (shortUuid: string) =>
                 `${ROOT}/${CONTROLLERS.USERS_CONTROLLER}/${CONTROLLERS.USERS_ROUTES.GET_BY.SHORT_UUID(
                     shortUuid,

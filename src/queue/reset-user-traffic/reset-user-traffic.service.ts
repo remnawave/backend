@@ -32,6 +32,7 @@ export class ResetUserTrafficQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(3);
     }
 
     public async resetDailyUserTraffic() {

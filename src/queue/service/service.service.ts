@@ -25,6 +25,7 @@ export class ServiceQueueService extends AbstractQueueService implements OnAppli
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(1);
     }
 
     public async cleanOldUsageRecords(payload: Record<string, string>) {

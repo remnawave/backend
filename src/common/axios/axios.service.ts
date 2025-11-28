@@ -181,8 +181,12 @@ export class AxiosService {
     ): Promise<ICommandResponse<GetNodeHealthCheckCommand.Response['response']>> {
         try {
             const nodeUrl = this.getNodeUrl(url, GetNodeHealthCheckCommand.url, port);
-            const { data } =
-                await this.axiosInstance.get<GetNodeHealthCheckCommand.Response>(nodeUrl);
+            const { data } = await this.axiosInstance.get<GetNodeHealthCheckCommand.Response>(
+                nodeUrl,
+                {
+                    timeout: 15_000,
+                },
+            );
 
             return {
                 isOk: true,
@@ -253,6 +257,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<GetUsersStatsCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 15_000,
+                },
             );
 
             return {
@@ -289,7 +296,9 @@ export class AxiosService {
         const nodeUrl = this.getNodeUrl(url, GetSystemStatsCommand.url, port);
 
         try {
-            const response = await this.axiosInstance.get<GetSystemStatsCommand.Response>(nodeUrl);
+            const response = await this.axiosInstance.get<GetSystemStatsCommand.Response>(nodeUrl, {
+                timeout: 15_000,
+            });
 
             return {
                 isOk: true,
@@ -336,6 +345,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<GetInboundStatsCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 15_000,
+                },
             );
 
             return {
@@ -367,6 +379,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<GetAllInboundsStatsCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 15_000,
+                },
             );
 
             return {
@@ -414,6 +429,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<GetAllOutboundsStatsCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 15_000,
+                },
             );
 
             return {
@@ -461,6 +479,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<GetOutboundStatsCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 15_000,
+                },
             );
 
             return {
@@ -493,7 +514,9 @@ export class AxiosService {
         const nodeUrl = this.getNodeUrl(url, AddUserCommand.url, port);
 
         try {
-            const response = await this.axiosInstance.post<AddUserCommand.Response>(nodeUrl, data);
+            const response = await this.axiosInstance.post<AddUserCommand.Response>(nodeUrl, data, {
+                timeout: 20_000,
+            });
 
             return {
                 isOk: true,
@@ -531,6 +554,9 @@ export class AxiosService {
             const response = await this.axiosInstance.post<RemoveUserCommand.Response>(
                 nodeUrl,
                 data,
+                {
+                    timeout: 20_000,
+                },
             );
 
             return {

@@ -1,3 +1,4 @@
+import { RedisModule, RedisModuleOptions } from '@songkeys/nestjs-redis';
 import { createKeyv } from '@keyv/redis';
 import { ClsModule } from 'nestjs-cls';
 
@@ -50,6 +51,22 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
             delimiter: '.',
         }),
 
+        RedisModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => {
+                return {
+                    config: {
+                        host: configService.getOrThrow<string>('REDIS_HOST'),
+                        port: configService.getOrThrow<number>('REDIS_PORT'),
+                        db: configService.getOrThrow<number>('REDIS_DB'),
+                        password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                        keyPrefix: 'ioraw:',
+                    },
+                };
+            },
+            inject: [ConfigService],
+        }),
+
         RemnawaveModules,
         QueueModule,
         MessagingModules,
@@ -80,14 +97,6 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 })
 export class ProcessorsRootModule implements OnApplicationShutdown {
     private readonly logger = new Logger(ProcessorsRootModule.name);
-
-    // async onModuleInit(): Promise<void> {
-    //     segfaultHandler.registerHandler();
-
-    //     this.logger.log('Segfault handler');
-
-    //     // segfaultHandler.segfault();
-    // }
 
     async onApplicationShutdown(signal?: string): Promise<void> {
         this.logger.log(`${signal} signal received, shutting down...`);

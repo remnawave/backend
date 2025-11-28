@@ -213,6 +213,22 @@ export class UsersRepository {
                     continue;
                 }
 
+                if (filter.id === 'id') {
+                    try {
+                        const searchValue = filter.value as string;
+                        BigInt(searchValue);
+
+                        whereBuilder = whereBuilder.where(
+                            sql`CAST(users.t_id AS TEXT)`,
+                            'like',
+                            `%${searchValue}%`,
+                        );
+                    } catch {
+                        continue;
+                    }
+                    continue;
+                }
+
                 if (filter.id === 'telegramId') {
                     try {
                         const searchValue = filter.value as string;
@@ -293,7 +309,11 @@ export class UsersRepository {
 
         if (sorting?.length) {
             for (const sort of sorting) {
-                sortBuilder = sortBuilder.orderBy(sql.ref(sort.id), (ob) => {
+                let sorId = sort.id;
+                if (sort.id === 'id') {
+                    sorId = 'users.tId';
+                }
+                sortBuilder = sortBuilder.orderBy(sql.ref(sorId), (ob) => {
                     const orderBy = sort.desc ? ob.desc() : ob.asc();
                     return orderBy.nullsLast();
                 });
@@ -331,6 +351,22 @@ export class UsersRepository {
                             '=',
                             new Date(filter.value as string),
                         );
+                        continue;
+                    }
+
+                    if (filter.id === 'id') {
+                        try {
+                            const searchValue = filter.value as string;
+                            BigInt(searchValue);
+
+                            countBuilder = countBuilder.where(
+                                sql`CAST(users.t_id AS TEXT)`,
+                                'like',
+                                `%${searchValue}%`,
+                            );
+                        } catch {
+                            continue;
+                        }
                         continue;
                     }
 
@@ -731,7 +767,6 @@ export class UsersRepository {
                 )
                 .select((eb) => [
                     'users.tId',
-                    'users.username',
                     'users.trojanPassword',
                     'users.vlessUuid',
                     'users.ssPassword',
@@ -743,7 +778,6 @@ export class UsersRepository {
                 ])
                 .groupBy([
                     'users.tId',
-                    'users.username',
                     'users.trojanPassword',
                     'users.vlessUuid',
                     'users.ssPassword',
@@ -975,7 +1009,7 @@ export class UsersRepository {
             .selectFrom('users')
             .select((eb) => [
                 'users.uuid as userUuid',
-                'users.username',
+                'users.tId',
                 'users.trojanPassword',
                 'users.vlessUuid',
                 'users.ssPassword',

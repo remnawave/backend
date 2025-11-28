@@ -6,6 +6,7 @@ export enum QueueNames {
     internalSquadActions = 'INTERNAL_SQUAD_ACTIONS_QUEUE',
     nodeHealthCheck = 'NODE_HEALTH_CHECK_QUEUE',
     nodeUsers = 'NODE_USERS_QUEUE',
+    pushFromRedis = 'PUSH_FROM_REDIS_QUEUE',
     recordNodeUsage = 'RECORD_NODE_USAGE_QUEUE',
     recordUserUsage = 'RECORD_USER_USAGE_QUEUE',
     resetUserTraffic = 'RESET_USER_TRAFFIC_QUEUE',

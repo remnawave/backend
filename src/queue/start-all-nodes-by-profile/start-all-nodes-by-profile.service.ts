@@ -33,6 +33,7 @@ export class StartAllNodesByProfileQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(5);
     }
 
     public async startAllNodesByProfile(payload: {

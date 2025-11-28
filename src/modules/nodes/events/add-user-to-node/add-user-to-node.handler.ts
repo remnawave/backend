@@ -35,8 +35,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 return;
             }
 
-            const { username, trojanPassword, vlessUuid, ssPassword, inbounds } =
-                userEntity.response;
+            const { tId, trojanPassword, vlessUuid, ssPassword, inbounds } = userEntity.response;
 
             if (inbounds.length === 0) {
                 return;
@@ -61,7 +60,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'trojan':
                             return {
                                 type: inboundType,
-                                username: username,
+                                username: tId.toString(),
                                 password: trojanPassword,
                                 level: 0,
                                 tag: inbound.tag,
@@ -69,7 +68,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'vless':
                             return {
                                 type: inboundType,
-                                username: username,
+                                username: tId.toString(),
                                 uuid: vlessUuid,
                                 flow: getVlessFlowFromDbInbound(inbound),
                                 level: 0,
@@ -78,7 +77,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'shadowsocks':
                             return {
                                 type: inboundType,
-                                username: username,
+                                username: tId.toString(),
                                 password: ssPassword,
                                 level: 0,
                                 tag: inbound.tag,
@@ -106,7 +105,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 if (filteredData.data.length === 0) {
                     await this.nodeUsersQueue.removeUserFromNode({
                         data: {
-                            username: username,
+                            username: tId.toString(),
                             hashData: {
                                 vlessUuid: event.prevVlessUuid || vlessUuid,
                             },

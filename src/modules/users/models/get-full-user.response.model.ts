@@ -6,6 +6,7 @@ import { UserEntity } from '../entities';
 
 export class GetFullUserResponseModel {
     public readonly uuid: string;
+    public readonly id: number;
     public readonly shortUuid: string;
     public readonly username: string;
 
@@ -51,6 +52,7 @@ export class GetFullUserResponseModel {
     };
 
     constructor(entity: UserEntity, subPublicDomain: string) {
+        this.id = Number(entity.tId);
         this.uuid = entity.uuid;
         this.shortUuid = entity.shortUuid;
         this.username = entity.username;

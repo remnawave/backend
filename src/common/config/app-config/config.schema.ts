@@ -108,6 +108,12 @@ export const configSchema = z
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
 
+        SERVICE_DISABLE_USER_USAGE_RECORDS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true' || val === '1')
+            .pipe(z.boolean()),
+
         BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED: z
             .string()
             .default('false')

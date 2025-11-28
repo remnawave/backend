@@ -22,7 +22,7 @@ import { RecordNodeUsageJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.recordNodeUsage, {
-    concurrency: 100,
+    concurrency: 50,
 })
 export class RecordNodeUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordNodeUsageQueueProcessor.name);

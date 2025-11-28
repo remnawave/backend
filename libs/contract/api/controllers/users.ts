@@ -17,6 +17,7 @@ export const USERS_ROUTES = {
         REVOKE_SUBSCRIPTION: (uuid: string) => `${uuid}/${USERS_ACTIONS_ROUTE}/revoke`,
     },
     GET_BY: {
+        ID: (id: string) => `by-id/${id}`,
         SHORT_UUID: (shortUuid: string) => `by-short-uuid/${shortUuid}`,
         USERNAME: (username: string) => `by-username/${username}`,
         SUBSCRIPTION_UUID: (subscriptionUuid: string) => `by-subscription-uuid/${subscriptionUuid}`,

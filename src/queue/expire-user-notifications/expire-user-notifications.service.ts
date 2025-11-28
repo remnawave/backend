@@ -33,6 +33,7 @@ export class ExpireUserNotificationsQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(1);
     }
 
     public async expireUserNotifications(payload: Record<string, string>) {

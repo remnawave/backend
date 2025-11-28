@@ -33,6 +33,7 @@ export class ExternalSquadActionsQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(1);
     }
 
     public async addUsersToExternalSquad(payload: { externalSquadUuid: string }) {

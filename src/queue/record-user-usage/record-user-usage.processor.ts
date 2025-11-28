@@ -1,8 +1,11 @@
+import { InjectRedis } from '@songkeys/nestjs-redis';
+import { Redis } from 'ioredis';
+import ems from 'enhanced-ms';
 import { Job } from 'bullmq';
-import pMap from 'p-map';
+import { t } from 'try';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
 import { GetUsersStatsCommand } from '@remnawave/node-contract';
@@ -10,30 +13,30 @@ import { GetUsersStatsCommand } from '@remnawave/node-contract';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { fromNanoToNumber } from '@common/utils/nano';
 import { AxiosService } from '@common/axios';
+import { INTERNAL_CACHE_KEYS, INTERNAL_CACHE_KEYS_TTL } from '@libs/contracts/constants';
 
-import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
-import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
-import { GetUuidByUsernameQuery } from '@modules/users/queries/get-uuid-by-username';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 import { NodesEntity } from '@modules/nodes';
 
 import { UpdateUsersUsageQueueService } from '@queue/update-users-usage/update-users-usage.service';
+import { PushFromRedisQueueService } from '@queue/push-from-redis/push-from-redis.service';
 
 import { RecordUserUsagePayload } from './interfaces';
 import { RecordUserUsageJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.recordUserUsage, {
-    concurrency: 50,
+    concurrency: 20,
 })
 export class RecordUserUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordUserUsageQueueProcessor.name);
 
     constructor(
-        private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
         private readonly axios: AxiosService,
         private readonly updateUsersUsageQueueService: UpdateUsersUsageQueueService,
+        private readonly pushFromRedisQueueService: PushFromRedisQueueService,
+        @InjectRedis() private readonly redis: Redis,
     ) {
         super();
     }
@@ -88,79 +91,94 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
         response: GetUsersStatsCommand.Response,
         consumptionMultiplier: string,
     ) {
-        let usersOnline = 0;
+        const start = performance.now();
 
-        let users = response.response.users.filter((user) => {
-            if (user.downlink === 0 && user.uplink === 0) {
-                return false;
+        try {
+            if (response.response.users.length === 0) {
+                await this.updateNode({
+                    node: {
+                        uuid: nodeUuid,
+                        usersOnline: 0,
+                    },
+                });
+
+                return;
             }
-            usersOnline++;
-            return true;
-        });
 
-        let allUsageRecords: NodesUserUsageHistoryEntity[] = [];
-        let userUsageList: { u: string; b: string; n: string }[] = [];
-
-        if (users.length > 0) {
-            await pMap(
-                users,
-                async (xrayUser) => {
-                    const userResponse = await this.queryBus.execute(
-                        new GetUuidByUsernameQuery(xrayUser.username),
-                    );
-
-                    if (!userResponse.isOk || !userResponse.response) {
-                        return;
-                    }
-
-                    const totalBytes = xrayUser.downlink + xrayUser.uplink;
-
-                    const { tId } = userResponse.response;
-
-                    allUsageRecords.push(
-                        new NodesUserUsageHistoryEntity({
-                            nodeId: nodeId,
-                            userId: tId,
-                            totalBytes: BigInt(totalBytes),
-                        }),
-                    );
-
-                    userUsageList.push({
-                        u: tId.toString(),
-                        b: this.multiplyConsumption(consumptionMultiplier, totalBytes).toString(),
-                        n: nodeUuid,
-                    });
-                },
-                { concurrency: 40 },
+            const userUsageList: { u: string; b: string; n: string }[] = new Array(
+                response.response.users.length,
             );
+            let userUsageIndex = 0;
 
-            await this.reportBulkUserUsageHistory({
-                userUsageHistoryList: allUsageRecords,
+            const nodeRedisKey = INTERNAL_CACHE_KEYS.NODE_USER_USAGE(nodeId);
+
+            const pipeline = this.redis.pipeline();
+
+            response.response.users.forEach((user) => {
+                const { ok } = t(() => BigInt(user.username));
+
+                if (!ok) {
+                    return;
+                }
+
+                const totalBytes = user.downlink + user.uplink;
+
+                pipeline.hincrby(nodeRedisKey, user.username, totalBytes);
+
+                userUsageList[userUsageIndex++] = {
+                    u: user.username,
+                    b: this.multiplyConsumption(consumptionMultiplier, totalBytes).toString(),
+                    n: nodeUuid,
+                };
             });
 
-            await this.updateUsersUsageQueueService.updateUserUsage(userUsageList);
+            if (userUsageIndex === 0) {
+                await this.updateNode({
+                    node: {
+                        uuid: nodeUuid,
+                        usersOnline: 0,
+                    },
+                });
+
+                return;
+            }
+
+            pipeline.expire(nodeRedisKey, INTERNAL_CACHE_KEYS_TTL.NODE_USER_USAGE);
+
+            await pipeline.exec();
+
+            await this.updateNode({
+                node: {
+                    uuid: nodeUuid,
+                    usersOnline: userUsageIndex,
+                },
+            });
+
+            await this.updateUsersUsageQueueService.updateUserUsage(
+                userUsageList.slice(0, userUsageIndex),
+            );
+
+            await this.pushFromRedisQueueService.recordUserUsageDelayed({
+                redisKey: nodeRedisKey,
+            });
+
+            return;
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${RecordUserUsageJobNames.recordUserUsage}" job: ${error}`,
+            );
+            return { isOk: false };
+        } finally {
+            const elapsedTime = performance.now() - start;
+            if (elapsedTime > 2_000) {
+                this.logger.warn(
+                    `[${nodeUuid}] took ${ems(elapsedTime, {
+                        extends: 'short',
+                        includeMs: true,
+                    })}`,
+                );
+            }
         }
-
-        await this.updateNode({
-            node: {
-                uuid: nodeUuid,
-                usersOnline,
-            },
-        });
-
-        allUsageRecords = [];
-        userUsageList = [];
-        users = [];
-
-        return;
-    }
-
-    private async reportBulkUserUsageHistory(
-        dto: BulkUpsertUserHistoryEntryCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<BulkUpsertUserHistoryEntryCommand, ICommandResponse<void>>(
-            new BulkUpsertUserHistoryEntryCommand(dto.userUsageHistoryList),
-        );
     }
 
     private async updateNode(dto: UpdateNodeCommand): Promise<ICommandResponse<NodesEntity>> {

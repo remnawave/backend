@@ -345,7 +345,7 @@ export class XRayConfig {
                 for (const user of users) {
                     (inbound.settings as TrojanSettings).clients.push({
                         password: user.trojanPassword,
-                        email: user.username,
+                        email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
                 }
@@ -355,7 +355,7 @@ export class XRayConfig {
                 for (const user of users) {
                     (inbound.settings as VLessSettings).clients.push({
                         id: user.vlessUuid,
-                        email: user.username,
+                        email: user.tId.toString(),
                         flow: getVlessFlow(inbound),
                     });
                 }
@@ -366,7 +366,7 @@ export class XRayConfig {
                     (inbound.settings as ShadowsocksSettings).clients.push({
                         password: user.ssPassword,
                         method: 'chacha20-ietf-poly1305',
-                        email: user.username,
+                        email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
                 }

@@ -46,12 +46,8 @@ export class NodesUserUsageHistoryRepository
     public async bulkUpsertUsageHistory(
         userUsageHistoryList: NodesUserUsageHistoryEntity[],
     ): Promise<void> {
-        const chunkSize = 1500;
-        for (let i = 0; i < userUsageHistoryList.length; i += chunkSize) {
-            const chunk = userUsageHistoryList.slice(i, i + chunkSize);
-            const { query } = new BulkUpsertHistoryEntryBuilder(chunk);
-            await this.prisma.tx.$executeRaw<void>(query);
-        }
+        const { query } = new BulkUpsertHistoryEntryBuilder(userUsageHistoryList);
+        await this.prisma.tx.$executeRaw<void>(query);
     }
 
     public async getUserUsageByRange(

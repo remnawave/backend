@@ -55,6 +55,7 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
             }
 
             return {
+                isOk: true,
                 affectedRows: userUsageList.length,
             };
         } catch (error) {
@@ -62,7 +63,10 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
                 `Error handling "${UpdateUsersUsageJobNames.UpdateUsersUsage}" job: ${error}`,
             );
 
-            throw new Error(`${error}`);
+            return {
+                affectedRows: 0,
+                isOk: false,
+            };
         }
     }
 

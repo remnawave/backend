@@ -33,6 +33,7 @@ export class InternalSquadActionsQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(1);
     }
 
     public async addUsersToInternalSquad(payload: { internalSquadUuid: string }) {

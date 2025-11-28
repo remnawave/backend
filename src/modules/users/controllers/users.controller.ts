@@ -25,6 +25,7 @@ import {
     GetAllUsersCommand,
     GetUserAccessibleNodesCommand,
     GetUserByEmailCommand,
+    GetUserByIdCommand,
     GetUserByShortUuidCommand,
     GetUserByTagCommand,
     GetUserByTelegramIdCommand,
@@ -52,6 +53,8 @@ import {
     GetAllUsersResponseDto,
     GetUserAccessibleNodesRequestDto,
     GetUserAccessibleNodesResponseDto,
+    GetUserByIdRequestDto,
+    GetUserByIdResponseDto,
     GetUserByShortUuidRequestDto,
     GetUserByShortUuidResponseDto,
     GetUserByTagRequestDto,
@@ -344,6 +347,34 @@ export class UsersController {
     ): Promise<GetUserByUsernameResponseDto> {
         const result = await this.usersService.getUserByUniqueFields({
             username: paramData.username,
+        });
+
+        const data = errorHandler(result);
+        return {
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'User not found',
+    })
+    @ApiOkResponse({
+        type: GetUserByIdResponseDto,
+        description: 'User fetched successfully',
+    })
+    @ApiParam({
+        name: 'id',
+        type: String,
+        description: 'ID of the user',
+        required: true,
+    })
+    @Endpoint({
+        command: GetUserByIdCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getUserById(@Param() paramData: GetUserByIdRequestDto): Promise<GetUserByIdResponseDto> {
+        const result = await this.usersService.getUserByUniqueFields({
+            tId: paramData.id,
         });
 
         const data = errorHandler(result);

@@ -32,6 +32,7 @@ export class TelegramBotLoggerQueueService
 
     public async onApplicationBootstrap(): Promise<void> {
         await this.checkConnection();
+        await this.queue.setGlobalConcurrency(200);
     }
 
     public async addJobToSendTelegramMessage(payload: {

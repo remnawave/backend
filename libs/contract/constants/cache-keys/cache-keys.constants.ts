@@ -17,3 +17,15 @@ export const CACHE_KEYS_TTL = {
     SUBSCRIPTION_SETTINGS: 3_600_000, // 1 hour
     SHORT_UUID_RANGE: 86_400_000, // 1 day
 } as const;
+
+export const INTERNAL_CACHE_KEYS = {
+    NODE_USER_USAGE_PREFIX: 'node_user_usage:',
+    NODE_USER_USAGE: (nodeId: bigint) =>
+        `${INTERNAL_CACHE_KEYS.NODE_USER_USAGE_PREFIX}${nodeId.toString()}`,
+    NODE_USER_USAGE_KEYS: 'node_user_usage_keys',
+    PROCESSING_POSTFIX: ':processing',
+} as const;
+
+export const INTERNAL_CACHE_KEYS_TTL = {
+    NODE_USER_USAGE: 10_800, // 3 hours in seconds
+} as const;

@@ -40,8 +40,8 @@ module.exports = {
             name: 'remnawave-jobs',
             script: 'dist/src/bin/processors/processors.js',
             watch: false,
-            instances: 1,
-            exec_mode: 'fork',
+            instances: process.env.WORKER_INSTANCES || 1,
+            exec_mode: 'cluster',
             merge_logs: true,
             instance_var: 'INSTANCE_ID',
             env_development: {

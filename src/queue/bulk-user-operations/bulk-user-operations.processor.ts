@@ -15,7 +15,7 @@ import { BulkUserOperationsJobNames } from './enums';
 import { QueueNames } from '../queue.enum';
 
 @Processor(QueueNames.bulkUserOperations, {
-    concurrency: 500,
+    concurrency: 100,
 })
 export class BulkUserOperationsQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(BulkUserOperationsQueueProcessor.name);

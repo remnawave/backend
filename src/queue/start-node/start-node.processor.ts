@@ -97,6 +97,10 @@ export class StartNodeQueueProcessor extends WorkerHost {
                     usersOnline: 0,
                 });
 
+                this.logger.error(
+                    `Pre-check failed. Node: ${nodeEntity.uuid} – ${nodeEntity.address}:${nodeEntity.port}, error: ${xrayStatusResponse.message}`,
+                );
+
                 return;
             }
 
