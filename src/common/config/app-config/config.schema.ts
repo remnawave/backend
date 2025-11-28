@@ -58,8 +58,8 @@ export const configSchema = z
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         SCALAR_PATH: z.string().default('/scalar'),
         SWAGGER_PATH: z.string().default('/docs'),
-        METRICS_USER: z.string(),
-        METRICS_PASS: z.string(),
+        METRICS_USER: z.string().min(1, { message: 'METRICS_USER cannot be empty' }),
+        METRICS_PASS: z.string().min(1, { message: 'METRICS_PASS cannot be empty' }),
         SUB_PUBLIC_DOMAIN: z.string(),
         WEBHOOK_ENABLED: z
             .string()
