@@ -2,16 +2,13 @@ import { IEventHandler, QueryBus } from '@nestjs/cqrs';
 import { EventsHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import {
-    AddUserCommand as AddUserToNodeCommandSdk,
-    CipherType,
-} from '@remnawave/node-contract/build/commands';
+import { AddUserCommand as AddUserToNodeCommandSdk, CipherType } from '@remnawave/node-contract';
 
 import { getVlessFlowFromDbInbound } from '@common/utils/flow/get-vless-flow';
 
 import { GetUserWithResolvedInboundsQuery } from '@modules/users/queries/get-user-with-resolved-inbounds';
 
-import { NodeUsersQueueService } from '@queue/node-users/node-users.service';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
 import { AddUserToNodeEvent } from './add-user-to-node.event';
@@ -22,7 +19,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
 
     constructor(
         private readonly nodesRepository: NodesRepository,
-        private readonly nodeUsersQueue: NodeUsersQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
     ) {}
     async handle(event: AddUserToNodeEvent) {
@@ -103,7 +100,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 };
 
                 if (filteredData.data.length === 0) {
-                    await this.nodeUsersQueue.removeUserFromNode({
+                    await this.nodesQueuesService.removeUserFromNode({
                         data: {
                             username: tId.toString(),
                             hashData: {
@@ -119,7 +116,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                     continue;
                 }
 
-                await this.nodeUsersQueue.addUsersToNode({
+                await this.nodesQueuesService.addUserToNode({
                     data: filteredData,
                     node: {
                         address: node.address,

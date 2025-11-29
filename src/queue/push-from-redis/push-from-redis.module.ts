@@ -9,17 +9,17 @@ import { useBullBoard, useQueueProcessor } from '@common/utils/startup-app';
 
 import { PushFromRedisQueueProcessor } from './push-from-redis.processor';
 import { PushFromRedisQueueService } from './push-from-redis.service';
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 
 const requiredModules = [CqrsModule];
 
 const processors = [PushFromRedisQueueProcessor];
 const services = [PushFromRedisQueueService];
 
-const queues = [BullModule.registerQueue({ name: QueueNames.pushFromRedis })];
+const queues = [BullModule.registerQueue({ name: QUEUES_NAMES.PUSH_TO_DB })];
 
 const bullBoard = [
-    BullBoardModule.forFeature({ name: QueueNames.pushFromRedis, adapter: BullMQAdapter }),
+    BullBoardModule.forFeature({ name: QUEUES_NAMES.PUSH_TO_DB, adapter: BullMQAdapter }),
 ];
 
 const providers = useQueueProcessor() ? processors : [];

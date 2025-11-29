@@ -10,7 +10,7 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { ExternalSquadActionsQueueService } from '@queue/external-squad-actions';
+import { SquadsQueueService } from '@queue/_squads';
 
 import {
     DeleteExternalSquadByUuidResponseModel,
@@ -28,7 +28,7 @@ export class ExternalSquadService {
 
     constructor(
         private readonly externalSquadRepository: ExternalSquadRepository,
-        private readonly externalSquadActionsQueueService: ExternalSquadActionsQueueService,
+        private readonly squadsQueueService: SquadsQueueService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
@@ -251,7 +251,7 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadActionsQueueService.addUsersToExternalSquad({
+            await this.squadsQueueService.addUsersToExternalSquad({
                 externalSquadUuid: uuid,
             });
 
@@ -281,7 +281,7 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadActionsQueueService.removeUsersFromExternalSquad({
+            await this.squadsQueueService.removeUsersFromExternalSquad({
                 externalSquadUuid: uuid,
             });
 

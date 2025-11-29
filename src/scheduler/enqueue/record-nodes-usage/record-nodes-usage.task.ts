@@ -7,7 +7,7 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { GetOnlineNodesQuery } from '@modules/nodes/queries/get-online-nodes/get-online-nodes.query';
 import { NodesEntity } from '@modules/nodes';
 
-import { RecordNodeUsageQueueService } from '@queue/record-node-usage';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { JOBS_INTERVALS } from '../../intervals';
 
@@ -19,7 +19,7 @@ export class RecordNodesUsageTask {
     constructor(
         private readonly queryBus: QueryBus,
 
-        private readonly recordNodeUsageQueueService: RecordNodeUsageQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {}
 
     @Cron(JOBS_INTERVALS.RECORD_NODE_USAGE, {
@@ -39,7 +39,7 @@ export class RecordNodesUsageTask {
                 return;
             }
 
-            await this.recordNodeUsageQueueService.recordNodeUsageBulk(
+            await this.nodesQueuesService.recordNodeUsageBulk(
                 nodes.map((node) => ({
                     nodeUuid: node.uuid,
                     nodeAddress: node.address,

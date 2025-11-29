@@ -146,6 +146,17 @@ export class NodesRepository implements ICrud<NodesEntity> {
         return nodesList.map((value) => new NodesEntity(value));
     }
 
+    public async findByCriteriaPrisma(where: Prisma.NodesWhereInput): Promise<NodesEntity[]> {
+        const nodesList = await this.prisma.tx.nodes.findMany({
+            where,
+            orderBy: {
+                viewPosition: 'asc',
+            },
+            include: INCLUDE_RESOLVED_INBOUNDS,
+        });
+        return nodesList.map((value) => new NodesEntity(value));
+    }
+
     public async findFirstByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity | null> {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { tags, ...rest } = dto;

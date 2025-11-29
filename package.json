@@ -88,7 +88,7 @@
     "@willsoto/nestjs-prometheus": "^6.0.2",
     "arctic": "^3.7.0",
     "axios": "^1.13.2",
-    "bullmq": "5.63.2",
+    "bullmq": "5.65.0",
     "cache-manager": "^7.2.5",
     "class-transformer": "^0.5.1",
     "compression": "^1.8.1",
@@ -141,7 +141,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@nestjs/cli": "11.0.13",
+    "@nestjs/cli": "11.0.14",
     "@nestjs/schematics": "11.0.9",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",

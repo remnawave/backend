@@ -38,7 +38,7 @@ import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
 import { GetFullUserResponseModel } from '@modules/users/models';
 
-import { UserSubscriptionRequestHistoryQueueService } from '@queue/user-subscription-request-history/user-subscription-request-history.service';
+import { UsersQueuesService } from '@queue/_users/users-queues.service';
 
 import {
     RawSubscriptionWithHostsResponse,
@@ -66,7 +66,7 @@ export class SubscriptionService {
         private readonly renderTemplatesService: RenderTemplatesService,
         private readonly formatHostsService: FormatHostsService,
         private readonly xrayGeneratorService: XrayGeneratorService,
-        private readonly userSubscriptionRequestHistoryQueue: UserSubscriptionRequestHistoryQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
     ) {
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
     }
@@ -391,7 +391,7 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            await this.userSubscriptionRequestHistoryQueue.updateUserSub({
+            await this.usersQueuesService.updateUserSub({
                 userUuid: user.response.uuid,
                 subLastOpenedAt: new Date(),
                 subLastUserAgent: userAgent,
@@ -805,7 +805,7 @@ export class SubscriptionService {
         try {
             if (user.hwidDeviceLimit === 0) {
                 if (hwidHeaders !== null) {
-                    await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+                    await this.usersQueuesService.checkAndUpsertHwidDevice({
                         hwid: hwidHeaders.hwid,
                         userUuid: user.uuid,
                         platform: hwidHeaders.platform,
@@ -829,7 +829,7 @@ export class SubscriptionService {
 
             if (isDeviceExists.isOk && isDeviceExists.response) {
                 if (isDeviceExists.response.exists) {
-                    await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+                    await this.usersQueuesService.checkAndUpsertHwidDevice({
                         hwid: hwidHeaders.hwid,
                         userUuid: user.uuid,
                         platform: hwidHeaders.platform,
@@ -891,7 +891,7 @@ export class SubscriptionService {
                 return;
             }
 
-            await this.userSubscriptionRequestHistoryQueue.checkAndUpsertHwidDevice({
+            await this.usersQueuesService.checkAndUpsertHwidDevice({
                 hwid: hwidHeaders.hwid,
                 userUuid: user.uuid,
                 platform: hwidHeaders.platform,
@@ -916,13 +916,13 @@ export class SubscriptionService {
         requestIp?: string,
     ): Promise<void> {
         try {
-            await this.userSubscriptionRequestHistoryQueue.updateUserSub({
+            await this.usersQueuesService.updateUserSub({
                 userUuid,
                 subLastOpenedAt: new Date(),
                 subLastUserAgent: userAgent,
             });
 
-            await this.userSubscriptionRequestHistoryQueue.addRecord({
+            await this.usersQueuesService.addSubscriptionRequestRecord({
                 userUuid,
                 requestAt: new Date(),
                 requestIp,

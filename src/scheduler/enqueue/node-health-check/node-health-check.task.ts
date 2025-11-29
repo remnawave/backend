@@ -7,8 +7,7 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { GetEnabledNodesQuery } from '@modules/nodes/queries/get-enabled-nodes';
 import { NodesEntity } from '@modules/nodes';
 
-import { NodeHealthCheckQueueService } from '@queue/node-health-check/node-health-check.service';
-import { StartAllNodesQueueService } from '@queue/start-all-nodes/start-all-nodes.service';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { JOBS_INTERVALS } from '../../intervals';
 
@@ -21,8 +20,7 @@ export class NodeHealthCheckTask {
     private isNodesRestarted: boolean;
     constructor(
         private readonly queryBus: QueryBus,
-        private readonly startAllNodesQueueService: StartAllNodesQueueService,
-        private readonly nodeHealthCheckQueueService: NodeHealthCheckQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {
         this.cronName = NodeHealthCheckTask.CRON_NAME;
         this.isNodesRestarted = false;
@@ -38,7 +36,7 @@ export class NodeHealthCheckTask {
                 this.isNodesRestarted = true;
                 this.logger.log('Restarting all nodes on application start.');
 
-                await this.startAllNodesQueueService.startAllNodes({
+                await this.nodesQueuesService.startAllNodes({
                     emitter: this.cronName,
                 });
 
@@ -50,7 +48,7 @@ export class NodeHealthCheckTask {
                 return;
             }
 
-            await this.nodeHealthCheckQueueService.checkNodeHealthBulk(nodesResponse.response);
+            await this.nodesQueuesService.checkNodeHealthBulk(nodesResponse.response);
 
             return;
         } catch (error) {

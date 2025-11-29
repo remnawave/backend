@@ -9,8 +9,7 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { XRayConfig } from '@common/helpers/xray-config';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { StartAllNodesByProfileQueueService } from '@queue/start-all-nodes-by-profile';
-import { StopNodeQueueService } from '@queue/stop-node';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { GetConfigProfileByUuidResponseModel } from './models/get-config-profile-by-uuid.response.model';
 import { DeleteConfigProfileByUuidResponseModel, GetAllInboundsResponseModel } from './models';
@@ -28,8 +27,7 @@ export class ConfigProfileService {
 
     constructor(
         private readonly configProfileRepository: ConfigProfileRepository,
-        private readonly startAllNodesByProfileQueueService: StartAllNodesByProfileQueueService,
-        private readonly stopNodeQueueService: StopNodeQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
     ) {}
 
@@ -145,7 +143,7 @@ export class ConfigProfileService {
             }
 
             for (const node of configProfile.nodes) {
-                await this.stopNodeQueueService.stopNode({
+                await this.nodesQueuesService.stopNode({
                     nodeUuid: node.uuid,
                     isNeedToBeDeleted: false,
                 });
@@ -264,7 +262,7 @@ export class ConfigProfileService {
                 // No need for now
                 // await this.commandBus.execute(new SyncActiveProfileCommand());
 
-                await this.startAllNodesByProfileQueueService.startAllNodesByProfile({
+                await this.nodesQueuesService.startAllNodesByProfile({
                     profileUuid: existingConfigProfile.uuid,
                     emitter: 'updateConfigProfile',
                 });

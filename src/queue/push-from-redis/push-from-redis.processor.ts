@@ -15,9 +15,9 @@ import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history';
 
 import { IRecordUserUsageFromRedisPayload } from './interfaces';
 import { PushFromRedisJobNames } from './enums';
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 
-@Processor(QueueNames.pushFromRedis, {
+@Processor(QUEUES_NAMES.PUSH_TO_DB, {
     concurrency: 10,
     limiter: {
         max: 3,

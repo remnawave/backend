@@ -7,7 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { IRecordUserUsageFromRedisPayload } from './interfaces';
 import { AbstractQueueService } from '../queue.service';
 import { PushFromRedisJobNames } from './enums';
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 
 @Injectable()
 export class PushFromRedisQueueService
@@ -15,7 +15,7 @@ export class PushFromRedisQueueService
     implements OnApplicationBootstrap
 {
     protected readonly logger: Logger = new Logger(
-        _.upperFirst(_.camelCase(QueueNames.pushFromRedis)),
+        _.upperFirst(_.camelCase(QUEUES_NAMES.PUSH_TO_DB)),
     );
 
     private _queue: Queue;
@@ -24,7 +24,7 @@ export class PushFromRedisQueueService
         return this._queue;
     }
 
-    constructor(@InjectQueue(QueueNames.pushFromRedis) private readonly pushFromRedisQueue: Queue) {
+    constructor(@InjectQueue(QUEUES_NAMES.PUSH_TO_DB) private readonly pushFromRedisQueue: Queue) {
         super();
         this._queue = this.pushFromRedisQueue;
     }

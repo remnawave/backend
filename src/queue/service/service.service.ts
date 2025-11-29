@@ -5,12 +5,12 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 
 import { AbstractQueueService } from '../queue.service';
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 import { ServiceJobNames } from './enums';
 
 @Injectable()
 export class ServiceQueueService extends AbstractQueueService implements OnApplicationBootstrap {
-    protected readonly logger: Logger = new Logger(_.upperFirst(_.camelCase(QueueNames.service)));
+    protected readonly logger: Logger = new Logger(_.upperFirst(_.camelCase(QUEUES_NAMES.SERVICE)));
 
     private _queue: Queue;
 
@@ -18,7 +18,7 @@ export class ServiceQueueService extends AbstractQueueService implements OnAppli
         return this._queue;
     }
 
-    constructor(@InjectQueue(QueueNames.service) private readonly serviceQueue: Queue) {
+    constructor(@InjectQueue(QUEUES_NAMES.SERVICE) private readonly serviceQueue: Queue) {
         super();
         this._queue = this.serviceQueue;
     }

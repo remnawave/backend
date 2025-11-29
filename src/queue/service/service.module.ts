@@ -9,17 +9,17 @@ import { useBullBoard, useQueueProcessor } from '@common/utils/startup-app';
 
 import { ServiceQueueProcessor } from './service.processor';
 import { ServiceQueueService } from './service.service';
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 
 const requiredModules = [CqrsModule];
 
 const processors = [ServiceQueueProcessor];
 const services = [ServiceQueueService];
 
-const queues = [BullModule.registerQueue({ name: QueueNames.service })];
+const queues = [BullModule.registerQueue({ name: QUEUES_NAMES.SERVICE })];
 
 const bullBoard = [
-    BullBoardModule.forFeature({ name: QueueNames.service, adapter: BullMQAdapter }),
+    BullBoardModule.forFeature({ name: QUEUES_NAMES.SERVICE, adapter: BullMQAdapter }),
 ];
 
 const providers = useQueueProcessor() ? processors : [];

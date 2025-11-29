@@ -6,8 +6,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { StartAllNodesByProfileQueueService } from '@queue/start-all-nodes-by-profile';
-import { InternalSquadActionsQueueService } from '@queue/internal-squad-actions';
+import { SquadsQueueService } from '@queue/_squads';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { GetInternalSquadByUuidResponseModel } from './models/get-internal-squad-by-uuid.response.model';
 import { DeleteInternalSquadResponseModel } from './models/delete-internal-squad-by-uuid.response.model';
@@ -24,8 +24,8 @@ export class InternalSquadService {
 
     constructor(
         private readonly internalSquadRepository: InternalSquadRepository,
-        private readonly startAllNodesByProfileQueueService: StartAllNodesByProfileQueueService,
-        private readonly internalSquadActionsQueueService: InternalSquadActionsQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
+        private readonly squadsQueueService: SquadsQueueService,
     ) {}
 
     public async getInternalSquads(): Promise<ICommandResponse<GetInternalSquadsResponseModel>> {
@@ -197,7 +197,7 @@ export class InternalSquadService {
 
                     await Promise.all(
                         affectedConfigProfiles.map((profileUuid) =>
-                            this.startAllNodesByProfileQueueService.startAllNodesByProfile({
+                            this.nodesQueuesService.startAllNodesByProfile({
                                 profileUuid,
                                 emitter: 'updateInternalSquad',
                             }),
@@ -264,7 +264,7 @@ export class InternalSquadService {
             const deleted = await this.internalSquadRepository.deleteByUUID(uuid);
 
             for (const profileUuid of includedProfiles) {
-                await this.startAllNodesByProfileQueueService.startAllNodesByProfile({
+                await this.nodesQueuesService.startAllNodesByProfile({
                     profileUuid,
                     emitter: 'deleteInternalSquad',
                 });
@@ -296,7 +296,7 @@ export class InternalSquadService {
                 };
             }
 
-            await this.internalSquadActionsQueueService.addUsersToInternalSquad({
+            await this.squadsQueueService.addUsersToInternalSquad({
                 internalSquadUuid: uuid,
             });
 
@@ -326,7 +326,7 @@ export class InternalSquadService {
                 };
             }
 
-            await this.internalSquadActionsQueueService.removeUsersFromInternalSquad({
+            await this.squadsQueueService.removeUsersFromInternalSquad({
                 internalSquadUuid: uuid,
             });
 

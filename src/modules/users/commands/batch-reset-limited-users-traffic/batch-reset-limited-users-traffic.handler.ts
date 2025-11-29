@@ -5,15 +5,12 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
-
 import { BatchResetLimitedUsersTrafficCommand } from './batch-reset-limited-users-traffic.command';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(BatchResetLimitedUsersTrafficCommand)
 export class BatchResetLimitedUsersTrafficHandler
-    implements
-        ICommandHandler<BatchResetLimitedUsersTrafficCommand, ICommandResponse<{ uuid: string }[]>>
+    implements ICommandHandler<BatchResetLimitedUsersTrafficCommand>
 {
     public readonly logger = new Logger(BatchResetLimitedUsersTrafficHandler.name);
 
@@ -23,9 +20,7 @@ export class BatchResetLimitedUsersTrafficHandler
         maxWait: 20_000,
         timeout: 120_000,
     })
-    async execute(
-        command: BatchResetLimitedUsersTrafficCommand,
-    ): Promise<ICommandResponse<{ uuid: string }[]>> {
+    async execute(command: BatchResetLimitedUsersTrafficCommand) {
         try {
             const result = await this.usersRepository.resetLimitedUsersTraffic(command.strategy);
 

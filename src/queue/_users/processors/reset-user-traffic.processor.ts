@@ -1,0 +1,123 @@
+import { Job } from 'bullmq';
+
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger, Scope } from '@nestjs/common';
+import { CommandBus } from '@nestjs/cqrs';
+
+import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
+import { ICommandResponse } from '@common/types/command-response.type';
+import { RESET_PERIODS, TResetPeriods } from '@libs/contracts/constants';
+import { EVENTS } from '@libs/contracts/constants/events/events';
+
+import { BatchResetLimitedUsersTrafficCommand } from '@modules/users/commands/batch-reset-limited-users-traffic';
+import { BatchResetUserTrafficCommand } from '@modules/users/commands/batch-reset-user-traffic';
+
+import { NodesQueuesService } from '@queue/_nodes';
+import { QUEUES_NAMES } from '@queue/queue.enum';
+
+import { USERS_JOB_NAMES } from '../constants/users-job-name.constant';
+import { UsersQueuesService } from '../users-queues.service';
+
+@Processor(
+    {
+        name: QUEUES_NAMES.USERS.RESET_USER_TRAFFIC,
+        scope: Scope.REQUEST,
+    },
+    {
+        concurrency: 2,
+    },
+)
+export class ResetUserTrafficQueueProcessor extends WorkerHost {
+    private readonly logger = new Logger(ResetUserTrafficQueueProcessor.name);
+
+    constructor(
+        private readonly commandBus: CommandBus,
+
+        private readonly nodesQueuesService: NodesQueuesService,
+        private readonly usersQueuesService: UsersQueuesService,
+    ) {
+        super();
+    }
+
+    async process(job: Job) {
+        switch (job.name) {
+            case USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC:
+                return this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
+            case USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC:
+                return this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
+            case USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC:
+                return this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
+            case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
+                return this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
+            default:
+                this.logger.warn(`Job "${job.name}" is not handled.`);
+                break;
+        }
+    }
+
+    private async handleResetUserTraffic(job: Job, strategy: TResetPeriods) {
+        try {
+            const ct = getTime();
+
+            const batchResetResponse = await this.batchResetUserTraffic({
+                strategy,
+            });
+
+            if (!batchResetResponse.isOk) {
+                this.logger.debug('No users found for Batch Reset Users Traffic.');
+            } else {
+                this.logger.debug(
+                    `Batch Reset ${strategy} Users Traffic. Time: ${formatExecutionTime(ct)}`,
+                );
+            }
+
+            const { isOk, response: updatedUsers } = await this.commandBus.execute(
+                new BatchResetLimitedUsersTrafficCommand(strategy),
+            );
+
+            if (!isOk || !updatedUsers) {
+                return;
+            }
+
+            if (updatedUsers.length === 0) {
+                return;
+            }
+
+            if (updatedUsers.length >= 10_000) {
+                this.logger.log(
+                    `Job ${job.name} has found more than 10,000 users, skipping webhook/telegram events. Restarting all nodes.`,
+                );
+
+                await this.nodesQueuesService.startAllNodes({
+                    emitter: job.name,
+                });
+
+                return;
+            }
+
+            this.logger.log(`Job ${job.name} has found ${updatedUsers.length} users.`);
+
+            await this.usersQueuesService.fireUserEventBulk({
+                users: updatedUsers,
+                userEvent: EVENTS.USER.ENABLED,
+            });
+
+            return;
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC}" job: ${error}`,
+            );
+        }
+    }
+
+    private async batchResetUserTraffic(
+        dto: BatchResetUserTrafficCommand,
+    ): Promise<ICommandResponse<{ affectedRows: number }>> {
+        return this.commandBus.execute<
+            BatchResetUserTrafficCommand,
+            ICommandResponse<{
+                affectedRows: number;
+            }>
+        >(new BatchResetUserTrafficCommand(dto.strategy));
+    }
+}

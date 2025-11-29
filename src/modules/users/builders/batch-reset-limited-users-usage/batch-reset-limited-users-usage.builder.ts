@@ -37,7 +37,7 @@ export class BatchResetLimitedUsersUsageBuilder {
             last_triggered_threshold = 0,
             status = ${active}
         WHERE u.uuid IN (SELECT uuid FROM users_to_reset)
-        RETURNING u.uuid, u.t_id
+        RETURNING u.t_id
       ),
       update_traffic AS (
         UPDATE user_traffic ut
@@ -45,7 +45,7 @@ export class BatchResetLimitedUsersUsageBuilder {
         FROM update_users uu
         WHERE ut.t_id = uu.t_id
       )
-      SELECT uuid FROM update_users;
+      SELECT t_id FROM update_users;
     `;
 
         return query;

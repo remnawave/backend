@@ -10,12 +10,12 @@ import { TruncateNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-
 import { VacuumNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-history/commands/vacuum-nodes-user-usage-history';
 import { TruncateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/truncate-user-traffic-history';
 
-import { UpdateUsersUsageQueueService } from '@queue/update-users-usage/update-users-usage.service';
+import { UsersQueuesService } from '@queue/_users';
 
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 import { ServiceJobNames } from './enums';
 
-@Processor(QueueNames.service, {
+@Processor(QUEUES_NAMES.SERVICE, {
     concurrency: 1,
 })
 export class ServiceQueueProcessor extends WorkerHost {
@@ -23,7 +23,7 @@ export class ServiceQueueProcessor extends WorkerHost {
 
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly updateUsersUsageQueueService: UpdateUsersUsageQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
     ) {
         super();
     }
@@ -42,7 +42,7 @@ export class ServiceQueueProcessor extends WorkerHost {
 
     private async handleCleanOldUsageRecordsJob() {
         try {
-            await this.updateUsersUsageQueueService.queue.pause();
+            await this.usersQueuesService.queues.updateUsersUsage.pause();
 
             this.logger.log('Resetting tables...');
 
@@ -58,7 +58,7 @@ export class ServiceQueueProcessor extends WorkerHost {
                 `Error handling "${ServiceJobNames.CLEAN_OLD_USAGE_RECORDS}" job: ${error}`,
             );
         } finally {
-            await this.updateUsersUsageQueueService.queue.resume();
+            await this.usersQueuesService.queues.updateUsersUsage.resume();
         }
     }
 

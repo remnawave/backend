@@ -12,7 +12,7 @@ import { WebhookModule } from '@integration-modules/notifications/webhook-module
 
 import { WebhookLoggerQueueProcessor } from './webhook-logger.processor';
 import { WebhookLoggerQueueService } from './webhook-logger.service';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
 const requiredModules = [
     HttpModule,
@@ -22,10 +22,13 @@ const requiredModules = [
 const processors = [WebhookLoggerQueueProcessor];
 const services = [WebhookLoggerQueueService];
 
-const queues = [BullModule.registerQueue({ name: QueueNames.webhookLogger })];
+const queues = [BullModule.registerQueue({ name: QUEUES_NAMES.NOTIFICATIONS.WEBHOOK })];
 
 const bullBoard = [
-    BullBoardModule.forFeature({ name: QueueNames.webhookLogger, adapter: BullMQAdapter }),
+    BullBoardModule.forFeature({
+        name: QUEUES_NAMES.NOTIFICATIONS.WEBHOOK,
+        adapter: BullMQAdapter,
+    }),
 ];
 
 const providers = useQueueProcessor() ? processors : [];

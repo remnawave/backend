@@ -136,16 +136,14 @@ export class UsersRepository {
         return result;
     }
 
-    public async findUsersByExpireAt(start: Date, end: Date): Promise<UserEntity[]> {
+    public async findUsersByExpireAt(start: Date, end: Date): Promise<{ tId: bigint }[]> {
         const result = await this.qb.kysely
             .selectFrom('users')
-            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
-            .selectAll()
-            .select((eb) => this.includeActiveInternalSquads(eb))
+            .select('tId')
             .where('expireAt', '>=', start)
             .where('expireAt', '<=', end)
             .execute();
-        return result.map((value) => new UserEntity(value));
+        return result.map((value) => ({ tId: value.tId }));
     }
 
     public async updateExpiredUsers(): Promise<{ tId: bigint }[]> {
@@ -722,9 +720,9 @@ export class UsersRepository {
     //         .execute();
     // }
 
-    public async resetLimitedUsersTraffic(strategy: TResetPeriods): Promise<{ uuid: string }[]> {
+    public async resetLimitedUsersTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {
         const { query } = new BatchResetLimitedUsersUsageBuilder(strategy);
-        const result = await this.prisma.tx.$queryRaw<{ uuid: string }[]>(query);
+        const result = await this.prisma.tx.$queryRaw<{ tId: bigint }[]>(query);
 
         return result;
     }

@@ -179,7 +179,7 @@ export class UsersEvents {
         });
     }
 
-    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY.EXPIRES_IN_72_HOURS)
+    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY_EXPIRES_IN_72_HOURS)
     @RequireAdminId()
     async onUserExpiresIn72Hours(event: UserEvent): Promise<void> {
         const msg = `
@@ -194,7 +194,7 @@ export class UsersEvents {
         });
     }
 
-    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY.EXPIRES_IN_48_HOURS)
+    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY_EXPIRES_IN_48_HOURS)
     @RequireAdminId()
     async onUserExpiresIn48Hours(event: UserEvent): Promise<void> {
         const msg = `
@@ -209,7 +209,7 @@ export class UsersEvents {
         });
     }
 
-    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY.EXPIRES_IN_24_HOURS)
+    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY_EXPIRES_IN_24_HOURS)
     @RequireAdminId()
     async onUserExpiresIn24Hours(event: UserEvent): Promise<void> {
         const msg = `
@@ -224,7 +224,7 @@ export class UsersEvents {
         });
     }
 
-    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY.EXPIRED_24_HOURS_AGO)
+    @OnEvent(EVENTS.USER.EXPIRE_NOTIFY_EXPIRED_24_HOURS_AGO)
     @RequireAdminId()
     async onUserExpired24HoursAgo(event: UserEvent): Promise<void> {
         const msg = `

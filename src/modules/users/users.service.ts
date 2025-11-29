@@ -26,10 +26,8 @@ import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
 
-import { BulkUserOperationsQueueService } from '@queue/bulk-user-operations/bulk-user-operations.service';
-import { ResetUserTrafficQueueService } from '@queue/reset-user-traffic/reset-user-traffic.service';
-import { StartAllNodesQueueService } from '@queue/start-all-nodes/start-all-nodes.service';
-import { UserActionsQueueService } from '@queue/user-actions/user-actions.service';
+import { NodesQueuesService } from '@queue/_nodes';
+import { UsersQueuesService } from '@queue/_users';
 
 import {
     DeleteUserResponseModel,
@@ -63,10 +61,9 @@ export class UsersService {
         private readonly eventEmitter: EventEmitter2,
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
-        private readonly bulkUserOperationsQueueService: BulkUserOperationsQueueService,
-        private readonly startAllNodesQueue: StartAllNodesQueueService,
-        private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService,
-        private readonly userActionsQueueService: UserActionsQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
+        private readonly nodesQueuesService: NodesQueuesService,
+
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
@@ -795,7 +792,7 @@ export class UsersService {
         try {
             const affectedUsers = await this.userRepository.countByStatus(dto.status);
 
-            await this.userActionsQueueService.bulkDeleteByStatus(dto.status);
+            await this.usersQueuesService.bulkDeleteByStatus(dto.status);
 
             return {
                 isOk: true,
@@ -823,7 +820,7 @@ export class UsersService {
 
             const result = await this.userRepository.deleteManyByUuid(uuids);
 
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
                 emitter: 'bulkDeleteUsersByUuid',
             });
 
@@ -845,7 +842,7 @@ export class UsersService {
     ): Promise<ICommandResponse<BulkOperationResponseModel>> {
         try {
             // handled one by one
-            await this.bulkUserOperationsQueueService.revokeUsersSubscriptionBulk(uuids);
+            await this.usersQueuesService.revokeUsersSubscriptionBulk(uuids);
 
             return {
                 isOk: true,
@@ -865,7 +862,7 @@ export class UsersService {
     ): Promise<ICommandResponse<BulkOperationResponseModel>> {
         try {
             // handled one by one
-            await this.bulkUserOperationsQueueService.resetUserTrafficBulk(uuids);
+            await this.usersQueuesService.resetUserTrafficBulk(uuids);
 
             return {
                 isOk: true,
@@ -895,7 +892,7 @@ export class UsersService {
             }
 
             // handled one by one
-            await this.bulkUserOperationsQueueService.updateUsersBulk({
+            await this.usersQueuesService.updateUsersBulk({
                 uuids: dto.uuids,
                 fields: dto.fields,
             });
@@ -931,7 +928,7 @@ export class UsersService {
             }
 
             // TODO: finish later
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
+            await this.nodesQueuesService.startAllNodes({
                 emitter: 'bulkUpdateUsersInternalSquads',
             });
 
@@ -975,7 +972,7 @@ export class UsersService {
                 await this.userRepository.bulkSyncExpiredUsers();
             }
 
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
                 emitter: 'bulkUpdateAllUsers',
             });
 
@@ -994,12 +991,12 @@ export class UsersService {
 
     public async bulkAllResetUserTraffic(): Promise<ICommandResponse<BulkAllResponseModel>> {
         try {
-            await this.resetUserTrafficQueueService.resetDailyUserTraffic();
-            await this.resetUserTrafficQueueService.resetMonthlyUserTraffic();
-            await this.resetUserTrafficQueueService.resetWeeklyUserTraffic();
-            await this.resetUserTrafficQueueService.resetNoResetUserTraffic();
+            await this.usersQueuesService.resetDailyUserTraffic();
+            await this.usersQueuesService.resetMonthlyUserTraffic();
+            await this.usersQueuesService.resetWeeklyUserTraffic();
+            await this.usersQueuesService.resetNoResetUserTraffic();
 
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication(
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication(
                 {
                     emitter: 'bulkAllResetUserTraffic',
                 },

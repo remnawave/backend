@@ -6,7 +6,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 
 import { AbstractQueueService } from '../../queue.service';
 import { TelegramBotLoggerJobNames } from './enums';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
 @Injectable()
 export class TelegramBotLoggerQueueService
@@ -14,7 +14,7 @@ export class TelegramBotLoggerQueueService
     implements OnApplicationBootstrap
 {
     protected readonly logger: Logger = new Logger(
-        _.upperFirst(_.camelCase(QueueNames.telegramBotLogger)),
+        _.upperFirst(_.camelCase(QUEUES_NAMES.NOTIFICATIONS.TELEGRAM)),
     );
 
     private _queue: Queue;
@@ -24,7 +24,8 @@ export class TelegramBotLoggerQueueService
     }
 
     constructor(
-        @InjectQueue(QueueNames.telegramBotLogger) private readonly telegramBotLoggerQueue: Queue,
+        @InjectQueue(QUEUES_NAMES.NOTIFICATIONS.TELEGRAM)
+        private readonly telegramBotLoggerQueue: Queue,
     ) {
         super();
         this._queue = this.telegramBotLoggerQueue;
