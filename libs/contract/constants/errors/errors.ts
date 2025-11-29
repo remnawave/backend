@@ -1029,4 +1029,9 @@ export const ERRORS = {
         message: 'HWID device not found',
         httpCode: 404,
     },
+    BULK_EXTEND_EXPIRATION_DATE_ERROR: {
+        code: 'A205',
+        message: 'Bulk extend expiration date error',
+        httpCode: 500,
+    },
 } as const;

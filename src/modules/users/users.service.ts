@@ -956,12 +956,24 @@ export class UsersService {
                 };
             }
 
-            await this.userRepository.bulkUpdateAllUsers({
-                ...dto,
-                lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
-                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
-                telegramId: wrapBigIntNullable(dto.telegramId),
-                hwidDeviceLimit: dto.hwidDeviceLimit,
+            const ranges = await this.userRepository.getMinMaxBatchRange();
+
+            if (ranges.ranges.length === 0) {
+                return {
+                    isOk: true,
+                    response: new BulkAllResponseModel(true),
+                };
+            }
+
+            await this.userRepository.bulkUpdateAllUsersByRange({
+                ranges: ranges.ranges,
+                fields: {
+                    ...dto,
+                    lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
+                    trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                    telegramId: wrapBigIntNullable(dto.telegramId),
+                    hwidDeviceLimit: dto.hwidDeviceLimit,
+                },
             });
 
             if (dto.trafficLimitBytes !== undefined) {
@@ -1126,6 +1138,64 @@ export class UsersService {
         } catch (error) {
             this.logger.error(error);
             return { isOk: false, ...ERRORS.GET_USER_SUBSCRIPTION_REQUEST_HISTORY_ERROR };
+        }
+    }
+
+    public async bulkExtendExpirationDate(dto: {
+        uuids: string[];
+        extendDays: number;
+    }): Promise<ICommandResponse<BulkOperationResponseModel>> {
+        try {
+            const affectedRows = await this.userRepository.bulkExtendExpirationDateByUuids(
+                dto.uuids,
+                dto.extendDays,
+            );
+
+            if (affectedRows === 0) {
+                return {
+                    isOk: true,
+                    response: new BulkOperationResponseModel(0),
+                };
+            }
+
+            const uuids = await this.userRepository.bulkSyncExpiredUsersByUuids(dto.uuids);
+
+            for (const uuid of uuids) {
+                this.eventBus.publish(new AddUserToNodeEvent(uuid));
+            }
+
+            return {
+                isOk: true,
+                response: new BulkOperationResponseModel(affectedRows),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return {
+                isOk: false,
+                ...ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR,
+            };
+        }
+    }
+
+    public async bulkAllExtendExpirationDate(
+        extendDays: number,
+    ): Promise<ICommandResponse<BulkAllResponseModel>> {
+        try {
+            await this.userRepository.bulkAllExtendExpirationDate(extendDays);
+
+            await this.userRepository.bulkSyncExpiredUsers();
+
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
+                emitter: 'bulkAllExtendExpirationDate',
+            });
+
+            return {
+                isOk: true,
+                response: new BulkAllResponseModel(true),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR };
         }
     }
 

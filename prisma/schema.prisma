@@ -15,7 +15,7 @@ generator kysely {
   camelCase          = true
   bigIntTypeOverride = "bigint"
   jsonTypeOverride   = "object"
-  enumFileName       = "kyselyEnums"
+  enumFileName       = "kyselyEnums.ts"
 }
 
 generator json {
@@ -47,12 +47,12 @@ model RemnawaveSettings {
 }
 
 model Users {
-  uuid                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tId                    BigInt    @unique @default(autoincrement()) @map("t_id")
+  tId                    BigInt    @id @default(autoincrement()) @map("t_id")
+  uuid                   String    @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   shortUuid              String    @unique @map("short_uuid")
   username               String    @unique @map("username")
   /// @kyselyType('ACTIVE' | 'DISABLED' | 'LIMITED' | 'EXPIRED')
-  status                 String    @default("ACTIVE") @map("status")
+  status                 String    @default("ACTIVE") @map("status") @db.VarChar(10)
   trafficLimitBytes      BigInt    @default(0) @map("traffic_limit_bytes")
   /// @kyselyType('NO_RESET' | 'DAY' | 'WEEK' | 'MONTH')
   trafficLimitStrategy   String    @default("NO_RESET") @map("traffic_limit_strategy")
@@ -84,9 +84,6 @@ model Users {
 
   externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
-  @@index([tag])
-  @@index([status], type: Hash)
-  @@index([createdAt(sort: Asc)])
   @@map("users")
 }
 
@@ -283,7 +280,7 @@ model UserTrafficHistory {
 model Hosts {
   uuid                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   viewPosition         Int     @default(autoincrement()) @map("view_position")
-  remark               String  @map("remark")
+  remark               String  @map("remark") @db.VarChar(50)
   address              String  @map("address")
   port                 Int     @map("port")
   path                 String? @map("path")
@@ -296,7 +293,7 @@ model Hosts {
   muxParams            Json?   @map("mux_params")
   sockoptParams        Json?   @map("sockopt_params")
   isDisabled           Boolean @default(false) @map("is_disabled")
-  serverDescription    String? @map("server_description")
+  serverDescription    String? @map("server_description") @db.VarChar(30)
   vlessRouteId         Int?    @map("vless_route_id")
   allowInsecure        Boolean @default(false) @map("allow_insecure")
   shuffleHost          Boolean @default(false) @map("shuffle_host")

@@ -11,9 +11,10 @@ import { UpdateExpiredUsersCommand } from './update-expired-users.command';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(UpdateExpiredUsersCommand)
-export class UpdateExpiredUsersHandler
-    implements ICommandHandler<UpdateExpiredUsersCommand, ICommandResponse<{ tId: bigint }[]>>
-{
+export class UpdateExpiredUsersHandler implements ICommandHandler<
+    UpdateExpiredUsersCommand,
+    ICommandResponse<{ tId: bigint }[]>
+> {
     public readonly logger = new Logger(UpdateExpiredUsersHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

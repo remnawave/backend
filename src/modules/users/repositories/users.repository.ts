@@ -317,7 +317,7 @@ export class UsersRepository {
                 });
             }
         } else {
-            sortBuilder = sortBuilder.orderBy('createdAt', 'desc');
+            sortBuilder = sortBuilder.orderBy('users.tId', 'desc');
         }
 
         const query = sortBuilder
@@ -464,7 +464,7 @@ export class UsersRepository {
                 .select((eb) => this.includeActiveInternalSquads(eb))
                 .offset(start)
                 .limit(size)
-                .orderBy('createdAt', 'desc')
+                .orderBy('users.tId', 'desc')
                 .execute(),
             this.qb.kysely
                 .selectFrom('users')
@@ -808,11 +808,118 @@ export class UsersRepository {
         return result.count;
     }
 
+    public async getMinMaxBatchRange(batchSize = 10_000): Promise<{
+        ranges: { min: bigint; max: bigint }[];
+    }> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select((eb) => [eb.fn.min('users.tId').as('min'), eb.fn.max('users.tId').as('max')])
+            .executeTakeFirstOrThrow();
+
+        if (result.min === null || result.max === null) {
+            return { ranges: [] };
+        }
+
+        const minTId = BigInt(result.min);
+        const maxTId = BigInt(result.max);
+        const step = BigInt(batchSize);
+
+        const ranges: { min: bigint; max: bigint }[] = [];
+
+        for (let i = minTId; i <= maxTId; i += step) {
+            ranges.push({ min: i, max: i + step - 1n });
+        }
+
+        return { ranges };
+    }
+
+    public async bulkAllExtendExpirationDate(extendDays: number): Promise<number> {
+        const { ranges } = await this.getMinMaxBatchRange();
+        let totalUpdated = 0;
+        for (const batch of ranges) {
+            const result = await this.qb.kysely
+                .updateTable('users')
+                .set({
+                    expireAt: sql`expire_at + (${extendDays}::int || ' days')::interval`,
+                })
+                .where('tId', '>=', batch.min)
+                .where('tId', '<=', batch.max)
+                .executeTakeFirst();
+            if (result) {
+                totalUpdated += Number(result.numUpdatedRows ?? 0n);
+            }
+        }
+        return totalUpdated;
+    }
+
+    public async bulkExtendExpirationDateByUuids(
+        uuids: string[],
+        extendDays: number,
+    ): Promise<number> {
+        const result = await this.qb.kysely
+            .updateTable('users')
+            .set({
+                expireAt: sql`expire_at + (${extendDays}::int || ' days')::interval`,
+            })
+            .where(
+                'uuid',
+                'in',
+                uuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .executeTakeFirst();
+
+        return Number(result?.numUpdatedRows ?? 0n);
+    }
+
+    public async bulkSyncExpiredUsersByUuids(uuids: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.users.updateManyAndReturn({
+            select: {
+                uuid: true,
+            },
+            where: {
+                uuid: {
+                    in: uuids,
+                },
+                status: 'EXPIRED',
+                OR: [
+                    {
+                        expireAt: {
+                            gt: new Date(),
+                        },
+                    },
+                ],
+            },
+            data: {
+                status: 'ACTIVE',
+            },
+        });
+
+        return result.map((user) => user.uuid);
+    }
+
+    public async bulkUpdateAllUsersByRange({
+        ranges,
+        fields,
+    }: {
+        ranges: { min: bigint; max: bigint }[];
+        fields: Partial<BaseUserEntity>;
+    }): Promise<number> {
+        let totalUpdated = 0;
+        for (const range of ranges) {
+            const result = await this.prisma.tx.users.updateMany({
+                where: { tId: { gte: range.min, lte: range.max } },
+                data: { ...fields, lastTriggeredThreshold: 0 },
+            });
+            totalUpdated += result.count ?? 0;
+        }
+
+        return totalUpdated;
+    }
+
     public async bulkUpdateAllUsers(fields: Partial<BaseUserEntity>): Promise<number> {
         const result = await this.prisma.tx.users.updateMany({
             data: fields,
         });
-
         return result.count;
     }
 

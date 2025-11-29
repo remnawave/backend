@@ -14,7 +14,10 @@ export namespace BulkResetTrafficUsersCommand {
     );
 
     export const RequestSchema = z.object({
-        uuids: z.array(z.string().uuid()),
+        uuids: z
+            .array(z.string().uuid())
+            .min(1, 'Must be at least 1 user UUID')
+            .max(500, 'Maximum 500 user UUIDs'),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

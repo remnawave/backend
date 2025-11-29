@@ -33,9 +33,11 @@ export const USERS_ROUTES = {
         REVOKE_SUBSCRIPTION: 'bulk/revoke-subscription',
         DELETE: 'bulk/delete',
         UPDATE_SQUADS: 'bulk/update-squads',
+        EXTEND_EXPIRATION_DATE: 'bulk/extend-expiration-date',
         ALL: {
             UPDATE: 'bulk/all/update',
             RESET_TRAFFIC: 'bulk/all/reset-traffic',
+            EXTEND_EXPIRATION_DATE: 'bulk/all/extend-expiration-date',
         },
     },
 

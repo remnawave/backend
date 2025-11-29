@@ -1,9 +1,11 @@
 import { createZodDto } from 'nestjs-zod';
 
 import {
+    BulkAllExtendExpirationDateCommand,
     BulkAllResetTrafficUsersCommand,
     BulkAllUpdateUsersCommand,
     BulkDeleteUsersCommand,
+    BulkExtendExpirationDateCommand,
     BulkResetTrafficUsersCommand,
     BulkRevokeUsersSubscriptionCommand,
     BulkUpdateUsersCommand,
@@ -50,4 +52,18 @@ export class BulkAllUpdateUsersResponseDto extends createZodDto(
 
 export class BulkAllResetTrafficUsersResponseDto extends createZodDto(
     BulkAllResetTrafficUsersCommand.ResponseSchema,
+) {}
+
+export class BulkAllExtendExpirationDateRequestDto extends createZodDto(
+    BulkAllExtendExpirationDateCommand.RequestSchema,
+) {}
+export class BulkAllExtendExpirationDateResponseDto extends createZodDto(
+    BulkAllExtendExpirationDateCommand.ResponseSchema,
+) {}
+
+export class BulkExtendExpirationDateRequestDto extends createZodDto(
+    BulkExtendExpirationDateCommand.RequestSchema,
+) {}
+export class BulkExtendExpirationDateResponseDto extends createZodDto(
+    BulkExtendExpirationDateCommand.ResponseSchema,
 ) {}
