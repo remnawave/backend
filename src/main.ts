@@ -154,21 +154,6 @@ async function bootstrap(): Promise<void> {
     const axiosService = app.get(AxiosService);
     await axiosService.setJwt();
 
-    // process.on('SIGINT', async () => {
-    //     console.log('SIGINT, waiting for profiling...');
-
-    //     await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    //     await app.close();
-    // });
-
-    logger.info(
-        '\n' +
-            (await getStartMessage(
-                config.getOrThrow<number>('APP_PORT'),
-                config.getOrThrow<number>('METRICS_PORT'),
-            )) +
-            '\n',
-    );
+    logger.info('\n' + (await getStartMessage()) + '\n');
 }
 void bootstrap();
