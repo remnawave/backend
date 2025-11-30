@@ -75,7 +75,6 @@ export class ExternalSquadService {
         }
     }
 
-    @Transactional()
     public async createExternalSquad(
         name: string,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {

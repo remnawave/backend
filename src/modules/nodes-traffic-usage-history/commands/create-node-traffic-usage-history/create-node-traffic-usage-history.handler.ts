@@ -1,7 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -20,7 +19,6 @@ export class CreateNodeTrafficUsageHistoryHandler implements ICommandHandler<
         private readonly nodesTrafficUsageHistoryRepository: NodesTrafficUsageHistoryRepository,
     ) {}
 
-    @Transactional()
     async execute(command: CreateNodeTrafficUsageHistoryCommand): Promise<ICommandResponse<void>> {
         try {
             await this.nodesTrafficUsageHistoryRepository.create(command.nodeTrafficUsageHistory);

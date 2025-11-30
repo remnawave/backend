@@ -1,5 +1,4 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { DeleteNodeByUuidCommand } from './delete-node-by-uuid.command';
@@ -11,7 +10,6 @@ export class DeleteNodeByUuidHandler implements ICommandHandler<DeleteNodeByUuid
 
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    @Transactional()
     async execute(command: DeleteNodeByUuidCommand) {
         try {
             await this.nodesRepository.deleteByUUID(command.uuid);
