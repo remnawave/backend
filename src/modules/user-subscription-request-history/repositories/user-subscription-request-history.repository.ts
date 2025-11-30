@@ -15,9 +15,7 @@ import { UserSubscriptionRequestHistoryEntity } from '../entities/user-subscript
 import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-request-history.converter';
 
 @Injectable()
-export class UserSubscriptionRequestHistoryRepository
-    implements ICrudWithId<UserSubscriptionRequestHistoryEntity>
-{
+export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<UserSubscriptionRequestHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: UserSubscriptionRequestHistoryConverter,

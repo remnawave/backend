@@ -10,9 +10,10 @@ import { NodesTrafficUsageHistoryRepository } from '../../repositories/nodes-tra
 import { CreateNodeTrafficUsageHistoryCommand } from './create-node-traffic-usage-history.command';
 
 @CommandHandler(CreateNodeTrafficUsageHistoryCommand)
-export class CreateNodeTrafficUsageHistoryHandler
-    implements ICommandHandler<CreateNodeTrafficUsageHistoryCommand, ICommandResponse<void>>
-{
+export class CreateNodeTrafficUsageHistoryHandler implements ICommandHandler<
+    CreateNodeTrafficUsageHistoryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(CreateNodeTrafficUsageHistoryHandler.name);
 
     constructor(

@@ -10,9 +10,10 @@ import { UsersService } from '@modules/users/users.service';
 import { ResetUserTrafficCommand } from './reset-user-traffic.command';
 
 @CommandHandler(ResetUserTrafficCommand)
-export class ResetUserTrafficHandler
-    implements ICommandHandler<ResetUserTrafficCommand, ICommandResponse<boolean>>
-{
+export class ResetUserTrafficHandler implements ICommandHandler<
+    ResetUserTrafficCommand,
+    ICommandResponse<boolean>
+> {
     public readonly logger = new Logger(ResetUserTrafficHandler.name);
 
     constructor(private readonly usersService: UsersService) {}

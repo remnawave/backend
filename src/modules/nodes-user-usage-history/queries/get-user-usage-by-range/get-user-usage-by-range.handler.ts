@@ -10,9 +10,10 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { GetUserUsageByRangeQuery } from './get-user-usage-by-range.query';
 
 @QueryHandler(GetUserUsageByRangeQuery)
-export class GetUserUsageByRangeHandler
-    implements IQueryHandler<GetUserUsageByRangeQuery, ICommandResponse<IGetUserUsageByRange[]>>
-{
+export class GetUserUsageByRangeHandler implements IQueryHandler<
+    GetUserUsageByRangeQuery,
+    ICommandResponse<IGetUserUsageByRange[]>
+> {
     private readonly logger = new Logger(GetUserUsageByRangeHandler.name);
     constructor(
         private readonly nodesUserUsageHistoryRepository: NodesUserUsageHistoryRepository,

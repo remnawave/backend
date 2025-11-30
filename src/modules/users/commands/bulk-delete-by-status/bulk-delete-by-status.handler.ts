@@ -11,10 +11,10 @@ import { BulkDeleteByStatusCommand } from './bulk-delete-by-status.command';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(BulkDeleteByStatusCommand)
-export class BulkDeleteByStatusHandler
-    implements
-        ICommandHandler<BulkDeleteByStatusCommand, ICommandResponse<{ deletedCount: number }>>
-{
+export class BulkDeleteByStatusHandler implements ICommandHandler<
+    BulkDeleteByStatusCommand,
+    ICommandResponse<{ deletedCount: number }>
+> {
     public readonly logger = new Logger(BulkDeleteByStatusHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

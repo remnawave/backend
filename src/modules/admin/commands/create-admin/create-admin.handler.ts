@@ -12,9 +12,10 @@ import { AdminRepository } from '../../repositories/admin.repository';
 import { CreateAdminCommand } from './create-admin.command';
 
 @CommandHandler(CreateAdminCommand)
-export class CreateAdminHandler
-    implements ICommandHandler<CreateAdminCommand, ICommandResponse<AdminEntity>>
-{
+export class CreateAdminHandler implements ICommandHandler<
+    CreateAdminCommand,
+    ICommandResponse<AdminEntity>
+> {
     public readonly logger = new Logger(CreateAdminHandler.name);
 
     constructor(private readonly adminRepository: AdminRepository) {}

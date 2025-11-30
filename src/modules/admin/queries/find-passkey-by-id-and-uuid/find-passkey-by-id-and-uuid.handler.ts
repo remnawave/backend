@@ -10,9 +10,10 @@ import { PasskeyEntity } from '@modules/admin/entities/passkey.entity';
 import { FindPasskeyByIdAndAdminUuidQuery } from './find-passkey-by-id-and-uuid.query';
 
 @QueryHandler(FindPasskeyByIdAndAdminUuidQuery)
-export class FindPasskeyByIdAndAdminUuidHandler
-    implements IQueryHandler<FindPasskeyByIdAndAdminUuidQuery, ICommandResponse<PasskeyEntity>>
-{
+export class FindPasskeyByIdAndAdminUuidHandler implements IQueryHandler<
+    FindPasskeyByIdAndAdminUuidQuery,
+    ICommandResponse<PasskeyEntity>
+> {
     private readonly logger = new Logger(FindPasskeyByIdAndAdminUuidHandler.name);
     constructor(private readonly passkeyRepository: PasskeyRepository) {}
 

@@ -11,9 +11,10 @@ import { BatchResetUserTrafficCommand } from './batch-reset-user-traffic.command
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(BatchResetUserTrafficCommand)
-export class BatchResetUserTrafficHandler
-    implements ICommandHandler<BatchResetUserTrafficCommand, ICommandResponse<void>>
-{
+export class BatchResetUserTrafficHandler implements ICommandHandler<
+    BatchResetUserTrafficCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(BatchResetUserTrafficHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

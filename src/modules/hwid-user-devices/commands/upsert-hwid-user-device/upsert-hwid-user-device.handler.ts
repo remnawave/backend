@@ -10,9 +10,10 @@ import { UpsertHwidUserDeviceCommand } from './upsert-hwid-user-device.command';
 import { HwidUserDeviceEntity } from '../../entities/hwid-user-device.entity';
 
 @CommandHandler(UpsertHwidUserDeviceCommand)
-export class UpsertHwidUserDeviceHandler
-    implements ICommandHandler<UpsertHwidUserDeviceCommand, ICommandResponse<HwidUserDeviceEntity>>
-{
+export class UpsertHwidUserDeviceHandler implements ICommandHandler<
+    UpsertHwidUserDeviceCommand,
+    ICommandResponse<HwidUserDeviceEntity>
+> {
     public readonly logger = new Logger(UpsertHwidUserDeviceHandler.name);
 
     constructor(private readonly hwidUserDevicesRepository: HwidUserDevicesRepository) {}

@@ -10,9 +10,10 @@ import { UsersService } from '@modules/users/users.service';
 import { RevokeUserSubscriptionCommand } from './revoke-user-subscription.command';
 
 @CommandHandler(RevokeUserSubscriptionCommand)
-export class RevokeUserSubscriptionHandler
-    implements ICommandHandler<RevokeUserSubscriptionCommand, ICommandResponse<boolean>>
-{
+export class RevokeUserSubscriptionHandler implements ICommandHandler<
+    RevokeUserSubscriptionCommand,
+    ICommandResponse<boolean>
+> {
     public readonly logger = new Logger(RevokeUserSubscriptionHandler.name);
 
     constructor(private readonly usersService: UsersService) {}

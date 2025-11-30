@@ -10,13 +10,10 @@ import { GetUsersWithPaginationQuery } from './get-users-with-pagination.query';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @QueryHandler(GetUsersWithPaginationQuery)
-export class GetUsersWithPaginationHandler
-    implements
-        IQueryHandler<
-            GetUsersWithPaginationQuery,
-            ICommandResponse<{ users: UserEntity[]; total: number }>
-        >
-{
+export class GetUsersWithPaginationHandler implements IQueryHandler<
+    GetUsersWithPaginationQuery,
+    ICommandResponse<{ users: UserEntity[]; total: number }>
+> {
     private readonly logger = new Logger(GetUsersWithPaginationHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 

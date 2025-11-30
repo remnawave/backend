@@ -17,9 +17,7 @@ import { NodesUserUsageHistoryConverter } from '../nodes-user-usage-history.conv
 import { IGetNodesRealtimeUsage, IGetNodeUserUsageByRange } from '../interfaces';
 
 @Injectable()
-export class NodesUserUsageHistoryRepository
-    implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity>
-{
+export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: NodesUserUsageHistoryConverter,

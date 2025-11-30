@@ -10,9 +10,10 @@ import { IncrementUsedTrafficCommand } from './increment-used-traffic.command';
 import { NodesRepository } from '../../repositories/nodes.repository';
 
 @CommandHandler(IncrementUsedTrafficCommand)
-export class IncrementUsedTrafficHandler
-    implements ICommandHandler<IncrementUsedTrafficCommand, ICommandResponse<void>>
-{
+export class IncrementUsedTrafficHandler implements ICommandHandler<
+    IncrementUsedTrafficCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(IncrementUsedTrafficHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}

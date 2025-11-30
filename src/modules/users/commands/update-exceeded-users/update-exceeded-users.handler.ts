@@ -11,10 +11,10 @@ import { UpdateExceededTrafficUsersCommand } from './update-exceeded-users.comma
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(UpdateExceededTrafficUsersCommand)
-export class UpdateExceededTrafficUsersHandler
-    implements
-        ICommandHandler<UpdateExceededTrafficUsersCommand, ICommandResponse<{ tId: bigint }[]>>
-{
+export class UpdateExceededTrafficUsersHandler implements ICommandHandler<
+    UpdateExceededTrafficUsersCommand,
+    ICommandResponse<{ tId: bigint }[]>
+> {
     public readonly logger = new Logger(UpdateExceededTrafficUsersHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

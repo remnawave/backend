@@ -10,9 +10,7 @@ import { IGet7DaysStats, IGetNodesUsageByRange } from '../interfaces';
 import { Get7DaysStatsBuilder } from '../builders';
 
 @Injectable()
-export class NodesUsageHistoryRepository
-    implements ICrudHistoricalRecords<NodesUsageHistoryEntity>
-{
+export class NodesUsageHistoryRepository implements ICrudHistoricalRecords<NodesUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: NodesUsageHistoryConverter,

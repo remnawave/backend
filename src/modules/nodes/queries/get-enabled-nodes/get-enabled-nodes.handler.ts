@@ -9,9 +9,10 @@ import { GetEnabledNodesQuery } from './get-enabled-nodes.query';
 import { NodesEntity } from '../../entities/nodes.entity';
 
 @QueryHandler(GetEnabledNodesQuery)
-export class GetEnabledNodesHandler
-    implements IQueryHandler<GetEnabledNodesQuery, ICommandResponse<NodesEntity[]>>
-{
+export class GetEnabledNodesHandler implements IQueryHandler<
+    GetEnabledNodesQuery,
+    ICommandResponse<NodesEntity[]>
+> {
     private readonly logger = new Logger(GetEnabledNodesHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 

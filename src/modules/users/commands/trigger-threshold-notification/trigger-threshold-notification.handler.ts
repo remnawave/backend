@@ -11,10 +11,10 @@ import { TriggerThresholdNotificationCommand } from './trigger-threshold-notific
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(TriggerThresholdNotificationCommand)
-export class TriggerThresholdNotificationHandler
-    implements
-        ICommandHandler<TriggerThresholdNotificationCommand, ICommandResponse<{ tId: bigint }[]>>
-{
+export class TriggerThresholdNotificationHandler implements ICommandHandler<
+    TriggerThresholdNotificationCommand,
+    ICommandResponse<{ tId: bigint }[]>
+> {
     public readonly logger = new Logger(TriggerThresholdNotificationHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

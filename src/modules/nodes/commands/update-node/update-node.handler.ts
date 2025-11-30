@@ -12,9 +12,10 @@ import { NodesRepository } from '../../repositories/nodes.repository';
 import { UpdateNodeCommand } from './update-node.command';
 
 @CommandHandler(UpdateNodeCommand)
-export class UpdateNodeHandler
-    implements ICommandHandler<UpdateNodeCommand, ICommandResponse<NodesEntity>>
-{
+export class UpdateNodeHandler implements ICommandHandler<
+    UpdateNodeCommand,
+    ICommandResponse<NodesEntity>
+> {
     public readonly logger = new Logger(UpdateNodeHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}

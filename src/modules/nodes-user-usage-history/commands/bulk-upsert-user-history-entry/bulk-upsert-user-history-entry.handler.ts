@@ -11,9 +11,10 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { BulkUpsertUserHistoryEntryCommand } from './bulk-upsert-user-history-entry.command';
 
 @CommandHandler(BulkUpsertUserHistoryEntryCommand)
-export class BulkUpsertUserHistoryEntryHandler
-    implements ICommandHandler<BulkUpsertUserHistoryEntryCommand, ICommandResponse<void>>
-{
+export class BulkUpsertUserHistoryEntryHandler implements ICommandHandler<
+    BulkUpsertUserHistoryEntryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(BulkUpsertUserHistoryEntryHandler.name);
 
     constructor(

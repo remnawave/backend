@@ -11,15 +11,12 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { CleanOldUsageRecordsCommand } from './clean-old-usage-records.command';
 
 @CommandHandler(CleanOldUsageRecordsCommand)
-export class CleanOldUsageRecordsHandler
-    implements
-        ICommandHandler<
-            CleanOldUsageRecordsCommand,
-            ICommandResponse<{
-                deletedCount: number;
-            }>
-        >
-{
+export class CleanOldUsageRecordsHandler implements ICommandHandler<
+    CleanOldUsageRecordsCommand,
+    ICommandResponse<{
+        deletedCount: number;
+    }>
+> {
     public readonly logger = new Logger(CleanOldUsageRecordsHandler.name);
 
     constructor(

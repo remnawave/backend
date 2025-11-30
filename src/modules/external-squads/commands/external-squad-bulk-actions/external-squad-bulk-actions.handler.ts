@@ -10,15 +10,12 @@ import { ExternalSquadBulkActionsCommand } from './external-squad-bulk-actions.c
 import { ExternalSquadRepository } from '../../repositories/external-squad.repository';
 
 @CommandHandler(ExternalSquadBulkActionsCommand)
-export class ExternalSquadBulkActionsHandler
-    implements
-        ICommandHandler<
-            ExternalSquadBulkActionsCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class ExternalSquadBulkActionsHandler implements ICommandHandler<
+    ExternalSquadBulkActionsCommand,
+    ICommandResponse<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(ExternalSquadBulkActionsHandler.name);
 
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}

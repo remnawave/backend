@@ -9,9 +9,10 @@ import { GetNodeByUuidQuery } from './get-node-by-uuid.query';
 import { NodesEntity } from '../../entities/nodes.entity';
 
 @QueryHandler(GetNodeByUuidQuery)
-export class GetNodeByUuidHandler
-    implements IQueryHandler<GetNodeByUuidQuery, ICommandResponse<NodesEntity | null>>
-{
+export class GetNodeByUuidHandler implements IQueryHandler<
+    GetNodeByUuidQuery,
+    ICommandResponse<NodesEntity | null>
+> {
     private readonly logger = new Logger(GetNodeByUuidHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 

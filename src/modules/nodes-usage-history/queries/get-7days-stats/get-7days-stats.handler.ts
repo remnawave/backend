@@ -10,9 +10,10 @@ import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-hist
 import { Get7DaysStatsQuery } from './get-7days-stats.query';
 
 @QueryHandler(Get7DaysStatsQuery)
-export class Get7DaysStatsHandler
-    implements IQueryHandler<Get7DaysStatsQuery, ICommandResponse<IGet7DaysStats[]>>
-{
+export class Get7DaysStatsHandler implements IQueryHandler<
+    Get7DaysStatsQuery,
+    ICommandResponse<IGet7DaysStats[]>
+> {
     private readonly logger = new Logger(Get7DaysStatsHandler.name);
     constructor(private readonly nodesUsageHistoryRepository: NodesUsageHistoryRepository) {}
 

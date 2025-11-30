@@ -11,15 +11,12 @@ import { NodesRepository } from '@modules/nodes/repositories/nodes.repository';
 import { SyncActiveProfileCommand } from './sync-active-profile.command';
 
 @CommandHandler(SyncActiveProfileCommand)
-export class SyncActiveProfileHandler
-    implements
-        ICommandHandler<
-            SyncActiveProfileCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class SyncActiveProfileHandler implements ICommandHandler<
+    SyncActiveProfileCommand,
+    ICommandResponse<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(SyncActiveProfileHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}

@@ -10,13 +10,10 @@ import { UserSubscriptionRequestHistoryEntity } from '@modules/user-subscription
 import { GetUserSubscriptionRequestHistoryQuery } from './get-user-subscription-request-history.query';
 
 @QueryHandler(GetUserSubscriptionRequestHistoryQuery)
-export class GetUserSubscriptionRequestHistoryHandler
-    implements
-        IQueryHandler<
-            GetUserSubscriptionRequestHistoryQuery,
-            ICommandResponse<UserSubscriptionRequestHistoryEntity[]>
-        >
-{
+export class GetUserSubscriptionRequestHistoryHandler implements IQueryHandler<
+    GetUserSubscriptionRequestHistoryQuery,
+    ICommandResponse<UserSubscriptionRequestHistoryEntity[]>
+> {
     private readonly logger = new Logger(GetUserSubscriptionRequestHistoryHandler.name);
     constructor(
         private readonly userSubscriptionRequestHistoryRepository: UserSubscriptionRequestHistoryRepository,

@@ -8,9 +8,10 @@ import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-hist
 import { GetSumByDtRangeQuery } from './get-sum-by-dt-range.query';
 
 @QueryHandler(GetSumByDtRangeQuery)
-export class GetSumByDtRangeHandler
-    implements IQueryHandler<GetSumByDtRangeQuery, ICommandResponse<bigint>>
-{
+export class GetSumByDtRangeHandler implements IQueryHandler<
+    GetSumByDtRangeQuery,
+    ICommandResponse<bigint>
+> {
     private readonly logger = new Logger(GetSumByDtRangeHandler.name);
     constructor(private readonly nodesUsageHistoryRepository: NodesUsageHistoryRepository) {}
 

@@ -10,9 +10,10 @@ import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-hist
 import { UpsertHistoryEntryCommand } from './upsert-history-entry.command';
 
 @CommandHandler(UpsertHistoryEntryCommand)
-export class UpsertHistoryEntryHandler
-    implements ICommandHandler<UpsertHistoryEntryCommand, ICommandResponse<void>>
-{
+export class UpsertHistoryEntryHandler implements ICommandHandler<
+    UpsertHistoryEntryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(UpsertHistoryEntryHandler.name);
 
     constructor(private readonly nodesUsageHistoryRepository: NodesUsageHistoryRepository) {}

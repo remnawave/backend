@@ -11,9 +11,10 @@ import { BulkIncrementUsedTrafficCommand } from './bulk-increment-used-traffic.c
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(BulkIncrementUsedTrafficCommand)
-export class BulkIncrementUsedTrafficHandler
-    implements ICommandHandler<BulkIncrementUsedTrafficCommand, ICommandResponse<{ tId: bigint }[]>>
-{
+export class BulkIncrementUsedTrafficHandler implements ICommandHandler<
+    BulkIncrementUsedTrafficCommand,
+    ICommandResponse<{ tId: bigint }[]>
+> {
     public readonly logger = new Logger(BulkIncrementUsedTrafficHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

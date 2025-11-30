@@ -9,9 +9,7 @@ import { BatchResetLimitedUsersTrafficCommand } from './batch-reset-limited-user
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(BatchResetLimitedUsersTrafficCommand)
-export class BatchResetLimitedUsersTrafficHandler
-    implements ICommandHandler<BatchResetLimitedUsersTrafficCommand>
-{
+export class BatchResetLimitedUsersTrafficHandler implements ICommandHandler<BatchResetLimitedUsersTrafficCommand> {
     public readonly logger = new Logger(BatchResetLimitedUsersTrafficHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

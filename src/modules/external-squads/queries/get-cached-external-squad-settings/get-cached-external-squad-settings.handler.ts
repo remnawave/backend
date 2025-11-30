@@ -12,9 +12,7 @@ import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { GetCachedExternalSquadSettingsQuery } from './get-cached-external-squad-settings.query';
 
 @QueryHandler(GetCachedExternalSquadSettingsQuery)
-export class GetCachedExternalSquadSettingsHandler
-    implements IQueryHandler<GetCachedExternalSquadSettingsQuery>
-{
+export class GetCachedExternalSquadSettingsHandler implements IQueryHandler<GetCachedExternalSquadSettingsQuery> {
     private readonly logger = new Logger(GetCachedExternalSquadSettingsHandler.name);
     constructor(
         private readonly externalSquadRepository: ExternalSquadRepository,

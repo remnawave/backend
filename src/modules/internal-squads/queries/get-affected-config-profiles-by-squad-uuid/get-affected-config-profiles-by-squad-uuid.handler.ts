@@ -9,9 +9,10 @@ import { InternalSquadRepository } from '@modules/internal-squads/repositories/i
 import { GetAffectedConfigProfilesBySquadUuidQuery } from './get-affected-config-profiles-by-squad-uuid.query';
 
 @QueryHandler(GetAffectedConfigProfilesBySquadUuidQuery)
-export class GetAffectedConfigProfilesBySquadUuidHandler
-    implements IQueryHandler<GetAffectedConfigProfilesBySquadUuidQuery, ICommandResponse<string[]>>
-{
+export class GetAffectedConfigProfilesBySquadUuidHandler implements IQueryHandler<
+    GetAffectedConfigProfilesBySquadUuidQuery,
+    ICommandResponse<string[]>
+> {
     private readonly logger = new Logger(GetAffectedConfigProfilesBySquadUuidHandler.name);
     constructor(private readonly internalSquadRepository: InternalSquadRepository) {}
 

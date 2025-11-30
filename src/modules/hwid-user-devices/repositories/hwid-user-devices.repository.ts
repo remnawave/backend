@@ -14,9 +14,10 @@ import { HwidUserDeviceEntity } from '../entities/hwid-user-device.entity';
 import { HwidUserDevicesConverter } from '../hwid-user-devices.converter';
 
 @Injectable()
-export class HwidUserDevicesRepository
-    implements Omit<ICrudWithStringId<HwidUserDeviceEntity>, 'deleteById' | 'findById' | 'update'>
-{
+export class HwidUserDevicesRepository implements Omit<
+    ICrudWithStringId<HwidUserDeviceEntity>,
+    'deleteById' | 'findById' | 'update'
+> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly qb: TxKyselyService,

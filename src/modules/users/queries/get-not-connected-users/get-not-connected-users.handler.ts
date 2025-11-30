@@ -10,9 +10,10 @@ import { GetNotConnectedUsersQuery } from './get-not-connected-users.query';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @QueryHandler(GetNotConnectedUsersQuery)
-export class GetNotConnectedUsersHandler
-    implements IQueryHandler<GetNotConnectedUsersQuery, ICommandResponse<UserEntity[]>>
-{
+export class GetNotConnectedUsersHandler implements IQueryHandler<
+    GetNotConnectedUsersQuery,
+    ICommandResponse<UserEntity[]>
+> {
     private readonly logger = new Logger(GetNotConnectedUsersHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 

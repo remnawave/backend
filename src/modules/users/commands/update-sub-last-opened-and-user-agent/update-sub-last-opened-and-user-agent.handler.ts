@@ -10,9 +10,10 @@ import { UpdateSubLastOpenedAndUserAgentCommand } from './update-sub-last-opened
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(UpdateSubLastOpenedAndUserAgentCommand)
-export class UpdateSubLastOpenedAndUserAgentHandler
-    implements ICommandHandler<UpdateSubLastOpenedAndUserAgentCommand, ICommandResponse<void>>
-{
+export class UpdateSubLastOpenedAndUserAgentHandler implements ICommandHandler<
+    UpdateSubLastOpenedAndUserAgentCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(UpdateSubLastOpenedAndUserAgentHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}

@@ -12,9 +12,7 @@ import { SubscriptionSettingsRepository } from '../../repositories/subscription-
 import { GetCachedSubscriptionSettingsQuery } from './get-cached-subscrtipion-settings.query';
 
 @QueryHandler(GetCachedSubscriptionSettingsQuery)
-export class GetCachedSubscriptionSettingsHandler
-    implements IQueryHandler<GetCachedSubscriptionSettingsQuery>
-{
+export class GetCachedSubscriptionSettingsHandler implements IQueryHandler<GetCachedSubscriptionSettingsQuery> {
     private readonly logger = new Logger(GetCachedSubscriptionSettingsHandler.name);
 
     constructor(

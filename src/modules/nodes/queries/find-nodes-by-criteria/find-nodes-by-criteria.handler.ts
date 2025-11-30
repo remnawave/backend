@@ -9,9 +9,10 @@ import { NodesRepository } from '../../repositories/nodes.repository';
 import { NodesEntity } from '../../entities/nodes.entity';
 
 @QueryHandler(FindNodesByCriteriaQuery)
-export class FindNodesByCriteriaHandler
-    implements IQueryHandler<FindNodesByCriteriaQuery, ICommandResponse<NodesEntity[]>>
-{
+export class FindNodesByCriteriaHandler implements IQueryHandler<
+    FindNodesByCriteriaQuery,
+    ICommandResponse<NodesEntity[]>
+> {
     private readonly logger = new Logger(FindNodesByCriteriaHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 

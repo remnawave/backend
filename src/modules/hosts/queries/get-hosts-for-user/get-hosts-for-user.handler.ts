@@ -10,9 +10,10 @@ import { HostsRepository } from '../../repositories/hosts.repository';
 import { GetHostsForUserQuery } from './get-hosts-for-user.query';
 
 @QueryHandler(GetHostsForUserQuery)
-export class GetHostsForUserHandler
-    implements IQueryHandler<GetHostsForUserQuery, ICommandResponse<HostsEntity[]>>
-{
+export class GetHostsForUserHandler implements IQueryHandler<
+    GetHostsForUserQuery,
+    ICommandResponse<HostsEntity[]>
+> {
     private readonly logger = new Logger(GetHostsForUserHandler.name);
     constructor(private readonly hostsRepository: HostsRepository) {}
 

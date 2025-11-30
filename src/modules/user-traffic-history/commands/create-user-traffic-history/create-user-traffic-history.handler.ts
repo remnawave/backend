@@ -9,9 +9,10 @@ import { UserTrafficHistoryRepository } from '../../repositories/user-traffic-hi
 import { CreateUserTrafficHistoryCommand } from './create-user-traffic-history.command';
 
 @CommandHandler(CreateUserTrafficHistoryCommand)
-export class CreateUserTrafficHistoryHandler
-    implements ICommandHandler<CreateUserTrafficHistoryCommand, ICommandResponse<void>>
-{
+export class CreateUserTrafficHistoryHandler implements ICommandHandler<
+    CreateUserTrafficHistoryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(CreateUserTrafficHistoryHandler.name);
 
     constructor(private readonly userTrafficHistoryRepository: UserTrafficHistoryRepository) {}

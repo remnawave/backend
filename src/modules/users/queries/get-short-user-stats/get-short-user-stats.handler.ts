@@ -9,9 +9,10 @@ import { GetShortUserStatsQuery } from './get-short-user-stats.query';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @QueryHandler(GetShortUserStatsQuery)
-export class GetShortUserStatsHandler
-    implements IQueryHandler<GetShortUserStatsQuery, ICommandResponse<ShortUserStats>>
-{
+export class GetShortUserStatsHandler implements IQueryHandler<
+    GetShortUserStatsQuery,
+    ICommandResponse<ShortUserStats>
+> {
     private readonly logger = new Logger(GetShortUserStatsHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 

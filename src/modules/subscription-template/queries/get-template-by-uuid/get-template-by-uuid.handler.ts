@@ -7,9 +7,7 @@ import { SubscriptionTemplateRepository } from '../../repositories/subscription-
 import { GetSubscriptionTemplateByUuidQuery } from './get-template-by-uuid.query';
 
 @QueryHandler(GetSubscriptionTemplateByUuidQuery)
-export class GetSubscriptionTemplateByUuidHandler
-    implements IQueryHandler<GetSubscriptionTemplateByUuidQuery>
-{
+export class GetSubscriptionTemplateByUuidHandler implements IQueryHandler<GetSubscriptionTemplateByUuidQuery> {
     private readonly logger = new Logger(GetSubscriptionTemplateByUuidHandler.name);
 
     constructor(private readonly subscriptionTemplateRepository: SubscriptionTemplateRepository) {}

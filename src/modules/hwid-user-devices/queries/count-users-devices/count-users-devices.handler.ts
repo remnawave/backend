@@ -8,9 +8,10 @@ import { HwidUserDevicesRepository } from '../../repositories/hwid-user-devices.
 import { CountUsersDevicesQuery } from './count-users-devices.query';
 
 @QueryHandler(CountUsersDevicesQuery)
-export class CountUsersDevicesHandler
-    implements IQueryHandler<CountUsersDevicesQuery, ICommandResponse<number>>
-{
+export class CountUsersDevicesHandler implements IQueryHandler<
+    CountUsersDevicesQuery,
+    ICommandResponse<number>
+> {
     private readonly logger = new Logger(CountUsersDevicesHandler.name);
     constructor(private readonly hwidUserDevicesRepository: HwidUserDevicesRepository) {}
 
