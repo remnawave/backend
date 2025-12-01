@@ -902,12 +902,16 @@ export class UsersRepository {
     }
 
     public async bulkUpdateAllUsersByRange({
-        ranges,
         fields,
     }: {
-        ranges: { min: bigint; max: bigint }[];
         fields: Partial<BaseUserEntity>;
     }): Promise<number> {
+        const { ranges } = await this.getMinMaxBatchRange();
+
+        if (ranges.length === 0) {
+            return 0;
+        }
+
         let totalUpdated = 0;
         for (const range of ranges) {
             const result = await this.prisma.tx.users.updateMany({

@@ -7,7 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { md5 } from '@common/utils';
 import { TUsersStatus } from '@libs/contracts/constants';
 
-import { BulkUpdateUsersRequestDto } from '@modules/users/dtos';
+import { BulkAllUpdateUsersRequestDto, BulkUpdateUsersRequestDto } from '@modules/users/dtos';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
@@ -268,6 +268,23 @@ export class UsersQueuesService implements OnApplicationBootstrap {
                 })),
             );
         }
+    }
+
+    public async bulkUpdateAllUsers(payload: BulkAllUpdateUsersRequestDto) {
+        return this.serialUsersOperationsQueue.add(USERS_JOB_NAMES.BULK_UPDATE_ALL_USERS, {
+            dto: payload,
+        });
+    }
+
+    public async resetAllUserTraffic() {
+        return this.resetUserTrafficQueue.add(USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC, {});
+    }
+
+    public async bulkAllExtendExpirationDate(extendDays: number) {
+        return this.serialUsersOperationsQueue.add(
+            USERS_JOB_NAMES.BULK_ALL_EXTEND_EXPIRATION_DATE,
+            { extendDays },
+        );
     }
 
     public async updateUserUsage(payload: { u: string; b: string; n: string }[]) {

@@ -7,10 +7,15 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
+import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { EVENTS, TUsersStatus, USERS_STATUS } from '@libs/contracts/constants';
 
 import { GetUsersByExpireAtQuery } from '@modules/users/queries/get-users-by-expire-at/get-users-by-expire-at.query';
+import { BulkAllExtendExpirationDateCommand } from '@modules/users/commands/bulk-all-extend-expiration-date';
+import { BulkAllUpdateUsersRequestDto } from '@modules/users/dtos/bulk/bulk-operations.dto';
 import { BulkDeleteByStatusCommand } from '@modules/users/commands/bulk-delete-by-status';
+import { BulkUpdateAllUsersCommand } from '@modules/users/commands/bulk-update-all-users';
+import { BulkSyncUsersCommand } from '@modules/users/commands/bulk-sync-users';
 
 import { NodesQueuesService } from '@queue/_nodes/nodes-queues.service';
 import { QUEUES_NAMES } from '@queue/queue.enum';
@@ -39,6 +44,10 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 return this.handleExpireUserNotifications();
             case USERS_JOB_NAMES.DELETE_BY_STATUS:
                 return this.handleBulkDeleteByStatusJob(job);
+            case USERS_JOB_NAMES.BULK_UPDATE_ALL_USERS:
+                return this.handleBulkUpdateAllUsersJob(job);
+            case USERS_JOB_NAMES.BULK_ALL_EXTEND_EXPIRATION_DATE:
+                return this.handleBulkAllExtendExpirationDateJob(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -170,5 +179,63 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 deletedCount: number;
             }>
         >(new BulkDeleteByStatusCommand(status, limit));
+    }
+
+    private async handleBulkUpdateAllUsersJob(job: Job<{ dto: BulkAllUpdateUsersRequestDto }>) {
+        try {
+            const { dto } = job.data;
+
+            await this.commandBus.execute(
+                new BulkUpdateAllUsersCommand({
+                    ...dto,
+                    lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
+                    trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                    telegramId: wrapBigIntNullable(dto.telegramId),
+                    hwidDeviceLimit: dto.hwidDeviceLimit,
+                }),
+            );
+
+            if (dto.trafficLimitBytes !== undefined) {
+                await this.commandBus.execute(new BulkSyncUsersCommand('limited'));
+            }
+
+            if (dto.expireAt !== undefined) {
+                await this.commandBus.execute(new BulkSyncUsersCommand('expired'));
+            }
+
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
+                emitter: 'bulkUpdateAllUsers',
+            });
+
+            return {
+                isOk: true,
+            };
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${USERS_JOB_NAMES.BULK_UPDATE_ALL_USERS}" job: ${error}`,
+            );
+        }
+    }
+
+    private async handleBulkAllExtendExpirationDateJob(job: Job<{ extendDays: number }>) {
+        try {
+            const { extendDays } = job.data;
+
+            await this.commandBus.execute(new BulkAllExtendExpirationDateCommand(extendDays));
+
+            await this.commandBus.execute(new BulkSyncUsersCommand('expired'));
+
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
+                emitter: 'bulkAllExtendExpirationDate',
+            });
+
+            return {
+                isOk: true,
+            };
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${USERS_JOB_NAMES.BULK_ALL_EXTEND_EXPIRATION_DATE}" job: ${error}`,
+            );
+        }
     }
 }

@@ -17,4 +17,7 @@ export const USERS_JOB_NAMES = {
     FIND_NOT_CONNECTED_USERS_NOTIFICATION: 'findNotConnectedUsersNotification',
     FIRE_USER_EVENT: 'fireUserEvent',
     UPDATE_USERS_USAGE: 'updateUsersUsage',
+    BULK_UPDATE_ALL_USERS: 'bulkUpdateAllUsers',
+    RESET_ALL_USER_TRAFFIC: 'resetAllUserTraffic',
+    BULK_ALL_EXTEND_EXPIRATION_DATE: 'bulkAllExtendExpirationDate',
 } as const;

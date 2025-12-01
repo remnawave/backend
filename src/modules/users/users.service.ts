@@ -896,37 +896,7 @@ export class UsersService {
                 };
             }
 
-            const ranges = await this.userRepository.getMinMaxBatchRange();
-
-            if (ranges.ranges.length === 0) {
-                return {
-                    isOk: true,
-                    response: new BulkAllResponseModel(true),
-                };
-            }
-
-            await this.userRepository.bulkUpdateAllUsersByRange({
-                ranges: ranges.ranges,
-                fields: {
-                    ...dto,
-                    lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
-                    trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
-                    telegramId: wrapBigIntNullable(dto.telegramId),
-                    hwidDeviceLimit: dto.hwidDeviceLimit,
-                },
-            });
-
-            if (dto.trafficLimitBytes !== undefined) {
-                await this.userRepository.bulkSyncLimitedUsers();
-            }
-
-            if (dto.expireAt !== undefined) {
-                await this.userRepository.bulkSyncExpiredUsers();
-            }
-
-            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
-                emitter: 'bulkUpdateAllUsers',
-            });
+            await this.usersQueuesService.bulkUpdateAllUsers(dto);
 
             return {
                 isOk: true,
@@ -943,17 +913,7 @@ export class UsersService {
 
     public async bulkAllResetUserTraffic(): Promise<ICommandResponse<BulkAllResponseModel>> {
         try {
-            await this.usersQueuesService.resetDailyUserTraffic();
-            await this.usersQueuesService.resetMonthlyUserTraffic();
-            await this.usersQueuesService.resetWeeklyUserTraffic();
-            await this.usersQueuesService.resetNoResetUserTraffic();
-
-            await this.nodesQueuesService.startAllNodesWithoutDeduplication(
-                {
-                    emitter: 'bulkAllResetUserTraffic',
-                },
-                20_000,
-            );
+            await this.usersQueuesService.resetAllUserTraffic();
 
             return {
                 isOk: true,
@@ -1121,13 +1081,7 @@ export class UsersService {
         extendDays: number,
     ): Promise<ICommandResponse<BulkAllResponseModel>> {
         try {
-            await this.userRepository.bulkAllExtendExpirationDate(extendDays);
-
-            await this.userRepository.bulkSyncExpiredUsers();
-
-            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
-                emitter: 'bulkAllExtendExpirationDate',
-            });
+            await this.usersQueuesService.bulkAllExtendExpirationDate(extendDays);
 
             return {
                 isOk: true,

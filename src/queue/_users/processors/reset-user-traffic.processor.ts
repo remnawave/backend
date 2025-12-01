@@ -49,6 +49,8 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
                 return this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
             case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
                 return this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
+            case USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC:
+                return this.handleResetAllUserTraffic(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -119,5 +121,29 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
                 affectedRows: number;
             }>
         >(new BatchResetUserTrafficCommand(dto.strategy));
+    }
+
+    private async handleResetAllUserTraffic(job: Job) {
+        try {
+            const ct = getTime();
+
+            await this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
+            await this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
+            await this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
+            await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
+
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication(
+                {
+                    emitter: 'resetAllUserTraffic',
+                },
+                10_000,
+            );
+
+            this.logger.log(`Reset All User Traffic. Time: ${formatExecutionTime(ct)}`);
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC}" job: ${error}`,
+            );
+        }
     }
 }
