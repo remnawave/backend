@@ -71,7 +71,6 @@ export class InternalSquadService {
         }
     }
 
-    @Transactional()
     public async createInternalSquad(
         name: string,
         inbounds: string[],
@@ -84,15 +83,10 @@ export class InternalSquadService {
                 };
             }
 
-            const internalSquad = await this.internalSquadRepository.create(
-                new InternalSquadEntity({
-                    name,
-                }),
+            const internalSquad = await this.internalSquadRepository.createWithInbounds(
+                name,
+                inbounds,
             );
-
-            if (inbounds.length > 0) {
-                await this.internalSquadRepository.createInbounds(inbounds, internalSquad.uuid);
-            }
 
             return await this.getInternalSquadByUuid(internalSquad.uuid);
         } catch (error) {

@@ -71,27 +71,56 @@ export class UsersService {
 
     public async createUser(dto: CreateUserRequestDto): Promise<ICommandResponse<UserEntity>> {
         try {
-            const user = await this.createUserTransactional(dto);
+            const userEntity = new BaseUserEntity({
+                username: dto.username,
+                shortUuid: dto.shortUuid || this.createNanoId(),
+                trojanPassword: dto.trojanPassword || this.createTrojanPassword(),
+                vlessUuid: dto.vlessUuid || this.createUuid(),
+                ssPassword: dto.ssPassword || this.createSSPassword(),
+                status: dto.status,
+                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                trafficLimitStrategy: dto.trafficLimitStrategy,
+                email: dto.email,
+                telegramId: wrapBigIntNullable(dto.telegramId),
+                expireAt: dto.expireAt,
+                createdAt: dto.createdAt,
+                lastTrafficResetAt: dto.lastTrafficResetAt,
+                description: dto.description,
+                hwidDeviceLimit: dto.hwidDeviceLimit,
+                tag: dto.tag,
+                uuid: dto.uuid,
+                externalSquadUuid: dto.externalSquadUuid,
+            });
 
-            if (!user.isOk || !user.response) {
-                return user;
+            const result = await this.userRepository.create(userEntity, dto.activeInternalSquads);
+
+            const { isOk, response: user } = await this.getUserByUniqueFields({ tId: result.tId });
+
+            if (!isOk || !user) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CREATE_USER_ERROR,
+                };
             }
 
-            if (user.response.status === USERS_STATUS.ACTIVE) {
-                this.eventBus.publish(new AddUserToNodeEvent(user.response.uuid));
+            if (user.status === USERS_STATUS.ACTIVE) {
+                this.eventBus.publish(new AddUserToNodeEvent(user.uuid));
             }
 
             this.eventEmitter.emit(
                 EVENTS.USER.CREATED,
                 new UserEvent({
-                    user: user.response,
+                    user: user,
                     event: EVENTS.USER.CREATED,
                 }),
             );
 
-            await this.invalidateShortUuidRangeCache(user.response.shortUuid);
+            await this.invalidateShortUuidRangeCache(user.shortUuid);
 
-            return user;
+            return {
+                isOk: true,
+                response: user,
+            };
         } catch (error) {
             this.logger.error(error);
             if (
@@ -307,95 +336,6 @@ export class UsersService {
                     isNeedToBeAddedToNode,
                     isNeedToBeRemovedFromNode,
                 },
-            };
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    @Transactional()
-    public async createUserTransactional(
-        dto: CreateUserRequestDto,
-    ): Promise<ICommandResponse<UserEntity>> {
-        try {
-            const {
-                username,
-                expireAt,
-                trafficLimitBytes,
-                trafficLimitStrategy,
-                status,
-                shortUuid,
-                trojanPassword,
-                vlessUuid,
-                ssPassword,
-                createdAt,
-                lastTrafficResetAt,
-                description,
-                telegramId,
-                email,
-                hwidDeviceLimit,
-                tag,
-                activeInternalSquads,
-                externalSquadUuid,
-                uuid,
-            } = dto;
-
-            const userEntity = new BaseUserEntity({
-                username,
-                shortUuid: shortUuid || this.createNanoId(),
-                trojanPassword: trojanPassword || this.createTrojanPassword(),
-                vlessUuid: vlessUuid || this.createUuid(),
-                ssPassword: ssPassword || this.createSSPassword(),
-                status,
-                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
-                trafficLimitStrategy,
-                email: email,
-                telegramId: wrapBigIntNullable(telegramId),
-                expireAt: expireAt,
-                createdAt: createdAt,
-                lastTrafficResetAt: lastTrafficResetAt,
-                description: description,
-                hwidDeviceLimit: hwidDeviceLimit,
-                tag: tag,
-                uuid: uuid,
-                externalSquadUuid: externalSquadUuid,
-            });
-
-            const result = await this.userRepository.create(userEntity);
-
-            if (activeInternalSquads && activeInternalSquads.length > 0) {
-                const squadsResult = await this.userRepository.addUserToInternalSquads(
-                    result.uuid,
-                    activeInternalSquads,
-                );
-
-                if (!squadsResult) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.CREATE_USER_WITH_INTERNAL_SQUAD_ERROR,
-                    };
-                }
-            }
-
-            const userWithInbounds = await this.userRepository.findUniqueByCriteria(
-                {
-                    uuid: result.uuid,
-                },
-                {
-                    activeInternalSquads: true,
-                },
-            );
-
-            if (!userWithInbounds) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
-                };
-            }
-
-            return {
-                isOk: true,
-                response: userWithInbounds,
             };
         } catch (error) {
             throw error;

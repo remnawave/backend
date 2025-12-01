@@ -46,31 +46,35 @@ export class UsersRepository {
         private readonly userConverter: UserConverter,
     ) {}
 
-    public async create(entity: BaseUserEntity): Promise<{
-        uuid: string;
+    public async create(
+        entity: BaseUserEntity,
+        internalSquadUuids: string[] = [],
+    ): Promise<{
+        tId: bigint;
     }> {
         const model = this.userConverter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.users.create({
             select: {
-                uuid: true,
                 tId: true,
             },
             data: {
                 ...model,
-            },
-        });
-
-        await this.prisma.tx.userTraffic.create({
-            select: {
-                tId: true,
-            },
-            data: {
-                tId: result.tId,
+                traffic: {
+                    create: {
+                        usedTrafficBytes: 0,
+                        lifetimeUsedTrafficBytes: 0,
+                    },
+                },
+                activeInternalSquads: {
+                    create: internalSquadUuids.map((internalSquadUuid) => ({
+                        internalSquadUuid,
+                    })),
+                },
             },
         });
 
         return {
-            uuid: result.uuid,
+            tId: result.tId,
         };
     }
 

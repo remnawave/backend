@@ -1,8 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
-import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -19,10 +17,6 @@ export class TriggerThresholdNotificationHandler implements ICommandHandler<
 
     constructor(private readonly usersRepository: UsersRepository) {}
 
-    @Transactional<TransactionalAdapterPrisma>({
-        maxWait: 20_000,
-        timeout: 120_000,
-    })
     async execute(
         command: TriggerThresholdNotificationCommand,
     ): Promise<ICommandResponse<{ tId: bigint }[]>> {

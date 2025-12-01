@@ -9,7 +9,6 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 
 import { TxKyselyService } from '@common/database';
-import { ICrud } from '@common/types/crud-port';
 import { getKyselyUuid } from '@common/helpers';
 
 import { ConfigProfileWithInboundsAndNodesEntity } from '../entities/config-profile-with-inbounds-and-nodes.entity';
@@ -19,23 +18,36 @@ import { ConfigProfileEntity } from '../entities/config-profile.entity';
 import { ConfigProfileInboundWithSquadsEntity } from '../entities';
 
 @Injectable()
-export class ConfigProfileRepository implements ICrud<ConfigProfileEntity> {
+export class ConfigProfileRepository {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly qb: TxKyselyService,
         private readonly configProfileConverter: ConfigProfileConverter,
     ) {}
 
-    public async create(entity: ConfigProfileEntity): Promise<ConfigProfileEntity> {
+    public async create(
+        entity: ConfigProfileEntity,
+        inbounds: ConfigProfileInboundEntity[],
+    ): Promise<{ uuid: string }> {
         const model = this.configProfileConverter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.configProfiles.create({
+            select: {
+                uuid: true,
+            },
             data: {
                 ...model,
                 config: model.config as Prisma.InputJsonValue,
+                configProfileInbounds: {
+                    create: inbounds.map((inbound) => ({
+                        ...inbound,
+                    })),
+                },
             },
         });
 
-        return this.configProfileConverter.fromPrismaModelToEntity(result);
+        return {
+            uuid: result.uuid,
+        };
     }
 
     public async findByUUID(uuid: string): Promise<ConfigProfileEntity | null> {

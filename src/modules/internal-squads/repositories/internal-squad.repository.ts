@@ -30,6 +30,22 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
         return this.internalSquadConverter.fromPrismaModelToEntity(result);
     }
 
+    public async createWithInbounds(
+        name: string,
+        inbounds: string[],
+    ): Promise<InternalSquadEntity> {
+        const result = await this.prisma.tx.internalSquads.create({
+            data: {
+                name,
+                internalSquadInbounds: {
+                    create: inbounds.map((inbound) => ({ inboundUuid: inbound })),
+                },
+            },
+        });
+
+        return this.internalSquadConverter.fromPrismaModelToEntity(result);
+    }
+
     public async findByUUID(uuid: string): Promise<InternalSquadEntity | null> {
         const result = await this.prisma.tx.internalSquads.findUnique({
             where: { uuid },

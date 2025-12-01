@@ -164,7 +164,6 @@ export class ConfigProfileService {
         }
     }
 
-    @Transactional()
     public async createConfigProfile(
         name: string,
         config: object,
@@ -187,12 +186,9 @@ export class ConfigProfileService {
 
             const inbounds = validatedConfig.getAllInbounds();
 
-            const configProfile = await this.configProfileRepository.create(profileEntity);
-
             const inboundsEntities = inbounds.map(
                 (inbound) =>
                     new ConfigProfileInboundEntity({
-                        profileUuid: configProfile.uuid,
                         tag: inbound.tag,
                         type: inbound.type,
                         network: inbound.network,
@@ -202,13 +198,12 @@ export class ConfigProfileService {
                     }),
             );
 
-            if (inboundsEntities.length) {
-                await this.configProfileRepository.createManyConfigProfileInbounds(
-                    inboundsEntities,
-                );
-            }
+            const { uuid } = await this.configProfileRepository.create(
+                profileEntity,
+                inboundsEntities,
+            );
 
-            return this.getConfigProfileByUUID(configProfile.uuid);
+            return await this.getConfigProfileByUUID(uuid);
         } catch (error) {
             if (
                 error instanceof PrismaClientKnownRequestError &&
