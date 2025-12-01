@@ -650,24 +650,6 @@ export class UsersRepository {
 
     public async resetUserTraffic(strategy: TResetPeriods): Promise<void> {
         await this.qb.kysely
-            .with('usersToReset', (db) =>
-                db
-                    .selectFrom('users')
-                    .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
-                    .select([
-                        'users.uuid as uuid',
-                        'users.tId as tId',
-                        'userTraffic.usedTrafficBytes as usedTrafficBytes',
-                    ])
-                    .where('trafficLimitStrategy', '=', strategy)
-                    .where('status', '!=', USERS_STATUS.LIMITED),
-            )
-            .with('insertHistory', (db) =>
-                db
-                    .insertInto('userTrafficHistory')
-                    .columns(['userUuid', 'usedBytes'])
-                    .expression(db.selectFrom('usersToReset').select(['uuid', 'usedTrafficBytes'])),
-            )
             .with('updateUsers', (db) =>
                 db
                     .updateTable('users')
@@ -675,54 +657,18 @@ export class UsersRepository {
                         lastTrafficResetAt: new Date(),
                         lastTriggeredThreshold: 0,
                     })
-                    .where('uuid', 'in', (eb) => eb.selectFrom('usersToReset').select('uuid'))
+                    .where('trafficLimitStrategy', '=', strategy)
+                    .where('status', '!=', USERS_STATUS.LIMITED)
                     .returning('tId'),
             )
             .updateTable('userTraffic')
+            .from('updateUsers')
+            .whereRef('userTraffic.tId', '=', 'updateUsers.tId')
             .set({
                 usedTrafficBytes: 0n,
             })
-            .where('tId', 'in', (eb) => eb.selectFrom('usersToReset').select('tId'))
             .execute();
     }
-
-    // public async resetUserTraffic(strategy: TResetPeriods): Promise<void> {
-    //     const whereExpression = (eb: ExpressionBuilder<DB, 'users'>) => {
-    //         return eb.and([
-    //             eb('trafficLimitStrategy', '=', strategy),
-    //             eb('status', '!=', USERS_STATUS.LIMITED),
-    //         ]);
-    //     };
-
-    //     await this.qb.kysely
-    //         .insertInto('userTrafficHistory')
-    //         .columns(['userUuid', 'usedBytes'])
-    //         .expression((db) =>
-    //             db
-    //                 .selectFrom('users')
-    //                 .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
-    //                 .select(['users.uuid as userUuid', 'userTraffic.usedTrafficBytes as usedBytes'])
-    //                 .where(whereExpression),
-    //         )
-    //         .execute();
-
-    //     await this.qb.kysely
-    //         .updateTable('userTraffic')
-    //         .set({ usedTrafficBytes: 0n })
-    //         .from('users')
-    //         .whereRef('userTraffic.tId', '=', 'users.tId')
-    //         .where(whereExpression)
-    //         .execute();
-
-    //     await this.qb.kysely
-    //         .updateTable('users')
-    //         .set({
-    //             lastTrafficResetAt: new Date(),
-    //             lastTriggeredThreshold: 0,
-    //         })
-    //         .where(whereExpression)
-    //         .execute();
-    // }
 
     public async resetLimitedUsersTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {
         const { query } = new BatchResetLimitedUsersUsageBuilder(strategy);

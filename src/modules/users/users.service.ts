@@ -20,11 +20,9 @@ import { GetAllUsersCommand } from '@libs/contracts/commands';
 import { UserEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
-import { CreateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/create-user-traffic-history';
 import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
-import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
 
 import { NodesQueuesService } from '@queue/_nodes';
 import { UsersQueuesService } from '@queue/_users';
@@ -659,8 +657,6 @@ export class UsersService {
                 };
             }
 
-            const userTraffic = await this.userRepository.getUserTrafficByTId(user.tId);
-
             let status = undefined;
             if (user.status === USERS_STATUS.LIMITED) {
                 status = USERS_STATUS.ACTIVE;
@@ -672,14 +668,6 @@ export class UsersService {
                 new Date(),
                 status,
             );
-
-            await this.createUserUsageHistory({
-                userTrafficHistory: new UserTrafficHistoryEntity({
-                    userUuid: user.uuid,
-                    resetAt: new Date(),
-                    usedBytes: BigInt(userTraffic.usedTrafficBytes),
-                }),
-            });
 
             const newUser = await this.userRepository.findUniqueByCriteria(
                 { uuid: userUuid },
@@ -1116,14 +1104,6 @@ export class UsersService {
         const nanoid = customAlphabet(alphabet, 32);
 
         return nanoid();
-    }
-
-    private async createUserUsageHistory(
-        dto: CreateUserTrafficHistoryCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<CreateUserTrafficHistoryCommand, ICommandResponse<void>>(
-            new CreateUserTrafficHistoryCommand(dto.userTrafficHistory),
-        );
     }
 
     private async getUserUsageByRangeQuery(

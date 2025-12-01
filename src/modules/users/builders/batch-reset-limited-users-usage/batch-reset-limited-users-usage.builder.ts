@@ -17,35 +17,20 @@ export class BatchResetLimitedUsersUsageBuilder {
         const strat = strategy.toUpperCase();
 
         const query = Prisma.sql`
-      WITH users_to_reset AS (
-        SELECT u.uuid,
-               u.t_id,
-               ut.used_traffic_bytes
-        FROM users u
-        INNER JOIN user_traffic ut ON ut.t_id = u.t_id
-        WHERE u.traffic_limit_strategy = ${strat}
-          AND u.status = ${limited}
-      ),
-      insert_history AS (
-        INSERT INTO user_traffic_history (user_uuid, used_bytes)
-        SELECT uuid, used_traffic_bytes
-        FROM users_to_reset
-      ),
-      update_users AS (
-        UPDATE users u
-        SET last_traffic_reset_at = NOW(),
-            last_triggered_threshold = 0,
-            status = ${active}
-        WHERE u.uuid IN (SELECT uuid FROM users_to_reset)
-        RETURNING u.t_id
-      ),
-      update_traffic AS (
-        UPDATE user_traffic ut
-        SET used_traffic_bytes = 0
-        FROM update_users uu
-        WHERE ut.t_id = uu.t_id
-      )
-      SELECT t_id FROM update_users;
+  WITH update_users AS (
+    UPDATE users
+    SET last_traffic_reset_at = NOW(),
+        last_triggered_threshold = 0,
+        status = ${active}
+    WHERE traffic_limit_strategy = ${strat}
+      AND status = ${limited}
+    RETURNING t_id
+  )
+  UPDATE user_traffic ut
+  SET used_traffic_bytes = 0
+  FROM update_users uu
+  WHERE ut.t_id = uu.t_id
+  RETURNING ut.t_id;
     `;
 
         return query;

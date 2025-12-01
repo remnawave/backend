@@ -76,7 +76,6 @@ model Users {
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
   nodesUserUsageHistory          NodesUserUsageHistory[]
-  userTrafficHistory             UserTrafficHistory[]
   hwidUserDevices                HwidUserDevices[]
   activeInternalSquads           InternalSquadMembers[]
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
@@ -260,18 +259,6 @@ model NodesUsageHistory {
   @@id([nodeUuid, createdAt])
   @@index([nodeUuid, createdAt(sort: Desc)])
   @@map("nodes_usage_history")
-}
-
-model UserTrafficHistory {
-  id        BigInt   @id @default(autoincrement())
-  userUuid  String   @map("user_uuid") @db.Uuid
-  usedBytes BigInt   @map("used_bytes")
-  resetAt   DateTime @default(dbgenerated("now()")) @map("reset_at")
-
-  user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
-
-  @@index([userUuid])
-  @@map("user_traffic_history")
 }
 
 model Hosts {
