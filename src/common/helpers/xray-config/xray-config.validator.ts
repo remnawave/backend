@@ -496,6 +496,9 @@ export class XRayConfig {
             if (typeof this.config.routing === 'object' && 'rules' in this.config.routing) {
                 this.replaceSnippetsInArray(this.config.routing.rules as any[], snippets);
             }
+            if (typeof this.config.routing === 'object' && 'balancers' in this.config.routing) {
+                this.replaceSnippetsInArray(this.config.routing.balancers as any[], snippets);
+            }
         }
     }
 
