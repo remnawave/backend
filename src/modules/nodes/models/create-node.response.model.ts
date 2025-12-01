@@ -13,8 +13,6 @@ export class CreateNodeResponseModel {
     public isConnected: boolean;
     public isConnecting: boolean;
     public isDisabled: boolean;
-    public isNodeOnline: boolean;
-    public isXrayRunning: boolean;
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
     public xrayVersion: null | string;
@@ -54,8 +52,6 @@ export class CreateNodeResponseModel {
         this.isConnected = data.isConnected;
         this.isConnecting = data.isConnecting;
         this.isDisabled = data.isDisabled;
-        this.isNodeOnline = data.isNodeOnline;
-        this.isXrayRunning = data.isXrayRunning;
         this.lastStatusChange = data.lastStatusChange;
         this.lastStatusMessage = data.lastStatusMessage;
         this.xrayVersion = data.xrayVersion;

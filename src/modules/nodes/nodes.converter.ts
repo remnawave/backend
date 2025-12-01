@@ -20,8 +20,6 @@ const entityToModel = (entity: NodesEntity): Nodes => {
         isConnected: entity.isConnected,
         isConnecting: entity.isConnecting,
         isDisabled: entity.isDisabled,
-        isNodeOnline: entity.isNodeOnline,
-        isXrayRunning: entity.isXrayRunning,
         lastStatusChange: entity.lastStatusChange,
         lastStatusMessage: entity.lastStatusMessage,
         xrayVersion: entity.xrayVersion,

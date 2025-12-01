@@ -52,8 +52,6 @@ export class StopNodeProcessor extends WorkerHost {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: nodeEntity.uuid,
-                        isXrayRunning: false,
-                        isNodeOnline: false,
                         lastStatusMessage: null,
                         lastStatusChange: new Date(),
                         isConnected: false,

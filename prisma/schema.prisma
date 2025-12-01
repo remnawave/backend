@@ -177,9 +177,6 @@ model Nodes {
   isConnecting Boolean @default(false) @map("is_connecting")
   isDisabled   Boolean @default(false) @map("is_disabled")
 
-  isNodeOnline  Boolean @default(false) @map("is_node_online")
-  isXrayRunning Boolean @default(false) @map("is_xray_running")
-
   lastStatusChange  DateTime? @map("last_status_change")
   lastStatusMessage String?   @map("last_status_message")
   xrayVersion       String?   @map("xray_version")

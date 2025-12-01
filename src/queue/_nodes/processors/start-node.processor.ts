@@ -63,8 +63,6 @@ export class StartNodeProcessor extends WorkerHost {
                         isDisabled: true,
                         activeConfigProfileUuid: null,
                         isConnecting: false,
-                        isXrayRunning: false,
-                        isNodeOnline: false,
                         isConnected: false,
                         lastStatusMessage: null,
                         lastStatusChange: new Date(),
@@ -96,8 +94,6 @@ export class StartNodeProcessor extends WorkerHost {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: nodeEntity.uuid,
-                        isXrayRunning: false,
-                        isNodeOnline: false,
                         lastStatusMessage: xrayStatusResponse.message ?? null,
                         lastStatusChange: new Date(),
                         isConnected: false,
@@ -142,8 +138,6 @@ export class StartNodeProcessor extends WorkerHost {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: nodeEntity.uuid,
-                        isXrayRunning: false,
-                        isNodeOnline: false,
                         lastStatusMessage: res.message ?? null,
                         lastStatusChange: new Date(),
                         isConnected: false,
@@ -160,10 +154,8 @@ export class StartNodeProcessor extends WorkerHost {
             const { isOk: isOkUpdateNode, response: updatedNode } = await this.commandBus.execute(
                 new UpdateNodeCommand({
                     uuid: nodeEntity.uuid,
-                    isXrayRunning: nodeResponse.isStarted,
                     xrayVersion: nodeResponse.version,
                     nodeVersion: nodeResponse.nodeInformation?.version || null,
-                    isNodeOnline: true,
                     isConnected: nodeResponse.isStarted,
                     lastStatusMessage: nodeResponse.error ?? null,
                     lastStatusChange: new Date(),

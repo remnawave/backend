@@ -55,8 +55,6 @@ export class NodesRepository implements ICrud<NodesEntity> {
         const nodesList = await this.prisma.tx.nodes.findMany({
             where: {
                 isConnected: true,
-                isXrayRunning: true,
-                isNodeOnline: true,
                 isDisabled: false,
                 isConnecting: false,
                 activeConfigProfileUuid: {
@@ -84,8 +82,6 @@ export class NodesRepository implements ICrud<NodesEntity> {
             },
             where: {
                 isConnected: true,
-                isXrayRunning: true,
-                isNodeOnline: true,
                 isDisabled: false,
                 activeConfigProfileUuid: {
                     not: null,

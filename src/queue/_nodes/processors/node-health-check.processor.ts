@@ -103,8 +103,6 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             new UpdateNodeCommand({
                 uuid: nodeUuid,
                 isConnected: true,
-                isNodeOnline: true,
-                isXrayRunning: true,
                 lastStatusChange: new Date(),
                 lastStatusMessage: '',
                 xrayUptime: response.response.uptime.toString(),
@@ -136,8 +134,6 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             new UpdateNodeCommand({
                 uuid: nodeUuid,
                 isConnected: false,
-                isNodeOnline: false,
-                isXrayRunning: false,
                 lastStatusChange: new Date(),
                 lastStatusMessage: message,
                 usersOnline: 0,

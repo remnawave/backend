@@ -86,8 +86,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                             isDisabled: true,
                             activeConfigProfileUuid: null,
                             isConnecting: false,
-                            isXrayRunning: false,
-                            isNodeOnline: false,
                             isConnected: false,
                             lastStatusMessage: null,
                             lastStatusChange: new Date(),
@@ -185,8 +183,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
-                                isXrayRunning: false,
-                                isNodeOnline: false,
                                 lastStatusMessage: response.message ?? null,
                                 lastStatusChange: new Date(),
                                 isConnected: false,
@@ -205,10 +201,8 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
-                                isXrayRunning: nodeResponse.isStarted,
                                 xrayVersion: nodeResponse.version,
                                 nodeVersion: nodeResponse.nodeInformation?.version || null,
-                                isNodeOnline: true,
                                 isConnected: nodeResponse.isStarted,
                                 lastStatusMessage: nodeResponse.error ?? null,
                                 lastStatusChange: new Date(),

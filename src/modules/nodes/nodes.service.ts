@@ -54,8 +54,6 @@ export class NodesService {
                 isConnected: false,
                 isConnecting: false,
                 isDisabled: false,
-                isNodeOnline: false,
-                isXrayRunning: false,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: nodeData.consumptionMultiplier
                     ? toNano(nodeData.consumptionMultiplier)
@@ -404,8 +402,6 @@ export class NodesService {
                     isDisabled: true,
                     activeConfigProfileUuid: null,
                     isConnecting: false,
-                    isXrayRunning: false,
-                    isNodeOnline: false,
                     isConnected: false,
                     lastStatusMessage: null,
                     lastStatusChange: new Date(),
@@ -477,8 +473,6 @@ export class NodesService {
                 uuid: node.uuid,
                 isDisabled: true,
                 isConnecting: false,
-                isXrayRunning: false,
-                isNodeOnline: false,
                 isConnected: false,
                 lastStatusMessage: null,
                 lastStatusChange: new Date(),

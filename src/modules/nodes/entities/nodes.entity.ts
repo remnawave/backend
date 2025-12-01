@@ -14,8 +14,6 @@ export class NodesEntity implements Nodes {
     public isConnected: boolean;
     public isConnecting: boolean;
     public isDisabled: boolean;
-    public isNodeOnline: boolean;
-    public isXrayRunning: boolean;
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
 
