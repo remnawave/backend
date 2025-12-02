@@ -14,8 +14,8 @@ export class GetUserAccessibleNodesResponseModel {
         }[];
     }[];
 
-    constructor(data: IGetUserAccessibleNodesResponse) {
-        this.userUuid = data.userUuid;
+    constructor(data: IGetUserAccessibleNodesResponse, userUuid: string) {
+        this.userUuid = userUuid;
         this.activeNodes = data.activeNodes;
     }
 }

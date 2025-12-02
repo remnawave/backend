@@ -1123,10 +1123,7 @@ export class UsersRepository {
         return new UserWithResolvedInboundEntity(result);
     }
 
-    public async getUserAccessibleNodes(
-        userId: bigint,
-        userUuid: string,
-    ): Promise<IGetUserAccessibleNodesResponse> {
+    public async getUserAccessibleNodes(userId: bigint): Promise<IGetUserAccessibleNodesResponse> {
         const flatResults = await this.qb.kysely
             .selectFrom('nodes as n')
             .innerJoin('configProfiles as cp', 'n.activeConfigProfileUuid', 'cp.uuid')
@@ -1186,7 +1183,6 @@ export class UsersRepository {
         });
 
         const result: IGetUserAccessibleNodesResponse = {
-            userUuid,
             activeNodes: Array.from(nodesMap.values()).map((node) => ({
                 ...node,
                 activeSquads: Array.from(node.activeSquads.values()),

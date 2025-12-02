@@ -317,7 +317,7 @@ export class UsersService {
             }
 
             const userWithInbounds = await this.userRepository.findUniqueByCriteria(
-                { uuid: result.uuid },
+                { tId: result.tId },
                 {
                     activeInternalSquads: true,
                 },
@@ -981,21 +981,18 @@ export class UsersService {
                 };
             }
 
-            const result = await this.userRepository.getUserAccessibleNodes(user.tId, userUuid);
+            const result = await this.userRepository.getUserAccessibleNodes(user.tId);
 
             if (!result) {
                 return {
                     isOk: true,
-                    response: new GetUserAccessibleNodesResponseModel({
-                        userUuid,
-                        activeNodes: [],
-                    }),
+                    response: new GetUserAccessibleNodesResponseModel(result, userUuid),
                 };
             }
 
             return {
                 isOk: true,
-                response: new GetUserAccessibleNodesResponseModel(result),
+                response: new GetUserAccessibleNodesResponseModel(result, userUuid),
             };
         } catch (error) {
             this.logger.error(error);
