@@ -3,6 +3,7 @@ import { ConfigProfileWithInboundsAndNodesEntity } from '../entities';
 
 export class GetConfigProfileByUuidResponseModel {
     public readonly uuid: string;
+    public readonly viewPosition: number;
     public readonly name: string;
     public readonly config: object;
     public readonly inbounds: ConfigProfileInboundEntity[];
@@ -17,6 +18,7 @@ export class GetConfigProfileByUuidResponseModel {
 
     constructor(entity: ConfigProfileWithInboundsAndNodesEntity) {
         this.uuid = entity.uuid;
+        this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         this.config = entity.config as object;
         this.inbounds = entity.inbounds;

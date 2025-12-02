@@ -6,6 +6,7 @@ export interface MetricValue {
         node_country_emoji: string;
         tag: string;
         provider_name: string;
+        tags: string;
     };
 }
 

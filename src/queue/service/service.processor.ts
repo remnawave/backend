@@ -8,20 +8,21 @@ import { ICommandResponse } from '@common/types/command-response.type';
 
 import { TruncateNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-history/commands/truncate-nodes-user-usage-history';
 import { VacuumNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-history/commands/vacuum-nodes-user-usage-history';
-import { TruncateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/truncate-user-traffic-history';
 
-import { UpdateUsersUsageQueueService } from '@queue/update-users-usage/update-users-usage.service';
+import { UsersQueuesService } from '@queue/_users';
 
-import { QueueNames } from '../queue.enum';
+import { QUEUES_NAMES } from '../queue.enum';
 import { ServiceJobNames } from './enums';
 
-@Processor(QueueNames.service)
+@Processor(QUEUES_NAMES.SERVICE, {
+    concurrency: 1,
+})
 export class ServiceQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(ServiceQueueProcessor.name);
 
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly updateUsersUsageQueueService: UpdateUsersUsageQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
     ) {
         super();
     }
@@ -30,6 +31,8 @@ export class ServiceQueueProcessor extends WorkerHost {
         switch (job.name) {
             case ServiceJobNames.CLEAN_OLD_USAGE_RECORDS:
                 return this.handleCleanOldUsageRecordsJob();
+            case ServiceJobNames.VACUUM_TABLES:
+                return this.handleVacuumTablesJob();
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -38,67 +41,39 @@ export class ServiceQueueProcessor extends WorkerHost {
 
     private async handleCleanOldUsageRecordsJob() {
         try {
-            await this.updateUsersUsageQueueService.queue.pause();
+            await this.usersQueuesService.queues.updateUsersUsage.pause();
 
             this.logger.log('Resetting tables...');
-
-            await this.truncateUserTrafficHistory();
 
             await this.truncateNodesUserUsageHistory();
 
             await this.vacuumTable();
 
             this.logger.log('Tables resetted');
-
-            // const response = await this.delteOldRecords();
-
-            // if (!response.isOk || !response.response) {
-            //     this.logger.error(`Error deleting old usage records: ${response}`);
-            //     return {
-            //         isOk: false,
-            //         error: response,
-            //     };
-            // }
-
-            // this.logger.log(`Deleted ${response.response.deletedCount} old usage records.`);
-
-            // if (response.response.deletedCount > 0) {
-            //     await this.vacuumTable();
-            // }
-
-            // return {
-            //     isOk: true,
-            //     response: {
-            //         deletedCount: response.response.deletedCount,
-            //     },
-            // };
         } catch (error) {
             this.logger.error(
                 `Error handling "${ServiceJobNames.CLEAN_OLD_USAGE_RECORDS}" job: ${error}`,
             );
         } finally {
-            await this.updateUsersUsageQueueService.queue.resume();
+            await this.usersQueuesService.queues.updateUsersUsage.resume();
         }
     }
 
-    // private async delteOldRecords(): Promise<ICommandResponse<{ deletedCount: number }>> {
-    //     return this.commandBus.execute<
-    //         CleanOldUsageRecordsCommand,
-    //         ICommandResponse<{ deletedCount: number }>
-    //     >(new CleanOldUsageRecordsCommand());
-    // }
+    private async handleVacuumTablesJob() {
+        try {
+            await this.vacuumTable();
+
+            this.logger.log('Tables vacuumed successfully.');
+        } catch (error) {
+            this.logger.error(`Error handling "${ServiceJobNames.VACUUM_TABLES}" job: ${error}`);
+        }
+    }
 
     private async truncateNodesUserUsageHistory(): Promise<ICommandResponse<void>> {
         return this.commandBus.execute<
             TruncateNodesUserUsageHistoryCommand,
             ICommandResponse<void>
         >(new TruncateNodesUserUsageHistoryCommand());
-    }
-
-    private async truncateUserTrafficHistory(): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<TruncateUserTrafficHistoryCommand, ICommandResponse<void>>(
-            new TruncateUserTrafficHistoryCommand(),
-        );
     }
 
     private async vacuumTable(): Promise<ICommandResponse<void>> {

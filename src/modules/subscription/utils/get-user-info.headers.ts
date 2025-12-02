@@ -14,7 +14,7 @@ interface SubscriptionUserInfo {
 export function getSubscriptionUserInfo(user: UserEntity): SubscriptionUserInfo {
     return {
         upload: 0,
-        download: Number(user.usedTrafficBytes),
+        download: Number(user.userTraffic.usedTrafficBytes),
         total: Number(user.trafficLimitBytes),
         // TODO: remove after XTLS Standards published
         expire: user.expireAt.getFullYear() !== 2099 ? dayjs(user.expireAt).unix() : 0,

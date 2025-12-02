@@ -1,7 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -10,20 +9,16 @@ import { ExternalSquadBulkActionsCommand } from './external-squad-bulk-actions.c
 import { ExternalSquadRepository } from '../../repositories/external-squad.repository';
 
 @CommandHandler(ExternalSquadBulkActionsCommand)
-export class ExternalSquadBulkActionsHandler
-    implements
-        ICommandHandler<
-            ExternalSquadBulkActionsCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class ExternalSquadBulkActionsHandler implements ICommandHandler<
+    ExternalSquadBulkActionsCommand,
+    ICommandResponse<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(ExternalSquadBulkActionsHandler.name);
 
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
 
-    @Transactional()
     async execute(command: ExternalSquadBulkActionsCommand): Promise<
         ICommandResponse<{
             affectedRows: number;

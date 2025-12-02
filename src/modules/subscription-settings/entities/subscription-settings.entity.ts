@@ -1,5 +1,7 @@
 import { SubscriptionSettings } from '@prisma/client';
 
+import { TCustomRemarks, THwidSettings } from '@libs/contracts/models';
+
 import { TResponseRulesConfig } from '@modules/subscription-response-rules/types/response-rules.types';
 
 export class SubscriptionSettingsEntity implements SubscriptionSettings {
@@ -9,21 +11,19 @@ export class SubscriptionSettingsEntity implements SubscriptionSettings {
     profileUpdateInterval: number;
     isProfileWebpageUrlEnabled: boolean;
     serveJsonAtBaseSubscription: boolean;
-    addUsernameToBaseSubscription: boolean;
-    isShowCustomRemarks: boolean;
 
     happAnnounce: string | null;
     happRouting: string | null;
 
-    expiredUsersRemarks: string[];
-    limitedUsersRemarks: string[];
-    disabledUsersRemarks: string[];
+    isShowCustomRemarks: boolean;
+    customRemarks: TCustomRemarks;
 
     customResponseHeaders: Record<string, string> | null;
 
     randomizeHosts: boolean;
 
     responseRules: TResponseRulesConfig | null;
+    hwidSettings: THwidSettings;
 
     createdAt: Date;
     updatedAt: Date;

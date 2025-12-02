@@ -8,9 +8,7 @@ import { NodesTrafficUsageHistoryEntity } from '../entities/nodes-traffic-usage-
 import { NodesTrafficUsageHistoryConverter } from '../nodes-traffic-usage-history.converter';
 
 @Injectable()
-export class NodesTrafficUsageHistoryRepository
-    implements ICrudWithId<NodesTrafficUsageHistoryEntity>
-{
+export class NodesTrafficUsageHistoryRepository implements ICrudWithId<NodesTrafficUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: NodesTrafficUsageHistoryConverter,

@@ -60,12 +60,12 @@ export class ResetNodeTrafficTask {
                         nodeTrafficUsageHistory: entity,
                     });
 
-                    await this.updateNode({
-                        node: {
+                    await this.commandBus.execute(
+                        new UpdateNodeCommand({
                             uuid: node.uuid,
                             trafficUsedBytes: BigInt(0),
-                        },
-                    });
+                        }),
+                    );
                 }
             }
         } catch (error) {
@@ -76,12 +76,6 @@ export class ResetNodeTrafficTask {
     private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
         return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
             new GetAllNodesQuery(),
-        );
-    }
-
-    private async updateNode(dto: UpdateNodeCommand): Promise<ICommandResponse<NodesEntity>> {
-        return this.commandBus.execute<UpdateNodeCommand, ICommandResponse<NodesEntity>>(
-            new UpdateNodeCommand(dto.node),
         );
     }
 

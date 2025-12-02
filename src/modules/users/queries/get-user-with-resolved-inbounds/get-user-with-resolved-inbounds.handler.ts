@@ -10,13 +10,10 @@ import { GetUserWithResolvedInboundsQuery } from './get-user-with-resolved-inbou
 import { UsersRepository } from '../../repositories/users.repository';
 
 @QueryHandler(GetUserWithResolvedInboundsQuery)
-export class GetUserWithResolvedInboundsHandler
-    implements
-        IQueryHandler<
-            GetUserWithResolvedInboundsQuery,
-            ICommandResponse<UserWithResolvedInboundEntity>
-        >
-{
+export class GetUserWithResolvedInboundsHandler implements IQueryHandler<
+    GetUserWithResolvedInboundsQuery,
+    ICommandResponse<UserWithResolvedInboundEntity>
+> {
     private readonly logger = new Logger(GetUserWithResolvedInboundsHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 

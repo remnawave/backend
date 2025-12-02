@@ -10,25 +10,21 @@ const modelToEntity = (model: Users): BaseUserEntity => {
     return new BaseUserEntity(model);
 };
 
-const entityToModel = (entity: BaseUserEntity): BaseUserEntity => {
+const entityToModel = (entity: BaseUserEntity): Users => {
     return {
+        tId: entity.tId,
         uuid: entity.uuid,
         shortUuid: entity.shortUuid,
         username: entity.username,
         status: entity.status,
-        usedTrafficBytes: entity.usedTrafficBytes,
-        lifetimeUsedTrafficBytes: entity.lifetimeUsedTrafficBytes,
+
         trafficLimitBytes: entity.trafficLimitBytes,
         trafficLimitStrategy: entity.trafficLimitStrategy,
         subLastUserAgent: entity.subLastUserAgent,
         subLastOpenedAt: entity.subLastOpenedAt,
 
-        onlineAt: entity.onlineAt,
-        lastConnectedNodeUuid: entity.lastConnectedNodeUuid,
-
         expireAt: entity.expireAt,
         subRevokedAt: entity.subRevokedAt,
-        lastTrafficResetAt: entity.lastTrafficResetAt,
 
         trojanPassword: entity.trojanPassword,
         vlessUuid: entity.vlessUuid,
@@ -42,10 +38,10 @@ const entityToModel = (entity: BaseUserEntity): BaseUserEntity => {
 
         hwidDeviceLimit: entity.hwidDeviceLimit,
 
-        firstConnectedAt: entity.firstConnectedAt,
-        lastTriggeredThreshold: entity.lastTriggeredThreshold,
-
         externalSquadUuid: entity.externalSquadUuid,
+
+        lastTrafficResetAt: entity.lastTrafficResetAt,
+        lastTriggeredThreshold: entity.lastTriggeredThreshold,
 
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,

@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
 import {
+    CustomRemarksSchema,
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
     ExternalSquadSchema,
     ExternalSquadSubscriptionSettingsSchema,
+    HwidSettingsSchema,
 } from '../../models';
 import { getEndpointDetails, SUBSCRIPTION_TEMPLATE_TYPE } from '../../constants';
 import { EXTERNAL_SQUADS_ROUTES, REST_API } from '../../api';
@@ -41,6 +43,8 @@ export namespace UpdateExternalSquadCommand {
         subscriptionSettings: ExternalSquadSubscriptionSettingsSchema.optional(),
         hostOverrides: ExternalSquadHostOverridesSchema.optional(),
         responseHeaders: ExternalSquadResponseHeadersSchema.optional(),
+        hwidSettings: z.optional(z.nullable(HwidSettingsSchema)),
+        customRemarks: z.optional(z.nullable(CustomRemarksSchema)),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

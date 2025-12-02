@@ -17,6 +17,7 @@ export const USERS_ROUTES = {
         REVOKE_SUBSCRIPTION: (uuid: string) => `${uuid}/${USERS_ACTIONS_ROUTE}/revoke`,
     },
     GET_BY: {
+        ID: (id: string) => `by-id/${id}`,
         SHORT_UUID: (shortUuid: string) => `by-short-uuid/${shortUuid}`,
         USERNAME: (username: string) => `by-username/${username}`,
         SUBSCRIPTION_UUID: (subscriptionUuid: string) => `by-subscription-uuid/${subscriptionUuid}`,
@@ -32,9 +33,11 @@ export const USERS_ROUTES = {
         REVOKE_SUBSCRIPTION: 'bulk/revoke-subscription',
         DELETE: 'bulk/delete',
         UPDATE_SQUADS: 'bulk/update-squads',
+        EXTEND_EXPIRATION_DATE: 'bulk/extend-expiration-date',
         ALL: {
             UPDATE: 'bulk/all/update',
             RESET_TRAFFIC: 'bulk/all/reset-traffic',
+            EXTEND_EXPIRATION_DATE: 'bulk/all/extend-expiration-date',
         },
     },
 

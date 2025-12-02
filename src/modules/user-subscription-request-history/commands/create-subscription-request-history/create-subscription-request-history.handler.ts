@@ -11,15 +11,12 @@ import { UserSubscriptionRequestHistoryRepository } from '../../repositories/use
 import { CreateSubscriptionRequestHistoryCommand } from './create-subscription-request-history.command';
 
 @CommandHandler(CreateSubscriptionRequestHistoryCommand)
-export class CreateSubscriptionRequestHistoryHandler
-    implements
-        ICommandHandler<
-            CreateSubscriptionRequestHistoryCommand,
-            ICommandResponse<{
-                userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
-            }>
-        >
-{
+export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
+    CreateSubscriptionRequestHistoryCommand,
+    ICommandResponse<{
+        userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
+    }>
+> {
     public readonly logger = new Logger(CreateSubscriptionRequestHistoryHandler.name);
 
     constructor(

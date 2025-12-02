@@ -227,21 +227,9 @@ export class MihomoGeneratorService {
                 node.uuid = host.password.vlessPassword;
                 node['packet-encoding'] = 'xudp';
 
-                if (
-                    ['raw', 'tcp'].includes(host.network) &&
-                    host.headerType !== 'http' &&
-                    ['reality', 'tls'].includes(host.tls)
-                ) {
-                    node.flow = 'xtls-rprx-vision';
+                if (host.flow === 'xtls-rprx-vision') {
+                    node.flow = host.flow;
                 }
-
-                // if (
-                //     ['tcp', 'raw', 'kcp'].includes(host.network) &&
-                //     host.headerType !== 'http' &&
-                //     inbound.tls !== 'none'
-                // ) {
-                //     node.flow = settings.flow || '';
-                // }
 
                 if (host.encryption && host.encryption !== 'none') {
                     node.encryption = host.encryption;

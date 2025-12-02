@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-import { ResponseRulesConfigSchema, SubscriptionSettingsSchema } from '../../models';
+import {
+    CustomRemarksSchema,
+    HwidSettingsSchema,
+    ResponseRulesConfigSchema,
+    SubscriptionSettingsSchema,
+} from '../../models';
 import { REST_API, SUBSCRIPTION_SETTINGS_ROUTES } from '../../api';
 import { getEndpointDetails } from '../../constants';
 
@@ -22,8 +27,6 @@ export namespace UpdateSubscriptionSettingsCommand {
         profileUpdateInterval: z.optional(z.number().int()),
         isProfileWebpageUrlEnabled: z.optional(z.boolean()),
         serveJsonAtBaseSubscription: z.optional(z.boolean()),
-        addUsernameToBaseSubscription: z.optional(z.boolean()),
-        isShowCustomRemarks: z.optional(z.boolean()),
 
         happAnnounce: z.optional(
             z
@@ -33,9 +36,8 @@ export namespace UpdateSubscriptionSettingsCommand {
         ),
         happRouting: z.optional(z.string().nullable()),
 
-        expiredUsersRemarks: z.optional(z.array(z.string())),
-        limitedUsersRemarks: z.optional(z.array(z.string())),
-        disabledUsersRemarks: z.optional(z.array(z.string())),
+        isShowCustomRemarks: z.optional(z.boolean()),
+        customRemarks: z.optional(CustomRemarksSchema),
 
         customResponseHeaders: z.optional(
             z.record(
@@ -52,6 +54,7 @@ export namespace UpdateSubscriptionSettingsCommand {
         randomizeHosts: z.optional(z.boolean()),
 
         responseRules: z.optional(ResponseRulesConfigSchema),
+        hwidSettings: z.optional(HwidSettingsSchema),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

@@ -10,13 +10,10 @@ import { ConfigProfileWithInboundsAndNodesEntity } from '@modules/config-profile
 import { GetConfigProfileByUuidQuery } from './get-config-profile-by-uuid.query';
 
 @QueryHandler(GetConfigProfileByUuidQuery)
-export class GetConfigProfileByUuidHandler
-    implements
-        IQueryHandler<
-            GetConfigProfileByUuidQuery,
-            ICommandResponse<ConfigProfileWithInboundsAndNodesEntity>
-        >
-{
+export class GetConfigProfileByUuidHandler implements IQueryHandler<
+    GetConfigProfileByUuidQuery,
+    ICommandResponse<ConfigProfileWithInboundsAndNodesEntity>
+> {
     private readonly logger = new Logger(GetConfigProfileByUuidHandler.name);
     constructor(private readonly configProfilesRepository: ConfigProfileRepository) {}
 

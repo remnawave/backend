@@ -5,8 +5,8 @@ import { getEndpointDetails } from '../../constants';
 import { InfraProviderSchema } from '../../models';
 
 export namespace GetInfraProviderByUuidCommand {
-    export const url = REST_API.INFRA_BILLING.GET_PROVIDER_BY_UUID(':uuid');
-    export const TSQ_url = url;
+    export const url = REST_API.INFRA_BILLING.GET_PROVIDER_BY_UUID;
+    export const TSQ_url = url(':uuid');
 
     export const endpointDetails = getEndpointDetails(
         INFRA_BILLING_ROUTES.GET_PROVIDER_BY_UUID(':uuid'),

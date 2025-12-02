@@ -17,13 +17,10 @@ import {
 } from './get-prepared-config-with-users.query';
 
 @QueryHandler(GetPreparedConfigWithUsersQuery)
-export class GetPreparedConfigWithUsersHandler
-    implements
-        IQueryHandler<
-            GetPreparedConfigWithUsersQuery,
-            ICommandResponse<IGetPreparedConfigWithUsersResponse>
-        >
-{
+export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
+    GetPreparedConfigWithUsersQuery,
+    ICommandResponse<IGetPreparedConfigWithUsersResponse>
+> {
     private readonly logger = new Logger(GetPreparedConfigWithUsersHandler.name);
     constructor(
         private readonly usersRepository: UsersRepository,

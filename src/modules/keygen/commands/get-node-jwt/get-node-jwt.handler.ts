@@ -19,9 +19,10 @@ export interface IGetNodeJwtResponse {
 }
 
 @CommandHandler(GetNodeJwtCommand)
-export class GetNodeJwtHandler
-    implements ICommandHandler<GetNodeJwtCommand, ICommandResponse<IGetNodeJwtResponse>>
-{
+export class GetNodeJwtHandler implements ICommandHandler<
+    GetNodeJwtCommand,
+    ICommandResponse<IGetNodeJwtResponse>
+> {
     private readonly logger = new Logger(GetNodeJwtHandler.name);
 
     constructor(private readonly keygenService: KeygenService) {}

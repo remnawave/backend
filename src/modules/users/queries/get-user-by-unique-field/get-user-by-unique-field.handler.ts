@@ -10,9 +10,10 @@ import { GetUserByUniqueFieldQuery } from './get-user-by-unique-field.query';
 import { UsersRepository } from '../../repositories/users.repository';
 
 @QueryHandler(GetUserByUniqueFieldQuery)
-export class GetUserByUniqueFieldHandler
-    implements IQueryHandler<GetUserByUniqueFieldQuery, ICommandResponse<UserEntity>>
-{
+export class GetUserByUniqueFieldHandler implements IQueryHandler<
+    GetUserByUniqueFieldQuery,
+    ICommandResponse<UserEntity>
+> {
     private readonly logger = new Logger(GetUserByUniqueFieldHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 
@@ -23,6 +24,7 @@ export class GetUserByUniqueFieldHandler
                     username: query.field.username || undefined,
                     shortUuid: query.field.shortUuid || undefined,
                     uuid: query.field.uuid || undefined,
+                    tId: query.field.tId || undefined,
                 },
                 query.includeOptions,
             );

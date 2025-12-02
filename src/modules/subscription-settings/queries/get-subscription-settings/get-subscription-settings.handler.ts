@@ -7,11 +7,12 @@ import { ERRORS } from '@libs/contracts/constants';
 import { SubscriptionSettingsRepository } from '../../repositories/subscription-settings.repository';
 import { SubscriptionSettingsEntity } from '../../entities/subscription-settings.entity';
 import { GetSubscriptionSettingsQuery } from './get-subscription-settings.query';
+
 @QueryHandler(GetSubscriptionSettingsQuery)
-export class GetSubscriptionSettingsHandler
-    implements
-        IQueryHandler<GetSubscriptionSettingsQuery, ICommandResponse<SubscriptionSettingsEntity>>
-{
+export class GetSubscriptionSettingsHandler implements IQueryHandler<
+    GetSubscriptionSettingsQuery,
+    ICommandResponse<SubscriptionSettingsEntity>
+> {
     private readonly logger = new Logger(GetSubscriptionSettingsHandler.name);
 
     constructor(private readonly subscriptionSettingsRepository: SubscriptionSettingsRepository) {}

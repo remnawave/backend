@@ -10,9 +10,10 @@ import { PasskeyRepository } from '@modules/admin/repositories/passkey.repositor
 import { DeletePasskeyCommand } from './delete-passkey.command';
 
 @CommandHandler(DeletePasskeyCommand)
-export class DeletePasskeyHandler
-    implements ICommandHandler<DeletePasskeyCommand, ICommandResponse<boolean>>
-{
+export class DeletePasskeyHandler implements ICommandHandler<
+    DeletePasskeyCommand,
+    ICommandResponse<boolean>
+> {
     public readonly logger = new Logger(DeletePasskeyHandler.name);
 
     constructor(private readonly passkeyRepository: PasskeyRepository) {}

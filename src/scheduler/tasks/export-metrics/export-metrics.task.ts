@@ -23,6 +23,7 @@ import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes/get-all-n
 import { ShortUserStats } from '@modules/users/interfaces/user-stats.interface';
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
+import { INodeBaseMetricLabels } from '@scheduler/metrics-providers';
 import { JOBS_INTERVALS } from '@scheduler/intervals';
 
 interface AxmMonitorMetric {
@@ -173,7 +174,8 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
-                    },
+                        tags: node.tags.join(','),
+                    } satisfies INodeBaseMetricLabels,
                     node.usersOnline ?? 0,
                 );
 
@@ -183,7 +185,8 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
-                    },
+                        tags: node.tags.join(','),
+                    } satisfies INodeBaseMetricLabels,
                     node.isConnected ? 1 : 0,
                 );
             });

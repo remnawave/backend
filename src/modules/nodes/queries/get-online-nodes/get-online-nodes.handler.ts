@@ -9,9 +9,10 @@ import { GetOnlineNodesQuery } from './get-online-nodes.query';
 import { NodesEntity } from '../../entities/nodes.entity';
 
 @QueryHandler(GetOnlineNodesQuery)
-export class GetOnlineNodesHandler
-    implements IQueryHandler<GetOnlineNodesQuery, ICommandResponse<NodesEntity[]>>
-{
+export class GetOnlineNodesHandler implements IQueryHandler<
+    GetOnlineNodesQuery,
+    ICommandResponse<NodesEntity[]>
+> {
     private readonly logger = new Logger(GetOnlineNodesHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 

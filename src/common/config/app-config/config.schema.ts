@@ -58,8 +58,8 @@ export const configSchema = z
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         SCALAR_PATH: z.string().default('/scalar'),
         SWAGGER_PATH: z.string().default('/docs'),
-        METRICS_USER: z.string(),
-        METRICS_PASS: z.string(),
+        METRICS_USER: z.string().min(1, { message: 'METRICS_USER cannot be empty' }),
+        METRICS_PASS: z.string().min(1, { message: 'METRICS_PASS cannot be empty' }),
         SUB_PUBLIC_DOMAIN: z.string(),
         WEBHOOK_ENABLED: z
             .string()
@@ -101,22 +101,6 @@ export const configSchema = z
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         REMNAWAVE_BRANCH: z.string().default('dev'),
 
-        HWID_DEVICE_LIMIT_ENABLED: z
-            .string()
-            .default('false')
-            .transform((val) => (val === '' ? 'false' : val))
-            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
-        HWID_FALLBACK_DEVICE_LIMIT: z.optional(
-            z
-                .string()
-                .transform((val) => parseInt(val, 10))
-                .refine(
-                    (val) => val >= 1 && val <= 999,
-                    'HWID_FALLBACK_DEVICE_LIMIT must be between 1 and 999',
-                ),
-        ),
-        HWID_MAX_DEVICES_ANNOUNCE: z.optional(z.string()),
-
         // COOKIE_AUTH_ENABLED: z
         //     .string()
         //     .default('false')
@@ -128,6 +112,12 @@ export const configSchema = z
             .default('false')
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
+
+        SERVICE_DISABLE_USER_USAGE_RECORDS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true' || val === '1')
+            .pipe(z.boolean()),
 
         BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED: z
             .string()
@@ -254,26 +244,6 @@ export const configSchema = z
                     message:
                         'TELEGRAM_NOTIFY_NODES_CHAT_ID is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
                     path: ['TELEGRAM_NOTIFY_NODES_CHAT_ID'],
-                });
-            }
-        }
-
-        if (data.HWID_DEVICE_LIMIT_ENABLED === 'true') {
-            if (!data.HWID_FALLBACK_DEVICE_LIMIT) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'HWID_FALLBACK_DEVICE_LIMIT is required when HWID_DEVICE_LIMIT_ENABLED is true',
-                    path: ['HWID_FALLBACK_DEVICE_LIMIT'],
-                });
-            }
-
-            if (!data.HWID_MAX_DEVICES_ANNOUNCE) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'HWID_MAX_DEVICES_ANNOUNCE is required when HWID_DEVICE_LIMIT_ENABLED is true',
-                    path: ['HWID_MAX_DEVICES_ANNOUNCE'],
                 });
             }
         }

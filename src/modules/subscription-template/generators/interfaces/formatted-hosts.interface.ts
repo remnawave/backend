@@ -22,7 +22,6 @@ export interface IFormattedHost {
     sni: string;
     spiderX: string;
     tls: string;
-    headerType?: string;
     additionalParams?: {
         mode?: string;
         heartbeatPeriod?: number;
@@ -38,4 +37,10 @@ export interface IFormattedHost {
     dbData?: IDbHostData;
     mldsa65Verify?: string;
     encryption?: string;
+    flow?: 'xtls-rprx-vision' | '';
+    xrayJsonTemplate?: object | null;
+    rawSettings?: {
+        headerType?: string;
+        request?: object;
+    };
 }

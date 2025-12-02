@@ -9,7 +9,6 @@ import { NodesTrafficUsageHistoryModule } from './nodes-traffic-usage-history/no
 import { NodesUserUsageHistoryModule } from './nodes-user-usage-history/nodes-user-usage-history.module';
 import { SubscriptionTemplateModule } from './subscription-template/subscription-template.module';
 import { SubscriptionSettingsModule } from './subscription-settings/subscription-settings.module';
-import { UserTrafficHistoryModule } from './user-traffic-history/user-traffic-history.module';
 import { NodesUsageHistoryModule } from './nodes-usage-history/nodes-usage-history.module';
 import { RemnawaveSettingsModule } from './remnawave-settings/remnawave-settings.module';
 import { RemnawaveServiceModule } from './remnawave-service/remnawave-service.module';
@@ -44,7 +43,6 @@ import { AuthModule } from './auth/auth.module';
         NodesModule,
         NodesTrafficUsageHistoryModule,
         HostsModule,
-        UserTrafficHistoryModule,
         NodesUserUsageHistoryModule,
         HwidUserDevicesModule,
         NodesUsageHistoryModule,

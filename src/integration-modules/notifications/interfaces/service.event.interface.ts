@@ -8,6 +8,7 @@ export interface IServiceEvent {
         description?: string;
         password?: string;
     };
+    panelVersion?: string;
 }
 
 export class ServiceEvent {

@@ -44,9 +44,10 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                 return new MessageResponse([{ result: 'NODE_NOT_FOUND' }]);
             }
 
-            const { name, countryCode, uuid, provider } = node.response;
+            const { name, countryCode, uuid, provider, tags } = node.response;
 
             const countryEmoji = resolveCountryEmoji(countryCode);
+            const nodeTags = tags.join(',');
 
             inbounds.forEach((inbound) => {
                 this.nodeInboundUploadBytes.inc(
@@ -56,6 +57,7 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                         node_country_emoji: countryEmoji,
                         tag: inbound.tag,
                         provider_name: provider?.name || 'unknown',
+                        tags: nodeTags,
                     },
                     Number(inbound.uplink),
                 );
@@ -67,6 +69,7 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                         node_country_emoji: countryEmoji,
                         tag: inbound.tag,
                         provider_name: provider?.name || 'unknown',
+                        tags: nodeTags,
                     },
                     Number(inbound.downlink),
                 );
@@ -80,6 +83,7 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                         node_country_emoji: countryEmoji,
                         tag: outbound.tag,
                         provider_name: provider?.name || 'unknown',
+                        tags: nodeTags,
                     },
                     Number(outbound.uplink),
                 );
@@ -91,6 +95,7 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                         node_country_emoji: countryEmoji,
                         tag: outbound.tag,
                         provider_name: provider?.name || 'unknown',
+                        tags: nodeTags,
                     },
                     Number(outbound.downlink),
                 );

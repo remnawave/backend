@@ -46,6 +46,7 @@ export interface VLessSettings {
     clients: VLessUser[];
     decryption: 'none' | string;
     fallbacks?: VLessFallback[];
+    flow?: 'xtls-rprx-vision' | '' | 'none';
 }
 
 export interface VLessUser extends UserObject {

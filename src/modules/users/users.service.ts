@@ -1,34 +1,31 @@
-import relativeTime from 'dayjs/plugin/relativeTime';
+import type { Cache } from 'cache-manager';
+
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
-import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
+import { ERRORS, USERS_STATUS, EVENTS, CACHE_KEYS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { UserEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
-import { CreateUserTrafficHistoryCommand } from '@modules/user-traffic-history/commands/create-user-traffic-history';
 import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
-import { UserTrafficHistoryEntity } from '@modules/user-traffic-history';
 
-import { BulkUserOperationsQueueService } from '@queue/bulk-user-operations/bulk-user-operations.service';
-import { ResetUserTrafficQueueService } from '@queue/reset-user-traffic/reset-user-traffic.service';
-import { StartAllNodesQueueService } from '@queue/start-all-nodes/start-all-nodes.service';
-import { UserActionsQueueService } from '@queue/user-actions/user-actions.service';
+import { NodesQueuesService } from '@queue/_nodes';
+import { UsersQueuesService } from '@queue/_users';
 
 import {
     DeleteUserResponseModel,
@@ -45,13 +42,10 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
 } from './dtos';
-import { UpdateStatusAndTrafficAndResetAtCommand } from './commands/update-status-and-traffic-and-reset-at';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
+import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 @Injectable()
 export class UsersService {
@@ -65,34 +59,66 @@ export class UsersService {
         private readonly eventEmitter: EventEmitter2,
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
-        private readonly bulkUserOperationsQueueService: BulkUserOperationsQueueService,
-        private readonly startAllNodesQueue: StartAllNodesQueueService,
-        private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService,
-        private readonly userActionsQueueService: UserActionsQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
+        private readonly nodesQueuesService: NodesQueuesService,
+
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }
 
     public async createUser(dto: CreateUserRequestDto): Promise<ICommandResponse<UserEntity>> {
         try {
-            const user = await this.createUserTransactional(dto);
+            const userEntity = new BaseUserEntity({
+                username: dto.username,
+                shortUuid: dto.shortUuid || this.createNanoId(),
+                trojanPassword: dto.trojanPassword || this.createTrojanPassword(),
+                vlessUuid: dto.vlessUuid || this.createUuid(),
+                ssPassword: dto.ssPassword || this.createSSPassword(),
+                status: dto.status,
+                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
+                trafficLimitStrategy: dto.trafficLimitStrategy,
+                email: dto.email,
+                telegramId: wrapBigIntNullable(dto.telegramId),
+                expireAt: dto.expireAt,
+                createdAt: dto.createdAt,
+                lastTrafficResetAt: dto.lastTrafficResetAt,
+                description: dto.description,
+                hwidDeviceLimit: dto.hwidDeviceLimit,
+                tag: dto.tag,
+                uuid: dto.uuid,
+                externalSquadUuid: dto.externalSquadUuid,
+            });
 
-            if (!user.isOk || !user.response) {
-                return user;
+            const result = await this.userRepository.create(userEntity, dto.activeInternalSquads);
+
+            const { isOk, response: user } = await this.getUserByUniqueFields({ tId: result.tId });
+
+            if (!isOk || !user) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CREATE_USER_ERROR,
+                };
             }
 
-            if (user.response.status === USERS_STATUS.ACTIVE) {
-                this.eventBus.publish(new AddUserToNodeEvent(user.response.uuid));
+            if (user.status === USERS_STATUS.ACTIVE) {
+                this.eventBus.publish(new AddUserToNodeEvent(user.uuid));
             }
 
             this.eventEmitter.emit(
                 EVENTS.USER.CREATED,
                 new UserEvent({
-                    user: user.response,
+                    user: user,
                     event: EVENTS.USER.CREATED,
                 }),
             );
-            return user;
+
+            await this.invalidateShortUuidRangeCache(user.shortUuid);
+
+            return {
+                isOk: true,
+                response: user,
+            };
         } catch (error) {
             this.logger.error(error);
             if (
@@ -139,7 +165,7 @@ export class UsersService {
             if (user.response.isNeedToBeRemovedFromNode) {
                 this.eventBus.publish(
                     new RemoveUserFromNodeEvent(
-                        user.response.user.username,
+                        user.response.user.tId,
                         user.response.user.vlessUuid,
                     ),
                 );
@@ -152,6 +178,8 @@ export class UsersService {
                     event: EVENTS.USER.MODIFIED,
                 }),
             );
+
+            await this.invalidateShortUuidRangeCache(user.response.user.shortUuid);
 
             return {
                 isOk: true,
@@ -204,7 +232,6 @@ export class UsersService {
 
             const user = await this.userRepository.findUniqueByCriteria(userCriteria, {
                 activeInternalSquads: true,
-                lastConnectedNode: false,
             });
 
             if (!user) {
@@ -293,7 +320,6 @@ export class UsersService {
                 { uuid: result.uuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -308,96 +334,6 @@ export class UsersService {
                     isNeedToBeAddedToNode,
                     isNeedToBeRemovedFromNode,
                 },
-            };
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    @Transactional()
-    public async createUserTransactional(
-        dto: CreateUserRequestDto,
-    ): Promise<ICommandResponse<UserEntity>> {
-        try {
-            const {
-                username,
-                expireAt,
-                trafficLimitBytes,
-                trafficLimitStrategy,
-                status,
-                shortUuid,
-                trojanPassword,
-                vlessUuid,
-                ssPassword,
-                createdAt,
-                lastTrafficResetAt,
-                description,
-                telegramId,
-                email,
-                hwidDeviceLimit,
-                tag,
-                activeInternalSquads,
-                externalSquadUuid,
-                uuid,
-            } = dto;
-
-            const userEntity = new BaseUserEntity({
-                username,
-                shortUuid: shortUuid || this.createNanoId(),
-                trojanPassword: trojanPassword || this.createTrojanPassword(),
-                vlessUuid: vlessUuid || this.createUuid(),
-                ssPassword: ssPassword || this.createSSPassword(),
-                status,
-                trafficLimitBytes: wrapBigInt(trafficLimitBytes),
-                trafficLimitStrategy,
-                email: email,
-                telegramId: wrapBigIntNullable(telegramId),
-                expireAt: expireAt,
-                createdAt: createdAt,
-                lastTrafficResetAt: lastTrafficResetAt,
-                description: description,
-                hwidDeviceLimit: hwidDeviceLimit,
-                tag: tag,
-                uuid: uuid,
-                externalSquadUuid: externalSquadUuid,
-            });
-
-            const result = await this.userRepository.create(userEntity);
-
-            if (activeInternalSquads && activeInternalSquads.length > 0) {
-                const squadsResult = await this.userRepository.addUserToInternalSquads(
-                    result.uuid,
-                    activeInternalSquads,
-                );
-
-                if (!squadsResult) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.CREATE_USER_WITH_INTERNAL_SQUAD_ERROR,
-                    };
-                }
-            }
-
-            const userWithInbounds = await this.userRepository.findUniqueByCriteria(
-                {
-                    uuid: result.uuid,
-                },
-                {
-                    activeInternalSquads: true,
-                    lastConnectedNode: true,
-                },
-            );
-
-            if (!userWithInbounds) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS,
-                };
-            }
-
-            return {
-                isOk: true,
-                response: userWithInbounds,
             };
         } catch (error) {
             throw error;
@@ -437,6 +373,7 @@ export class UsersService {
                 username: dto.username || undefined,
                 shortUuid: dto.shortUuid || undefined,
                 uuid: dto.uuid || undefined,
+                tId: dto.tId || undefined,
             });
 
             if (!result) {
@@ -543,6 +480,8 @@ export class UsersService {
                 }),
             );
 
+            await this.invalidateShortUuidRangeCache(updatedUser.shortUuid);
+
             return {
                 isOk: true,
                 response: updatedUser,
@@ -562,7 +501,6 @@ export class UsersService {
                 { uuid: userUuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -575,7 +513,7 @@ export class UsersService {
 
             const result = await this.userRepository.deleteByUUID(user.uuid);
 
-            this.eventBus.publish(new RemoveUserFromNodeEvent(user.username, user.vlessUuid));
+            this.eventBus.publish(new RemoveUserFromNodeEvent(user.tId, user.vlessUuid));
 
             this.eventEmitter.emit(
                 EVENTS.USER.DELETED,
@@ -627,7 +565,7 @@ export class UsersService {
             }
 
             this.eventBus.publish(
-                new RemoveUserFromNodeEvent(updatedUser.username, updatedUser.vlessUuid),
+                new RemoveUserFromNodeEvent(updatedUser.tId, updatedUser.vlessUuid),
             );
             this.eventEmitter.emit(
                 EVENTS.USER.DISABLED,
@@ -705,12 +643,11 @@ export class UsersService {
         }
     }
 
-    @Transactional()
     public async resetUserTraffic(userUuid: string): Promise<ICommandResponse<UserEntity>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
-                ['uuid', 'status', 'usedTrafficBytes'],
+                ['uuid', 'status', 'tId'],
             );
 
             if (!user) {
@@ -726,25 +663,16 @@ export class UsersService {
                 this.eventBus.publish(new AddUserToNodeEvent(user.uuid));
             }
 
-            await this.updateUserStatusAndTrafficAndResetAt({
-                userUuid: user.uuid,
-                lastResetAt: new Date(),
+            await this.userRepository.updateStatusAndTrafficAndResetAt(
+                user.uuid,
+                new Date(),
                 status,
-            });
-
-            await this.createUserUsageHistory({
-                userTrafficHistory: new UserTrafficHistoryEntity({
-                    userUuid: user.uuid,
-                    resetAt: new Date(),
-                    usedBytes: BigInt(user.usedTrafficBytes),
-                }),
-            });
+            );
 
             const newUser = await this.userRepository.findUniqueByCriteria(
                 { uuid: userUuid },
                 {
                     activeInternalSquads: true,
-                    lastConnectedNode: true,
                 },
             );
 
@@ -792,7 +720,7 @@ export class UsersService {
         try {
             const affectedUsers = await this.userRepository.countByStatus(dto.status);
 
-            await this.userActionsQueueService.bulkDeleteByStatus(dto.status);
+            await this.usersQueuesService.bulkDeleteByStatus(dto.status);
 
             return {
                 isOk: true,
@@ -820,7 +748,7 @@ export class UsersService {
 
             const result = await this.userRepository.deleteManyByUuid(uuids);
 
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
+            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
                 emitter: 'bulkDeleteUsersByUuid',
             });
 
@@ -842,7 +770,7 @@ export class UsersService {
     ): Promise<ICommandResponse<BulkOperationResponseModel>> {
         try {
             // handled one by one
-            await this.bulkUserOperationsQueueService.revokeUsersSubscriptionBulk(uuids);
+            await this.usersQueuesService.revokeUsersSubscriptionBulk(uuids);
 
             return {
                 isOk: true,
@@ -862,7 +790,7 @@ export class UsersService {
     ): Promise<ICommandResponse<BulkOperationResponseModel>> {
         try {
             // handled one by one
-            await this.bulkUserOperationsQueueService.resetUserTrafficBulk(uuids);
+            await this.usersQueuesService.resetUserTrafficBulk(uuids);
 
             return {
                 isOk: true,
@@ -892,7 +820,7 @@ export class UsersService {
             }
 
             // handled one by one
-            await this.bulkUserOperationsQueueService.updateUsersBulk({
+            await this.usersQueuesService.updateUsersBulk({
                 uuids: dto.uuids,
                 fields: dto.fields,
             });
@@ -928,7 +856,7 @@ export class UsersService {
             }
 
             // TODO: finish later
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
+            await this.nodesQueuesService.startAllNodes({
                 emitter: 'bulkUpdateUsersInternalSquads',
             });
 
@@ -956,25 +884,7 @@ export class UsersService {
                 };
             }
 
-            await this.userRepository.bulkUpdateAllUsers({
-                ...dto,
-                lastTriggeredThreshold: dto.trafficLimitBytes !== undefined ? 0 : undefined,
-                trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
-                telegramId: wrapBigIntNullable(dto.telegramId),
-                hwidDeviceLimit: dto.hwidDeviceLimit,
-            });
-
-            if (dto.trafficLimitBytes !== undefined) {
-                await this.userRepository.bulkSyncLimitedUsers();
-            }
-
-            if (dto.expireAt !== undefined) {
-                await this.userRepository.bulkSyncExpiredUsers();
-            }
-
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
-                emitter: 'bulkUpdateAllUsers',
-            });
+            await this.usersQueuesService.bulkUpdateAllUsers(dto);
 
             return {
                 isOk: true,
@@ -991,14 +901,7 @@ export class UsersService {
 
     public async bulkAllResetUserTraffic(): Promise<ICommandResponse<BulkAllResponseModel>> {
         try {
-            await this.resetUserTrafficQueueService.resetDailyUserTraffic();
-            await this.resetUserTrafficQueueService.resetMonthlyUserTraffic();
-            await this.resetUserTrafficQueueService.resetWeeklyUserTraffic();
-            await this.resetUserTrafficQueueService.resetNoResetUserTraffic();
-
-            await this.startAllNodesQueue.startAllNodesWithoutDeduplication({
-                emitter: 'bulkAllResetUserTraffic',
-            });
+            await this.usersQueuesService.resetAllUserTraffic();
 
             return {
                 isOk: true,
@@ -1126,6 +1029,58 @@ export class UsersService {
         }
     }
 
+    public async bulkExtendExpirationDate(dto: {
+        uuids: string[];
+        extendDays: number;
+    }): Promise<ICommandResponse<BulkOperationResponseModel>> {
+        try {
+            const affectedRows = await this.userRepository.bulkExtendExpirationDateByUuids(
+                dto.uuids,
+                dto.extendDays,
+            );
+
+            if (affectedRows === 0) {
+                return {
+                    isOk: true,
+                    response: new BulkOperationResponseModel(0),
+                };
+            }
+
+            const uuids = await this.userRepository.bulkSyncExpiredUsersByUuids(dto.uuids);
+
+            for (const uuid of uuids) {
+                this.eventBus.publish(new AddUserToNodeEvent(uuid));
+            }
+
+            return {
+                isOk: true,
+                response: new BulkOperationResponseModel(affectedRows),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return {
+                isOk: false,
+                ...ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR,
+            };
+        }
+    }
+
+    public async bulkAllExtendExpirationDate(
+        extendDays: number,
+    ): Promise<ICommandResponse<BulkAllResponseModel>> {
+        try {
+            await this.usersQueuesService.bulkAllExtendExpirationDate(extendDays);
+
+            return {
+                isOk: true,
+                response: new BulkAllResponseModel(true),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR };
+        }
+    }
+
     private createUuid(): string {
         return randomUUID();
     }
@@ -1151,23 +1106,6 @@ export class UsersService {
         return nanoid();
     }
 
-    private async updateUserStatusAndTrafficAndResetAt(
-        dto: UpdateStatusAndTrafficAndResetAtCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<
-            UpdateStatusAndTrafficAndResetAtCommand,
-            ICommandResponse<void>
-        >(new UpdateStatusAndTrafficAndResetAtCommand(dto.userUuid, dto.lastResetAt, dto.status));
-    }
-
-    private async createUserUsageHistory(
-        dto: CreateUserTrafficHistoryCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<CreateUserTrafficHistoryCommand, ICommandResponse<void>>(
-            new CreateUserTrafficHistoryCommand(dto.userTrafficHistory),
-        );
-    }
-
     private async getUserUsageByRangeQuery(
         userUuid: string,
         start: Date,
@@ -1177,5 +1115,17 @@ export class UsersService {
             GetUserUsageByRangeQuery,
             ICommandResponse<IGetUserUsageByRange[]>
         >(new GetUserUsageByRangeQuery(userUuid, start, end));
+    }
+
+    private async invalidateShortUuidRangeCache(shortUuid: string): Promise<void> {
+        try {
+            const { min, max } = await this.queryBus.execute(new GetCachedShortUuidRangeQuery());
+
+            if (shortUuid.length < min || shortUuid.length > max) {
+                await this.cacheManager.del(CACHE_KEYS.SHORT_UUID_RANGE);
+            }
+        } catch (error) {
+            this.logger.error(error);
+        }
     }
 }

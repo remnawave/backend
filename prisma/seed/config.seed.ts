@@ -19,8 +19,11 @@ import {
 } from '@modules/subscription-template/constants';
 import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
 import {
+    CustomRemarksSchema,
     PasskeySettingsSchema,
     TBrandingSettings,
+    TCustomRemarks,
+    THwidSettings,
     TOauth2Settings,
     TPasswordAuthSettings,
     TRemnawavePasskeySettings,
@@ -34,6 +37,12 @@ const hash = hasher({
         object: true,
     },
 }).hash;
+
+const DEFAULT_HWID_SETTINGS: THwidSettings = {
+    enabled: false,
+    fallbackDeviceLimit: 999,
+    maxDevicesAnnounce: null,
+};
 
 export const XTLSDefaultConfig = {
     log: {
@@ -275,16 +284,52 @@ async function seedSubscriptionTemplate() {
 }
 
 async function seedSubscriptionSettings() {
+    const customRemarks = {
+        expiredUsers: ['⌛ Subscription expired', 'Contact support'],
+        limitedUsers: ['🚧 Subscription limited', 'Contact support'],
+        disabledUsers: ['🚫 Subscription disabled', 'Contact support'],
+        emptyHosts: [
+            '→ Remnawave',
+            'Did you forget to add hosts?',
+            '→ No hosts found',
+            '→ Check Hosts tab',
+        ],
+        emptyInternalSquads: [
+            '→ Remnawave',
+            'Did you forget to add internal squads?',
+            '→ No internal squads found',
+            'User has no internal squads',
+        ],
+    } satisfies TCustomRemarks;
+
     const existingConfig = await prisma.subscriptionSettings.findFirst();
 
     if (existingConfig) {
-        consola.info('Default subscription settings already seeded!');
+        if (existingConfig.hwidSettings === null) {
+            await prisma.subscriptionSettings.update({
+                where: { uuid: existingConfig.uuid },
+                data: { hwidSettings: DEFAULT_HWID_SETTINGS },
+            });
+
+            consola.success('🔐 Default HWID Settings have been seeded!');
+        }
+
+        if (existingConfig.customRemarks) {
+            const isValid = await CustomRemarksSchema.safeParseAsync(existingConfig.customRemarks);
+            if (!isValid.success) {
+                await prisma.subscriptionSettings.update({
+                    where: { uuid: existingConfig.uuid },
+                    data: { customRemarks: customRemarks },
+                });
+
+                consola.success('🔐 Custom remarks updated!');
+                return;
+            }
+        }
+
+        consola.success('🔐 Custom remarks seeded!');
         return;
     }
-
-    const expiredUserRemarks = ['🚨 Subscription expired', 'Contact support'];
-    const disabledUserRemarks = ['❌ Subscription disabled', 'Contact support'];
-    const limitedUserRemarks = ['🔴 Subscription limited', 'Contact support'];
 
     await prisma.subscriptionSettings.create({
         data: {
@@ -292,13 +337,11 @@ async function seedSubscriptionSettings() {
             supportLink: 'https://docs.rw',
             profileUpdateInterval: 12,
             isProfileWebpageUrlEnabled: true,
-            expiredUsersRemarks: expiredUserRemarks,
-            limitedUsersRemarks: limitedUserRemarks,
-            disabledUsersRemarks: disabledUserRemarks,
             serveJsonAtBaseSubscription: false,
-            addUsernameToBaseSubscription: false,
-            isShowCustomRemarks: true,
             randomizeHosts: false,
+            hwidSettings: DEFAULT_HWID_SETTINGS,
+            isShowCustomRemarks: true,
+            customRemarks,
         },
     });
 }

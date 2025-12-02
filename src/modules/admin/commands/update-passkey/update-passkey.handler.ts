@@ -11,9 +11,10 @@ import { PasskeyEntity } from '@modules/admin/entities';
 import { UpdatePasskeyCommand } from './update-passkey.command';
 
 @CommandHandler(UpdatePasskeyCommand)
-export class UpdatePasskeyHandler
-    implements ICommandHandler<UpdatePasskeyCommand, ICommandResponse<PasskeyEntity>>
-{
+export class UpdatePasskeyHandler implements ICommandHandler<
+    UpdatePasskeyCommand,
+    ICommandResponse<PasskeyEntity>
+> {
     public readonly logger = new Logger(UpdatePasskeyHandler.name);
 
     constructor(private readonly passkeyRepository: PasskeyRepository) {}

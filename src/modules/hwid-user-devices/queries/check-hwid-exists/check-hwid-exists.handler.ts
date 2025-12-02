@@ -8,9 +8,10 @@ import { HwidUserDevicesRepository } from '../../repositories/hwid-user-devices.
 import { CheckHwidExistsQuery } from './check-hwid-exists.query';
 
 @QueryHandler(CheckHwidExistsQuery)
-export class CheckHwidExistsHandler
-    implements IQueryHandler<CheckHwidExistsQuery, ICommandResponse<{ exists: boolean }>>
-{
+export class CheckHwidExistsHandler implements IQueryHandler<
+    CheckHwidExistsQuery,
+    ICommandResponse<{ exists: boolean }>
+> {
     private readonly logger = new Logger(CheckHwidExistsHandler.name);
     constructor(private readonly hwidUserDevicesRepository: HwidUserDevicesRepository) {}
 

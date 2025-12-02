@@ -1,7 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -10,14 +9,14 @@ import { UpdateSubLastOpenedAndUserAgentCommand } from './update-sub-last-opened
 import { UsersRepository } from '../../repositories/users.repository';
 
 @CommandHandler(UpdateSubLastOpenedAndUserAgentCommand)
-export class UpdateSubLastOpenedAndUserAgentHandler
-    implements ICommandHandler<UpdateSubLastOpenedAndUserAgentCommand, ICommandResponse<void>>
-{
+export class UpdateSubLastOpenedAndUserAgentHandler implements ICommandHandler<
+    UpdateSubLastOpenedAndUserAgentCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(UpdateSubLastOpenedAndUserAgentHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}
 
-    @Transactional()
     async execute(
         command: UpdateSubLastOpenedAndUserAgentCommand,
     ): Promise<ICommandResponse<void>> {

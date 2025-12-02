@@ -10,9 +10,10 @@ import { UsersService } from '@modules/users/users.service';
 import { UpdateUserWithServiceCommand } from './update-user-with-service.command';
 
 @CommandHandler(UpdateUserWithServiceCommand)
-export class UpdateUserWithServiceHandler
-    implements ICommandHandler<UpdateUserWithServiceCommand, ICommandResponse<boolean>>
-{
+export class UpdateUserWithServiceHandler implements ICommandHandler<
+    UpdateUserWithServiceCommand,
+    ICommandResponse<boolean>
+> {
     public readonly logger = new Logger(UpdateUserWithServiceHandler.name);
 
     constructor(private readonly usersService: UsersService) {}

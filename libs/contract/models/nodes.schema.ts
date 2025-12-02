@@ -11,8 +11,6 @@ export const NodesSchema = z.object({
     isConnected: z.boolean(),
     isDisabled: z.boolean(),
     isConnecting: z.boolean(),
-    isNodeOnline: z.boolean(),
-    isXrayRunning: z.boolean(),
     lastStatusChange: z.nullable(
         z
             .string()
@@ -33,6 +31,7 @@ export const NodesSchema = z.object({
     viewPosition: z.number().int(),
     countryCode: z.string(),
     consumptionMultiplier: z.number(),
+    tags: z.array(z.string()),
 
     cpuCount: z.nullable(z.number().int()),
     cpuModel: z.nullable(z.string()),

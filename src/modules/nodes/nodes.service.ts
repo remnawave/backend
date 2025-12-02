@@ -1,6 +1,5 @@
 import { Prisma } from '@prisma/client';
 
-import { StartAllNodesQueueService } from 'src/queue/start-all-nodes/start-all-nodes.service';
 import { ERRORS, EVENTS } from '@contract/constants';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -17,15 +16,19 @@ import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usa
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 
-import { StartNodeQueueService } from '@queue/start-node/start-node.service';
-import { StopNodeQueueService } from '@queue/stop-node/stop-node.service';
+import { NodesQueuesService } from '@queue/_nodes';
 
+import {
+    CreateNodeRequestDto,
+    ProfileModificationRequestDto,
+    ReorderNodeRequestDto,
+    UpdateNodeRequestDto,
+} from './dtos';
 import {
     BaseEventResponseModel,
     DeleteNodeResponseModel,
     RestartNodeResponseModel,
 } from './models';
-import { CreateNodeRequestDto, ReorderNodeRequestDto, UpdateNodeRequestDto } from './dtos';
 import { NodesRepository } from './repositories/nodes.repository';
 import { NodesEntity } from './entities';
 
@@ -36,9 +39,7 @@ export class NodesService {
     constructor(
         private readonly nodesRepository: NodesRepository,
         private readonly eventEmitter: EventEmitter2,
-        private readonly startAllNodesQueue: StartAllNodesQueueService,
-        private readonly startNodeQueue: StartNodeQueueService,
-        private readonly stopNodeQueue: StopNodeQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
     ) {}
@@ -53,8 +54,6 @@ export class NodesService {
                 isConnected: false,
                 isConnecting: false,
                 isDisabled: false,
-                isNodeOnline: false,
-                isXrayRunning: false,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: nodeData.consumptionMultiplier
                     ? toNano(nodeData.consumptionMultiplier)
@@ -97,7 +96,7 @@ export class NodesService {
                 throw new Error('Node not found');
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: node.uuid,
             });
 
@@ -160,7 +159,7 @@ export class NodesService {
                 };
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: node.uuid,
             });
 
@@ -232,7 +231,7 @@ export class NodesService {
                 };
             }
 
-            await this.startAllNodesQueue.startAllNodes({
+            await this.nodesQueuesService.startAllNodes({
                 emitter: NodesService.name,
                 force: forceRestart ?? false,
             });
@@ -283,7 +282,7 @@ export class NodesService {
                 };
             }
 
-            await this.stopNodeQueue.stopNode({
+            await this.nodesQueuesService.stopNode({
                 nodeUuid: node.uuid,
                 isNeedToBeDeleted: true,
             });
@@ -364,7 +363,7 @@ export class NodesService {
             }
 
             if (!node.isDisabled) {
-                await this.startNodeQueue.startNode({
+                await this.nodesQueuesService.startNode({
                     nodeUuid: result.uuid,
                 });
             }
@@ -403,8 +402,6 @@ export class NodesService {
                     isDisabled: true,
                     activeConfigProfileUuid: null,
                     isConnecting: false,
-                    isXrayRunning: false,
-                    isNodeOnline: false,
                     isConnected: false,
                     lastStatusMessage: null,
                     lastStatusChange: new Date(),
@@ -436,7 +433,7 @@ export class NodesService {
                 };
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: result.uuid,
             });
 
@@ -476,8 +473,6 @@ export class NodesService {
                 uuid: node.uuid,
                 isDisabled: true,
                 isConnecting: false,
-                isXrayRunning: false,
-                isNodeOnline: false,
                 isConnected: false,
                 lastStatusMessage: null,
                 lastStatusChange: new Date(),
@@ -491,7 +486,7 @@ export class NodesService {
                 };
             }
 
-            await this.stopNodeQueue.stopNode({
+            await this.nodesQueuesService.stopNode({
                 nodeUuid: result.uuid,
                 isNeedToBeDeleted: false,
             });
@@ -527,6 +522,68 @@ export class NodesService {
         } catch (error) {
             this.logger.error(error);
             return { isOk: false, ...ERRORS.REORDER_NODES_ERROR };
+        }
+    }
+
+    public async getAllNodesTags(): Promise<ICommandResponse<string[]>> {
+        try {
+            return {
+                isOk: true,
+                response: await this.nodesRepository.findAllTags(),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.INTERNAL_SERVER_ERROR };
+        }
+    }
+
+    public async profileModification(
+        body: ProfileModificationRequestDto,
+    ): Promise<ICommandResponse<BaseEventResponseModel>> {
+        try {
+            const { uuids, configProfile } = body;
+
+            const configProfileResponse = await this.queryBus.execute(
+                new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
+            );
+
+            if (!configProfileResponse.isOk || !configProfileResponse.response) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
+                };
+            }
+
+            const inbounds = configProfileResponse.response.inbounds;
+
+            const allActiveInboundsExistInProfile = configProfile.activeInbounds.every(
+                (activeInboundUuid) =>
+                    inbounds.some((inbound) => inbound.uuid === activeInboundUuid),
+            );
+
+            if (!allActiveInboundsExistInProfile) {
+                return {
+                    isOk: false,
+                    ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
+                };
+            }
+
+            await this.nodesRepository.removeInboundsFromNodes(uuids);
+
+            await this.nodesRepository.addInboundsToNodes(uuids, configProfile.activeInbounds);
+
+            await this.nodesQueuesService.startAllNodesByProfile({
+                profileUuid: configProfile.activeConfigProfileUuid,
+                emitter: 'bulkProfileModification',
+            }); // no need to restart all nodes
+
+            return {
+                isOk: true,
+                response: new BaseEventResponseModel(true),
+            };
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.INTERNAL_SERVER_ERROR };
         }
     }
 }

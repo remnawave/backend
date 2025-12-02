@@ -34,8 +34,13 @@ export class TemplateEngine {
     ): string {
         return this.replace(template, {
             DAYS_LEFT: Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
-            TRAFFIC_USED: prettyBytesUtil(user.usedTrafficBytes, true, 3),
-            TRAFFIC_LEFT: prettyBytesUtil(user.trafficLimitBytes - user.usedTrafficBytes, true, 3),
+            TRAFFIC_USED: prettyBytesUtil(user.userTraffic.usedTrafficBytes, true, 3),
+            TRAFFIC_LEFT: prettyBytesUtil(
+                user.trafficLimitBytes - user.userTraffic.usedTrafficBytes,
+                true,
+                3,
+            ),
+
             TOTAL_TRAFFIC: prettyBytesUtil(user.trafficLimitBytes, true, 3),
             STATUS: forHeader
                 ? transliterate(USER_STATUSES_TEMPLATE[user.status])
@@ -46,6 +51,7 @@ export class TemplateEngine {
             SUBSCRIPTION_URL: `https://${subPublicDomain}/${user.shortUuid}`,
             TAG: user.tag || '',
             EXPIRE_UNIX: dayjs(user.expireAt).unix(),
+            SHORT_UUID: user.shortUuid,
         });
     }
 }

@@ -15,6 +15,7 @@ import {
     DeleteSubscriptionTemplateCommand,
     GetSubscriptionTemplateCommand,
     GetSubscriptionTemplatesCommand,
+    ReorderSubscriptionTemplateCommand,
     UpdateSubscriptionTemplateCommand,
 } from '@libs/contracts/commands';
 
@@ -26,6 +27,8 @@ import {
     GetTemplateRequestDto,
     GetTemplateResponseDto,
     GetTemplatesResponseDto,
+    ReorderSubscriptionTemplatesRequestDto,
+    ReorderSubscriptionTemplatesResponseDto,
     UpdateTemplateResponseDto,
 } from './dtos/subscription-templates.dtos';
 import { SubscriptionTemplateService } from './subscription-template.service';
@@ -61,6 +64,7 @@ export class SubscriptionTemplateController {
         type: GetTemplateResponseDto,
         description: 'Template retrieved successfully',
     })
+    @ApiParam({ name: 'uuid', type: String, description: 'Template UUID' })
     @Endpoint({
         command: GetSubscriptionTemplateCommand,
         httpCode: HttpStatus.OK,
@@ -137,6 +141,26 @@ export class SubscriptionTemplateController {
             body.name,
             body.templateType,
         );
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: ReorderSubscriptionTemplatesResponseDto,
+        description: 'Subscription templates reordered successfully',
+    })
+    @Endpoint({
+        command: ReorderSubscriptionTemplateCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ReorderSubscriptionTemplatesRequestDto,
+    })
+    async reorderSubscriptionTemplates(
+        @Body() body: ReorderSubscriptionTemplatesRequestDto,
+    ): Promise<ReorderSubscriptionTemplatesResponseDto> {
+        const result = await this.subscriptionTemplateService.reorderSubscriptionTemplates(body);
 
         const data = errorHandler(result);
         return {

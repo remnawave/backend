@@ -2,12 +2,14 @@ import { InfraBillingNodesNotificationsTask } from './crm/infra-billing-nodes-no
 import { NodeMetricsMessageHandler } from './export-metrics/node-metrics-message.handler';
 import { ResetNodeTrafficTask } from './reset-node-traffic/reset-node-traffic.service';
 import { ExportMetricsTask } from './export-metrics/export-metrics.task';
+import { SyncMetricsTask } from './export-metrics/sync-metrics.task';
 import { ReviewNodesTask } from './review-nodes/review-nodes.task';
 
 export const JOBS_SERVICES = [
     ResetNodeTrafficTask,
     ReviewNodesTask,
     ExportMetricsTask,
+    SyncMetricsTask,
     InfraBillingNodesNotificationsTask,
 ];
 

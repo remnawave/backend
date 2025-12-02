@@ -10,9 +10,10 @@ import { SnippetEntity } from '@modules/config-profiles/entities';
 import { GetSnippetsQuery } from './get-snippets.query';
 
 @QueryHandler(GetSnippetsQuery)
-export class GetSnippetsHandler
-    implements IQueryHandler<GetSnippetsQuery, ICommandResponse<SnippetEntity[]>>
-{
+export class GetSnippetsHandler implements IQueryHandler<
+    GetSnippetsQuery,
+    ICommandResponse<SnippetEntity[]>
+> {
     private readonly logger = new Logger(GetSnippetsHandler.name);
     constructor(private readonly snippetsRepository: SnippetsRepository) {}
 

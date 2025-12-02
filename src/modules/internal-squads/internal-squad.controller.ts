@@ -23,6 +23,7 @@ import {
     GetInternalSquadAccessibleNodesCommand,
     GetInternalSquadByUuidCommand,
     GetInternalSquadsCommand,
+    ReorderInternalSquadCommand,
     UpdateInternalSquadCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, INTERNAL_SQUADS_CONTROLLER } from '@libs/contracts/api';
@@ -38,6 +39,8 @@ import {
     GetInternalSquadByUuidResponseDto,
     GetInternalSquadsResponseDto,
     RemoveUsersFromInternalSquadResponseDto,
+    ReorderInternalSquadsRequestDto,
+    ReorderInternalSquadsResponseDto,
     UpdateInternalSquadRequestDto,
     UpdateInternalSquadResponseDto,
 } from './dtos';
@@ -231,6 +234,26 @@ export class InternalSquadController {
         @Param('uuid') uuid: string,
     ): Promise<RemoveUsersFromInternalSquadResponseDto> {
         const result = await this.internalSquadService.removeUsersFromInternalSquad(uuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: ReorderInternalSquadsResponseDto,
+        description: 'Internal squads reordered successfully',
+    })
+    @Endpoint({
+        command: ReorderInternalSquadCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ReorderInternalSquadsRequestDto,
+    })
+    async reorderInternalSquads(
+        @Body() body: ReorderInternalSquadsRequestDto,
+    ): Promise<ReorderInternalSquadsResponseDto> {
+        const result = await this.internalSquadService.reorderInternalSquads(body);
 
         const data = errorHandler(result);
         return {

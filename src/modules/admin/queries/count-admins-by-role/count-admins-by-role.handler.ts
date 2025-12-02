@@ -8,9 +8,10 @@ import { AdminRepository } from '../../repositories/admin.repository';
 import { CountAdminsByRoleQuery } from './count-admins-by-role.query';
 
 @QueryHandler(CountAdminsByRoleQuery)
-export class CountAdminsByRoleHandler
-    implements IQueryHandler<CountAdminsByRoleQuery, ICommandResponse<number>>
-{
+export class CountAdminsByRoleHandler implements IQueryHandler<
+    CountAdminsByRoleQuery,
+    ICommandResponse<number>
+> {
     private readonly logger = new Logger(CountAdminsByRoleHandler.name);
     constructor(private readonly adminRepository: AdminRepository) {}
 

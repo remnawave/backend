@@ -7,7 +7,7 @@ import { ExternalSquadEntity } from '@modules/external-squads/entities';
 export class GetExternalSquadSettingsQuery extends Query<
     ICommandResponse<Pick<
         ExternalSquadEntity,
-        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
     > | null>
 > {
     constructor(public readonly externalSquadUuid: string) {

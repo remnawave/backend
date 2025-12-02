@@ -4,6 +4,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { ERRORS } from '@libs/contracts/constants';
 
+import { GetSubscriptionTemplateByUuidQuery } from '@modules/subscription-template/queries/get-template-by-uuid';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 import { ReorderHostRequestDto } from '@modules/hosts/dtos/reorder-hosts.dto';
 
@@ -23,6 +24,26 @@ export class HostsService {
 
     public async createHost(dto: CreateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
         try {
+            if (dto.xrayJsonTemplateUuid) {
+                const xrayJsonTemplate = await this.queryBus.execute(
+                    new GetSubscriptionTemplateByUuidQuery(dto.xrayJsonTemplateUuid),
+                );
+
+                if (!xrayJsonTemplate.isOk || !xrayJsonTemplate.response) {
+                    return {
+                        isOk: false,
+                        ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
+                    };
+                }
+
+                if (xrayJsonTemplate.response.templateType !== 'XRAY_JSON') {
+                    return {
+                        isOk: false,
+                        ...ERRORS.TEMPLATE_TYPE_NOT_ALLOWED,
+                    };
+                }
+            }
+
             let xHttpExtraParams: null | object | undefined;
             if (dto.xHttpExtraParams !== undefined && dto.xHttpExtraParams !== null) {
                 xHttpExtraParams = dto.xHttpExtraParams;
@@ -67,7 +88,7 @@ export class HostsService {
                 serverDescription = undefined;
             }
 
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const configProfile = await this.queryBus.execute(
                 new GetConfigProfileByUuidQuery(inboundObj.configProfileUuid),
@@ -113,6 +134,18 @@ export class HostsService {
                 });
             }
 
+            if (excludedInternalSquads !== undefined && excludedInternalSquads.length > 0) {
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    result.uuid,
+                    excludedInternalSquads,
+                );
+                result.excludedInternalSquads = excludedInternalSquads.map((squad) => {
+                    return {
+                        squadUuid: squad,
+                    };
+                });
+            }
+
             return {
                 isOk: true,
                 response: result,
@@ -126,7 +159,7 @@ export class HostsService {
 
     public async updateHost(dto: UpdateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
         try {
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const host = await this.hostsRepository.findByUUID(dto.uuid);
             if (!host) {
@@ -134,6 +167,26 @@ export class HostsService {
                     isOk: false,
                     ...ERRORS.HOST_NOT_FOUND,
                 };
+            }
+
+            if (dto.xrayJsonTemplateUuid) {
+                const xrayJsonTemplate = await this.queryBus.execute(
+                    new GetSubscriptionTemplateByUuidQuery(dto.xrayJsonTemplateUuid),
+                );
+
+                if (!xrayJsonTemplate.isOk || !xrayJsonTemplate.response) {
+                    return {
+                        isOk: false,
+                        ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
+                    };
+                }
+
+                if (xrayJsonTemplate.response.templateType !== 'XRAY_JSON') {
+                    return {
+                        isOk: false,
+                        ...ERRORS.TEMPLATE_TYPE_NOT_ALLOWED,
+                    };
+                }
             }
 
             let xHttpExtraParams: null | object | undefined;
@@ -212,6 +265,14 @@ export class HostsService {
             if (nodes !== undefined) {
                 await this.hostsRepository.clearNodesFromHost(host.uuid);
                 await this.hostsRepository.addNodesToHost(host.uuid, nodes);
+            }
+
+            if (excludedInternalSquads !== undefined) {
+                await this.hostsRepository.clearExcludedInternalSquadsFromHost(host.uuid);
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    host.uuid,
+                    excludedInternalSquads,
+                );
             }
 
             const result = await this.hostsRepository.update({

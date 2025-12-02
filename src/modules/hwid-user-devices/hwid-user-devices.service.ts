@@ -1,14 +1,16 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { ICommandResponse } from '@common/types/command-response.type';
 import { GetAllHwidDevicesCommand } from '@libs/contracts/commands';
 import { ERRORS, EVENTS } from '@libs/contracts/constants';
+import { THwidSettings } from '@libs/contracts/models';
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
+import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 
 import { HwidUserDevicesRepository } from './repositories/hwid-user-devices.repository';
@@ -19,21 +21,12 @@ import { CreateUserHwidDeviceRequestDto } from './dtos';
 @Injectable()
 export class HwidUserDevicesService {
     private readonly logger = new Logger(HwidUserDevicesService.name);
-    private readonly hwidDeviceLimitEnabled: boolean;
-    private readonly hwidGlobalDeviceLimit: number | undefined;
 
     constructor(
         private readonly eventEmitter: EventEmitter2,
         private readonly hwidUserDevicesRepository: HwidUserDevicesRepository,
-        private readonly configService: ConfigService,
         private readonly queryBus: QueryBus,
-    ) {
-        this.hwidDeviceLimitEnabled =
-            this.configService.getOrThrow<string>('HWID_DEVICE_LIMIT_ENABLED') === 'true';
-        this.hwidGlobalDeviceLimit = this.configService.get<number | undefined>(
-            'HWID_FALLBACK_DEVICE_LIMIT',
-        );
-    }
+    ) {}
 
     public async createUserHwidDevice(
         dto: CreateUserHwidDeviceRequestDto,
@@ -46,7 +39,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -70,10 +62,38 @@ export class HwidUserDevicesService {
                 };
             }
 
-            if (this.hwidDeviceLimitEnabled && this.hwidGlobalDeviceLimit) {
+            let hwidSettings: THwidSettings | undefined;
+
+            const subscrtipionSettings = await this.queryBus.execute(
+                new GetCachedSubscriptionSettingsQuery(),
+            );
+
+            if (!subscrtipionSettings) {
+                return {
+                    isOk: false,
+                    ...ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND,
+                };
+            }
+
+            if (subscrtipionSettings.hwidSettings.enabled) {
+                hwidSettings = subscrtipionSettings.hwidSettings;
+            }
+
+            if (user.response.externalSquadUuid) {
+                const externalSquadSettings = await this.queryBus.execute(
+                    new GetCachedExternalSquadSettingsQuery(user.response.externalSquadUuid),
+                );
+
+                if (externalSquadSettings && externalSquadSettings.hwidSettings) {
+                    hwidSettings = externalSquadSettings.hwidSettings;
+                }
+            }
+
+            if (hwidSettings && hwidSettings.enabled) {
                 const count = await this.hwidUserDevicesRepository.countByUserUuid(dto.userUuid);
 
-                const deviceLimit = user.response.hwidDeviceLimit ?? this.hwidGlobalDeviceLimit;
+                const deviceLimit =
+                    user.response.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
                 if (count >= deviceLimit) {
                     return {
@@ -120,7 +140,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -161,7 +180,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
@@ -178,18 +196,23 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
+            if (!hwidDevice) {
+                return {
+                    isOk: false,
+                    ...ERRORS.HWID_DEVICE_NOT_FOUND,
+                };
+            }
+
             await this.hwidUserDevicesRepository.deleteByHwidAndUserUuid(hwid, userUuid);
 
-            if (hwidDevice) {
-                this.eventEmitter.emit(
+            this.eventEmitter.emit(
+                EVENTS.USER_HWID_DEVICES.DELETED,
+                new UserHwidDeviceEvent(
+                    user.response,
+                    hwidDevice,
                     EVENTS.USER_HWID_DEVICES.DELETED,
-                    new UserHwidDeviceEvent(
-                        user.response,
-                        hwidDevice,
-                        EVENTS.USER_HWID_DEVICES.DELETED,
-                    ),
-                );
-            }
+                ),
+            );
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
                 userUuid,
@@ -219,7 +242,6 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );

@@ -5,9 +5,10 @@ import { UserSubscriptionRequestHistoryRepository } from '../../repositories/use
 import { CountAndDeleteSubscriptionRequestHistoryCommand } from './count-and-delete-subscription-request-history.command';
 
 @CommandHandler(CountAndDeleteSubscriptionRequestHistoryCommand)
-export class CountAndDeleteSubscriptionRequestHistoryHandler
-    implements ICommandHandler<CountAndDeleteSubscriptionRequestHistoryCommand, void>
-{
+export class CountAndDeleteSubscriptionRequestHistoryHandler implements ICommandHandler<
+    CountAndDeleteSubscriptionRequestHistoryCommand,
+    void
+> {
     public readonly logger = new Logger(CountAndDeleteSubscriptionRequestHistoryHandler.name);
 
     constructor(

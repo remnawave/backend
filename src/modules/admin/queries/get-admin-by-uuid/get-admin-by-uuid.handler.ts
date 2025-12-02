@@ -9,9 +9,10 @@ import { GetAdminByUuidQuery } from './get-admin-by-uuid.query';
 import { AdminEntity } from '../../entities/admin.entity';
 
 @QueryHandler(GetAdminByUuidQuery)
-export class GetAdminByUuidHandler
-    implements IQueryHandler<GetAdminByUuidQuery, ICommandResponse<AdminEntity>>
-{
+export class GetAdminByUuidHandler implements IQueryHandler<
+    GetAdminByUuidQuery,
+    ICommandResponse<AdminEntity>
+> {
     private readonly logger = new Logger(GetAdminByUuidHandler.name);
     constructor(private readonly adminRepository: AdminRepository) {}
 

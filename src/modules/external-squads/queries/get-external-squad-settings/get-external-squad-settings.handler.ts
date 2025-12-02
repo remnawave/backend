@@ -10,16 +10,13 @@ import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { GetExternalSquadSettingsQuery } from './get-external-squad-settings.query';
 
 @QueryHandler(GetExternalSquadSettingsQuery)
-export class GetExternalSquadSettingsHandler
-    implements
-        IQueryHandler<
-            GetExternalSquadSettingsQuery,
-            ICommandResponse<Pick<
-                ExternalSquadEntity,
-                'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
-            > | null>
-        >
-{
+export class GetExternalSquadSettingsHandler implements IQueryHandler<
+    GetExternalSquadSettingsQuery,
+    ICommandResponse<Pick<
+        ExternalSquadEntity,
+        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
+    > | null>
+> {
     private readonly logger = new Logger(GetExternalSquadSettingsHandler.name);
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
 
@@ -28,7 +25,7 @@ export class GetExternalSquadSettingsHandler
     ): Promise<
         ICommandResponse<Pick<
             ExternalSquadEntity,
-            'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+            'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
         > | null>
     > {
         try {

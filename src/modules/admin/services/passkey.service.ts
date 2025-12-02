@@ -19,10 +19,10 @@ import { GetCachedRemnawaveSettingsQuery } from '@modules/remnawave-settings/que
 import { IJWTAuthPayload } from '@modules/auth/interfaces';
 import { PasskeyEntity } from '@modules/admin/entities';
 
+import { UpdatePasskeyRequestDto, VerifyPasskeyRegistrationRequestDto } from '../dtos';
 import { GetActivePasskeysResponseModel } from '../models/get-active-passkeys.model';
 import { PasskeyRepository } from '../repositories/passkey.repository';
 import { AdminRepository } from '../repositories/admin.repository';
-import { VerifyPasskeyRegistrationRequestDto } from '../dtos';
 
 const RP_NAME = 'Remnawave';
 
@@ -307,6 +307,43 @@ export class PasskeyService {
             return {
                 isOk: false,
                 ...ERRORS.DELETE_PASSKEY_ERROR,
+            };
+        }
+    }
+
+    public async updatePasskey(
+        jwtPayload: IJWTAuthPayload,
+        dto: UpdatePasskeyRequestDto,
+    ): Promise<ICommandResponse<GetActivePasskeysResponseModel>> {
+        try {
+            const { uuid } = jwtPayload;
+
+            if (!uuid) {
+                return {
+                    isOk: false,
+                    ...ERRORS.FORBIDDEN,
+                };
+            }
+            const passkey = await this.passkeyRepository.findByUUID(dto.id);
+
+            if (!passkey) {
+                return {
+                    isOk: false,
+                    ...ERRORS.PASSKEY_NOT_FOUND,
+                };
+            }
+
+            await this.passkeyRepository.update({
+                id: passkey.id,
+                passkeyProvider: dto.name,
+            });
+
+            return await this.getActivePasskeys(jwtPayload);
+        } catch (error) {
+            this.logger.error(`Update passkey error: ${error}`);
+            return {
+                isOk: false,
+                ...ERRORS.UPDATE_PASSKEY_ERROR,
             };
         }
     }

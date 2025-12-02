@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CustomRemarksSchema } from './subscription-settings/custom-remarks.schema';
+import { HwidSettingsSchema } from './subscription-settings/hwid-settings.schema';
 import { ResponseRulesConfigSchema } from './response-rules';
 
 export const SubscriptionSettingsSchema = z.object({
@@ -14,21 +16,20 @@ export const SubscriptionSettingsSchema = z.object({
 
     isProfileWebpageUrlEnabled: z.boolean(),
     serveJsonAtBaseSubscription: z.boolean(),
-    addUsernameToBaseSubscription: z.boolean(),
+
     isShowCustomRemarks: z.boolean(),
+    customRemarks: CustomRemarksSchema,
 
     happAnnounce: z.string().nullable(),
     happRouting: z.string().nullable(),
-
-    expiredUsersRemarks: z.array(z.string()),
-    limitedUsersRemarks: z.array(z.string()),
-    disabledUsersRemarks: z.array(z.string()),
 
     customResponseHeaders: z.nullable(z.record(z.string(), z.string())),
 
     randomizeHosts: z.boolean(),
 
     responseRules: z.nullable(ResponseRulesConfigSchema),
+
+    hwidSettings: z.nullable(HwidSettingsSchema),
 
     createdAt: z
         .string()

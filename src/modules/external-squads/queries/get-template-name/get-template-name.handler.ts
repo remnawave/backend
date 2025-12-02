@@ -9,9 +9,10 @@ import { ExternalSquadRepository } from '@modules/external-squads/repositories/e
 import { GetTemplateNameQuery } from './get-template-name.query';
 
 @QueryHandler(GetTemplateNameQuery)
-export class GetTemplateNameHandler
-    implements IQueryHandler<GetTemplateNameQuery, ICommandResponse<string | null>>
-{
+export class GetTemplateNameHandler implements IQueryHandler<
+    GetTemplateNameQuery,
+    ICommandResponse<string | null>
+> {
     private readonly logger = new Logger(GetTemplateNameHandler.name);
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
 

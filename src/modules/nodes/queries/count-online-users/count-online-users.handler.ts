@@ -8,9 +8,10 @@ import { NodesRepository } from '../../repositories/nodes.repository';
 import { CountOnlineUsersQuery } from './count-online-users.query';
 
 @QueryHandler(CountOnlineUsersQuery)
-export class CountOnlineUsersHandler
-    implements IQueryHandler<CountOnlineUsersQuery, ICommandResponse<{ usersOnline: number }>>
-{
+export class CountOnlineUsersHandler implements IQueryHandler<
+    CountOnlineUsersQuery,
+    ICommandResponse<{ usersOnline: number }>
+> {
     private readonly logger = new Logger(CountOnlineUsersHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 

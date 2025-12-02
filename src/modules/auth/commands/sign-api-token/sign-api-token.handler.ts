@@ -8,9 +8,10 @@ import { SignApiTokenCommand } from './sign-api-token.command';
 import { IJWTAuthPayload } from '../../interfaces';
 
 @CommandHandler(SignApiTokenCommand)
-export class SignApiTokenHandler
-    implements ICommandHandler<SignApiTokenCommand, ICommandResponse<string>>
-{
+export class SignApiTokenHandler implements ICommandHandler<
+    SignApiTokenCommand,
+    ICommandResponse<string>
+> {
     constructor(private readonly jwtService: JwtService) {}
 
     async execute(command: SignApiTokenCommand): Promise<ICommandResponse<string>> {

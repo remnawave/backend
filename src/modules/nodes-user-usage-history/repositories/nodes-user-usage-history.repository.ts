@@ -17,9 +17,7 @@ import { NodesUserUsageHistoryConverter } from '../nodes-user-usage-history.conv
 import { IGetNodesRealtimeUsage, IGetNodeUserUsageByRange } from '../interfaces';
 
 @Injectable()
-export class NodesUserUsageHistoryRepository
-    implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity>
-{
+export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: NodesUserUsageHistoryConverter,
@@ -29,35 +27,6 @@ export class NodesUserUsageHistoryRepository
         const model = this.converter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.nodesUserUsageHistory.create({
             data: model,
-        });
-
-        return this.converter.fromPrismaModelToEntity(result);
-    }
-
-    public async upsertUsageHistory(
-        entity: NodesUserUsageHistoryEntity,
-    ): Promise<NodesUserUsageHistoryEntity> {
-        const model = this.converter.fromEntityToPrismaModel(entity);
-        const result = await this.prisma.tx.nodesUserUsageHistory.upsert({
-            create: model,
-            update: {
-                downloadBytes: {
-                    increment: model.downloadBytes,
-                },
-                uploadBytes: {
-                    increment: model.uploadBytes,
-                },
-                totalBytes: {
-                    increment: model.totalBytes,
-                },
-            },
-            where: {
-                nodeUuid_userUuid_createdAt: {
-                    nodeUuid: entity.nodeUuid,
-                    userUuid: entity.userUuid,
-                    createdAt: entity.createdAt,
-                },
-            },
         });
 
         return this.converter.fromPrismaModelToEntity(result);
@@ -75,12 +44,8 @@ export class NodesUserUsageHistoryRepository
     public async bulkUpsertUsageHistory(
         userUsageHistoryList: NodesUserUsageHistoryEntity[],
     ): Promise<void> {
-        const chunkSize = 4000;
-        for (let i = 0; i < userUsageHistoryList.length; i += chunkSize) {
-            const chunk = userUsageHistoryList.slice(i, i + chunkSize);
-            const { query } = new BulkUpsertHistoryEntryBuilder(chunk);
-            await this.prisma.tx.$executeRaw<void>(query);
-        }
+        const { query } = new BulkUpsertHistoryEntryBuilder(userUsageHistoryList);
+        await this.prisma.tx.$executeRaw<void>(query);
     }
 
     public async getUserUsageByRange(
@@ -88,7 +53,16 @@ export class NodesUserUsageHistoryRepository
         start: Date,
         end: Date,
     ): Promise<IGetUserUsageByRange[]> {
-        const { query } = new GetUserUsageByRangeBuilder(userUuid, start, end);
+        const userId = await this.prisma.tx.users.findFirstOrThrow({
+            select: {
+                tId: true,
+            },
+            where: {
+                uuid: userUuid,
+            },
+        });
+
+        const { query } = new GetUserUsageByRangeBuilder(userId.tId, start, end);
         const result = await this.prisma.tx.$queryRaw<IGetUserUsageByRange[]>(query);
         return result;
     }
@@ -98,7 +72,16 @@ export class NodesUserUsageHistoryRepository
         start: Date,
         end: Date,
     ): Promise<IGetNodeUserUsageByRange[]> {
-        const { query } = new GetNodeUsersUsageByRangeBuilder(nodeUuid, start, end);
+        const nodeId = await this.prisma.tx.nodes.findFirstOrThrow({
+            select: {
+                id: true,
+                uuid: true,
+            },
+            where: {
+                uuid: nodeUuid,
+            },
+        });
+        const { query } = new GetNodeUsersUsageByRangeBuilder(nodeId.id, start, end);
         const result = await this.prisma.tx.$queryRaw<IGetNodeUserUsageByRange[]>(query);
         return result;
     }

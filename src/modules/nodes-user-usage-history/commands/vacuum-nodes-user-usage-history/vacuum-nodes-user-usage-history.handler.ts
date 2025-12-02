@@ -9,9 +9,10 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { VacuumNodesUserUsageHistoryCommand } from './vacuum-nodes-user-usage-history.command';
 
 @CommandHandler(VacuumNodesUserUsageHistoryCommand)
-export class VacuumNodesUserUsageHistoryHandler
-    implements ICommandHandler<VacuumNodesUserUsageHistoryCommand, ICommandResponse<void>>
-{
+export class VacuumNodesUserUsageHistoryHandler implements ICommandHandler<
+    VacuumNodesUserUsageHistoryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(VacuumNodesUserUsageHistoryHandler.name);
 
     constructor(

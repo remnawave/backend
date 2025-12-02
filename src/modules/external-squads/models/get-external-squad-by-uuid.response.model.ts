@@ -4,6 +4,8 @@ import {
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
     ExternalSquadSubscriptionSettingsSchema,
+    TCustomRemarks,
+    THwidSettings,
 } from '@libs/contracts/models';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
@@ -11,6 +13,7 @@ import { ExternalSquadWithInfoEntity } from '../entities/external-squad-with-inf
 
 export class GetExternalSquadByUuidResponseModel {
     public readonly uuid: string;
+    public readonly viewPosition: number;
     public readonly name: string;
     public readonly info: {
         membersCount: number;
@@ -29,11 +32,15 @@ export class GetExternalSquadByUuidResponseModel {
 
     public readonly responseHeaders: z.infer<typeof ExternalSquadResponseHeadersSchema> | null;
 
+    public readonly hwidSettings: THwidSettings | null;
+    public readonly customRemarks: TCustomRemarks | null;
+
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
 
     constructor(entity: ExternalSquadWithInfoEntity) {
         this.uuid = entity.uuid;
+        this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         this.info = {
             membersCount: Number(entity.membersCount),
@@ -48,6 +55,9 @@ export class GetExternalSquadByUuidResponseModel {
 
         this.hostOverrides = entity.hostOverrides;
         this.responseHeaders = entity.responseHeaders;
+
+        this.hwidSettings = entity.hwidSettings;
+        this.customRemarks = entity.customRemarks;
 
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;

@@ -1,4 +1,5 @@
-import { createKeyv, type RedisClientOptions } from '@keyv/redis';
+import { RedisModule, RedisModuleOptions } from '@songkeys/nestjs-redis';
+import { createKeyv } from '@keyv/redis';
 import { ClsModule } from 'nestjs-cls';
 
 import { QueueModule } from 'src/queue/queue.module';
@@ -50,6 +51,22 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
             delimiter: '.',
         }),
 
+        RedisModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => {
+                return {
+                    config: {
+                        host: configService.getOrThrow<string>('REDIS_HOST'),
+                        port: configService.getOrThrow<number>('REDIS_PORT'),
+                        db: configService.getOrThrow<number>('REDIS_DB'),
+                        password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                        keyPrefix: 'ioraw:',
+                    },
+                };
+            },
+            inject: [ConfigService],
+        }),
+
         RemnawaveModules,
         QueueModule,
         MessagingModules,
@@ -66,11 +83,9 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 
                 // node-redis does NOT support redis+unix:// URL scheme (see Issue #2530)
                 // For Unix socket connections, use socket.path object instead of URL
-                const redisOptions = (
-                    socketPath
-                        ? { socket: { path: socketPath }, database, password }
-                        : { url: `redis://${host}:${port}`, database, password }
-                ) as RedisClientOptions;
+                const redisOptions = socketPath
+                    ? { socket: { path: socketPath }, database, password }
+                    : { url: `redis://${host}:${port}`, database, password };
 
                 return {
                     stores: [
@@ -87,14 +102,6 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 })
 export class ProcessorsRootModule implements OnApplicationShutdown {
     private readonly logger = new Logger(ProcessorsRootModule.name);
-
-    // async onModuleInit(): Promise<void> {
-    //     segfaultHandler.registerHandler();
-
-    //     this.logger.log('Segfault handler');
-
-    //     // segfaultHandler.segfault();
-    // }
 
     async onApplicationShutdown(signal?: string): Promise<void> {
         this.logger.log(`${signal} signal received, shutting down...`);

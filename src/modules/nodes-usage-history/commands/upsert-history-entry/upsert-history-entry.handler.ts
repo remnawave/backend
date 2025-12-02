@@ -1,7 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -10,14 +9,14 @@ import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-hist
 import { UpsertHistoryEntryCommand } from './upsert-history-entry.command';
 
 @CommandHandler(UpsertHistoryEntryCommand)
-export class UpsertHistoryEntryHandler
-    implements ICommandHandler<UpsertHistoryEntryCommand, ICommandResponse<void>>
-{
+export class UpsertHistoryEntryHandler implements ICommandHandler<
+    UpsertHistoryEntryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(UpsertHistoryEntryHandler.name);
 
     constructor(private readonly nodesUsageHistoryRepository: NodesUsageHistoryRepository) {}
 
-    @Transactional()
     async execute(command: UpsertHistoryEntryCommand): Promise<ICommandResponse<void>> {
         try {
             command.nodeUsageHistory.createdAt.setMinutes(0, 0, 0);

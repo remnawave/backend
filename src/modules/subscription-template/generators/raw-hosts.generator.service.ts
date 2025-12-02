@@ -19,18 +19,7 @@ export class RawHostsGeneratorService {
 
                 const rawHost: IRawHost = {
                     ...host,
-                    flow: 'xtls-rprx-vision',
                 };
-
-                if (
-                    !(
-                        ['reality', 'tls'].includes(host.tls) &&
-                        ['raw', 'tcp'].includes(host.network) &&
-                        host.headerType !== 'http'
-                    )
-                ) {
-                    rawHost.flow = undefined;
-                }
 
                 if (host.protocol === 'shadowsocks') {
                     rawHost.protocolOptions = {

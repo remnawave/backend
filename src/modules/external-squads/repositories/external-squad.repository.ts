@@ -61,39 +61,41 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         return this.externalSquadConverter.fromPrismaModelToEntity(result);
     }
 
-    public async findByCriteria(dto: Partial<ExternalSquadEntity>): Promise<ExternalSquadEntity[]> {
-        const {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            subscriptionSettings: _subscriptionSettings,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hostOverrides: _hostOverrides,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            responseHeaders: _responseHeaders,
-            ...rest
-        } = dto;
+    public async findByCriteria(
+        dto: Partial<
+            Omit<
+                ExternalSquadEntity,
+                | 'customRemarks'
+                | 'subscriptionSettings'
+                | 'hostOverrides'
+                | 'responseHeaders'
+                | 'hwidSettings'
+            >
+        >,
+    ): Promise<ExternalSquadEntity[]> {
         const externalSquadList = await this.prisma.tx.externalSquads.findMany({
             where: {
-                ...rest,
+                ...dto,
             },
         });
         return this.externalSquadConverter.fromPrismaModelsToEntities(externalSquadList);
     }
 
     public async findFirstByCriteria(
-        dto: Partial<ExternalSquadEntity>,
+        dto: Partial<
+            Omit<
+                ExternalSquadEntity,
+                | 'customRemarks'
+                | 'subscriptionSettings'
+                | 'hostOverrides'
+                | 'responseHeaders'
+                | 'hwidSettings'
+            >
+        >,
     ): Promise<ExternalSquadEntity | null> {
-        const {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            subscriptionSettings: _subscriptionSettings,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            hostOverrides: _hostOverrides,
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            responseHeaders: _responseHeaders,
-            ...rest
-        } = dto;
         const result = await this.prisma.tx.externalSquads.findFirst({
             where: {
-                ...rest,
+                ...dto,
             },
         });
 
@@ -114,10 +116,13 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .selectFrom('externalSquads')
             .select((eb) => [
                 'externalSquads.uuid',
+                'externalSquads.viewPosition',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeaders',
+                'externalSquads.hwidSettings',
+                'externalSquads.customRemarks',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -134,7 +139,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                         .select(['est.templateType', 'est.templateUuid']),
                 ).as('templates'),
             ])
-            .orderBy('externalSquads.createdAt', 'asc')
+            .orderBy('externalSquads.viewPosition', 'asc')
             .execute();
 
         return result.map((item) => new ExternalSquadWithInfoEntity(item));
@@ -146,10 +151,13 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .where('externalSquads.uuid', '=', getKyselyUuid(uuid))
             .select((eb) => [
                 'externalSquads.uuid',
+                'externalSquads.viewPosition',
                 'externalSquads.name',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeaders',
+                'externalSquads.hwidSettings',
+                'externalSquads.customRemarks',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -274,7 +282,11 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         externalSquadUuid: string,
     ): Promise<Pick<
         ExternalSquadEntity,
-        'subscriptionSettings' | 'hostOverrides' | 'responseHeaders'
+        | 'subscriptionSettings'
+        | 'hostOverrides'
+        | 'responseHeaders'
+        | 'hwidSettings'
+        | 'customRemarks'
     > | null> {
         const result = await this.prisma.tx.externalSquads.findUnique({
             where: { uuid: externalSquadUuid },
@@ -282,6 +294,8 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 subscriptionSettings: true,
                 hostOverrides: true,
                 responseHeaders: true,
+                hwidSettings: true,
+                customRemarks: true,
             },
         });
 
@@ -290,5 +304,26 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         }
 
         return new ExternalSquadEntity(result);
+    }
+
+    public async reorderMany(
+        dto: {
+            uuid: string;
+            viewPosition: number;
+        }[],
+    ): Promise<boolean> {
+        await this.prisma.withTransaction(async () => {
+            for (const { uuid, viewPosition } of dto) {
+                await this.prisma.tx.externalSquads.updateMany({
+                    where: { uuid },
+                    data: { viewPosition },
+                });
+            }
+        });
+
+        await this.prisma.tx
+            .$executeRaw`SELECT setval('external_squads_view_position_seq', (SELECT MAX(view_position) FROM external_squads) + 1)`;
+
+        return true;
     }
 }

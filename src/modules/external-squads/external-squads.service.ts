@@ -1,13 +1,16 @@
+import type { Cache } from 'cache-manager';
+
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { ICommandResponse } from '@common/types/command-response.type';
-import { TSubscriptionTemplateType } from '@libs/contracts/constants';
+import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { ExternalSquadActionsQueueService } from '@queue/external-squad-actions';
+import { SquadsQueueService } from '@queue/_squads';
 
 import {
     DeleteExternalSquadByUuidResponseModel,
@@ -15,8 +18,8 @@ import {
 } from './models';
 import { GetExternalSquadByUuidResponseModel } from './models/get-external-squad-by-uuid.response.model';
 import { GetExternalSquadsResponseModel } from './models/get-external-squads.response.model';
+import { ReorderExternalSquadsRequestDto, UpdateExternalSquadRequestDto } from './dtos';
 import { ExternalSquadRepository } from './repositories/external-squad.repository';
-import { UpdateExternalSquadRequestDto } from './dtos';
 import { ExternalSquadEntity } from './entities';
 
 @Injectable()
@@ -25,7 +28,8 @@ export class ExternalSquadService {
 
     constructor(
         private readonly externalSquadRepository: ExternalSquadRepository,
-        private readonly externalSquadActionsQueueService: ExternalSquadActionsQueueService,
+        private readonly squadsQueueService: SquadsQueueService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
     public async getExternalSquads(): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
@@ -71,7 +75,6 @@ export class ExternalSquadService {
         }
     }
 
-    @Transactional()
     public async createExternalSquad(
         name: string,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
@@ -107,7 +110,16 @@ export class ExternalSquadService {
     public async updateExternalSquad(
         dto: UpdateExternalSquadRequestDto,
     ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
-        const { uuid, name, templates, subscriptionSettings, hostOverrides, responseHeaders } = dto;
+        const {
+            uuid,
+            name,
+            templates,
+            subscriptionSettings,
+            hostOverrides,
+            responseHeaders,
+            hwidSettings,
+            customRemarks,
+        } = dto;
 
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
@@ -124,7 +136,9 @@ export class ExternalSquadService {
                 !templates &&
                 !subscriptionSettings &&
                 !hostOverrides &&
-                !responseHeaders
+                !responseHeaders &&
+                hwidSettings === undefined &&
+                customRemarks === undefined
             ) {
                 return {
                     isOk: false,
@@ -132,19 +146,21 @@ export class ExternalSquadService {
                 };
             }
 
-            if (name || subscriptionSettings || hostOverrides || responseHeaders) {
-                await this.externalSquadRepository.update({
-                    uuid,
-                    name: name || undefined,
-                    subscriptionSettings: subscriptionSettings || undefined,
-                    hostOverrides: hostOverrides || undefined,
-                    responseHeaders: responseHeaders || undefined,
-                });
-            }
+            await this.externalSquadRepository.update({
+                uuid,
+                name: name || undefined,
+                subscriptionSettings: subscriptionSettings || undefined,
+                hostOverrides: hostOverrides || undefined,
+                responseHeaders: responseHeaders || undefined,
+                hwidSettings: hwidSettings,
+                customRemarks: customRemarks,
+            });
 
             if (templates !== undefined) {
                 await this.syncExternalSquadTemplates(externalSquad, templates);
             }
+
+            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
 
             return await this.getExternalSquadByUuid(externalSquad.uuid);
         } catch (error) {
@@ -204,6 +220,8 @@ export class ExternalSquadService {
                 };
             }
 
+            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
+
             const deleted = await this.externalSquadRepository.deleteByUUID(uuid);
 
             return {
@@ -232,7 +250,7 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadActionsQueueService.addUsersToExternalSquad({
+            await this.squadsQueueService.addUsersToExternalSquad({
                 externalSquadUuid: uuid,
             });
 
@@ -262,7 +280,7 @@ export class ExternalSquadService {
                 };
             }
 
-            await this.externalSquadActionsQueueService.removeUsersFromExternalSquad({
+            await this.squadsQueueService.removeUsersFromExternalSquad({
                 externalSquadUuid: uuid,
             });
 
@@ -276,6 +294,19 @@ export class ExternalSquadService {
                 isOk: false,
                 ...ERRORS.REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR,
             };
+        }
+    }
+
+    public async reorderExternalSquads(
+        dto: ReorderExternalSquadsRequestDto,
+    ): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
+        try {
+            await this.externalSquadRepository.reorderMany(dto.items);
+
+            return await this.getExternalSquads();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 }

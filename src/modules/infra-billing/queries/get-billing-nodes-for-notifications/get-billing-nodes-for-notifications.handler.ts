@@ -10,13 +10,10 @@ import { InfraBillingNodeRepository } from '@modules/infra-billing/repositories'
 import { GetBillingNodesForNotificationsQuery } from './get-billing-nodes-for-notifications.query';
 
 @QueryHandler(GetBillingNodesForNotificationsQuery)
-export class GetBillingNodesForNotificationsHandler
-    implements
-        IQueryHandler<
-            GetBillingNodesForNotificationsQuery,
-            ICommandResponse<InfraBillingNodeNotificationEntity[]>
-        >
-{
+export class GetBillingNodesForNotificationsHandler implements IQueryHandler<
+    GetBillingNodesForNotificationsQuery,
+    ICommandResponse<InfraBillingNodeNotificationEntity[]>
+> {
     private readonly logger = new Logger(GetBillingNodesForNotificationsHandler.name);
     constructor(private readonly infraBillingNodeRepository: InfraBillingNodeRepository) {}
 

@@ -32,8 +32,14 @@ export class HostsEntity implements Hosts {
     configProfileUuid: string | null;
     configProfileInboundUuid: string | null;
 
+    xrayJsonTemplateUuid: string | null;
+
     nodes: {
         nodeUuid: string;
+    }[];
+
+    excludedInternalSquads: {
+        squadUuid: string;
     }[];
 
     constructor(data: Partial<Hosts>) {

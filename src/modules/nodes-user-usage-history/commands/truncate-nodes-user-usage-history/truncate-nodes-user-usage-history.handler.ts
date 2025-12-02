@@ -9,9 +9,10 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { TruncateNodesUserUsageHistoryCommand } from './truncate-nodes-user-usage-history.command';
 
 @CommandHandler(TruncateNodesUserUsageHistoryCommand)
-export class TruncateNodesUserUsageHistoryHandler
-    implements ICommandHandler<TruncateNodesUserUsageHistoryCommand, ICommandResponse<void>>
-{
+export class TruncateNodesUserUsageHistoryHandler implements ICommandHandler<
+    TruncateNodesUserUsageHistoryCommand,
+    ICommandResponse<void>
+> {
     public readonly logger = new Logger(TruncateNodesUserUsageHistoryHandler.name);
 
     constructor(

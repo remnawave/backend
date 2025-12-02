@@ -9,10 +9,12 @@ import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
 import {
+    BulkAllExtendExpirationDateCommand,
     BulkAllResetTrafficUsersCommand,
     BulkAllUpdateUsersCommand,
     BulkDeleteUsersByStatusCommand,
     BulkDeleteUsersCommand,
+    BulkExtendExpirationDateCommand,
     BulkResetTrafficUsersCommand,
     BulkRevokeUsersSubscriptionCommand,
     BulkUpdateUsersCommand,
@@ -37,6 +39,10 @@ import {
     BulkUpdateUsersSquadsResponseDto,
     BulkUpdateUsersRequestDto,
     BulkUpdateUsersResponseDto,
+    BulkAllExtendExpirationDateResponseDto,
+    BulkAllExtendExpirationDateRequestDto,
+    BulkExtendExpirationDateResponseDto,
+    BulkExtendExpirationDateRequestDto,
 } from '../dtos';
 import { UsersService } from '../users.service';
 
@@ -179,6 +185,33 @@ export class UsersBulkActionsController {
     }
 
     @ApiOkResponse({
+        type: BulkExtendExpirationDateResponseDto,
+        description: 'Users expiration date extended successfully',
+    })
+    @ApiOperation({
+        summary: 'Bulk Extend Users Expiration Date',
+        description: 'Bulk extend all users expiration date',
+    })
+    @Endpoint({
+        command: BulkExtendExpirationDateCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkExtendExpirationDateRequestDto,
+    })
+    async bulkExtendExpirationDate(
+        @Body() body: BulkExtendExpirationDateRequestDto,
+    ): Promise<BulkExtendExpirationDateResponseDto> {
+        const result = await this.usersService.bulkExtendExpirationDate({
+            uuids: body.uuids,
+            extendDays: body.extendDays,
+        });
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
         type: BulkAllUpdateUsersResponseDto,
         description: 'All users updated successfully',
     })
@@ -212,6 +245,30 @@ export class UsersBulkActionsController {
     })
     async bulkAllResetUserTraffic(): Promise<BulkAllResetTrafficUsersResponseDto> {
         const result = await this.usersService.bulkAllResetUserTraffic();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: BulkAllExtendExpirationDateResponseDto,
+        description: 'All users expiration date extended successfully',
+    })
+    @ApiOperation({
+        summary: 'Bulk Extend All Users Expiration Date',
+        description: 'Bulk extend all users expiration date',
+    })
+    @Endpoint({
+        command: BulkAllExtendExpirationDateCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkAllExtendExpirationDateRequestDto,
+    })
+    async bulkAllExtendExpirationDate(
+        @Body() body: BulkAllExtendExpirationDateRequestDto,
+    ): Promise<BulkAllExtendExpirationDateResponseDto> {
+        const result = await this.usersService.bulkAllExtendExpirationDate(body.extendDays);
 
         const data = errorHandler(result);
         return {

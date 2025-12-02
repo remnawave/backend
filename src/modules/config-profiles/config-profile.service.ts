@@ -9,8 +9,7 @@ import { ICommandResponse } from '@common/types/command-response.type';
 import { XRayConfig } from '@common/helpers/xray-config';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { StartAllNodesByProfileQueueService } from '@queue/start-all-nodes-by-profile';
-import { StopNodeQueueService } from '@queue/stop-node';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { GetConfigProfileByUuidResponseModel } from './models/get-config-profile-by-uuid.response.model';
 import { DeleteConfigProfileByUuidResponseModel, GetAllInboundsResponseModel } from './models';
@@ -20,6 +19,7 @@ import { ConfigProfileRepository } from './repositories/config-profile.repositor
 import { ConfigProfileEntity } from './entities/config-profile.entity';
 import { ConfigProfileWithInboundsAndNodesEntity } from './entities';
 import { GetSnippetsQuery } from './queries/get-snippets';
+import { ReorderConfigProfilesRequestDto } from './dtos';
 
 @Injectable()
 export class ConfigProfileService {
@@ -27,8 +27,7 @@ export class ConfigProfileService {
 
     constructor(
         private readonly configProfileRepository: ConfigProfileRepository,
-        private readonly startAllNodesByProfileQueueService: StartAllNodesByProfileQueueService,
-        private readonly stopNodeQueueService: StopNodeQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
     ) {}
 
@@ -144,7 +143,7 @@ export class ConfigProfileService {
             }
 
             for (const node of configProfile.nodes) {
-                await this.stopNodeQueueService.stopNode({
+                await this.nodesQueuesService.stopNode({
                     nodeUuid: node.uuid,
                     isNeedToBeDeleted: false,
                 });
@@ -165,7 +164,6 @@ export class ConfigProfileService {
         }
     }
 
-    @Transactional()
     public async createConfigProfile(
         name: string,
         config: object,
@@ -188,12 +186,9 @@ export class ConfigProfileService {
 
             const inbounds = validatedConfig.getAllInbounds();
 
-            const configProfile = await this.configProfileRepository.create(profileEntity);
-
             const inboundsEntities = inbounds.map(
                 (inbound) =>
                     new ConfigProfileInboundEntity({
-                        profileUuid: configProfile.uuid,
                         tag: inbound.tag,
                         type: inbound.type,
                         network: inbound.network,
@@ -203,13 +198,12 @@ export class ConfigProfileService {
                     }),
             );
 
-            if (inboundsEntities.length) {
-                await this.configProfileRepository.createManyConfigProfileInbounds(
-                    inboundsEntities,
-                );
-            }
+            const { uuid } = await this.configProfileRepository.create(
+                profileEntity,
+                inboundsEntities,
+            );
 
-            return this.getConfigProfileByUUID(configProfile.uuid);
+            return await this.getConfigProfileByUUID(uuid);
         } catch (error) {
             if (
                 error instanceof PrismaClientKnownRequestError &&
@@ -263,7 +257,7 @@ export class ConfigProfileService {
                 // No need for now
                 // await this.commandBus.execute(new SyncActiveProfileCommand());
 
-                await this.startAllNodesByProfileQueueService.startAllNodesByProfile({
+                await this.nodesQueuesService.startAllNodesByProfile({
                     profileUuid: existingConfigProfile.uuid,
                     emitter: 'updateConfigProfile',
                 });
@@ -395,6 +389,19 @@ export class ConfigProfileService {
                 isOk: false,
                 ...ERRORS.GET_ALL_INBOUNDS_ERROR,
             };
+        }
+    }
+
+    public async reorderConfigProfiles(
+        dto: ReorderConfigProfilesRequestDto,
+    ): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
+        try {
+            await this.configProfileRepository.reorderMany(dto.items);
+
+            return await this.getConfigProfiles();
+        } catch (error) {
+            this.logger.error(error);
+            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
         }
     }
 

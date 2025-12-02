@@ -2,6 +2,7 @@ import { InternalSquads } from '@prisma/client';
 
 export class InternalSquadEntity implements InternalSquads {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
 
     public createdAt: Date;

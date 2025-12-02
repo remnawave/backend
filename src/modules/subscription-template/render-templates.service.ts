@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 
+import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
+import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { XrayJsonGeneratorService } from './generators/xray-json.generator.service';
@@ -36,6 +38,7 @@ export class RenderTemplatesService {
         const { srrContext, user, hosts, hostsOverrides } = params;
 
         const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+            subscriptionSettings: srrContext.subscriptionSettings,
             hosts,
             user,
             hostsOverrides,
@@ -123,14 +126,18 @@ export class RenderTemplatesService {
     public async generateRawSubscription(params: {
         user: UserEntity;
         hosts: HostWithRawInbound[];
+        hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
+        subscriptionSettings: SubscriptionSettingsEntity;
     }): Promise<{
         rawHosts: IRawHost[];
     }> {
-        const { user, hosts } = params;
+        const { user, hosts, hostsOverrides, subscriptionSettings } = params;
 
         const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+            subscriptionSettings,
             hosts,
             user,
+            hostsOverrides,
             returnDbHost: true,
         });
 
@@ -142,6 +149,7 @@ export class RenderTemplatesService {
     }
 
     public async generateOutlineSubscription(
+        subscriptionSettings: SubscriptionSettingsEntity | null,
         encodedTag: string,
         user: UserEntity,
         hosts: HostWithRawInbound[],
@@ -150,6 +158,7 @@ export class RenderTemplatesService {
         subscription: string;
     }> {
         const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+            subscriptionSettings,
             hosts,
             user,
         });

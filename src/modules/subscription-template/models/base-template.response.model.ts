@@ -4,6 +4,7 @@ import { SubscriptionTemplateEntity } from '../entities/subscription-template.en
 
 export class BaseTemplateResponseModel {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
     public templateType: TSubscriptionTemplateType;
     public templateJson: object | null;
@@ -11,6 +12,7 @@ export class BaseTemplateResponseModel {
 
     constructor(entity: SubscriptionTemplateEntity) {
         this.uuid = entity.uuid;
+        this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         this.templateType = entity.templateType;
         this.templateJson = entity.templateJson;

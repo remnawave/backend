@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 
-import { UserJobsQueueService } from '@queue/user-jobs';
+import { UsersQueuesService } from '@queue/_users';
 
 import { JOBS_INTERVALS } from '../../../intervals';
 
@@ -12,7 +12,7 @@ export class FindUsersForThresholdNotificationTask implements OnApplicationBoots
     private readonly logger = new Logger(FindUsersForThresholdNotificationTask.name);
 
     constructor(
-        private readonly userJobsQueueService: UserJobsQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
         private readonly configService: ConfigService,
         private schedulerRegistry: SchedulerRegistry,
     ) {}
@@ -62,7 +62,7 @@ export class FindUsersForThresholdNotificationTask implements OnApplicationBoots
     })
     async handleCron() {
         try {
-            await this.userJobsQueueService.findUsersForThresholdNotification();
+            await this.usersQueuesService.findUsersForThresholdNotification();
         } catch (error) {
             this.logger.error(`Error in FindUsersForThresholdNotificationTask: ${error}`);
         }

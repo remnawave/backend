@@ -1,7 +1,6 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -11,20 +10,16 @@ import { NodesRepository } from '@modules/nodes/repositories/nodes.repository';
 import { SyncActiveProfileCommand } from './sync-active-profile.command';
 
 @CommandHandler(SyncActiveProfileCommand)
-export class SyncActiveProfileHandler
-    implements
-        ICommandHandler<
-            SyncActiveProfileCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class SyncActiveProfileHandler implements ICommandHandler<
+    SyncActiveProfileCommand,
+    ICommandResponse<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(SyncActiveProfileHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    @Transactional()
     async execute(): Promise<
         ICommandResponse<{
             affectedRows: number;

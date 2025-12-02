@@ -12,6 +12,7 @@ const modelToEntity = (model: Nodes): NodesEntity => {
 
 const entityToModel = (entity: NodesEntity): Nodes => {
     return {
+        id: entity.id,
         uuid: entity.uuid,
         name: entity.name,
         address: entity.address,
@@ -19,8 +20,6 @@ const entityToModel = (entity: NodesEntity): Nodes => {
         isConnected: entity.isConnected,
         isConnecting: entity.isConnecting,
         isDisabled: entity.isDisabled,
-        isNodeOnline: entity.isNodeOnline,
-        isXrayRunning: entity.isXrayRunning,
         lastStatusChange: entity.lastStatusChange,
         lastStatusMessage: entity.lastStatusMessage,
         xrayVersion: entity.xrayVersion,
@@ -40,6 +39,7 @@ const entityToModel = (entity: NodesEntity): Nodes => {
         viewPosition: entity.viewPosition,
         countryCode: entity.countryCode,
         consumptionMultiplier: entity.consumptionMultiplier,
+        tags: entity.tags,
 
         activeConfigProfileUuid: entity.activeConfigProfileUuid,
         providerUuid: entity.providerUuid,

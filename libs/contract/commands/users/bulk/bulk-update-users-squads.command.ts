@@ -14,7 +14,10 @@ export namespace BulkUpdateUsersSquadsCommand {
     );
 
     export const RequestSchema = z.object({
-        uuids: z.array(z.string().uuid()),
+        uuids: z
+            .array(z.string().uuid())
+            .min(1, 'Must be at least 1 user UUID')
+            .max(500, 'Maximum 500 user UUIDs'),
         activeInternalSquads: z.array(z.string().uuid(), {
             invalid_type_error: 'Enabled internal squads must be an array of UUIDs',
         }),

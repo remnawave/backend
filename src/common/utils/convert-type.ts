@@ -1,4 +1,4 @@
-export function wrapBigInt(value: number | bigint | undefined): bigint | undefined {
+export function wrapBigInt(value: number | bigint | string | undefined): bigint | undefined {
     if (value === undefined) {
         return value;
     }

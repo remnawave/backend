@@ -23,24 +23,24 @@ import {
     ReorderHostCommand,
     UpdateHostCommand,
 } from '@libs/contracts/commands';
-import { HOSTS_CONTROLLER } from '@libs/contracts/api/controllers';
-import { CONTROLLERS_INFO } from '@libs/contracts/api';
+import { CONTROLLERS_INFO, HOSTS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
-import { ReorderHostRequestDto, ReorderHostResponseDto } from '../dtos/reorder-hosts.dto';
-import { CreateHostRequestDto, CreateHostResponseDto } from '../dtos/create-host.dto';
-import { DeleteHostRequestDto, DeleteHostResponseDto } from '../dtos/delete-host.dto';
-import { GetAllHostTagsResponseModel } from '../models/get-all-tags.response.model';
-import { GetAllHostsResponseModel } from '../models/get-all-hosts.response.model';
-import { GetOneHostResponseModel } from '../models/get-one-host.response.model';
-import { CreateHostResponseModel } from '../models/create-host.response.model';
-import { UpdateHostResponseModel } from '../models/update-host.response.model';
-import { GetAllHostTagsResponseDto } from '../dtos/get-all-host-tags.dto';
-import { GetAllHostsResponseDto } from '../dtos/get-all-hosts.dto';
-import { UpdateHostResponseDto } from '../dtos/update-host.dto';
-import { UpdateHostRequestDto } from '../dtos/update-host.dto';
-import { GetOneHostResponseDto } from '../dtos/get-one.dto';
-import { GetOneHostRequestDto } from '../dtos/get-one.dto';
+import {
+    ReorderHostRequestDto,
+    ReorderHostResponseDto,
+    GetAllHostTagsResponseDto,
+    CreateHostResponseDto,
+    CreateHostRequestDto,
+    DeleteHostRequestDto,
+    DeleteHostResponseDto,
+    GetAllHostsResponseDto,
+    UpdateHostResponseDto,
+    UpdateHostRequestDto,
+    GetOneHostResponseDto,
+    GetOneHostRequestDto,
+} from '../dtos';
+import { GetAllHostTagsResponseModel, HostResponseModel } from '../models';
 import { HostsService } from '../hosts.service';
 
 @ApiBearerAuth('Authorization')
@@ -83,7 +83,7 @@ export class HostsController {
 
         const data = errorHandler(result);
         return {
-            response: new CreateHostResponseModel(data),
+            response: new HostResponseModel(data),
         };
     }
 
@@ -101,7 +101,7 @@ export class HostsController {
 
         const data = errorHandler(result);
         return {
-            response: new UpdateHostResponseModel(data),
+            response: new HostResponseModel(data),
         };
     }
 
@@ -118,7 +118,7 @@ export class HostsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((host) => new GetAllHostsResponseModel(host)),
+            response: data.map((host) => new HostResponseModel(host)),
         };
     }
 
@@ -136,7 +136,7 @@ export class HostsController {
 
         const data = errorHandler(result);
         return {
-            response: new GetOneHostResponseModel(data),
+            response: new HostResponseModel(data),
         };
     }
 

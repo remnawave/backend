@@ -38,6 +38,10 @@ export namespace GetAllSubscriptionsCommand {
                         daysLeft: z.number(),
                         trafficUsed: z.string(),
                         trafficLimit: z.string(),
+                        lifetimeTrafficUsed: z.string(),
+                        trafficUsedBytes: z.string(),
+                        trafficLimitBytes: z.string(),
+                        lifetimeTrafficUsedBytes: z.string(),
                         username: z.string(),
                         expiresAt: z
                             .string()

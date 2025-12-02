@@ -9,9 +9,10 @@ import { ApiTokenEntity } from '../../entities/api-token.entity';
 import { GetTokenByUuidQuery } from './get-token-by-uuid.query';
 
 @QueryHandler(GetTokenByUuidQuery)
-export class GetTokenByUuidHandler
-    implements IQueryHandler<GetTokenByUuidQuery, ICommandResponse<ApiTokenEntity>>
-{
+export class GetTokenByUuidHandler implements IQueryHandler<
+    GetTokenByUuidQuery,
+    ICommandResponse<ApiTokenEntity>
+> {
     private readonly logger = new Logger(GetTokenByUuidHandler.name);
     constructor(private readonly apiTokenRepository: ApiTokensRepository) {}
 

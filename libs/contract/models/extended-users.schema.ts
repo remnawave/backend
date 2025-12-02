@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
-import { LastConnectedNodeSchema } from './last-connected-node.schema';
+import { BaseInternalSquadSchema } from './base-internal-squad.schema';
+import { UserTrafficSchema } from './user-traffic.schema';
 import { UsersSchema } from './users.schema';
-import { HappSchema } from './happ.schema';
 
 export const ExtendedUsersSchema = UsersSchema.extend({
     subscriptionUrl: z.string(),
-    lastConnectedNode: LastConnectedNodeSchema,
-    happ: HappSchema,
+    activeInternalSquads: z.array(BaseInternalSquadSchema),
+    userTraffic: UserTrafficSchema,
 });

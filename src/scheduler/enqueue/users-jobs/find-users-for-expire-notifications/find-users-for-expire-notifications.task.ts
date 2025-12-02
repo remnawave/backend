@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 
-import { ExpireUserNotificationsQueueService } from '@queue/expire-user-notifications';
+import { UsersQueuesService } from '@queue/_users';
 
 import { JOBS_INTERVALS } from '../../../intervals';
 
@@ -12,7 +12,7 @@ export class FindUsersForExpireNotificationsTask implements OnApplicationBootstr
     private readonly logger = new Logger(FindUsersForExpireNotificationsTask.name);
 
     constructor(
-        private readonly expireUserNotificationsQueueService: ExpireUserNotificationsQueueService,
+        private readonly usersQueuesService: UsersQueuesService,
         private readonly configService: ConfigService,
         private schedulerRegistry: SchedulerRegistry,
     ) {}
@@ -47,7 +47,7 @@ export class FindUsersForExpireNotificationsTask implements OnApplicationBootstr
     })
     async handleCron() {
         try {
-            await this.expireUserNotificationsQueueService.expireUserNotifications({});
+            await this.usersQueuesService.expireUserNotifications({});
         } catch (error) {
             this.logger.error(`Error in FindUsersForExpireNotificationsTask: ${error}`);
         }
