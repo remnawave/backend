@@ -29,6 +29,7 @@ import {
     TRemnawavePasskeySettings,
     TTgAuthSettings,
 } from '@libs/contracts/models';
+import { getRedisConnectionOptions } from '@common/utils';
 
 const hash = hasher({
     trim: true,
@@ -815,7 +816,12 @@ async function clearRedis() {
 
     try {
         const redis = new Redis({
-            host: process.env.REDIS_HOST || 'remnawave-redis',
+            ...getRedisConnectionOptions(
+                process.env.REDIS_SOCKET,
+                process.env.REDIS_HOST,
+                process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : undefined,
+                'ioredis',
+            ),
             port: parseInt(process.env.REDIS_PORT || '6379', 10),
             db: parseInt(process.env.REDIS_DB || '1', 10),
             password: process.env.REDIS_PASSWORD || undefined,

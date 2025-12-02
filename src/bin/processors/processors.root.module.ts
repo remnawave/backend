@@ -14,6 +14,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
 import { configSchema, Env } from '@common/config/app-config';
+import { getRedisConnectionOptions } from '@common/utils';
 import { PrismaModule } from '@common/database';
 import { AxiosModule } from '@common/axios';
 
@@ -56,13 +57,17 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
             useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => {
                 return {
                     config: {
-                        host: configService.getOrThrow<string>('REDIS_HOST'),
-                        port: configService.getOrThrow<number>('REDIS_PORT'),
+                        ...getRedisConnectionOptions(
+                            configService.get<string>('REDIS_SOCKET'),
+                            configService.get<string>('REDIS_HOST'),
+                            configService.get<number>('REDIS_PORT'),
+                            'ioredis',
+                        ),
                         db: configService.getOrThrow<number>('REDIS_DB'),
                         password: configService.get<string | undefined>('REDIS_PASSWORD'),
                         keyPrefix: 'ioraw:',
                     },
-                };
+                } satisfies RedisModuleOptions;
             },
             inject: [ConfigService],
         }),
@@ -79,7 +84,12 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
                     stores: [
                         createKeyv(
                             {
-                                url: `redis://${configService.getOrThrow<string>('REDIS_HOST')}:${configService.getOrThrow<number>('REDIS_PORT')}`,
+                                ...getRedisConnectionOptions(
+                                    configService.get<string>('REDIS_SOCKET'),
+                                    configService.get<string>('REDIS_HOST'),
+                                    configService.get<number>('REDIS_PORT'),
+                                    'node-redis',
+                                ),
                                 database: configService.getOrThrow<number>('REDIS_DB'),
                                 password: configService.get<string | undefined>('REDIS_PASSWORD'),
                             },

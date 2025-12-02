@@ -9,6 +9,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 
 import { isDevelopment, isScheduler } from '@common/utils/startup-app';
+import { getRedisConnectionOptions } from '@common/utils';
 import { MessagingBuses, MessagingChannels, MessagingQueues } from '@libs/contracts/constants';
 
 @Module({
@@ -32,10 +33,15 @@ import { MessagingBuses, MessagingChannels, MessagingQueues } from '@libs/contra
                             removeOnComplete: 50,
                             removeOnFail: 50,
                         },
-
                         connection: {
-                            host: configService.getOrThrow<string>('REDIS_HOST'),
-                            port: configService.getOrThrow<number>('REDIS_PORT'),
+                            connectionOpts: {
+                                ...getRedisConnectionOptions(
+                                    configService.get<string>('REDIS_SOCKET'),
+                                    configService.get<string>('REDIS_HOST'),
+                                    configService.get<number>('REDIS_PORT'),
+                                    'ioredis',
+                                ),
+                            },
                             db: configService.getOrThrow<number>('REDIS_DB'),
                             password: configService.get<string | undefined>('REDIS_PASSWORD'),
                         },

@@ -11,6 +11,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ScheduleModule } from '@nestjs/schedule';
 
+import { getRedisConnectionOptions } from '@common/utils/get-redis-connection-options';
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
 import { configSchema, Env } from '@common/config/app-config';
@@ -70,7 +71,12 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
                     stores: [
                         createKeyv(
                             {
-                                url: `redis://${configService.getOrThrow<string>('REDIS_HOST')}:${configService.getOrThrow<number>('REDIS_PORT')}`,
+                                ...getRedisConnectionOptions(
+                                    configService.get<string>('REDIS_SOCKET'),
+                                    configService.get<string>('REDIS_HOST'),
+                                    configService.get<number>('REDIS_PORT'),
+                                    'node-redis',
+                                ),
                                 database: configService.getOrThrow<number>('REDIS_DB'),
                                 password: configService.get<string | undefined>('REDIS_PASSWORD'),
                             },
@@ -87,14 +93,6 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
 })
 export class SchedulerRootModule implements OnApplicationShutdown {
     private readonly logger = new Logger(SchedulerRootModule.name);
-
-    // async onModuleInit(): Promise<void> {
-    //     segfaultHandler.registerHandler();
-
-    //     this.logger.log('Segfault handler');
-
-    //     // segfaultHandler.segfault();
-    // }
 
     async onApplicationShutdown(signal?: string): Promise<void> {
         this.logger.log(`${signal} signal received, shutting down...`);
