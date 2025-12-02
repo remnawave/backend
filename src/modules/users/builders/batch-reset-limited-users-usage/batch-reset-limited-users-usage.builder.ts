@@ -30,7 +30,7 @@ export class BatchResetLimitedUsersUsageBuilder {
   SET used_traffic_bytes = 0
   FROM update_users uu
   WHERE ut.t_id = uu.t_id
-  RETURNING ut.t_id;
+  RETURNING ut.t_id as "tId";
     `;
 
         return query;
