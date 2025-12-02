@@ -328,6 +328,7 @@ export class XRayConfig {
                     break;
                 case 'vless':
                     (inbound.settings as VLessSettings).clients = [];
+                    (inbound.settings as VLessSettings).flow = getVlessFlow(inbound) || '';
                     break;
                 case 'shadowsocks':
                     (inbound.settings as ShadowsocksSettings).clients = [];
@@ -356,7 +357,6 @@ export class XRayConfig {
                     (inbound.settings as VLessSettings).clients.push({
                         id: user.vlessUuid,
                         email: user.tId.toString(),
-                        flow: getVlessFlow(inbound),
                     });
                 }
                 break;
