@@ -77,7 +77,7 @@ export const configSchema = z
                 (port) => port === undefined || (port > 0 && port <= 65535),
                 'Port must be between 1 and 65535',
             ),
-        REDIS_SOCKET_PATH: z.string().optional(),
+        REDIS_SOCKET: z.string().optional(),
         REDIS_PASSWORD: z.optional(z.string()),
         REDIS_DB: z
             .string()
@@ -160,12 +160,19 @@ export const configSchema = z
             .pipe(z.array(z.number()).optional()),
     })
     .superRefine((data, ctx) => {
-        if (!data.REDIS_SOCKET_PATH && (!data.REDIS_HOST || !data.REDIS_PORT)) {
+        if (!data.REDIS_SOCKET && (!data.REDIS_HOST || !data.REDIS_PORT)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message:
-                    'Either REDIS_SOCKET_PATH or both REDIS_HOST and REDIS_PORT must be provided',
+                message: 'Either REDIS_SOCKET or both REDIS_HOST and REDIS_PORT must be provided',
                 path: ['REDIS_HOST'],
+            });
+        }
+
+        if (data.REDIS_SOCKET && data.REDIS_HOST && data.REDIS_PORT) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'REDIS_SOCKET, REDIS_HOST and REDIS_PORT cannot be provided together',
+                path: ['REDIS_SOCKET'],
             });
         }
 

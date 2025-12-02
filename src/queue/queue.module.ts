@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
+import { getRedisConnectionOptions } from '@common/utils';
 import { BasicAuthMiddleware } from '@common/middlewares';
 import { useBullBoard } from '@common/utils/startup-app';
 import { BULLBOARD_ROOT } from '@libs/contracts/api';
@@ -73,19 +74,17 @@ const bullBoard = [
         BullModule.forRootAsync({
             imports: [ConfigModule],
             useFactory: (configService: ConfigService) => {
-                const socketPath = configService.get<string>('REDIS_SOCKET_PATH');
-                const host = configService.get<string>('REDIS_HOST');
-                const port = configService.get<number>('REDIS_PORT');
-                const db = configService.getOrThrow<number>('REDIS_DB');
-                const password = configService.get<string | undefined>('REDIS_PASSWORD');
-
-                // BullMQ uses ioredis which supports path option for Unix sockets
-                const connection = socketPath
-                    ? { path: socketPath, db, password }
-                    : { host, port, db, password };
-
                 return {
-                    connection,
+                    connection: {
+                        ...getRedisConnectionOptions(
+                            configService.get<string>('REDIS_SOCKET'),
+                            configService.get<string>('REDIS_HOST'),
+                            configService.get<number>('REDIS_PORT'),
+                            'ioredis',
+                        ),
+                        db: configService.getOrThrow<number>('REDIS_DB'),
+                        password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                    },
                     defaultJobOptions: {
                         removeOnComplete: 500,
                         removeOnFail: 500,

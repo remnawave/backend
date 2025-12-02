@@ -9,6 +9,7 @@ import Redis from 'ioredis';
 import dayjs from 'dayjs';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
+import { getRedisConnectionOptions } from '@common/utils';
 import { generateNodeCert } from '@common/utils/certs';
 import { CACHE_KEYS } from '@libs/contracts/constants';
 
@@ -24,10 +25,15 @@ const prisma = new PrismaClient({
     },
 });
 
+const redisOptions = getRedisConnectionOptions(
+    process.env.REDIS_SOCKET,
+    process.env.REDIS_HOST,
+    process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : undefined,
+    'ioredis',
+);
+
 const redis = new Redis({
-    ...(process.env.REDIS_SOCKET_PATH
-        ? { path: process.env.REDIS_SOCKET_PATH }
-        : { host: process.env.REDIS_HOST!, port: parseInt(process.env.REDIS_PORT!) }),
+    ...redisOptions,
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB ?? '1'),
     keyPrefix: 'rmnwv:',
