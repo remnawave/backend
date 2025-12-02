@@ -299,7 +299,7 @@ export class UsersService {
                     );
 
                 if (hasChanges) {
-                    await this.userRepository.removeUserFromInternalSquads(result.uuid);
+                    await this.userRepository.removeUserFromInternalSquads(result.tId);
 
                     if (newActiveInternalSquadsUuids.length === 0) {
                         isNeedToBeRemovedFromNode = true;
@@ -307,7 +307,7 @@ export class UsersService {
 
                     if (newActiveInternalSquadsUuids.length > 0) {
                         await this.userRepository.addUserToInternalSquads(
-                            result.uuid,
+                            result.tId,
                             newActiveInternalSquadsUuids,
                         );
 
@@ -848,9 +848,16 @@ export class UsersService {
 
             for (let i = 0; i < usersLength; i += batchLength) {
                 const batchUsersUuids = usersUuids.slice(i, i + batchLength);
-                await this.userRepository.removeUsersFromInternalSquads(batchUsersUuids);
+                const batchUsersIds = await this.userRepository.getUserIdsByUuids(batchUsersUuids);
+
+                if (batchUsersIds.length === 0) {
+                    continue;
+                }
+
+                await this.userRepository.removeUsersFromInternalSquads(batchUsersIds);
+
                 await this.userRepository.addUsersToInternalSquads(
-                    batchUsersUuids,
+                    batchUsersIds,
                     internalSquadsUuids,
                 );
             }
@@ -962,7 +969,19 @@ export class UsersService {
         userUuid: string,
     ): Promise<ICommandResponse<GetUserAccessibleNodesResponseModel>> {
         try {
-            const result = await this.userRepository.getUserAccessibleNodes(userUuid);
+            const user = await this.userRepository.getPartialUserByUniqueFields(
+                { uuid: userUuid },
+                ['tId'],
+            );
+
+            if (!user) {
+                return {
+                    isOk: false,
+                    ...ERRORS.USER_NOT_FOUND,
+                };
+            }
+
+            const result = await this.userRepository.getUserAccessibleNodes(user.tId, userUuid);
 
             if (!result) {
                 return {

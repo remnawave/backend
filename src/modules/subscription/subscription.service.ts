@@ -1,12 +1,9 @@
-import type { Cache } from 'cache-manager';
-
 import dayjs from 'dayjs';
 import pMap from 'p-map';
 import _ from 'lodash';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 
@@ -47,7 +44,6 @@ import {
     SubscriptionWithConfigResponse,
 } from './models';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
-import { HostWithRawInbound } from '../hosts/entities/host-with-inbound-tag.entity';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
 import { ISubscriptionHeaders, IGetSubscriptionInfo } from './interfaces';
 import { GetAllSubscriptionsQueryDto } from './dto';
@@ -58,7 +54,6 @@ export class SubscriptionService {
     private readonly subPublicDomain: string;
 
     constructor(
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
         private readonly commandBus: CommandBus,
@@ -179,11 +174,9 @@ export class SubscriptionService {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
             }
 
-            const hosts = await this.getHostsByUserUuid({
-                userUuid: user.response.uuid,
-                returnDisabledHosts: false,
-                returnHiddenHosts: false,
-            });
+            const hosts = await this.queryBus.execute(
+                new GetHostsForUserQuery(user.response.tId, false, false),
+            );
 
             if (!hosts.isOk || !hosts.response) {
                 return new SubscriptionNotFoundResponse();
@@ -301,11 +294,9 @@ export class SubscriptionService {
                 isHwidLimited = false;
             }
 
-            const hosts = await this.getHostsByUserUuid({
-                userUuid: user.response.uuid,
-                returnDisabledHosts: withDisabledHosts,
-                returnHiddenHosts: true,
-            });
+            const hosts = await this.queryBus.execute(
+                new GetHostsForUserQuery(user.response.tId, withDisabledHosts, true),
+            );
 
             if (!hosts.isOk || !hosts.response) {
                 return {
@@ -381,11 +372,9 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            const hosts = await this.getHostsByUserUuid({
-                userUuid: user.response.uuid,
-                returnDisabledHosts: false,
-                returnHiddenHosts: false,
-            });
+            const hosts = await this.queryBus.execute(
+                new GetHostsForUserQuery(user.response.tId, false, false),
+            );
 
             if (!hosts.isOk || !hosts.response) {
                 return new SubscriptionNotFoundResponse();
@@ -488,11 +477,9 @@ export class SubscriptionService {
             let ssConfLinks: Record<string, string> = {};
 
             if (!settings.hwidSettings.enabled || authenticated) {
-                const hostsResponse = await this.getHostsByUserUuid({
-                    userUuid: userEntity.uuid,
-                    returnDisabledHosts: false,
-                    returnHiddenHosts: false,
-                });
+                const hostsResponse = await this.queryBus.execute(
+                    new GetHostsForUserQuery(userEntity.tId, false, false),
+                );
 
                 formattedHosts = await this.formatHostsService.generateFormattedHosts({
                     subscriptionSettings: settings,
@@ -758,14 +745,6 @@ export class SubscriptionService {
             GetUsersWithPaginationQuery,
             ICommandResponse<{ users: UserEntity[]; total: number }>
         >(new GetUsersWithPaginationQuery(dto.start, dto.size));
-    }
-
-    private async getHostsByUserUuid(
-        dto: GetHostsForUserQuery,
-    ): Promise<ICommandResponse<HostWithRawInbound[]>> {
-        return this.queryBus.execute<GetHostsForUserQuery, ICommandResponse<HostWithRawInbound[]>>(
-            new GetHostsForUserQuery(dto.userUuid, dto.returnDisabledHosts, dto.returnHiddenHosts),
-        );
     }
 
     private async countHwidUserDevices(

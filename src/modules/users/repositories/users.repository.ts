@@ -248,10 +248,10 @@ export class UsersRepository {
                 }
 
                 if (filter.id === 'activeInternalSquads') {
-                    whereBuilder = whereBuilder.where('uuid', 'in', (eb) =>
+                    whereBuilder = whereBuilder.where('users.tId', 'in', (eb) =>
                         eb
                             .selectFrom('internalSquadMembers')
-                            .select('internalSquadMembers.userUuid')
+                            .select('internalSquadMembers.userId')
                             .where(
                                 'internalSquadMembers.internalSquadUuid',
                                 '=',
@@ -389,10 +389,10 @@ export class UsersRepository {
                     }
 
                     if (filter.id === 'activeInternalSquads') {
-                        countBuilder = countBuilder.where('uuid', 'in', (eb) =>
+                        countBuilder = countBuilder.where('users.tId', 'in', (eb) =>
                             eb
                                 .selectFrom('internalSquadMembers')
-                                .select('internalSquadMembers.userUuid')
+                                .select('internalSquadMembers.userId')
                                 .where(
                                     'internalSquadMembers.internalSquadUuid',
                                     '=',
@@ -696,7 +696,7 @@ export class UsersRepository {
             const builder = this.qb.kysely
                 .selectFrom('users')
                 .where('users.status', '=', USERS_STATUS.ACTIVE)
-                .innerJoin('internalSquadMembers', 'internalSquadMembers.userUuid', 'users.uuid')
+                .innerJoin('internalSquadMembers', 'internalSquadMembers.userId', 'users.tId')
                 .innerJoin(
                     'internalSquadInbounds',
                     'internalSquadInbounds.internalSquadUuid',
@@ -947,28 +947,28 @@ export class UsersRepository {
         return result;
     }
 
-    public async removeUsersFromInternalSquads(usersUuids: string[]): Promise<void> {
+    public async removeUsersFromInternalSquads(usersIds: bigint[]): Promise<void> {
         await this.qb.kysely
             .deleteFrom('internalSquadMembers')
             .where(
-                'userUuid',
+                'userId',
                 'in',
-                usersUuids.map((uuid) => getKyselyUuid(uuid)),
+                usersIds.map((userId) => userId),
             )
             .execute();
     }
 
     public async addUsersToInternalSquads(
-        usersUuids: string[],
+        usersIds: bigint[],
         internalSquadsUuids: string[],
     ): Promise<void> {
         await this.qb.kysely
             .insertInto('internalSquadMembers')
-            .columns(['userUuid', 'internalSquadUuid'])
+            .columns(['userId', 'internalSquadUuid'])
             .values(
-                usersUuids.flatMap((userUuid) =>
+                usersIds.flatMap((userId) =>
                     internalSquadsUuids.map((internalSquadUuid) => ({
-                        userUuid: getKyselyUuid(userUuid),
+                        userId,
                         internalSquadUuid: getKyselyUuid(internalSquadUuid),
                     })),
                 ),
@@ -976,20 +976,29 @@ export class UsersRepository {
             .execute();
     }
 
+    public async getUserIdsByUuids(uuids: string[]): Promise<bigint[]> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select('tId')
+            .where('uuid', 'in', uuids.map(getKyselyUuid))
+            .execute();
+        return result.map((user) => user.tId);
+    }
+
     public async addUserToInternalSquads(
-        userUuid: string,
-        internalSquadUuid: string[],
+        userId: bigint,
+        internalSquadUuids: string[],
     ): Promise<boolean> {
-        if (internalSquadUuid.length === 0) {
+        if (internalSquadUuids.length === 0) {
             return true;
         }
 
         const result = await this.qb.kysely
             .insertInto('internalSquadMembers')
-            .columns(['userUuid', 'internalSquadUuid'])
+            .columns(['userId', 'internalSquadUuid'])
             .values(
-                internalSquadUuid.map((internalSquadUuid) => ({
-                    userUuid: getKyselyUuid(userUuid),
+                internalSquadUuids.map((internalSquadUuid) => ({
+                    userId,
                     internalSquadUuid: getKyselyUuid(internalSquadUuid),
                 })),
             )
@@ -1000,10 +1009,10 @@ export class UsersRepository {
         return !!result;
     }
 
-    public async removeUserFromInternalSquads(userUuid: string): Promise<void> {
+    public async removeUserFromInternalSquads(userId: bigint): Promise<void> {
         await this.qb.kysely
             .deleteFrom('internalSquadMembers')
-            .where('userUuid', '=', getKyselyUuid(userUuid))
+            .where('userId', '=', userId)
             .clearReturning()
             .executeTakeFirst();
     }
@@ -1067,7 +1076,6 @@ export class UsersRepository {
         const result = await this.qb.kysely
             .selectFrom('users')
             .select((eb) => [
-                'users.uuid as userUuid',
                 'users.tId',
                 'users.trojanPassword',
                 'users.vlessUuid',
@@ -1100,7 +1108,7 @@ export class UsersRepository {
                             'configProfileInbounds.port',
                             'configProfileInbounds.rawInbound',
                         ])
-                        .whereRef('internalSquadMembers.userUuid', '=', 'users.uuid'),
+                        .whereRef('internalSquadMembers.userId', '=', 'users.tId'),
                 )
                     .$notNull()
                     .as('inbounds'),
@@ -1116,6 +1124,7 @@ export class UsersRepository {
     }
 
     public async getUserAccessibleNodes(
+        userId: bigint,
         userUuid: string,
     ): Promise<IGetUserAccessibleNodesResponse> {
         const flatResults = await this.qb.kysely
@@ -1130,9 +1139,7 @@ export class UsersRepository {
             .innerJoin('internalSquadInbounds as isi', 'isi.inboundUuid', 'cpi.uuid')
             .innerJoin('internalSquads as sq', 'sq.uuid', 'isi.internalSquadUuid')
             .innerJoin('internalSquadMembers as ism', (join) =>
-                join
-                    .onRef('ism.internalSquadUuid', '=', 'sq.uuid')
-                    .on('ism.userUuid', '=', getKyselyUuid(userUuid)),
+                join.onRef('ism.internalSquadUuid', '=', 'sq.uuid').on('ism.userId', '=', userId),
             )
             .select([
                 'n.uuid as nodeUuid',
@@ -1199,7 +1206,7 @@ export class UsersRepository {
                     'internalSquadMembers.internalSquadUuid',
                 )
                 .select(['internalSquads.uuid', 'internalSquads.name'])
-                .whereRef('internalSquadMembers.userUuid', '=', 'users.uuid'),
+                .whereRef('internalSquadMembers.userId', '=', 'users.tId'),
         ).as('activeInternalSquads');
     }
 

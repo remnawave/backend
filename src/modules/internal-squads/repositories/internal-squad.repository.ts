@@ -276,13 +276,13 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
     }> {
         const result = await this.qb.kysely
             .insertInto('internalSquadMembers')
-            .columns(['internalSquadUuid', 'userUuid'])
+            .columns(['internalSquadUuid', 'userId'])
             .expression((eb) =>
                 eb
                     .selectFrom('users')
                     .select([
                         eb.val(getKyselyUuid(internalSquadUuid)).as('internalSquadUuid'),
-                        'uuid as userUuid',
+                        'tId',
                     ]),
             )
             .onConflict((oc) => oc.doNothing())

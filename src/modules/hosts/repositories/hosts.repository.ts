@@ -8,7 +8,6 @@ import { Injectable } from '@nestjs/common';
 
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
-import { getKyselyUuid } from '@common/helpers';
 import { TSecurityLayers } from '@libs/contracts/constants';
 
 import { HostWithRawInbound } from '../entities/host-with-inbound-tag.entity';
@@ -154,8 +153,8 @@ export class HostsRepository implements ICrud<HostsEntity> {
         return !!result;
     }
 
-    public async findActiveHostsByUserUuid(
-        userUuid: string,
+    public async findActiveHostsByUserId(
+        userId: bigint,
         returnDisabledHosts: boolean = false,
         returnHiddenHosts: boolean = false,
     ): Promise<HostWithRawInbound[]> {
@@ -200,7 +199,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             )
             .$if(!returnDisabledHosts, (eb) => eb.where('hosts.isDisabled', '=', false))
             .$if(!returnHiddenHosts, (eb) => eb.where('hosts.isHidden', '=', false))
-            .where('internalSquadMembers.userUuid', '=', getKyselyUuid(userUuid))
+            .where('internalSquadMembers.userId', '=', userId)
             .selectAll('hosts')
 
             .select([

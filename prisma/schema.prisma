@@ -387,14 +387,14 @@ model InternalSquads {
 
 model InternalSquadMembers {
   internalSquadUuid String @map("internal_squad_uuid") @db.Uuid
-  userUuid          String @map("user_uuid") @db.Uuid
+  userId            BigInt @map("user_id")
 
   internalSquad InternalSquads @relation(fields: [internalSquadUuid], references: [uuid], onDelete: Cascade)
-  user          Users          @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  user          Users          @relation(fields: [userId], references: [tId], onDelete: Cascade)
 
-  @@id([internalSquadUuid, userUuid])
+  @@id([internalSquadUuid, userId])
   @@index([internalSquadUuid])
-  @@index([userUuid])
+  @@index([userId])
   @@map("internal_squad_members")
 }
 

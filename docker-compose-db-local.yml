@@ -4,6 +4,7 @@ services:
     container_name: remnawave-db-local
     hostname: remnawave-db-local
     restart: always
+    shm_size: 4gb
     env_file:
       - .env
     environment:
