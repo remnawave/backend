@@ -17,8 +17,9 @@ const prisma = new PrismaClient({
 });
 
 const redis = new Redis({
-    host: process.env.REDIS_HOST!,
-    port: parseInt(process.env.REDIS_PORT!),
+    ...(process.env.REDIS_SOCKET_PATH
+        ? { path: process.env.REDIS_SOCKET_PATH }
+        : { host: process.env.REDIS_HOST!, port: parseInt(process.env.REDIS_PORT!) }),
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB ?? '1'),
     keyPrefix: 'rmnwv:',

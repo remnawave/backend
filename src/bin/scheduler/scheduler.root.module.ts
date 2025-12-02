@@ -1,4 +1,4 @@
-import { createKeyv } from '@keyv/redis';
+import { createKeyv, type RedisClientOptions } from '@keyv/redis';
 import { ClsModule } from 'nestjs-cls';
 
 import { QueueModule } from 'src/queue/queue.module';
@@ -66,19 +66,26 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
             inject: [ConfigService],
             isGlobal: true,
             useFactory: async (configService: ConfigService) => {
+                const socketPath = configService.get<string>('REDIS_SOCKET_PATH');
+                const host = configService.get<string>('REDIS_HOST');
+                const port = configService.get<number>('REDIS_PORT');
+                const database = configService.getOrThrow<number>('REDIS_DB');
+                const password = configService.get<string | undefined>('REDIS_PASSWORD');
+
+                // node-redis does NOT support redis+unix:// URL scheme (see Issue #2530)
+                // For Unix socket connections, use socket.path object instead of URL
+                const redisOptions = (
+                    socketPath
+                        ? { socket: { path: socketPath }, database, password }
+                        : { url: `redis://${host}:${port}`, database, password }
+                ) as RedisClientOptions;
+
                 return {
                     stores: [
-                        createKeyv(
-                            {
-                                url: `redis://${configService.getOrThrow<string>('REDIS_HOST')}:${configService.getOrThrow<number>('REDIS_PORT')}`,
-                                database: configService.getOrThrow<number>('REDIS_DB'),
-                                password: configService.get<string | undefined>('REDIS_PASSWORD'),
-                            },
-                            {
-                                namespace: 'rmnwv',
-                                keyPrefixSeparator: ':',
-                            },
-                        ),
+                        createKeyv(redisOptions, {
+                            namespace: 'rmnwv',
+                            keyPrefixSeparator: ':',
+                        }),
                     ],
                 };
             },
