@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 import { AxiosService } from '@common/axios/axios.service';
 import { EVENTS } from '@libs/contracts/constants';
 
@@ -109,7 +110,7 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            const startTime = Date.now();
+            const startTime = getTime();
             const config = await this.queryBus.execute(
                 new GetPreparedConfigWithUsersQuery(
                     nodeEntity.activeConfigProfileUuid,
@@ -117,13 +118,13 @@ export class StartNodeProcessor extends WorkerHost {
                 ),
             );
 
-            this.logger.log(`Generated config for node in ${Date.now() - startTime}ms`);
+            this.logger.log(`Generated config for node in ${formatExecutionTime(startTime)}`);
 
             if (!config.isOk || !config.response) {
                 throw new Error('Failed to get config for node');
             }
 
-            const reqStartTime = Date.now();
+            const reqStartTime = getTime();
 
             const res = await this.axios.startXray(
                 config.response.config as unknown as Record<string, unknown>,
@@ -132,7 +133,7 @@ export class StartNodeProcessor extends WorkerHost {
                 nodeEntity.port,
             );
 
-            this.logger.log(`Started node in ${Date.now() - reqStartTime}ms`);
+            this.logger.log(`Started node in ${formatExecutionTime(reqStartTime)}`);
 
             if (!res.isOk || !res.response) {
                 await this.commandBus.execute(
