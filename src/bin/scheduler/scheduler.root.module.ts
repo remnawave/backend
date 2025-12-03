@@ -19,7 +19,6 @@ import { PrismaModule } from '@common/database';
 import { AxiosModule } from '@common/axios';
 
 import { PrometheusReporterModule } from '@integration-modules/prometheus-reporter/prometheus-reporter.module';
-import { MessagingModules } from '@integration-modules/messaging-modules';
 import { HealthModule } from '@integration-modules/health/health.module';
 
 import { RemnawaveModules } from '@modules/remnawave-backend.modules';
@@ -61,7 +60,6 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
         ScheduleModule.forRoot(),
         SchedulerModule,
         QueueModule,
-        MessagingModules,
         HealthModule,
         CacheModule.registerAsync({
             imports: [ConfigModule],

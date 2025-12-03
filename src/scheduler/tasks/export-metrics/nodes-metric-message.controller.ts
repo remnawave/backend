@@ -1,28 +1,23 @@
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter } from 'prom-client';
 
-import {
-    DenormalizeMessage,
-    IMessageHandler,
-    MessageHandler,
-    MessageResponse,
-} from '@nestjstools/messaging';
-import { Injectable, Logger } from '@nestjs/common';
+import { EventPattern } from '@nestjs/microservices';
+import { Controller, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
 import { ICommandResponse } from '@common/types/command-response.type';
-import { MessagingMessages, METRIC_NAMES } from '@libs/contracts/constants';
+import { MESSAGING_NAMES } from '@common/microservices';
+import { METRIC_NAMES } from '@libs/contracts/constants';
 
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid/get-node-by-uuid.query';
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
-import { NodeMetricsMessage } from './node-metrics.message.interface';
+import { INodeMetrics } from './node-metrics.message.interface';
 
-@Injectable()
-@MessageHandler(MessagingMessages.NODE_METRICS)
-export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMessage> {
-    private readonly logger = new Logger(NodeMetricsMessageHandler.name);
+@Controller()
+export class NodesMetricMessageController {
+    private readonly logger = new Logger(NodesMetricMessageController.name);
 
     constructor(
         @InjectMetric(METRIC_NAMES.NODE_INBOUND_UPLOAD_BYTES)
@@ -36,15 +31,17 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
         private readonly queryBus: QueryBus,
     ) {}
 
-    async handle(@DenormalizeMessage() message: NodeMetricsMessage): Promise<MessageResponse> {
+    @EventPattern(MESSAGING_NAMES.NODE_METRICS)
+    async handleNodesMetricMessage(message: INodeMetrics) {
         try {
-            const { nodeUuid, inbounds, outbounds } = message.nodeMetrics;
-            const node = await this.getNodeByUuid(nodeUuid);
-            if (!node.isOk || !node.response) {
-                return new MessageResponse([{ result: 'NODE_NOT_FOUND' }]);
+            const { nodeUuid, inbounds, outbounds } = message;
+            const { isOk, response: node } = await this.getNodeByUuid(nodeUuid);
+
+            if (!isOk || !node) {
+                return;
             }
 
-            const { name, countryCode, uuid, provider, tags } = node.response;
+            const { name, countryCode, uuid, provider, tags } = node;
 
             const countryEmoji = resolveCountryEmoji(countryCode);
             const nodeTags = tags.join(',');
@@ -101,11 +98,11 @@ export class NodeMetricsMessageHandler implements IMessageHandler<NodeMetricsMes
                 );
             });
 
-            return new MessageResponse([{ result: 'OK' }]);
+            return;
         } catch (error) {
             this.logger.error(`Error in handle: ${error}`);
 
-            return new MessageResponse([{ result: 'ERROR' }]);
+            return;
         }
     }
 

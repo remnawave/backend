@@ -13,10 +13,12 @@ import { json } from 'express';
 import helmet from 'helmet';
 import dayjs from 'dayjs';
 
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
 import { NotFoundExceptionFilter } from '@common/exception/not-found-exception.filter';
+import { getRedisConnectionOptions } from '@common/utils/get-redis-connection-options';
 import { WorkerRoutesGuard } from '@common/guards/worker-routes/worker-routes.guard';
 import { customLogFilter } from '@common/utils/filter-logs/filter-logs';
 import { isDevelopment } from '@common/utils/startup-app';
@@ -92,6 +94,23 @@ async function bootstrap(): Promise<void> {
     app.useGlobalGuards(
         new WorkerRoutesGuard({ allowedPaths: [METRICS_ROOT, BULLBOARD_ROOT, HEALTH_ROOT] }),
     );
+
+    app.connectMicroservice<MicroserviceOptions>({
+        transport: Transport.REDIS,
+        options: {
+            ...getRedisConnectionOptions(
+                config.get<string>('REDIS_SOCKET'),
+                config.get<string>('REDIS_HOST'),
+                config.get<number>('REDIS_PORT'),
+                'ioredis',
+            ),
+            db: config.getOrThrow<number>('REDIS_DB'),
+            password: config.get<string | undefined>('REDIS_PASSWORD'),
+            keyPrefix: 'nmicro:',
+        },
+    });
+
+    await app.startAllMicroservices();
 
     app.enableShutdownHooks();
 

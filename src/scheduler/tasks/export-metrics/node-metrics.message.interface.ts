@@ -1,4 +1,4 @@
-interface INodeMetrics {
+export interface INodeMetrics {
     nodeUuid: string;
     inbounds: {
         tag: string;
@@ -10,8 +10,4 @@ interface INodeMetrics {
         downlink: string;
         uplink: string;
     }[];
-}
-
-export class NodeMetricsMessage {
-    constructor(public readonly nodeMetrics: INodeMetrics) {}
 }

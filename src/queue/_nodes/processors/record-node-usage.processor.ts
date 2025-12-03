@@ -1,21 +1,21 @@
 import { Job } from 'bullmq';
 
-import { IMessageBus, MessageBus, RoutingMessage } from '@nestjstools/messaging';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { ClientProxy } from '@nestjs/microservices';
+import { Inject, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
-import { Logger } from '@nestjs/common';
 
 import { GetAllInboundsStatsCommand, GetAllOutboundsStatsCommand } from '@remnawave/node-contract';
 
+import { MESSAGING_NAMES, MICROSERVICES_NAMES } from '@common/microservices';
 import { ICommandResponse } from '@common/types/command-response.type';
 import { AxiosService } from '@common/axios';
-import { MessagingBuses, MessagingMessages } from '@libs/contracts/constants';
 
 import { UpsertHistoryEntryCommand } from '@modules/nodes-usage-history/commands/upsert-history-entry';
 import { IncrementUsedTrafficCommand } from '@modules/nodes/commands/increment-used-traffic';
 import { NodesUsageHistoryEntity } from '@modules/nodes-usage-history';
 
-import { NodeMetricsMessage } from '@scheduler/tasks/export-metrics/node-metrics.message.interface';
+import { INodeMetrics } from '@scheduler/tasks/export-metrics/node-metrics.message.interface';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
@@ -29,9 +29,9 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordNodeUsageQueueProcessor.name);
 
     constructor(
-        @MessageBus(MessagingBuses.EVENT) private readonly messageBus: IMessageBus,
         private readonly commandBus: CommandBus,
         private readonly axios: AxiosService,
+        @Inject(MICROSERVICES_NAMES.REDIS_PRODUCER) private readonly redisProducer: ClientProxy,
     ) {
         super();
     }
@@ -182,27 +182,18 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         nodeOutBoundsMetrics: Map<string, { downlink: string; uplink: string }>;
         nodeInBoundsMetrics: Map<string, { downlink: string; uplink: string }>;
     }): Promise<void> {
-        await this.messageBus.dispatch(
-            new RoutingMessage(
-                new NodeMetricsMessage({
-                    nodeUuid: dto.nodeUuid,
-                    inbounds: Array.from(dto.nodeInBoundsMetrics.entries()).map(
-                        ([tag, metrics]) => ({
-                            tag,
-                            downlink: metrics.downlink,
-                            uplink: metrics.uplink,
-                        }),
-                    ),
-                    outbounds: Array.from(dto.nodeOutBoundsMetrics.entries()).map(
-                        ([tag, metrics]) => ({
-                            tag,
-                            downlink: metrics.downlink,
-                            uplink: metrics.uplink,
-                        }),
-                    ),
-                }),
-                MessagingMessages.NODE_METRICS,
-            ),
-        );
+        this.redisProducer.emit(MESSAGING_NAMES.NODE_METRICS, {
+            nodeUuid: dto.nodeUuid,
+            inbounds: Array.from(dto.nodeInBoundsMetrics.entries()).map(([tag, metrics]) => ({
+                tag,
+                downlink: metrics.downlink,
+                uplink: metrics.uplink,
+            })),
+            outbounds: Array.from(dto.nodeOutBoundsMetrics.entries()).map(([tag, metrics]) => ({
+                tag,
+                downlink: metrics.downlink,
+                uplink: metrics.uplink,
+            })),
+        } satisfies INodeMetrics);
     }
 }

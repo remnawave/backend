@@ -5,20 +5,20 @@ import { ClsModule } from 'nestjs-cls';
 import { QueueModule } from 'src/queue/queue.module';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config';
 import { Logger, OnApplicationShutdown, Module } from '@nestjs/common';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
 import { configSchema, Env } from '@common/config/app-config';
+import { RedisProducerModule } from '@common/microservices';
 import { getRedisConnectionOptions } from '@common/utils';
+import { isProcessor } from '@common/utils/startup-app';
 import { PrismaModule } from '@common/database';
 import { AxiosModule } from '@common/axios';
-
-import { MessagingModules } from '@integration-modules/messaging-modules';
 
 import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 
@@ -75,7 +75,6 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 
         RemnawaveModules,
         QueueModule,
-        MessagingModules,
         CacheModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
@@ -103,6 +102,7 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
                 };
             },
         }),
+        ConditionalModule.registerWhen(RedisProducerModule, () => isProcessor()),
     ],
     controllers: [],
 })
