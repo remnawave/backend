@@ -88,7 +88,7 @@
     "@willsoto/nestjs-prometheus": "^6.0.2",
     "arctic": "^3.7.0",
     "axios": "^1.13.2",
-    "bullmq": "5.65.0",
+    "bullmq": "5.65.1",
     "cache-manager": "^7.2.5",
     "chalk": "^5.6.2",
     "class-transformer": "^0.5.1",
@@ -148,7 +148,7 @@
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.5",
+    "@types/express": "^5.0.6",
     "@types/js-yaml": "^4.0.9",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.21",
@@ -158,15 +158,15 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/semver": "^7.7.1",
     "@types/validator": "^13.15.10",
-    "@typescript-eslint/eslint-plugin": "^8.48.0",
-    "@typescript-eslint/parser": "^8.48.0",
+    "@typescript-eslint/eslint-plugin": "^8.48.1",
+    "@typescript-eslint/parser": "^8.48.1",
     "eslint": "9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-paths": "^1.1.0",
     "eslint-plugin-perfectionist": "^4.15.1",
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.5.0",
-    "knip": "^5.70.2",
+    "knip": "^5.71.0",
     "prettier": "^3.7.3",
     "prisma-json-types-generator": "^3.6.2",
     "source-map-support": "^0.5.21",
@@ -174,11 +174,14 @@
     "ts-node": "10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.48.0"
+    "typescript-eslint": "^8.48.1"
   },
   "overrides": {
     "prisma-kysely": {
       "prisma": "6.19.0"
+    },
+    "@nestjs/schedule": {
+      "cron": "4.3.5"
     }
   }
 }
