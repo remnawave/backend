@@ -152,6 +152,49 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     throw new Error('Failed to get active node inbounds tags');
                 }
 
+                const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
+
+                if (!xrayStatusResponse.isOk || !xrayStatusResponse.response) {
+                    await this.commandBus.execute(
+                        new UpdateNodeCommand({
+                            uuid: node.uuid,
+                            lastStatusMessage: xrayStatusResponse.message ?? null,
+                            lastStatusChange: new Date(),
+                            isConnected: false,
+                            isConnecting: false,
+                            usersOnline: 0,
+                        }),
+                    );
+
+                    this.logger.error(
+                        `Pre-check failed. Node: ${node.uuid} – ${node.address}:${node.port}, error: ${xrayStatusResponse.message}`,
+                    );
+
+                    return;
+                }
+
+                if (
+                    xrayStatusResponse.response.nodeVersion === null ||
+                    xrayStatusResponse.response.nodeVersion === undefined
+                ) {
+                    await this.commandBus.execute(
+                        new UpdateNodeCommand({
+                            uuid: node.uuid,
+                            lastStatusMessage:
+                                'Unknown node version. Please upgrade Remnawave Node to the latest version.',
+                            lastStatusChange: new Date(),
+                            isConnected: false,
+                            isConnecting: false,
+                            usersOnline: 0,
+                        }),
+                    );
+
+                    this.logger.error(
+                        `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
+                    );
+                    return;
+                }
+
                 const filteredInboundsHashes = config.response.hashesPayload.inbounds.filter(
                     (inbound) => activeNodeInboundsTags.has(inbound.tag),
                 );

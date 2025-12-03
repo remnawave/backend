@@ -54,6 +54,7 @@ export class AxiosService {
                 ca: jwt.caCert,
                 checkServerIdentity: () => undefined,
                 rejectUnauthorized: true,
+                keepAlive: true,
             });
 
             this.axiosInstance.defaults.httpsAgent = httpsAgent;

@@ -91,7 +91,7 @@ export class StartNodeProcessor extends WorkerHost {
                 nodeEntity.port,
             );
 
-            if (!xrayStatusResponse.isOk) {
+            if (!xrayStatusResponse.isOk || !xrayStatusResponse.response) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: nodeEntity.uuid,
@@ -107,6 +107,28 @@ export class StartNodeProcessor extends WorkerHost {
                     `Pre-check failed. Node: ${nodeEntity.uuid} – ${nodeEntity.address}:${nodeEntity.port}, error: ${xrayStatusResponse.message}`,
                 );
 
+                return;
+            }
+
+            if (
+                xrayStatusResponse.response.nodeVersion === null ||
+                xrayStatusResponse.response.nodeVersion === undefined
+            ) {
+                await this.commandBus.execute(
+                    new UpdateNodeCommand({
+                        uuid: nodeEntity.uuid,
+                        lastStatusMessage:
+                            'Unknown node version. Please upgrade Remnawave Node to the latest version.',
+                        lastStatusChange: new Date(),
+                        isConnected: false,
+                        isConnecting: false,
+                        usersOnline: 0,
+                    }),
+                );
+
+                this.logger.error(
+                    `Node ${nodeEntity.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
+                );
                 return;
             }
 
