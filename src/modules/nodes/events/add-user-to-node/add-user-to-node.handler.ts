@@ -60,7 +60,6 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 username: tId.toString(),
                                 password: trojanPassword,
                                 tag: inbound.tag,
-                                level: 0,
                             };
                         case 'vless':
                             return {
@@ -78,7 +77,6 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 tag: inbound.tag,
                                 cipherType: CipherType.CHACHA20_POLY1305,
                                 ivCheck: false,
-                                level: 0,
                             };
                         default:
                             throw new Error(`Unsupported inbound type: ${inboundType}`);
