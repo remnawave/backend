@@ -8,21 +8,13 @@ import { CommandBus } from '@nestjs/cqrs';
 
 import {
     AddUserCommand,
-    GetAllInboundsStatsCommand,
-    GetAllOutboundsStatsCommand,
-    GetInboundStatsCommand,
-    GetInboundUsersCommand,
-    GetInboundUsersCountCommand,
+    GetCombinedStatsCommand,
     GetNodeHealthCheckCommand,
-    GetOutboundStatsCommand,
     GetSystemStatsCommand,
-    GetUserOnlineStatusCommand,
     GetUsersStatsCommand,
     RemoveUserCommand,
     StartXrayCommand,
     StopXrayCommand,
-    X_HASH_PAYLOAD,
-    X_FORCE_RESTART,
 } from '@remnawave/node-contract';
 
 import { GetNodeJwtCommand, IGetNodeJwtResponse } from '@modules/keygen/commands/get-node-jwt';
@@ -92,10 +84,8 @@ export class AxiosService {
 
     public async startXray(
         data: StartXrayCommand.Request,
-        hashesPayload: string,
         url: string,
         port: null | number,
-        force?: boolean,
     ): Promise<ICommandResponse<StartXrayCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, StartXrayCommand.url, port);
         try {
@@ -104,10 +94,6 @@ export class AxiosService {
                 data,
                 {
                     timeout: 60_000,
-                    headers: {
-                        [X_HASH_PAYLOAD]: hashesPayload,
-                        [X_FORCE_RESTART]: force ? 'true' : 'false',
-                    },
                 },
             );
 
@@ -215,37 +201,6 @@ export class AxiosService {
      * STATS MANAGEMENT
      */
 
-    public async getUserOnlineStatus(
-        data: GetUserOnlineStatusCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetUserOnlineStatusCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetUserOnlineStatusCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetUserOnlineStatusCommand.Response>(
-                nodeUrl,
-                data,
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in getUserOnlineStatus:', error.response?.data);
-            } else {
-                this.logger.error('Error in getUserOnlineStatus:', error);
-            }
-
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
-        }
-    }
-
     public async getUsersStats(
         data: GetUsersStatsCommand.Request,
         url: string,
@@ -334,64 +289,25 @@ export class AxiosService {
         }
     }
 
-    public async getInboundStats(
-        data: GetInboundStatsCommand.Request,
+    public async getCombinedStats(
+        data: GetCombinedStatsCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<GetInboundStatsCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetInboundStatsCommand.url, port);
+    ): Promise<ICommandResponse<GetCombinedStatsCommand.Response['response']>> {
+        const nodeUrl = this.getNodeUrl(url, GetCombinedStatsCommand.url, port);
 
         try {
-            const response = await this.axiosInstance.post<GetInboundStatsCommand.Response>(
+            const nodeResult = await this.axiosInstance.post<GetCombinedStatsCommand.Response>(
                 nodeUrl,
                 data,
-                {
-                    timeout: 15_000,
-                },
             );
 
             return {
                 isOk: true,
-                response: response.data,
+                response: nodeResult.data.response,
             };
         } catch (error) {
             if (error instanceof AxiosError) {
-                this.logger.error('Error in getInboundStats:', error.response?.data);
-            } else {
-                this.logger.error('Error in getInboundStats:', error);
-            }
-
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
-        }
-    }
-
-    public async getAllInboundStats(
-        data: GetAllInboundsStatsCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetAllInboundsStatsCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetAllInboundsStatsCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetAllInboundsStatsCommand.Response>(
-                nodeUrl,
-                data,
-                {
-                    timeout: 15_000,
-                },
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                // this.logger.error(`Error in axios request: ${JSON.stringify(error.message)}`);
-
                 if (error.code === '500') {
                     return {
                         isOk: false,
@@ -415,90 +331,6 @@ export class AxiosService {
                     ),
                 };
             }
-        }
-    }
-
-    public async getAllOutboundStats(
-        data: GetAllOutboundsStatsCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetAllOutboundsStatsCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetAllOutboundsStatsCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetAllOutboundsStatsCommand.Response>(
-                nodeUrl,
-                data,
-                {
-                    timeout: 15_000,
-                },
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                // this.logger.error(`Error in axios request: ${JSON.stringify(error.message)}`);
-
-                if (error.code === '500') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(
-                            JSON.stringify(error.message),
-                        ),
-                    };
-                }
-
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
-            } else {
-                this.logger.error('Error in getAllOutboundStats:', error);
-
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                };
-            }
-        }
-    }
-
-    public async getOutboundStats(
-        data: GetOutboundStatsCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetOutboundStatsCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetOutboundStatsCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetOutboundStatsCommand.Response>(
-                nodeUrl,
-                data,
-                {
-                    timeout: 15_000,
-                },
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in getOutboundStats:', error.response?.data);
-            } else {
-                this.logger.error('Error in getOutboundStats:', error);
-            }
-
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
         }
     }
 
@@ -568,68 +400,6 @@ export class AxiosService {
                 this.logger.error('Error in deleteUser:', error.response?.data);
             } else {
                 this.logger.error('Error in deleteUser:', error);
-            }
-
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
-        }
-    }
-
-    public async getInboundUsers(
-        data: GetInboundUsersCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetInboundUsersCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetInboundUsersCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetInboundUsersCommand.Response>(
-                nodeUrl,
-                data,
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in getInboundUsers:', error.response?.data);
-            } else {
-                this.logger.error('Error in getInboundUsers:', error);
-            }
-
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
-        }
-    }
-
-    public async getInboundUsersCount(
-        data: GetInboundUsersCountCommand.Request,
-        url: string,
-        port: null | number,
-    ): Promise<ICommandResponse<GetInboundUsersCountCommand.Response>> {
-        const nodeUrl = this.getNodeUrl(url, GetInboundUsersCountCommand.url, port);
-
-        try {
-            const response = await this.axiosInstance.post<GetInboundUsersCountCommand.Response>(
-                nodeUrl,
-                data,
-            );
-
-            return {
-                isOk: true,
-                response: response.data,
-            };
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in getInboundUsersCount:', error.response?.data);
-            } else {
-                this.logger.error('Error in getInboundUsersCount:', error);
             }
 
             return {

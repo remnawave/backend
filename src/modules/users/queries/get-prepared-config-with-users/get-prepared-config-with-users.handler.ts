@@ -90,7 +90,7 @@ export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
                 isOk: true,
                 response: {
                     config: config.getConfig(),
-                    hashes: {
+                    hashesPayload: {
                         emptyConfig: configHash,
                         inbounds: Array.from(inboundsUserSets.entries()).map(([tag, set]) => ({
                             usersCount: set.size,

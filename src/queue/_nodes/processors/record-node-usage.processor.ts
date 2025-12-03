@@ -5,7 +5,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Inject, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 
-import { GetAllInboundsStatsCommand, GetAllOutboundsStatsCommand } from '@remnawave/node-contract';
+import { GetCombinedStatsCommand } from '@remnawave/node-contract';
 
 import { MESSAGING_NAMES, MICROSERVICES_NAMES } from '@common/microservices';
 import { ICommandResponse } from '@common/types/command-response.type';
@@ -40,7 +40,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         try {
             const { nodeUuid, nodeAddress, nodePort } = job.data;
 
-            const outboundsStats = await this.axios.getAllOutboundStats(
+            const combinedStats = await this.axios.getCombinedStats(
                 {
                     reset: true,
                 },
@@ -48,37 +48,14 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
                 nodePort,
             );
 
-            const inboundsStats = await this.axios.getAllInboundStats(
-                {
-                    reset: true,
-                },
-                nodeAddress,
-                nodePort,
-            );
-
-            if (outboundsStats.isOk && inboundsStats.isOk) {
-                return this.handleOk(nodeUuid, outboundsStats.response!, inboundsStats.response!);
-            }
-
-            if (outboundsStats.isOk && !inboundsStats.isOk) {
-                this.logger.error(
-                    `Failed to get inbound stats, node: ${nodeUuid} – ${nodeAddress}:${nodePort}, error: ${JSON.stringify(inboundsStats)}`,
+            if (!combinedStats.isOk || !combinedStats.response) {
+                this.logger.warn(
+                    `Node ${nodeUuid}, ${nodeAddress}:${nodePort} – stats are not available, skipping`,
                 );
                 return;
             }
 
-            if (!outboundsStats.isOk && inboundsStats.isOk) {
-                this.logger.error(
-                    `Failed to get outbound stats, node: ${nodeUuid} – ${nodeAddress}:${nodePort}, error: ${JSON.stringify(outboundsStats)}`,
-                );
-                return;
-            }
-
-            this.logger.warn(
-                `Node ${nodeUuid}, ${nodeAddress}:${nodePort} – stats are not available, skipping`,
-            );
-
-            return;
+            return this.handleOk(nodeUuid, combinedStats.response);
         } catch (error) {
             this.logger.error(
                 `Error handling "${NODES_JOB_NAMES.RECORD_NODE_USAGE}" job: ${error}`,
@@ -90,10 +67,9 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
 
     private async handleOk(
         nodeUuid: string,
-        outboundsResponse: GetAllOutboundsStatsCommand.Response,
-        inboundsResponse: GetAllInboundsStatsCommand.Response,
+        combinedStats: GetCombinedStatsCommand.Response['response'],
     ): Promise<void> {
-        const nodeOutBoundsMetrics = new Map<
+        const nodeOutboundsMetrics = new Map<
             string,
             {
                 downlink: string;
@@ -101,7 +77,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
             }
         >();
 
-        const nodeInBoundsMetrics = new Map<
+        const nodeInboundsMetrics = new Map<
             string,
             {
                 downlink: string;
@@ -109,7 +85,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
             }
         >();
 
-        const { totalDownlink, totalUplink } = outboundsResponse.response.outbounds?.reduce(
+        const { totalDownlink, totalUplink } = combinedStats.outbounds.reduce(
             (acc, outbound) => ({
                 totalDownlink: acc.totalDownlink + (outbound.downlink || 0),
                 totalUplink: acc.totalUplink + (outbound.uplink || 0),
@@ -138,15 +114,15 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
             bytes: BigInt(totalBytes),
         });
 
-        outboundsResponse.response.outbounds?.forEach((outbound) => {
-            nodeOutBoundsMetrics.set(outbound.outbound, {
+        combinedStats.outbounds.forEach((outbound) => {
+            nodeOutboundsMetrics.set(outbound.outbound, {
                 downlink: outbound.downlink.toString(),
                 uplink: outbound.uplink.toString(),
             });
         });
 
-        inboundsResponse.response.inbounds?.forEach((inbound) => {
-            nodeInBoundsMetrics.set(inbound.inbound, {
+        combinedStats.inbounds.forEach((inbound) => {
+            nodeInboundsMetrics.set(inbound.inbound, {
                 downlink: inbound.downlink.toString(),
                 uplink: inbound.uplink.toString(),
             });
@@ -154,8 +130,8 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
 
         await this.sendNodeMetrics({
             nodeUuid,
-            nodeOutBoundsMetrics,
-            nodeInBoundsMetrics,
+            nodeOutboundsMetrics,
+            nodeInboundsMetrics,
         });
 
         return;
@@ -179,17 +155,17 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
 
     private async sendNodeMetrics(dto: {
         nodeUuid: string;
-        nodeOutBoundsMetrics: Map<string, { downlink: string; uplink: string }>;
-        nodeInBoundsMetrics: Map<string, { downlink: string; uplink: string }>;
+        nodeOutboundsMetrics: Map<string, { downlink: string; uplink: string }>;
+        nodeInboundsMetrics: Map<string, { downlink: string; uplink: string }>;
     }): Promise<void> {
         this.redisProducer.emit(MESSAGING_NAMES.NODE_METRICS, {
             nodeUuid: dto.nodeUuid,
-            inbounds: Array.from(dto.nodeInBoundsMetrics.entries()).map(([tag, metrics]) => ({
+            inbounds: Array.from(dto.nodeInboundsMetrics.entries()).map(([tag, metrics]) => ({
                 tag,
                 downlink: metrics.downlink,
                 uplink: metrics.uplink,
             })),
-            outbounds: Array.from(dto.nodeOutBoundsMetrics.entries()).map(([tag, metrics]) => ({
+            outbounds: Array.from(dto.nodeOutboundsMetrics.entries()).map(([tag, metrics]) => ({
                 tag,
                 downlink: metrics.downlink,
                 uplink: metrics.uplink,

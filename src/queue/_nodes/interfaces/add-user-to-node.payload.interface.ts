@@ -1,7 +1,7 @@
-import { AddUserCommand } from '@remnawave/node-contract';
+import { AddUserCommand as AddUserToNodeCommandSdk } from '@remnawave/node-contract';
 
 export interface IAddUserToNodePayload {
-    data: AddUserCommand.Request;
+    data: AddUserToNodeCommandSdk.Request;
     node: {
         address: string;
         port: number | null;

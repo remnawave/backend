@@ -152,30 +152,30 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     throw new Error('Failed to get active node inbounds tags');
                 }
 
-                const filteredInboundsHashes = config.response.hashes.inbounds.filter((inbound) =>
-                    activeNodeInboundsTags.has(inbound.tag),
+                const filteredInboundsHashes = config.response.hashesPayload.inbounds.filter(
+                    (inbound) => activeNodeInboundsTags.has(inbound.tag),
                 );
-
-                const hashPayload = Buffer.from(
-                    JSON.stringify({
-                        emptyConfig: config.response.hashes.emptyConfig,
-                        inbounds: filteredInboundsHashes,
-                    }),
-                ).toString('base64');
 
                 const response = await this.axios.startXray(
                     {
-                        ...config.response.config,
-                        inbounds: config.response.config.inbounds.filter(
-                            (inbound) =>
-                                activeNodeInboundsTags.has(inbound.tag) ||
-                                this.isUnsecureInbound(inbound.protocol),
-                        ),
-                    } as unknown as Record<string, unknown>,
-                    hashPayload,
+                        xrayConfig: {
+                            ...config.response.config,
+                            inbounds: config.response.config.inbounds.filter(
+                                (inbound) =>
+                                    activeNodeInboundsTags.has(inbound.tag) ||
+                                    this.isUnsecureInbound(inbound.protocol),
+                            ),
+                        } as unknown as Record<string, unknown>,
+                        internals: {
+                            hashes: {
+                                emptyConfig: config.response.hashesPayload.emptyConfig,
+                                inbounds: filteredInboundsHashes,
+                            },
+                            forceRestart: payload.force ?? false,
+                        },
+                    },
                     node.address,
                     node.port,
-                    payload.force,
                 );
 
                 switch (response.isOk) {

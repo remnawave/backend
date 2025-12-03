@@ -127,8 +127,10 @@ export class StartNodeProcessor extends WorkerHost {
             const reqStartTime = getTime();
 
             const res = await this.axios.startXray(
-                config.response.config as unknown as Record<string, unknown>,
-                Buffer.from(JSON.stringify(config.response.hashes)).toString('base64'),
+                {
+                    xrayConfig: config.response.config as unknown as Record<string, unknown>,
+                    internals: { hashes: config.response.hashesPayload, forceRestart: false },
+                },
                 nodeEntity.address,
                 nodeEntity.port,
             );

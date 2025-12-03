@@ -59,8 +59,8 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 type: inboundType,
                                 username: tId.toString(),
                                 password: trojanPassword,
-                                level: 0,
                                 tag: inbound.tag,
+                                level: 0,
                             };
                         case 'vless':
                             return {
@@ -68,7 +68,6 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 username: tId.toString(),
                                 uuid: vlessUuid,
                                 flow: getVlessFlowFromDbInbound(inbound),
-                                level: 0,
                                 tag: inbound.tag,
                             };
                         case 'shadowsocks':
@@ -76,10 +75,10 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 type: inboundType,
                                 username: tId.toString(),
                                 password: ssPassword,
-                                level: 0,
                                 tag: inbound.tag,
                                 cipherType: CipherType.CHACHA20_POLY1305,
                                 ivCheck: false,
+                                level: 0,
                             };
                         default:
                             throw new Error(`Unsupported inbound type: ${inboundType}`);
