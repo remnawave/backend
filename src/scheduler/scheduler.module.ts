@@ -6,9 +6,16 @@ import { PrometheusReporterModule } from '@integration-modules/prometheus-report
 import { JOBS_SERVICES, MESSAGE_HANDLERS } from './tasks';
 import { METRIC_PROVIDERS } from './metrics-providers';
 import { ENQUEUE_SERVICES } from './enqueue';
+import { EVENT_LISTENERS } from './events';
 
 @Module({
     imports: [CqrsModule, PrometheusReporterModule],
-    providers: [...ENQUEUE_SERVICES, ...JOBS_SERVICES, ...METRIC_PROVIDERS, ...MESSAGE_HANDLERS],
+    providers: [
+        ...ENQUEUE_SERVICES,
+        ...JOBS_SERVICES,
+        ...METRIC_PROVIDERS,
+        ...MESSAGE_HANDLERS,
+        ...EVENT_LISTENERS,
+    ],
 })
 export class SchedulerModule {}

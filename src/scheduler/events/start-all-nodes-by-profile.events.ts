@@ -4,9 +4,8 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
 import { sleep } from '@common/utils/sleep';
 
+import { NodesQueuesService } from '@queue/_nodes';
 import { QUEUES_NAMES } from '@queue/queue.enum';
-
-import { NodesQueuesService } from '../nodes-queues.service';
 
 @Injectable()
 export class StartAllNodesByProfileQueueEvents implements OnModuleInit {
@@ -26,9 +25,9 @@ export class StartAllNodesByProfileQueueEvents implements OnModuleInit {
 
             this.logger.log(`[deduplicated] ${deduplicationId} – retrying job ${jobId} in 10s`);
 
-            await sleep(10_000);
-
             const profileUuid = deduplicationId;
+
+            await sleep(10_000);
 
             await this.nodesQueuesService.startAllNodesByProfile({
                 profileUuid,

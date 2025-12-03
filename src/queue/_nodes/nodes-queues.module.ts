@@ -13,7 +13,6 @@ import {
     RecordUserUsageQueueProcessor,
     RecordNodeUsageQueueProcessor,
 } from './processors';
-import { StartAllNodesByProfileQueueEvents } from './events';
 import { NodesQueuesService } from './nodes-queues.service';
 
 const queues = [
@@ -34,5 +33,4 @@ export const NodesQueuesModule = createDomainQueueModule({
     queues,
     service: NodesQueuesService,
     imports: [CqrsModule],
-    extraProviders: [StartAllNodesByProfileQueueEvents],
 });

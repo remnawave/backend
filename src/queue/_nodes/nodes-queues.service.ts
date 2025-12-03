@@ -122,10 +122,6 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         force?: boolean;
     }) {
         return this.startAllNodesByProfileQueue.add(NODES_JOB_NAMES.START_ALL_BY_PROFILE, payload, {
-            // jobId: `${StartAllNodesByProfileJobNames.startAllNodesByProfile}-${payload.profileUuid}`,
-            // removeOnComplete: true,
-            // removeOnFail: true,
-
             deduplication: {
                 id: payload.profileUuid,
             },
