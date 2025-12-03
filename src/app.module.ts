@@ -29,6 +29,7 @@ import { QueueModule } from '@queue/queue.module';
         AxiosModule,
         ConfigModule.forRoot({
             isGlobal: true,
+            cache: true,
             envFilePath: '.env',
             validate: (config) => validateEnvConfig<Env>(configSchema, config),
         }),
