@@ -9,6 +9,7 @@ import { getKyselyUuid } from '@common/helpers/kysely/get-kysely-uuid';
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
 
+import { IGetEnabledNodesPartialResponse } from '../queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
 import { IGetOnlineNodesPartialResponse } from '../queries/get-online-nodes';
 import { NodesEntity } from '../entities/nodes.entity';
 import { NodesConverter } from '../nodes.converter';
@@ -76,6 +77,17 @@ export class NodesRepository implements ICrud<NodesEntity> {
             .where('isDisabled', '=', false)
             .where('isConnecting', '=', false)
             .where('activeConfigProfileUuid', 'is not', null)
+            .execute();
+
+        return nodesList;
+    }
+
+    public async findEnabledNodesPartial(): Promise<IGetEnabledNodesPartialResponse[]> {
+        const nodesList = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(['uuid', 'address', 'port', 'isConnected'])
+            .where('isDisabled', '=', false)
+            .where('isConnecting', '=', false)
             .execute();
 
         return nodesList;

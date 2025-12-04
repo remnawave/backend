@@ -3,7 +3,7 @@ import { Queue } from 'bullmq';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 
-import { NodesEntity } from '@modules/nodes';
+import { IGetEnabledNodesPartialResponse } from '@modules/nodes/queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
@@ -77,7 +77,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         });
     }
 
-    public async checkNodeHealthBulk(payload: NodesEntity[]) {
+    public async checkNodeHealthBulk(payload: IGetEnabledNodesPartialResponse[]) {
         return this.nodeHealthCheckQueue.addBulk(
             payload.map((node) => {
                 return {
@@ -87,7 +87,6 @@ export class NodesQueuesService implements OnApplicationBootstrap {
                         nodeAddress: node.address,
                         nodePort: node.port,
                         isConnected: node.isConnected,
-                        isConnecting: node.isConnecting,
                     } satisfies INodeHealthCheckPayload,
                     opts: {
                         jobId: `${NODES_JOB_NAMES.NODE_HEALTH_CHECK}-${node.uuid}`,

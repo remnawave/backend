@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { TResult } from '@common/types';
-
-import { GetEnabledNodesQuery } from '@modules/nodes/queries/get-enabled-nodes';
-import { NodesEntity } from '@modules/nodes';
+import { GetEnabledNodesPartialQuery } from '@modules/nodes/queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
 
 import { NodesQueuesService } from '@queue/_nodes';
 
@@ -43,8 +40,12 @@ export class NodeHealthCheckTask {
                 return;
             }
 
-            const nodesResponse = await this.getEnabledNodes();
+            const nodesResponse = await this.queryBus.execute(new GetEnabledNodesPartialQuery());
             if (!nodesResponse.isOk) {
+                return;
+            }
+
+            if (nodesResponse.response.length === 0) {
                 return;
             }
 
@@ -54,11 +55,5 @@ export class NodeHealthCheckTask {
         } catch (error) {
             this.logger.error(`Error in NodeHealthCheckService: ${error}`);
         }
-    }
-
-    private async getEnabledNodes(): Promise<TResult<NodesEntity[]>> {
-        return this.queryBus.execute<GetEnabledNodesQuery, TResult<NodesEntity[]>>(
-            new GetEnabledNodesQuery(),
-        );
     }
 }

@@ -36,14 +36,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
     }
     async process(job: Job<INodeHealthCheckPayload>) {
         try {
-            const { nodeAddress, nodePort, nodeUuid, isConnected, isConnecting } = job.data;
-
-            if (isConnecting) {
-                this.logger.warn(
-                    `Node ${nodeUuid}, ${nodeAddress}:${nodePort} – is connecting, skipping health check`,
-                );
-                return;
-            }
+            const { nodeAddress, nodePort, nodeUuid, isConnected } = job.data;
 
             const attemptsLimit = 2;
             let attempts = 0;

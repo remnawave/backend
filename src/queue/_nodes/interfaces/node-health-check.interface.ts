@@ -3,5 +3,4 @@ export interface INodeHealthCheckPayload {
     nodeAddress: string;
     nodePort: number | null;
     isConnected: boolean;
-    isConnecting: boolean;
 }
