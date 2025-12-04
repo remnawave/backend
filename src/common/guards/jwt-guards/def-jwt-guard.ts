@@ -64,7 +64,7 @@ export class JwtDefaultGuard extends AuthGuard('registeredUserJWT') {
                     role: user.role,
                 });
 
-                if (!adminEntity.isOk || !adminEntity.response) {
+                if (!adminEntity.isOk) {
                     return false;
                 }
 
@@ -97,7 +97,7 @@ export class JwtDefaultGuard extends AuthGuard('registeredUserJWT') {
         }
 
         const token = await this.getTokenByUuid({ uuid: apiTokenUuid });
-        if (!token.isOk || !token.response) {
+        if (!token.isOk) {
             return false;
         }
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { GetSubscriptionRequestHistoryCommand } from '@libs/contracts/commands';
 import { ERRORS } from '@libs/contracts/constants';
 
@@ -29,19 +29,13 @@ export class UserSubscriptionRequestHistoryService {
                     dto,
                 );
 
-            return {
-                isOk: true,
-                response: {
-                    records,
-                    total,
-                },
-            };
+            return ok({
+                records,
+                total,
+            });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_USER_SUBSCRIPTION_REQUEST_HISTORY_ERROR,
-            };
+            return fail(ERRORS.GET_USER_SUBSCRIPTION_REQUEST_HISTORY_ERROR);
         }
     }
 
@@ -55,19 +49,15 @@ export class UserSubscriptionRequestHistoryService {
             const hourlyRequestStats =
                 await this.userSubscriptionRequestHistoryRepository.getHourlyRequestStats();
 
-            return {
-                isOk: true,
-                response: new GetSubscriptionRequestHistoryStatsResponseModel({
+            return ok(
+                new GetSubscriptionRequestHistoryStatsResponseModel({
                     byParsedApp: stats.byParsedApp,
-                    hourlyRequestStats: hourlyRequestStats,
+                    hourlyRequestStats,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_USER_SUBSCRIPTION_REQUEST_HISTORY_STATS_ERROR,
-            };
+            return fail(ERRORS.GET_USER_SUBSCRIPTION_REQUEST_HISTORY_STATS_ERROR);
         }
     }
 }

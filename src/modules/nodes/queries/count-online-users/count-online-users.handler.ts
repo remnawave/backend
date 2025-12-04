@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
@@ -19,18 +19,10 @@ export class CountOnlineUsersHandler implements IQueryHandler<
         try {
             const nodes = await this.nodesRepository.countOnlineUsers();
 
-            return {
-                isOk: true,
-                response: {
-                    usersOnline: nodes,
-                },
-            };
+            return ok({ usersOnline: nodes });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

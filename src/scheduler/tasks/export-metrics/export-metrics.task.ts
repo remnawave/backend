@@ -122,7 +122,7 @@ export class ExportMetricsTask {
                 // this.logger.debug('Updating user stats cache from database...');
                 const usersResponse = await this.getShortUserStats();
 
-                if (!usersResponse.isOk || !usersResponse.response) {
+                if (!usersResponse.isOk) {
                     return;
                 }
 
@@ -161,7 +161,7 @@ export class ExportMetricsTask {
     private async reportNodesStats() {
         try {
             const nodesResponse = await this.getAllNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            if (!nodesResponse.isOk) {
                 return;
             }
 

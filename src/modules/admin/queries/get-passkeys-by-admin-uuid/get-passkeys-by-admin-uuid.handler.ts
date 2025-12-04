@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { PasskeyRepository } from '@modules/admin/repositories/passkey.repository';
@@ -23,16 +23,10 @@ export class GetPasskeysByAdminUuidHandler implements IQueryHandler<
                 adminUuid: query.adminUuid,
             });
 
-            return {
-                isOk: true,
-                response: passkeys,
-            };
+            return ok(passkeys);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

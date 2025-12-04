@@ -3,31 +3,20 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
-
-import { UserSubscriptionRequestHistoryEntity } from '@modules/user-subscription-request-history';
+import { fail, ok } from '@common/types';
 
 import { UserSubscriptionRequestHistoryRepository } from '../../repositories/user-subscription-request-history.repository';
 import { CreateSubscriptionRequestHistoryCommand } from './create-subscription-request-history.command';
 
 @CommandHandler(CreateSubscriptionRequestHistoryCommand)
-export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
-    CreateSubscriptionRequestHistoryCommand,
-    TResult<{
-        userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
-    }>
-> {
+export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<CreateSubscriptionRequestHistoryCommand> {
     public readonly logger = new Logger(CreateSubscriptionRequestHistoryHandler.name);
 
     constructor(
         private readonly userSubscriptionRequestHistoryRepository: UserSubscriptionRequestHistoryRepository,
     ) {}
 
-    async execute(command: CreateSubscriptionRequestHistoryCommand): Promise<
-        TResult<{
-            userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
-        }>
-    > {
+    async execute(command: CreateSubscriptionRequestHistoryCommand) {
         try {
             const { userSubscriptionRequestHistory } = command;
 
@@ -35,12 +24,7 @@ export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
                 userSubscriptionRequestHistory,
             );
 
-            return {
-                isOk: true,
-                response: {
-                    userSubscriptionRequestHistory,
-                },
-            };
+            return ok(userSubscriptionRequestHistory);
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -48,10 +32,7 @@ export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_USER_SUBSCRIPTION_REQUEST_HISTORY_ERROR,
-            };
+            return fail(ERRORS.CREATE_USER_SUBSCRIPTION_REQUEST_HISTORY_ERROR);
         }
     }
 }

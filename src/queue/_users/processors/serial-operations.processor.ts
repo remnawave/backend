@@ -155,10 +155,6 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
             });
         } catch (error) {
             this.logger.error(`Error handling "${USERS_JOB_NAMES.DELETE_BY_STATUS}" job: ${error}`);
-
-            return {
-                isOk: false,
-            };
         }
     }
 
@@ -203,10 +199,6 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
             await this.nodesQueuesService.startAllNodesWithoutDeduplication({
                 emitter: 'bulkUpdateAllUsers',
             });
-
-            return {
-                isOk: true,
-            };
         } catch (error) {
             this.logger.error(
                 `Error handling "${USERS_JOB_NAMES.BULK_UPDATE_ALL_USERS}" job: ${error}`,
@@ -225,10 +217,6 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
             await this.nodesQueuesService.startAllNodesWithoutDeduplication({
                 emitter: 'bulkAllExtendExpirationDate',
             });
-
-            return {
-                isOk: true,
-            };
         } catch (error) {
             this.logger.error(
                 `Error handling "${USERS_JOB_NAMES.BULK_ALL_EXTEND_EXPIRATION_DATE}" job: ${error}`,

@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { HwidUserDevicesRepository } from '../../repositories/hwid-user-devices.repository';
@@ -19,16 +19,10 @@ export class CountUsersDevicesHandler implements IQueryHandler<
         try {
             const count = await this.hwidUserDevicesRepository.countByUserUuid(query.userUuid);
 
-            return {
-                isOk: true,
-                response: count,
-            };
+            return ok(count);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

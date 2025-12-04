@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { ShortUserStats } from '../../interfaces/user-stats.interface';
@@ -21,19 +21,13 @@ export class GetShortUserStatsHandler implements IQueryHandler<
             const statusCounts = await this.usersRepository.getUserStats();
             const onlineStats = await this.usersRepository.getUserOnlineStats();
 
-            return {
-                isOk: true,
-                response: {
-                    statusCounts,
-                    onlineStats,
-                },
-            };
+            return ok({
+                statusCounts,
+                onlineStats,
+            });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

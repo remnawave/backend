@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesUserUsageHistoryRepository } from './repositories/nodes-user-usage-history.repository';
@@ -28,16 +28,10 @@ export class NodesUserUsageHistoryService {
                 endDate,
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_NODES_USER_USAGE_BY_RANGE_ERROR,
-            };
+            return fail(ERRORS.GET_NODES_USER_USAGE_BY_RANGE_ERROR);
         }
     }
 
@@ -45,16 +39,10 @@ export class NodesUserUsageHistoryService {
         try {
             const result = await this.nodeUserUsageHistoryRepository.getNodesRealtimeUsage();
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_NODES_REALTIME_USAGE_ERROR,
-            };
+            return fail(ERRORS.GET_NODES_REALTIME_USAGE_ERROR);
         }
     }
 }

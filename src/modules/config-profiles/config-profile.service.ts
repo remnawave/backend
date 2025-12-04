@@ -6,7 +6,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { XRayConfig } from '@common/helpers/xray-config';
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -43,16 +43,10 @@ export class ConfigProfileService {
 
             const total = await this.configProfileRepository.getTotalConfigProfiles();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfilesResponseModel(configProfiles, total),
-            };
+            return ok(new GetConfigProfilesResponseModel(configProfiles, total));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_CONFIG_PROFILES_ERROR,
-            };
+            return fail(ERRORS.GET_CONFIG_PROFILES_ERROR);
         }
     }
 
@@ -63,24 +57,15 @@ export class ConfigProfileService {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             configProfile.config = new XRayConfig(configProfile.config as object).getSortedConfig();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfileByUuidResponseModel(configProfile),
-            };
+            return ok(new GetConfigProfileByUuidResponseModel(configProfile));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
@@ -91,20 +76,14 @@ export class ConfigProfileService {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const snippetsMap: Map<string, unknown> = new Map();
             const snippetsResponse = await this.queryBus.execute(new GetSnippetsQuery());
 
-            if (!snippetsResponse.isOk || !snippetsResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
+            if (!snippetsResponse.isOk) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
             }
 
             for (const snippet of snippetsResponse.response) {
@@ -116,16 +95,10 @@ export class ConfigProfileService {
 
             configProfile.config = config.getSortedConfig();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfileByUuidResponseModel(configProfile),
-            };
+            return ok(new GetConfigProfileByUuidResponseModel(configProfile));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
@@ -136,10 +109,7 @@ export class ConfigProfileService {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             for (const node of configProfile.nodes) {
@@ -151,16 +121,10 @@ export class ConfigProfileService {
 
             const result = await this.configProfileRepository.deleteByUUID(uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteConfigProfileByUuidResponseModel(result),
-            };
+            return ok(new DeleteConfigProfileByUuidResponseModel(result));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.DELETE_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
@@ -170,10 +134,7 @@ export class ConfigProfileService {
     ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             if (name === 'Default-Profile') {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_CONFIG_PROFILE_NAME,
-                };
+                return fail(ERRORS.RESERVED_CONFIG_PROFILE_NAME);
             }
 
             const validatedConfig = new XRayConfig(config);
@@ -214,17 +175,14 @@ export class ConfigProfileService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('tag')) {
-                    return { isOk: false, ...ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS };
+                    return fail(ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS);
                 }
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS);
                 }
             }
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_CONFIG_PROFILE_ERROR,
-            };
+            return fail(ERRORS.CREATE_CONFIG_PROFILE_ERROR);
         }
     }
 
@@ -238,17 +196,11 @@ export class ConfigProfileService {
                 await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!existingConfigProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             if (!name && !config) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NAME_OR_CONFIG_REQUIRED,
-                };
+                return fail(ERRORS.NAME_OR_CONFIG_REQUIRED);
             }
 
             await this.updateConfigProfileTransactional(existingConfigProfile, uuid, name, config);
@@ -276,24 +228,18 @@ export class ConfigProfileService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('tag')) {
-                    return { isOk: false, ...ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS };
+                    return fail(ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS);
                 }
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS);
                 }
             }
 
             if (error instanceof Error) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_VALIDATION_ERROR.withMessage(error.message),
-                };
+                return fail(ERRORS.CONFIG_VALIDATION_ERROR.withMessage(error.message));
             }
 
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_CONFIG_PROFILE_ERROR,
-            };
+            return fail(ERRORS.UPDATE_CONFIG_PROFILE_ERROR);
         }
     }
 
@@ -353,25 +299,16 @@ export class ConfigProfileService {
                 await this.configProfileRepository.getConfigProfileByUUID(profileUuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const inbounds =
                 await this.configProfileRepository.getInboundsWithSquadsByProfileUuid(profileUuid);
 
-            return {
-                isOk: true,
-                response: new GetAllInboundsResponseModel(inbounds, inbounds.length),
-            };
+            return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INBOUNDS_BY_PROFILE_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_INBOUNDS_BY_PROFILE_UUID_ERROR);
         }
     }
 
@@ -379,16 +316,10 @@ export class ConfigProfileService {
         try {
             const inbounds = await this.configProfileRepository.getAllInbounds();
 
-            return {
-                isOk: true,
-                response: new GetAllInboundsResponseModel(inbounds, inbounds.length),
-            };
+            return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_INBOUNDS_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_INBOUNDS_ERROR);
         }
     }
 
@@ -401,7 +332,7 @@ export class ConfigProfileService {
             return await this.getConfigProfiles();
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
+            return fail(ERRORS.GENERIC_REORDER_ERROR);
         }
     }
 

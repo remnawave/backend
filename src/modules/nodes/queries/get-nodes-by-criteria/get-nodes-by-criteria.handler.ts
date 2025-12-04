@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesByCriteriaQuery } from './get-nodes-by-criteria.query';
@@ -20,16 +20,10 @@ export class GetNodesByCriteriaHandler implements IQueryHandler<
         try {
             const nodes = await this.nodesRepository.findByCriteria(query.criteria);
 
-            return {
-                isOk: true,
-                response: nodes,
-            };
+            return ok(nodes);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

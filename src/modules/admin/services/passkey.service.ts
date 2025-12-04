@@ -44,19 +44,13 @@ export class PasskeyService {
             const { uuid } = payload;
 
             if (!uuid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const admin = await this.adminRepository.findByUUID(uuid);
 
             if (!admin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ADMIN_NOT_FOUND,
-                };
+                return fail(ERRORS.ADMIN_NOT_FOUND);
             }
 
             const { passkeySettings } = await this.queryBus.execute(
@@ -64,17 +58,11 @@ export class PasskeyService {
             );
 
             if (!passkeySettings.enabled) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEYS_NOT_ENABLED,
-                };
+                return fail(ERRORS.PASSKEYS_NOT_ENABLED);
             }
 
             if (!passkeySettings.rpId || !passkeySettings.origin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEYS_NOT_CONFIGURED,
-                };
+                return fail(ERRORS.PASSKEYS_NOT_CONFIGURED);
             }
 
             const existingPasskeys = await this.passkeyRepository.findByCriteria({
@@ -104,16 +92,10 @@ export class PasskeyService {
                 300_000,
             );
 
-            return {
-                isOk: true,
-                response: options,
-            };
+            return ok(options);
         } catch (error) {
             this.logger.error(`Passkey registration options error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.GENERATE_PASSKEY_REGISTRATION_OPTIONS,
-            };
+            return fail(ERRORS.GENERATE_PASSKEY_REGISTRATION_OPTIONS);
         }
     }
 

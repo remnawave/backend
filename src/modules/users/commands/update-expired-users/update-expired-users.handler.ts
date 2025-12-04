@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { UpdateExpiredUsersCommand } from './update-expired-users.command';
 import { UsersRepository } from '../../repositories/users.repository';
@@ -21,16 +21,10 @@ export class UpdateExpiredUsersHandler implements ICommandHandler<
         try {
             const result = await this.usersRepository.updateExpiredUsers();
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error: unknown) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_USER_ERROR,
-            };
+            return fail(ERRORS.UPDATE_USER_ERROR);
         }
     }
 }

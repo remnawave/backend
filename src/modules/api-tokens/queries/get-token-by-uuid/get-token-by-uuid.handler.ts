@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { ApiTokensRepository } from '../../repositories/api-tokens.repository';
@@ -23,20 +23,13 @@ export class GetTokenByUuidHandler implements IQueryHandler<
             });
 
             if (!token) {
-                return {
-                    isOk: false,
-                };
+                return fail(ERRORS.REQUESTED_TOKEN_NOT_FOUND);
             }
-            return {
-                isOk: true,
-                response: token,
-            };
+
+            return ok(token);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

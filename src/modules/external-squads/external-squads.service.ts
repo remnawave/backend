@@ -6,7 +6,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
@@ -36,16 +36,10 @@ export class ExternalSquadService {
         try {
             const externalSquads = await this.externalSquadRepository.getExternalSquads();
 
-            return {
-                isOk: true,
-                response: new GetExternalSquadsResponseModel(externalSquads, externalSquads.length),
-            };
+            return ok(new GetExternalSquadsResponseModel(externalSquads, externalSquads.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_EXTERNAL_SQUADS_ERROR,
-            };
+            return fail(ERRORS.GET_EXTERNAL_SQUADS_ERROR);
         }
     }
 
@@ -56,22 +50,13 @@ export class ExternalSquadService {
             const externalSquad = await this.externalSquadRepository.getExternalSquadByUuid(uuid);
 
             if (!externalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.EXTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: new GetExternalSquadByUuidResponseModel(externalSquad),
-            };
+            return ok(new GetExternalSquadByUuidResponseModel(externalSquad));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_EXTERNAL_SQUAD_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_EXTERNAL_SQUAD_BY_UUID_ERROR);
         }
     }
 
@@ -95,15 +80,12 @@ export class ExternalSquadService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.EXTERNAL_SQUAD_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.EXTERNAL_SQUAD_NAME_ALREADY_EXISTS);
                 }
             }
 
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_EXTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.CREATE_EXTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -125,10 +107,7 @@ export class ExternalSquadService {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
             if (!externalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.EXTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
             if (
@@ -140,10 +119,7 @@ export class ExternalSquadService {
                 hwidSettings === undefined &&
                 customRemarks === undefined
             ) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NAME_OR_TEMPLATES_REQUIRED,
-                };
+                return fail(ERRORS.NAME_OR_TEMPLATES_REQUIRED);
             }
 
             await this.externalSquadRepository.update({
@@ -172,15 +148,12 @@ export class ExternalSquadService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.EXTERNAL_SQUAD_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.EXTERNAL_SQUAD_NAME_ALREADY_EXISTS);
                 }
             }
 
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_EXTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.UPDATE_EXTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -214,26 +187,17 @@ export class ExternalSquadService {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
             if (!externalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.EXTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
             await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
 
             const deleted = await this.externalSquadRepository.deleteByUUID(uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteExternalSquadByUuidResponseModel(deleted),
-            };
+            return ok(new DeleteExternalSquadByUuidResponseModel(deleted));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_EXTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.DELETE_EXTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -244,26 +208,17 @@ export class ExternalSquadService {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
             if (!externalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.EXTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
             await this.squadsQueueService.addUsersToExternalSquad({
                 externalSquadUuid: uuid,
             });
 
-            return {
-                isOk: true,
-                response: new EventSentExternalSquadResponseModel(true),
-            };
+            return ok(new EventSentExternalSquadResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ADD_USERS_TO_EXTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.ADD_USERS_TO_EXTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -274,26 +229,17 @@ export class ExternalSquadService {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
             if (!externalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.EXTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
             await this.squadsQueueService.removeUsersFromExternalSquad({
                 externalSquadUuid: uuid,
             });
 
-            return {
-                isOk: true,
-                response: new EventSentExternalSquadResponseModel(true),
-            };
+            return ok(new EventSentExternalSquadResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.REMOVE_USERS_FROM_EXTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -306,7 +252,7 @@ export class ExternalSquadService {
             return await this.getExternalSquads();
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
+            return fail(ERRORS.GENERIC_REORDER_ERROR);
         }
     }
 }

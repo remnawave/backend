@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { NodesRepository } from '@modules/nodes/repositories/nodes.repository';
 
@@ -29,12 +29,7 @@ export class SyncActiveProfileHandler implements ICommandHandler<
             const affectedRows =
                 await this.nodesRepository.clearActiveConfigProfileForNodesWithoutInbounds();
 
-            return {
-                isOk: true,
-                response: {
-                    affectedRows,
-                },
-            };
+            return ok({ affectedRows });
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -42,10 +37,7 @@ export class SyncActiveProfileHandler implements ICommandHandler<
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.SYNC_ACTIVE_PROFILE_ERROR,
-            };
+            return fail(ERRORS.SYNC_ACTIVE_PROFILE_ERROR);
         }
     }
 }

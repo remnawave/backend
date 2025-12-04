@@ -115,16 +115,15 @@ export class SystemService {
             const last30DaysStats = await this.getLast30DaysUsage(tz);
             const calendarMonthStats = await this.getCalendarMonthUsage(tz);
             const currentYearStats = await this.getCurrentYearUsage(tz);
-            return {
-                isOk: true,
-                response: new GetBandwidthStatsResponseModel({
+            return ok(
+                new GetBandwidthStatsResponseModel({
                     bandwidthLastTwoDays: lastTwoDaysStats,
                     bandwidthLastSevenDays: lastSevenDaysStats,
                     bandwidthLast30Days: last30DaysStats,
                     bandwidthCalendarMonth: calendarMonthStats,
                     bandwidthCurrentYear: currentYearStats,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);

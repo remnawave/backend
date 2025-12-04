@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { UserWithResolvedInboundEntity } from '@modules/users/entities';
@@ -24,22 +24,13 @@ export class GetUserWithResolvedInboundsHandler implements IQueryHandler<
             const user = await this.usersRepository.getUserWithResolvedInbounds(query.userUuid);
 
             if (!user) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: user,
-            };
+            return ok(user);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

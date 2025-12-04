@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { SnippetsRepository } from '@modules/config-profiles/repositories/snippets.repository';
@@ -21,16 +21,10 @@ export class GetSnippetsHandler implements IQueryHandler<
         try {
             const result = await this.snippetsRepository.getAllSnippets();
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_SNIPPETS_ERROR,
-            };
+            return fail(ERRORS.GET_SNIPPETS_ERROR);
         }
     }
 }

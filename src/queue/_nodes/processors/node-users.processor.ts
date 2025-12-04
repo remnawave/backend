@@ -46,7 +46,7 @@ export class NodeUsersQueueProcessor extends WorkerHost {
             return result;
         } catch (error) {
             this.logger.error(`Error handling "${NODES_JOB_NAMES.ADD_USER_TO_NODE}" job: ${error}`);
-            return { isOk: false };
+            return;
         }
     }
 
@@ -67,6 +67,7 @@ export class NodeUsersQueueProcessor extends WorkerHost {
             this.logger.error(
                 `Error handling "${NODES_JOB_NAMES.REMOVE_USER_FROM_NODE}" job: ${error}`,
             );
+            return;
         }
     }
 }

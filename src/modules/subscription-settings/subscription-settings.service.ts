@@ -3,7 +3,7 @@ import { Cache } from 'cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsRepository } from './repositories/subscription-settings.repository';
@@ -24,22 +24,13 @@ export class SubscriptionSettingsService {
             const settings = await this.subscriptionSettingsRepository.findFirst();
 
             if (!settings) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: settings,
-            };
+            return ok(settings);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_SUBSCRIPTION_SETTINGS_ERROR,
-            };
+            return fail(ERRORS.GET_SUBSCRIPTION_SETTINGS_ERROR);
         }
     }
 
@@ -50,10 +41,7 @@ export class SubscriptionSettingsService {
             const settings = await this.subscriptionSettingsRepository.findByUUID(dto.uuid);
 
             if (!settings) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND);
             }
 
             const updatedSettings = await this.subscriptionSettingsRepository.update({
@@ -62,16 +50,10 @@ export class SubscriptionSettingsService {
 
             await this.cacheManager.del(CACHE_KEYS.SUBSCRIPTION_SETTINGS);
 
-            return {
-                isOk: true,
-                response: updatedSettings,
-            };
+            return ok(updatedSettings);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_SUBSCRIPTION_SETTINGS_ERROR,
-            };
+            return fail(ERRORS.UPDATE_SUBSCRIPTION_SETTINGS_ERROR);
         }
     }
 }

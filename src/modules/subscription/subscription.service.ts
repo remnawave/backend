@@ -122,7 +122,7 @@ export class SubscriptionService {
                         ),
                     );
 
-                    if (templateName.isOk && templateName.response) {
+                    if (templateName.isOk) {
                         srrContext.overrideTemplateName = templateName.response;
                     }
                 }
@@ -304,9 +304,8 @@ export class SubscriptionService {
                 });
             }
 
-            return {
-                isOk: true,
-                response: new RawSubscriptionWithHostsResponse({
+            return ok(
+                new RawSubscriptionWithHostsResponse({
                     user: new GetFullUserResponseModel(user, this.subPublicDomain),
                     convertedUserInfo: {
                         daysLeft: dayjs(user.expireAt).diff(dayjs(), 'day'),
@@ -320,7 +319,7 @@ export class SubscriptionService {
                     headers,
                     rawHosts: subscription?.rawHosts ?? [],
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
@@ -465,16 +464,10 @@ export class SubscriptionService {
                 ssConfLinks = await this.generateSsConfLinks(userEntity.shortUuid, formattedHosts);
             }
 
-            return {
-                isOk: true,
-                response: await this.getUserInfo(userEntity, xrayLinks, ssConfLinks),
-            };
+            return ok(await this.getUserInfo(userEntity, xrayLinks, ssConfLinks));
         } catch (error) {
             this.logger.error(`Error getting subscription info: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 

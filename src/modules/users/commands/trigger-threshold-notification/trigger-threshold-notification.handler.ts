@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { TriggerThresholdNotificationCommand } from './trigger-threshold-notification.command';
 import { UsersRepository } from '../../repositories/users.repository';
@@ -25,16 +25,10 @@ export class TriggerThresholdNotificationHandler implements ICommandHandler<
                 command.percentages,
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error: unknown) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.TRIGGER_THRESHOLD_NOTIFICATION_ERROR,
-            };
+            return fail(ERRORS.TRIGGER_THRESHOLD_NOTIFICATION_ERROR);
         }
     }
 }

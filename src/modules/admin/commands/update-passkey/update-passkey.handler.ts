@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, TResult, ok } from '@common/types';
 
 import { PasskeyRepository } from '@modules/admin/repositories/passkey.repository';
 import { PasskeyEntity } from '@modules/admin/entities';
@@ -26,16 +26,10 @@ export class UpdatePasskeyHandler implements ICommandHandler<
                 ...command.data,
             });
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error: unknown) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

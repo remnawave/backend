@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { BulkDeleteByStatusCommand } from './bulk-delete-by-status.command';
 import { UsersRepository } from '../../repositories/users.repository';
@@ -24,16 +24,10 @@ export class BulkDeleteByStatusHandler implements ICommandHandler<
                 command.limit,
             );
 
-            return {
-                isOk: true,
-                response: { deletedCount: result },
-            };
+            return ok({ deletedCount: result });
         } catch (error: unknown) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.BULK_DELETE_BY_STATUS_ERROR,
-            };
+            return fail(ERRORS.BULK_DELETE_BY_STATUS_ERROR);
         }
     }
 }

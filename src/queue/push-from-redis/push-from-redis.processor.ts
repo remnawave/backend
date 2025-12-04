@@ -64,18 +64,13 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
 
         try {
             if (this.disableUserUsageRecords) {
-                return {
-                    isOk: true,
-                };
+                return;
             }
 
             const exists = await this.redis.exists(redisKey);
 
             if (exists === 0) {
-                return {
-                    isOk: false,
-                    error: 'Redis key not found',
-                };
+                return;
             }
 
             await this.redis.rename(redisKey, processingKey);
@@ -86,17 +81,12 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
                 await this.commandBus.execute(new BulkUpsertUserHistoryEntryCommand(batch));
             }
 
-            return {
-                isOk: true,
-            };
+            return;
         } catch (error) {
             this.logger.error(
                 `Error handling "${PushFromRedisJobNames.recordUserUsage}" job: ${error}`,
             );
-            return {
-                isOk: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
-            };
+            return;
         } finally {
             await this.redis.del(processingKey);
         }

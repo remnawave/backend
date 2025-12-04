@@ -6,9 +6,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
+import { fail, ok, TResult } from '@common/types';
 import { toNano } from '@common/utils/nano';
 import { wrapBigInt } from '@common/utils';
-import { TResult } from '@common/types';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -68,7 +68,7 @@ export class NodesService {
                     new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
                 );
 
-                if (configProfileResponse.isOk && configProfileResponse.response) {
+                if (configProfileResponse.isOk) {
                     const inbounds = configProfileResponse.response.inbounds;
 
                     const areAllInboundsFromConfigProfile = configProfile.activeInbounds.every(
@@ -82,10 +82,7 @@ export class NodesService {
                             configProfile.activeInbounds,
                         );
                     } else {
-                        return {
-                            isOk: false,
-                            ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                        };
+                        return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
                     }
                 }
             }
@@ -102,10 +99,7 @@ export class NodesService {
 
             this.eventEmitter.emit(EVENTS.NODE.CREATED, new NodeEvent(node, EVENTS.NODE.CREATED));
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
             if (
@@ -116,29 +110,23 @@ export class NodesService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.NODE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.NODE_NAME_ALREADY_EXISTS);
                 }
                 if (fields.includes('address')) {
-                    return { isOk: false, ...ERRORS.NODE_ADDRESS_ALREADY_EXISTS };
+                    return fail(ERRORS.NODE_ADDRESS_ALREADY_EXISTS);
                 }
             }
 
-            return { isOk: false, ...ERRORS.CREATE_NODE_ERROR };
+            return fail(ERRORS.CREATE_NODE_ERROR);
         }
     }
 
     public async getAllNodes(): Promise<TResult<NodesEntity[]>> {
         try {
-            return {
-                isOk: true,
-                response: await this.nodesRepository.findByCriteria({}),
-            };
+            return ok(await this.nodesRepository.findByCriteria({}));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_NODES_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_NODES_ERROR);
         }
     }
 
@@ -146,33 +134,21 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (node.isDisabled) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_IS_DISABLED,
-                };
+                return fail(ERRORS.NODE_IS_DISABLED);
             }
 
             await this.nodesQueuesService.startNode({
                 nodeUuid: node.uuid,
             });
 
-            return {
-                isOk: true,
-                response: new RestartNodeResponseModel(true),
-            };
+            return ok(new RestartNodeResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESTART_NODE_ERROR,
-            };
+            return fail(ERRORS.RESTART_NODE_ERROR);
         }
     }
 
@@ -180,10 +156,7 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             await this.commandBus.execute(
@@ -201,16 +174,10 @@ export class NodesService {
                 trafficUsedBytes: BigInt(0),
             });
 
-            return {
-                isOk: true,
-                response: new BaseEventResponseModel(true),
-            };
+            return ok(new BaseEventResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESET_NODE_TRAFFIC_ERROR,
-            };
+            return fail(ERRORS.RESET_NODE_TRAFFIC_ERROR);
         }
     }
 
@@ -222,10 +189,7 @@ export class NodesService {
                 isDisabled: false,
             });
             if (nodes.length === 0) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ENABLED_NODES_NOT_FOUND,
-                };
+                return fail(ERRORS.ENABLED_NODES_NOT_FOUND);
             }
 
             await this.nodesQueuesService.startAllNodes({
@@ -233,16 +197,10 @@ export class NodesService {
                 force: forceRestart ?? false,
             });
 
-            return {
-                isOk: true,
-                response: new RestartNodeResponseModel(true),
-            };
+            return ok(new RestartNodeResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESTART_NODE_ERROR,
-            };
+            return fail(ERRORS.RESTART_NODE_ERROR);
         }
     }
 
@@ -250,22 +208,13 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: node,
-            };
+            return ok(node);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ONE_NODE_ERROR,
-            };
+            return fail(ERRORS.GET_ONE_NODE_ERROR);
         }
     }
 
@@ -273,10 +222,7 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             await this.nodesQueuesService.stopNode({
@@ -286,18 +232,10 @@ export class NodesService {
 
             this.eventEmitter.emit(EVENTS.NODE.DELETED, new NodeEvent(node, EVENTS.NODE.DELETED));
 
-            return {
-                isOk: true,
-                response: new DeleteNodeResponseModel({
-                    isDeleted: true,
-                }),
-            };
+            return ok(new DeleteNodeResponseModel({ isDeleted: true }));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_NODE_ERROR,
-            };
+            return fail(ERRORS.DELETE_NODE_ERROR);
         }
     }
 
@@ -307,10 +245,7 @@ export class NodesService {
 
             const node = await this.nodesRepository.findByUUID(body.uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (configProfile) {
@@ -318,7 +253,7 @@ export class NodesService {
                     new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
                 );
 
-                if (configProfileResponse.isOk && configProfileResponse.response) {
+                if (configProfileResponse.isOk) {
                     const inbounds = configProfileResponse.response.inbounds;
 
                     const areAllInboundsFromConfigProfile = configProfile.activeInbounds.every(
@@ -334,10 +269,7 @@ export class NodesService {
                             configProfile.activeInbounds,
                         );
                     } else {
-                        return {
-                            isOk: false,
-                            ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                        };
+                        return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
                     }
                 }
             }
@@ -353,10 +285,7 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.UPDATE_NODE_ERROR,
-                };
+                return fail(ERRORS.UPDATE_NODE_ERROR);
             }
 
             if (!node.isDisabled) {
@@ -370,16 +299,10 @@ export class NodesService {
                 new NodeEvent(result, EVENTS.NODE.MODIFIED),
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
@@ -387,10 +310,7 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (!node.activeConfigProfileUuid || node.activeInbounds.length === 0) {
@@ -406,16 +326,10 @@ export class NodesService {
                 });
 
                 if (!result) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.ENABLE_NODE_ERROR,
-                    };
+                    return fail(ERRORS.ENABLE_NODE_ERROR);
                 }
 
-                return {
-                    isOk: true,
-                    response: result,
-                };
+                return ok(result);
             }
 
             const result = await this.nodesRepository.update({
@@ -424,10 +338,7 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ENABLE_NODE_ERROR,
-                };
+                return fail(ERRORS.ENABLE_NODE_ERROR);
             }
 
             await this.nodesQueuesService.startNode({
@@ -436,16 +347,10 @@ export class NodesService {
 
             this.eventEmitter.emit(EVENTS.NODE.ENABLED, new NodeEvent(result, EVENTS.NODE.ENABLED));
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
@@ -453,10 +358,7 @@ export class NodesService {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (!node.activeConfigProfileUuid || node.activeInbounds.length === 0) {
@@ -477,10 +379,7 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.DISABLE_NODE_ERROR,
-                };
+                return fail(ERRORS.DISABLE_NODE_ERROR);
             }
 
             await this.nodesQueuesService.stopNode({
@@ -493,16 +392,10 @@ export class NodesService {
                 new NodeEvent(result, EVENTS.NODE.DISABLED),
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
@@ -510,25 +403,19 @@ export class NodesService {
         try {
             await this.nodesRepository.reorderMany(dto.nodes);
 
-            return {
-                isOk: true,
-                response: await this.nodesRepository.findByCriteria({}),
-            };
+            return ok(await this.nodesRepository.findByCriteria({}));
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.REORDER_NODES_ERROR };
+            return fail(ERRORS.REORDER_NODES_ERROR);
         }
     }
 
     public async getAllNodesTags(): Promise<TResult<string[]>> {
         try {
-            return {
-                isOk: true,
-                response: await this.nodesRepository.findAllTags(),
-            };
+            return ok(await this.nodesRepository.findAllTags());
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.INTERNAL_SERVER_ERROR };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -542,11 +429,8 @@ export class NodesService {
                 new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
             );
 
-            if (!configProfileResponse.isOk || !configProfileResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+            if (!configProfileResponse.isOk) {
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const inbounds = configProfileResponse.response.inbounds;
@@ -557,10 +441,7 @@ export class NodesService {
             );
 
             if (!allActiveInboundsExistInProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
             }
 
             await this.nodesRepository.removeInboundsFromNodes(uuids);
@@ -572,13 +453,10 @@ export class NodesService {
                 emitter: 'bulkProfileModification',
             }); // no need to restart all nodes
 
-            return {
-                isOk: true,
-                response: new BaseEventResponseModel(true),
-            };
+            return ok(new BaseEventResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.INTERNAL_SERVER_ERROR };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

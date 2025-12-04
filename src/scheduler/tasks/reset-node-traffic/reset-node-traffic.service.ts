@@ -31,7 +31,7 @@ export class ResetNodeTrafficTask {
     async handleCron() {
         try {
             const nodesResponse = await this.getAllNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            if (!nodesResponse.isOk) {
                 return;
             }
 

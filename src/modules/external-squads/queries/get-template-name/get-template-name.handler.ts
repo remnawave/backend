@@ -16,7 +16,7 @@ export class GetTemplateNameHandler implements IQueryHandler<GetTemplateNameQuer
     async execute(query: GetTemplateNameQuery) {
         try {
             if (query.templateType === 'XRAY_BASE64') {
-                return ok(null);
+                return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
             }
 
             const result = await this.externalSquadRepository.getTemplateName(
@@ -24,7 +24,11 @@ export class GetTemplateNameHandler implements IQueryHandler<GetTemplateNameQuer
                 query.templateType,
             );
 
-            return ok(result || null);
+            if (!result) {
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
+            }
+
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);

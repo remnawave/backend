@@ -4,6 +4,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { ok } from '@common/types';
 import { EVENTS } from '@libs/contracts/constants';
 
 import { BulkIncrementUsedTrafficCommand } from '@modules/users/commands/bulk-increment-used-traffic';
@@ -55,19 +56,15 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
                 });
             }
 
-            return {
-                isOk: true,
+            return ok({
                 affectedRows: userUsageList.length,
-            };
+            });
         } catch (error) {
             this.logger.error(
                 `Error handling "${USERS_JOB_NAMES.UPDATE_USERS_USAGE}" job: ${error}`,
             );
 
-            return {
-                affectedRows: 0,
-                isOk: false,
-            };
+            return;
         }
     }
 }

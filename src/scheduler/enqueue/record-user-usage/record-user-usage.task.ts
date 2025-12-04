@@ -2,10 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { TResult } from '@common/types';
-
 import { GetOnlineNodesQuery } from '@modules/nodes/queries/get-online-nodes';
-import { NodesEntity } from '@modules/nodes';
 
 import { NodesQueuesService } from '@queue/_nodes';
 
@@ -25,22 +22,18 @@ export class RecordUserUsageTask {
         waitForCompletion: true,
     })
     async handleCron() {
-        let nodes: NodesEntity[] | null = null;
-
         try {
-            const nodesResponse = await this.getOnlineNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            const nodesResponse = await this.queryBus.execute(new GetOnlineNodesQuery());
+            if (!nodesResponse.isOk) {
                 return;
             }
 
-            nodes = nodesResponse.response;
-
-            if (nodes.length === 0) {
+            if (nodesResponse.response.length === 0) {
                 return;
             }
 
             await this.nodesQueuesService.recordUserUsageBulk(
-                nodes.map((node) => ({
+                nodesResponse.response.map((node) => ({
                     nodeUuid: node.uuid,
                     nodeAddress: node.address,
                     nodePort: node.port,
@@ -53,11 +46,5 @@ export class RecordUserUsageTask {
         } catch (error) {
             this.logger.error(`Error in RecordUserUsageTask: ${error}`);
         }
-    }
-
-    private async getOnlineNodes(): Promise<TResult<NodesEntity[]>> {
-        return this.queryBus.execute<GetOnlineNodesQuery, TResult<NodesEntity[]>>(
-            new GetOnlineNodesQuery(),
-        );
     }
 }

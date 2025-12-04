@@ -118,7 +118,7 @@ export class SquadsQueueProcessor extends WorkerHost {
                 new GetAffectedConfigProfilesBySquadUuidQuery(internalSquadUuid),
             );
 
-            if (!configProfiles.isOk || !configProfiles.response) {
+            if (!configProfiles.isOk) {
                 return false;
             }
 

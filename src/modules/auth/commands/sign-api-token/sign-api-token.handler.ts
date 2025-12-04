@@ -1,7 +1,7 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { JwtService } from '@nestjs/jwt';
 
-import { TResult } from '@common/types';
+import { ok, TResult } from '@common/types';
 import { ROLE } from '@libs/contracts/constants';
 
 import { SignApiTokenCommand } from './sign-api-token.command';
@@ -18,11 +18,10 @@ export class SignApiTokenHandler implements ICommandHandler<SignApiTokenCommand,
             role: ROLE.API,
         };
 
-        return {
-            isOk: true,
-            response: this.jwtService.sign(payload, {
+        return ok(
+            this.jwtService.sign(payload, {
                 expiresIn: '99999d',
             }),
-        };
+        );
     }
 }

@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, TResult, ok } from '@common/types';
 
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 
@@ -29,16 +29,10 @@ export class CreateAdminHandler implements ICommandHandler<
                 }),
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error: unknown) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_ADMIN_ERROR,
-            };
+            return fail(ERRORS.CREATE_ADMIN_ERROR);
         }
     }
 }

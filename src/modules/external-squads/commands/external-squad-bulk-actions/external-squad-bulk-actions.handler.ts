@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { ExternalSquadBulkActionsCommand } from './external-squad-bulk-actions.command';
 import { ExternalSquadRepository } from '../../repositories/external-squad.repository';
@@ -40,12 +40,7 @@ export class ExternalSquadBulkActionsHandler implements ICommandHandler<
                 affectedRows = result.affectedCount;
             }
 
-            return {
-                isOk: true,
-                response: {
-                    affectedRows,
-                },
-            };
+            return ok({ affectedRows });
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -53,10 +48,7 @@ export class ExternalSquadBulkActionsHandler implements ICommandHandler<
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

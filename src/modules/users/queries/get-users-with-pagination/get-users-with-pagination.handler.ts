@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { UserEntity } from '@modules/users/entities/user.entity';
@@ -23,19 +23,10 @@ export class GetUsersWithPaginationHandler implements IQueryHandler<
         try {
             const [users, total] = await this.usersRepository.getUsersWithPagination(query);
 
-            return {
-                isOk: true,
-                response: {
-                    users,
-                    total,
-                },
-            };
+            return ok({ users, total });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

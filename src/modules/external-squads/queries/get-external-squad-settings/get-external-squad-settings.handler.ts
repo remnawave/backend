@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { ExternalSquadRepository } from '@modules/external-squads/repositories/external-squad.repository';
@@ -33,16 +33,10 @@ export class GetExternalSquadSettingsHandler implements IQueryHandler<
                 query.externalSquadUuid,
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

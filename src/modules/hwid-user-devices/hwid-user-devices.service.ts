@@ -2,7 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { GetAllHwidDevicesCommand } from '@libs/contracts/commands';
 import { ERRORS, EVENTS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
@@ -43,11 +43,8 @@ export class HwidUserDevicesService {
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const isDeviceExists = await this.hwidUserDevicesRepository.checkHwidExists(
@@ -56,10 +53,7 @@ export class HwidUserDevicesService {
             );
 
             if (isDeviceExists) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_HWID_DEVICE_ALREADY_EXISTS,
-                };
+                return fail(ERRORS.USER_HWID_DEVICE_ALREADY_EXISTS);
             }
 
             let hwidSettings: THwidSettings | undefined;
@@ -69,10 +63,7 @@ export class HwidUserDevicesService {
             );
 
             if (!subscrtipionSettings) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND);
             }
 
             if (subscrtipionSettings.hwidSettings.enabled) {
@@ -96,10 +87,7 @@ export class HwidUserDevicesService {
                     user.response.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
                 if (count >= deviceLimit) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.USER_HWID_DEVICE_LIMIT_REACHED,
-                    };
+                    return fail(ERRORS.USER_HWID_DEVICE_LIMIT_REACHED);
                 }
             }
 
@@ -116,16 +104,10 @@ export class HwidUserDevicesService {
                 userUuid: dto.userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_HWID_USER_DEVICE_ERROR,
-            };
+            return fail(ERRORS.CREATE_HWID_USER_DEVICE_ERROR);
         }
     }
 
@@ -142,27 +124,18 @@ export class HwidUserDevicesService {
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_USER_HWID_DEVICES_ERROR,
-            };
+            return fail(ERRORS.GET_USER_HWID_DEVICES_ERROR);
         }
     }
 
@@ -182,11 +155,8 @@ export class HwidUserDevicesService {
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const hwidDevice = await this.hwidUserDevicesRepository.findFirstByCriteria({
@@ -195,10 +165,7 @@ export class HwidUserDevicesService {
             });
 
             if (!hwidDevice) {
-                return {
-                    isOk: false,
-                    ...ERRORS.HWID_DEVICE_NOT_FOUND,
-                };
+                return fail(ERRORS.HWID_DEVICE_NOT_FOUND);
             }
 
             await this.hwidUserDevicesRepository.deleteByHwidAndUserUuid(hwid, userUuid);
@@ -216,16 +183,10 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_HWID_USER_DEVICE_ERROR,
-            };
+            return fail(ERRORS.DELETE_HWID_USER_DEVICE_ERROR);
         }
     }
 
@@ -244,11 +205,8 @@ export class HwidUserDevicesService {
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             await this.hwidUserDevicesRepository.deleteByUserUuid(userUuid);
@@ -257,16 +215,10 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_HWID_USER_DEVICES_ERROR,
-            };
+            return fail(ERRORS.DELETE_HWID_USER_DEVICES_ERROR);
         }
     }
 
@@ -279,19 +231,10 @@ export class HwidUserDevicesService {
         try {
             const [devices, total] = await this.hwidUserDevicesRepository.getAllHwidDevices(dto);
 
-            return {
-                isOk: true,
-                response: {
-                    devices,
-                    total,
-                },
-            };
+            return ok({ devices, total });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_HWID_DEVICES_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_HWID_DEVICES_ERROR);
         }
     }
 
@@ -299,20 +242,16 @@ export class HwidUserDevicesService {
         try {
             const stats = await this.hwidUserDevicesRepository.getHwidDevicesStats();
 
-            return {
-                isOk: true,
-                response: new GetHwidDevicesStatsResponseModel({
+            return ok(
+                new GetHwidDevicesStatsResponseModel({
                     byPlatform: stats.byPlatform,
                     byApp: stats.byApp,
                     stats: stats.stats,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_HWID_DEVICES_STATS_ERROR,
-            };
+            return fail(ERRORS.GET_HWID_DEVICES_STATS_ERROR);
         }
     }
 }

@@ -44,7 +44,7 @@ export class NodeHealthCheckTask {
             }
 
             const nodesResponse = await this.getEnabledNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            if (!nodesResponse.isOk) {
                 return;
             }
 

@@ -9,6 +9,7 @@ import { getKyselyUuid } from '@common/helpers/kysely/get-kysely-uuid';
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
 
+import { IGetOnlineNodesPartialResponse } from '../queries/get-online-nodes';
 import { NodesEntity } from '../entities/nodes.entity';
 import { NodesConverter } from '../nodes.converter';
 import { IReorderNode } from '../interfaces';
@@ -65,6 +66,19 @@ export class NodesRepository implements ICrud<NodesEntity> {
         });
 
         return nodesList.map((value) => new NodesEntity(value));
+    }
+
+    public async findConnectedNodesPartial(): Promise<IGetOnlineNodesPartialResponse[]> {
+        const nodesList = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(['uuid', 'address', 'port', 'consumptionMultiplier', 'id'])
+            .where('isConnected', '=', true)
+            .where('isDisabled', '=', false)
+            .where('isConnecting', '=', false)
+            .where('activeConfigProfileUuid', 'is not', null)
+            .execute();
+
+        return nodesList;
     }
 
     public async findConnectedNodesWithoutInbounds(): Promise<
@@ -248,10 +262,6 @@ export class NodesRepository implements ICrud<NodesEntity> {
                 configProfileInboundUuid: getKyselyUuid(uuid),
             })),
         );
-
-        if (values.length === 0) {
-            return true;
-        }
 
         const result = await this.qb.kysely
             .insertInto('configProfileInboundsToNodes')

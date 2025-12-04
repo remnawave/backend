@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
@@ -19,16 +19,10 @@ export class UpdateNodeHandler implements ICommandHandler<UpdateNodeCommand, TRe
     async execute(command: UpdateNodeCommand): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.update(command.node);
-            return {
-                isOk: true,
-                response: node,
-            };
+            return ok(node);
         } catch (error: unknown) {
             this.logger.error(`Error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_NODE_ERROR,
-            };
+            return fail(ERRORS.UPDATE_NODE_ERROR);
         }
     }
 }

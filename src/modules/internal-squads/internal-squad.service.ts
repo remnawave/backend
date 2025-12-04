@@ -3,7 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { SquadsQueueService } from '@queue/_squads';
@@ -32,16 +32,10 @@ export class InternalSquadService {
         try {
             const internalSquads = await this.internalSquadRepository.getInternalSquads();
 
-            return {
-                isOk: true,
-                response: new GetInternalSquadsResponseModel(internalSquads, internalSquads.length),
-            };
+            return ok(new GetInternalSquadsResponseModel(internalSquads, internalSquads.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INTERNAL_SQUADS_ERROR,
-            };
+            return fail(ERRORS.GET_INTERNAL_SQUADS_ERROR);
         }
     }
 
@@ -52,22 +46,13 @@ export class InternalSquadService {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: new GetInternalSquadByUuidResponseModel(internalSquad),
-            };
+            return ok(new GetInternalSquadByUuidResponseModel(internalSquad));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INTERNAL_SQUAD_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_INTERNAL_SQUAD_BY_UUID_ERROR);
         }
     }
 
@@ -77,10 +62,7 @@ export class InternalSquadService {
     ): Promise<TResult<GetInternalSquadByUuidResponseModel>> {
         try {
             if (name === 'Default-Squad') {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_INTERNAL_SQUAD_NAME,
-                };
+                return fail(ERRORS.RESERVED_INTERNAL_SQUAD_NAME);
             }
 
             const internalSquad = await this.internalSquadRepository.createWithInbounds(
@@ -98,15 +80,12 @@ export class InternalSquadService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.INTERNAL_SQUAD_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.INTERNAL_SQUAD_NAME_ALREADY_EXISTS);
                 }
             }
 
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_INTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.CREATE_INTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -119,17 +98,11 @@ export class InternalSquadService {
             const internalSquad = await this.internalSquadRepository.findByUUID(uuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
             if (!name && !inbounds) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NAME_OR_INBOUNDS_REQUIRED,
-                };
+                return fail(ERRORS.NAME_OR_INBOUNDS_REQUIRED);
             }
 
             if (name) {
@@ -210,15 +183,12 @@ export class InternalSquadService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.INTERNAL_SQUAD_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.INTERNAL_SQUAD_NAME_ALREADY_EXISTS);
                 }
             }
 
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_INTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.UPDATE_INTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -243,10 +213,7 @@ export class InternalSquadService {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
             const includedProfiles = new Set<string>();
@@ -264,16 +231,10 @@ export class InternalSquadService {
                 });
             }
 
-            return {
-                isOk: true,
-                response: new DeleteInternalSquadResponseModel(deleted),
-            };
+            return ok(new DeleteInternalSquadResponseModel(deleted));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_INTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.DELETE_INTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -284,26 +245,17 @@ export class InternalSquadService {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
             await this.squadsQueueService.addUsersToInternalSquad({
                 internalSquadUuid: uuid,
             });
 
-            return {
-                isOk: true,
-                response: new EventSentInternalSquadResponseModel(true),
-            };
+            return ok(new EventSentInternalSquadResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ADD_USERS_TO_INTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.ADD_USERS_TO_INTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -314,26 +266,17 @@ export class InternalSquadService {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
             await this.squadsQueueService.removeUsersFromInternalSquad({
                 internalSquadUuid: uuid,
             });
 
-            return {
-                isOk: true,
-                response: new EventSentInternalSquadResponseModel(true),
-            };
+            return ok(new EventSentInternalSquadResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.REMOVE_USERS_FROM_INTERNAL_SQUAD_ERROR,
-            };
+            return fail(ERRORS.REMOVE_USERS_FROM_INTERNAL_SQUAD_ERROR);
         }
     }
 
@@ -345,31 +288,24 @@ export class InternalSquadService {
                 await this.internalSquadRepository.getInternalSquadsByUuid(squadUuid);
 
             if (!internalSquad) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SQUAD_NOT_FOUND,
-                };
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
             }
 
             const result = await this.internalSquadRepository.getSquadAccessibleNodes(squadUuid);
 
             if (!result) {
-                return {
-                    isOk: true,
-                    response: new GetInternalSquadAccessibleNodesResponseModel({
+                return ok(
+                    new GetInternalSquadAccessibleNodesResponseModel({
                         squadUuid,
                         accessibleNodes: [],
                     }),
-                };
+                );
             }
 
-            return {
-                isOk: true,
-                response: new GetInternalSquadAccessibleNodesResponseModel(result),
-            };
+            return ok(new GetInternalSquadAccessibleNodesResponseModel(result));
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GET_INTERNAL_SQUAD_ACCESSIBLE_NODES_ERROR };
+            return fail(ERRORS.GET_INTERNAL_SQUAD_ACCESSIBLE_NODES_ERROR);
         }
     }
 
@@ -382,7 +318,7 @@ export class InternalSquadService {
             return await this.getInternalSquads();
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GENERIC_REORDER_ERROR };
+            return fail(ERRORS.GENERIC_REORDER_ERROR);
         }
     }
 }

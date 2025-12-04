@@ -63,15 +63,11 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
                 new CountAndDeleteSubscriptionRequestHistoryCommand(userUuid),
             );
 
-            return {
-                isOk: true,
-            };
+            return;
         } catch (error) {
             this.logger.error(error);
 
-            return {
-                isOk: false,
-            };
+            return;
         }
     }
 

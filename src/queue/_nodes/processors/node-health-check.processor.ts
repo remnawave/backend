@@ -58,7 +58,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
                         return await this.handleConnectedNode(
                             nodeUuid,
                             isConnected,
-                            response.response!,
+                            response.response,
                         );
                     case false:
                         message = response.message ?? 'Unknown error';
@@ -109,7 +109,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             }),
         );
 
-        if (!nodeUpdatedResponse.isOk || !nodeUpdatedResponse.response) {
+        if (!nodeUpdatedResponse.isOk) {
             return;
         }
 
@@ -141,7 +141,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             }),
         );
 
-        if (!newNodeEntity.isOk || !newNodeEntity.response) {
+        if (!newNodeEntity.isOk) {
             return;
         }
 

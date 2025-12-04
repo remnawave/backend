@@ -29,7 +29,7 @@ export class InfraBillingNodesNotificationsTask {
         try {
             const result = await this.queryBus.execute(new GetBillingNodesForNotificationsQuery());
 
-            if (!result.isOk || !result.response) {
+            if (!result.isOk) {
                 this.logger.error(result);
                 return;
             }

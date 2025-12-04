@@ -28,7 +28,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 new GetUserWithResolvedInboundsQuery(event.userUuid),
             );
 
-            if (!userEntity.isOk || !userEntity.response) {
+            if (!userEntity.isOk) {
                 return;
             }
 

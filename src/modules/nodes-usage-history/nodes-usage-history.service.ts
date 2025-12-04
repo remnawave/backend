@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesUsageByRangeResponseModel } from './models/get-nodes-usage-by-range.response.model';
@@ -26,18 +26,12 @@ export class NodesUsageHistoryService {
                 endDate,
             );
 
-            return {
-                isOk: true,
-                response: nodesUsage.map(
-                    (nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage),
-                ),
-            };
+            return ok(
+                nodesUsage.map((nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage)),
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR,
-            };
+            return fail(ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR);
         }
     }
 }

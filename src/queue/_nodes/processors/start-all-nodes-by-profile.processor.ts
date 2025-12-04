@@ -201,7 +201,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     (inbound) => activeNodeInboundsTags.has(inbound.tag),
                 );
 
-                const response = await this.axios.startXray(
+                const startXrayResponse = await this.axios.startXray(
                     {
                         xrayConfig: {
                             ...config.response.config,
@@ -223,12 +223,12 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     node.port,
                 );
 
-                switch (response.isOk) {
+                switch (startXrayResponse.isOk) {
                     case false:
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
-                                lastStatusMessage: response.message ?? null,
+                                lastStatusMessage: startXrayResponse.message ?? null,
                                 lastStatusChange: new Date(),
                                 isConnected: false,
                                 isConnecting: false,
@@ -238,10 +238,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
 
                         return;
                     case true:
-                        if (!response.response?.response) {
-                            throw new Error('Failed to start Xray');
-                        }
-                        const nodeResponse = response.response.response;
+                        const nodeResponse = startXrayResponse.response.response;
 
                         await this.commandBus.execute(
                             new UpdateNodeCommand({

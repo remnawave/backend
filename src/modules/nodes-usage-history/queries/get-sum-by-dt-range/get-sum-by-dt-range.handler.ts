@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-history.repository';
@@ -22,16 +22,10 @@ export class GetSumByDtRangeHandler implements IQueryHandler<
                 query.end,
             );
 
-            return {
-                isOk: true,
-                response: sum,
-            };
+            return ok(sum);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

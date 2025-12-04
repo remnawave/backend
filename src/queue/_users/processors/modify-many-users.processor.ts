@@ -48,9 +48,7 @@ export class UsersModifyManyQueueProcessor extends WorkerHost {
                 `Error handling "${USERS_JOB_NAMES.RESET_MANY_USERS_TRAFFIC}" job: ${error}`,
             );
 
-            return {
-                isOk: false,
-            };
+            return;
         }
     }
 

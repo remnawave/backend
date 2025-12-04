@@ -7,7 +7,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 
-import { TResult } from '@common/types';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { SignApiTokenCommand } from '../auth/commands/sign-api-token/sign-api-token.command';
@@ -37,11 +37,8 @@ export class ApiTokensService {
                 uuid,
             });
 
-            if (!token.isOk || !token.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CREATE_API_TOKEN_ERROR,
-                };
+            if (!token.isOk) {
+                return fail(ERRORS.CREATE_API_TOKEN_ERROR);
             }
 
             const apiTokenEntity = new ApiTokenEntity({
@@ -50,18 +47,12 @@ export class ApiTokensService {
                 token: token.response,
             });
 
-            const newAoiTokenEntity = await this.apiTokensRepository.create(apiTokenEntity);
+            const newApiTokenEntity = await this.apiTokensRepository.create(apiTokenEntity);
 
-            return {
-                isOk: true,
-                response: newAoiTokenEntity,
-            };
+            return ok(newApiTokenEntity);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_API_TOKEN_ERROR,
-            };
+            return fail(ERRORS.CREATE_API_TOKEN_ERROR);
         }
     }
 
@@ -71,25 +62,16 @@ export class ApiTokensService {
 
             await this.cacheManager.del(`api:${uuid}`);
 
-            return {
-                isOk: true,
-                response: { result },
-            };
+            return ok({ result });
         } catch (error) {
             this.logger.error(JSON.stringify(error));
 
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
                 if (error.code === 'P2025') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.REQUESTED_TOKEN_NOT_FOUND,
-                    };
+                    return fail(ERRORS.REQUESTED_TOKEN_NOT_FOUND);
                 }
             }
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_API_TOKEN_ERROR,
-            };
+            return fail(ERRORS.DELETE_API_TOKEN_ERROR);
         }
     }
 
@@ -107,19 +89,13 @@ export class ApiTokensService {
                 swaggerPath: swaggerPath,
             };
 
-            return {
-                isOk: true,
-                response: {
-                    apiKeys: result.map((item) => item),
-                    docs,
-                },
-            };
+            return ok({
+                apiKeys: result.map((item) => item),
+                docs,
+            });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.FIND_ALL_API_TOKENS_ERROR,
-            };
+            return fail(ERRORS.FIND_ALL_API_TOKENS_ERROR);
         }
     }
     private async signApiToken(dto: SignApiTokenCommand): Promise<TResult<string>> {
