@@ -383,9 +383,6 @@ export class UsersController {
         };
     }
 
-    @ApiNotFoundResponse({
-        description: 'Users not found',
-    })
     @ApiOkResponse({
         type: GetUserByTelegramIdResponseDto,
         description: 'Users fetched successfully',
@@ -413,9 +410,6 @@ export class UsersController {
         };
     }
 
-    @ApiNotFoundResponse({
-        description: 'Users not found',
-    })
     @ApiOkResponse({
         type: GetUserByEmailResponseDto,
         description: 'Users fetched successfully',
@@ -443,9 +437,6 @@ export class UsersController {
         };
     }
 
-    @ApiNotFoundResponse({
-        description: 'Users not found',
-    })
     @ApiOkResponse({
         type: GetUserByTagResponseDto,
         description: 'Users fetched successfully',

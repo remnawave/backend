@@ -361,8 +361,6 @@ export class UsersService {
                 tag: dto.tag || undefined,
             });
 
-            if (!result || result.length === 0) return fail(ERRORS.USERS_NOT_FOUND);
-
             return ok(result);
         } catch (error) {
             this.logger.error(error);
