@@ -3,7 +3,7 @@ import { Cache } from 'cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsRepository } from './repositories/subscription-settings.repository';
@@ -19,7 +19,7 @@ export class SubscriptionSettingsService {
         private readonly subscriptionSettingsRepository: SubscriptionSettingsRepository,
     ) {}
 
-    public async getSubscriptionSettings(): Promise<ICommandResponse<SubscriptionSettingsEntity>> {
+    public async getSubscriptionSettings(): Promise<TResult<SubscriptionSettingsEntity>> {
         try {
             const settings = await this.subscriptionSettingsRepository.findFirst();
 
@@ -45,7 +45,7 @@ export class SubscriptionSettingsService {
 
     public async updateSettings(
         dto: UpdateSubscriptionSettingsRequestDto,
-    ): Promise<ICommandResponse<SubscriptionSettingsEntity>> {
+    ): Promise<TResult<SubscriptionSettingsEntity>> {
         try {
             const settings = await this.subscriptionSettingsRepository.findByUUID(dto.uuid);
 

@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateRepository } from '../../repositories/subscription-template.repository';
@@ -17,22 +18,13 @@ export class GetSubscriptionTemplateByUuidHandler implements IQueryHandler<GetSu
             const template = await this.subscriptionTemplateRepository.findByUUID(query.uuid);
 
             if (!template) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: template,
-            };
+            return ok(template);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

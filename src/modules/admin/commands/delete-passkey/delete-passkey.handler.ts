@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { PasskeyRepository } from '@modules/admin/repositories/passkey.repository';
 
@@ -12,13 +12,13 @@ import { DeletePasskeyCommand } from './delete-passkey.command';
 @CommandHandler(DeletePasskeyCommand)
 export class DeletePasskeyHandler implements ICommandHandler<
     DeletePasskeyCommand,
-    ICommandResponse<boolean>
+    TResult<boolean>
 > {
     public readonly logger = new Logger(DeletePasskeyHandler.name);
 
     constructor(private readonly passkeyRepository: PasskeyRepository) {}
 
-    async execute(command: DeletePasskeyCommand): Promise<ICommandResponse<boolean>> {
+    async execute(command: DeletePasskeyCommand): Promise<TResult<boolean>> {
         try {
             const result = await this.passkeyRepository.deleteByUUID(command.id);
 

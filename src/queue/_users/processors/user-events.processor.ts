@@ -48,7 +48,7 @@ export class UserEventsQueueProcessor extends WorkerHost {
 
             const tId = BigInt(job.data.tId);
 
-            const { isOk, response: user } = await this.queryBus.execute(
+            const getUserResult = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
                     {
                         tId,
@@ -59,9 +59,11 @@ export class UserEventsQueueProcessor extends WorkerHost {
                 ),
             );
 
-            if (!isOk || !user) {
+            if (!getUserResult.isOk) {
                 return;
             }
+
+            const { response: user } = getUserResult;
 
             switch (userEvent) {
                 case EVENTS.USER.EXPIRED:

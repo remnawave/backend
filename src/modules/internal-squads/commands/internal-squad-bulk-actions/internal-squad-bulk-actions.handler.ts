@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { InternalSquadBulkActionsCommand } from './internal-squad-bulk-actions.command';
 import { InternalSquadRepository } from '../../repositories/internal-squad.repository';
@@ -11,7 +11,7 @@ import { InternalSquadRepository } from '../../repositories/internal-squad.repos
 @CommandHandler(InternalSquadBulkActionsCommand)
 export class InternalSquadBulkActionsHandler implements ICommandHandler<
     InternalSquadBulkActionsCommand,
-    ICommandResponse<{
+    TResult<{
         affectedRows: number;
     }>
 > {
@@ -20,7 +20,7 @@ export class InternalSquadBulkActionsHandler implements ICommandHandler<
     constructor(private readonly internalSquadRepository: InternalSquadRepository) {}
 
     async execute(command: InternalSquadBulkActionsCommand): Promise<
-        ICommandResponse<{
+        TResult<{
             affectedRows: number;
         }>
     > {

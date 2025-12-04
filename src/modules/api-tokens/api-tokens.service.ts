@@ -7,7 +7,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { SignApiTokenCommand } from '../auth/commands/sign-api-token/sign-api-token.command';
@@ -27,7 +27,7 @@ export class ApiTokensService {
         private readonly configService: ConfigService,
     ) {}
 
-    public async create(body: ICreateApiTokenRequest): Promise<ICommandResponse<ApiTokenEntity>> {
+    public async create(body: ICreateApiTokenRequest): Promise<TResult<ApiTokenEntity>> {
         const { tokenName } = body;
 
         try {
@@ -65,7 +65,7 @@ export class ApiTokensService {
         }
     }
 
-    public async delete(uuid: string): Promise<ICommandResponse<IApiTokenDeleteResponse>> {
+    public async delete(uuid: string): Promise<TResult<IApiTokenDeleteResponse>> {
         try {
             const result = await this.apiTokensRepository.deleteByUUID(uuid);
 
@@ -93,7 +93,7 @@ export class ApiTokensService {
         }
     }
 
-    public async findAll(): Promise<ICommandResponse<FindAllApiTokensResponseModel>> {
+    public async findAll(): Promise<TResult<FindAllApiTokensResponseModel>> {
         try {
             const result = await this.apiTokensRepository.findByCriteria({});
 
@@ -122,8 +122,8 @@ export class ApiTokensService {
             };
         }
     }
-    private async signApiToken(dto: SignApiTokenCommand): Promise<ICommandResponse<string>> {
-        return this.commandBus.execute<SignApiTokenCommand, ICommandResponse<string>>(
+    private async signApiToken(dto: SignApiTokenCommand): Promise<TResult<string>> {
+        return this.commandBus.execute<SignApiTokenCommand, TResult<string>>(
             new SignApiTokenCommand(dto.uuid),
         );
     }

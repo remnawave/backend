@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { PasskeyRepository } from '@modules/admin/repositories/passkey.repository';
@@ -12,14 +12,12 @@ import { FindPasskeyByIdAndAdminUuidQuery } from './find-passkey-by-id-and-uuid.
 @QueryHandler(FindPasskeyByIdAndAdminUuidQuery)
 export class FindPasskeyByIdAndAdminUuidHandler implements IQueryHandler<
     FindPasskeyByIdAndAdminUuidQuery,
-    ICommandResponse<PasskeyEntity>
+    TResult<PasskeyEntity>
 > {
     private readonly logger = new Logger(FindPasskeyByIdAndAdminUuidHandler.name);
     constructor(private readonly passkeyRepository: PasskeyRepository) {}
 
-    async execute(
-        query: FindPasskeyByIdAndAdminUuidQuery,
-    ): Promise<ICommandResponse<PasskeyEntity>> {
+    async execute(query: FindPasskeyByIdAndAdminUuidQuery): Promise<TResult<PasskeyEntity>> {
         try {
             const passkey = await this.passkeyRepository.findFirstByCriteria({
                 id: query.id,

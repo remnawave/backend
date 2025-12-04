@@ -1,3 +1,7 @@
-export class RevokeUserSubscriptionCommand {
-    constructor(public readonly uuid: string) {}
+import { Command } from '@nestjs/cqrs';
+
+export class RevokeUserSubscriptionCommand extends Command<void> {
+    constructor(public readonly uuid: string) {
+        super();
+    }
 }

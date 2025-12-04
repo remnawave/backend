@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { AdminRepository } from '../../repositories/admin.repository';
@@ -11,12 +11,12 @@ import { AdminEntity } from '../../entities/admin.entity';
 @QueryHandler(GetFirstAdminQuery)
 export class GetFirstAdminHandler implements IQueryHandler<
     GetFirstAdminQuery,
-    ICommandResponse<AdminEntity>
+    TResult<AdminEntity>
 > {
     private readonly logger = new Logger(GetFirstAdminHandler.name);
     constructor(private readonly adminRepository: AdminRepository) {}
 
-    async execute(query: GetFirstAdminQuery): Promise<ICommandResponse<AdminEntity>> {
+    async execute(query: GetFirstAdminQuery): Promise<TResult<AdminEntity>> {
         try {
             const admin = await this.adminRepository.findFirstByCriteria({
                 role: query.role,

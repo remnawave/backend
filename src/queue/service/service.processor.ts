@@ -4,8 +4,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
-
 import { TruncateNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-history/commands/truncate-nodes-user-usage-history';
 import { VacuumNodesUserUsageHistoryCommand } from '@modules/nodes-user-usage-history/commands/vacuum-nodes-user-usage-history';
 
@@ -45,9 +43,9 @@ export class ServiceQueueProcessor extends WorkerHost {
 
             this.logger.log('Resetting tables...');
 
-            await this.truncateNodesUserUsageHistory();
+            await this.commandBus.execute(new TruncateNodesUserUsageHistoryCommand());
 
-            await this.vacuumTable();
+            await this.commandBus.execute(new VacuumNodesUserUsageHistoryCommand());
 
             this.logger.log('Tables resetted');
         } catch (error) {
@@ -61,24 +59,11 @@ export class ServiceQueueProcessor extends WorkerHost {
 
     private async handleVacuumTablesJob() {
         try {
-            await this.vacuumTable();
+            await this.commandBus.execute(new VacuumNodesUserUsageHistoryCommand());
 
             this.logger.log('Tables vacuumed successfully.');
         } catch (error) {
             this.logger.error(`Error handling "${ServiceJobNames.VACUUM_TABLES}" job: ${error}`);
         }
-    }
-
-    private async truncateNodesUserUsageHistory(): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<
-            TruncateNodesUserUsageHistoryCommand,
-            ICommandResponse<void>
-        >(new TruncateNodesUserUsageHistoryCommand());
-    }
-
-    private async vacuumTable(): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<VacuumNodesUserUsageHistoryCommand, ICommandResponse<void>>(
-            new VacuumNodesUserUsageHistoryCommand(),
-        );
     }
 }

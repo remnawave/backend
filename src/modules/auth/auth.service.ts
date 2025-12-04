@@ -20,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import {
     CACHE_KEYS,
     EVENTS,
@@ -75,7 +75,7 @@ export class AuthService {
         ip: string,
         userAgent: string,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -189,7 +189,7 @@ export class AuthService {
     }
 
     public async register(dto: IRegister): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -261,7 +261,7 @@ export class AuthService {
         }
     }
 
-    public async getStatus(): Promise<ICommandResponse<GetStatusResponseModel>> {
+    public async getStatus(): Promise<TResult<GetStatusResponseModel>> {
         try {
             const remnawaveSettings = await this.queryBus.execute(
                 new GetCachedRemnawaveSettingsQuery(),
@@ -341,7 +341,7 @@ export class AuthService {
         ip: string,
         userAgent: string,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -476,7 +476,7 @@ export class AuthService {
 
     public async oauth2Authorize(
         provider: TOAuth2ProvidersKeys,
-    ): Promise<ICommandResponse<OAuth2AuthorizeResponseModel>> {
+    ): Promise<TResult<OAuth2AuthorizeResponseModel>> {
         try {
             const statusResponse = await this.getStatus();
 
@@ -579,7 +579,7 @@ export class AuthService {
         provider: TOAuth2ProvidersKeys,
         ip: string,
         userAgent: string,
-    ): Promise<ICommandResponse<OAuth2CallbackResponseModel>> {
+    ): Promise<TResult<OAuth2CallbackResponseModel>> {
         try {
             const statusResponse = await this.getStatus();
             if (!statusResponse.isOk || !statusResponse.response) {
@@ -1044,22 +1044,20 @@ export class AuthService {
         }
     }
 
-    private async getAdminCount(): Promise<ICommandResponse<number>> {
-        return this.queryBus.execute<CountAdminsByRoleQuery, ICommandResponse<number>>(
+    private async getAdminCount(): Promise<TResult<number>> {
+        return this.queryBus.execute<CountAdminsByRoleQuery, TResult<number>>(
             new CountAdminsByRoleQuery(ROLE.ADMIN),
         );
     }
 
-    private async getAdminByUsername(
-        dto: GetAdminByUsernameQuery,
-    ): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetAdminByUsernameQuery, ICommandResponse<AdminEntity>>(
+    private async getAdminByUsername(dto: GetAdminByUsernameQuery): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetAdminByUsernameQuery, TResult<AdminEntity>>(
             new GetAdminByUsernameQuery(dto.username, dto.role),
         );
     }
 
-    private async getFirstAdmin(): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetFirstAdminQuery, ICommandResponse<AdminEntity>>(
+    private async getFirstAdmin(): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetFirstAdminQuery, TResult<AdminEntity>>(
             new GetFirstAdminQuery(ROLE.ADMIN),
         );
     }
@@ -1092,8 +1090,8 @@ export class AuthService {
         return timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash));
     }
 
-    private async createAdmin(dto: CreateAdminCommand): Promise<ICommandResponse<AdminEntity>> {
-        return this.commandBus.execute<CreateAdminCommand, ICommandResponse<AdminEntity>>(
+    private async createAdmin(dto: CreateAdminCommand): Promise<TResult<AdminEntity>> {
+        return this.commandBus.execute<CreateAdminCommand, TResult<AdminEntity>>(
             new CreateAdminCommand(dto.username, dto.password, dto.role),
         );
     }
@@ -1140,7 +1138,7 @@ export class AuthService {
 
     public async generatePasskeyAuthenticationOptions(
         remnawaveSettings: RemnawaveSettingsEntity,
-    ): Promise<ICommandResponse<PublicKeyCredentialRequestOptionsJSON>> {
+    ): Promise<TResult<PublicKeyCredentialRequestOptionsJSON>> {
         try {
             if (!remnawaveSettings.passkeySettings.enabled) {
                 return {
@@ -1220,7 +1218,7 @@ export class AuthService {
         remnawaveSettings: RemnawaveSettingsEntity,
         ip: string,
         userAgent: string,
-    ): Promise<ICommandResponse<{ accessToken: string }>> {
+    ): Promise<TResult<{ accessToken: string }>> {
         try {
             if (!remnawaveSettings.passkeySettings.enabled) {
                 await this.emitFailedLoginAttempt(

@@ -1,10 +1,10 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 
-export class GetAdminByUuidQuery extends Query<ICommandResponse<AdminEntity>> {
+export class GetAdminByUuidQuery extends Query<TResult<AdminEntity>> {
     constructor(public readonly uuid: string) {
         super();
     }

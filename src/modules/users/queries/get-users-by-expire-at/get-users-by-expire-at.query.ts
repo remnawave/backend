@@ -1,8 +1,8 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
-export class GetUsersByExpireAtQuery extends Query<ICommandResponse<{ tId: bigint }[]>> {
+export class GetUsersByExpireAtQuery extends Query<TResult<{ tId: bigint }[]>> {
     constructor(
         public readonly start: Date,
         public readonly end: Date,

@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { UserEntity } from '@modules/users/entities';
@@ -12,12 +12,12 @@ import { UsersRepository } from '../../repositories/users.repository';
 @QueryHandler(GetUserByUniqueFieldQuery)
 export class GetUserByUniqueFieldHandler implements IQueryHandler<
     GetUserByUniqueFieldQuery,
-    ICommandResponse<UserEntity>
+    TResult<UserEntity>
 > {
     private readonly logger = new Logger(GetUserByUniqueFieldHandler.name);
     constructor(private readonly usersRepository: UsersRepository) {}
 
-    async execute(query: GetUserByUniqueFieldQuery): Promise<ICommandResponse<UserEntity>> {
+    async execute(query: GetUserByUniqueFieldQuery): Promise<TResult<UserEntity>> {
         try {
             const user = await this.usersRepository.findUniqueByCriteria(
                 {

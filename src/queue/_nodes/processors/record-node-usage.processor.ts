@@ -8,7 +8,6 @@ import { CommandBus } from '@nestjs/cqrs';
 import { GetCombinedStatsCommand } from '@remnawave/node-contract';
 
 import { MESSAGING_NAMES, MICROSERVICES_NAMES } from '@common/microservices';
-import { ICommandResponse } from '@common/types/command-response.type';
 import { AxiosService } from '@common/axios';
 
 import { UpsertHistoryEntryCommand } from '@modules/nodes-usage-history/commands/upsert-history-entry';
@@ -48,7 +47,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
                 nodePort,
             );
 
-            if (!combinedStats.isOk || !combinedStats.response) {
+            if (!combinedStats.isOk) {
                 this.logger.warn(
                     `Node ${nodeUuid}, ${nodeAddress}:${nodePort} – stats are not available, skipping`,
                 );
@@ -99,20 +98,21 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
 
         const totalBytes = totalDownlink + totalUplink;
 
-        await this.reportUsageHistory({
-            nodeUsageHistory: new NodesUsageHistoryEntity({
-                nodeUuid,
-                totalBytes: BigInt(totalBytes),
-                uploadBytes: BigInt(totalUplink),
-                downloadBytes: BigInt(totalDownlink),
-                createdAt: new Date(),
-            }),
-        });
+        await this.commandBus.execute(
+            new UpsertHistoryEntryCommand(
+                new NodesUsageHistoryEntity({
+                    nodeUuid,
+                    totalBytes: BigInt(totalBytes),
+                    uploadBytes: BigInt(totalUplink),
+                    downloadBytes: BigInt(totalDownlink),
+                    createdAt: new Date(),
+                }),
+            ),
+        );
 
-        await this.incrementUsedTraffic({
-            nodeUuid,
-            bytes: BigInt(totalBytes),
-        });
+        await this.commandBus.execute(
+            new IncrementUsedTrafficCommand(nodeUuid, BigInt(totalBytes)),
+        );
 
         combinedStats.outbounds.forEach((outbound) => {
             nodeOutboundsMetrics.set(outbound.outbound, {
@@ -135,22 +135,6 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         });
 
         return;
-    }
-
-    private async reportUsageHistory(
-        dto: UpsertHistoryEntryCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<UpsertHistoryEntryCommand, ICommandResponse<void>>(
-            new UpsertHistoryEntryCommand(dto.nodeUsageHistory),
-        );
-    }
-
-    private async incrementUsedTraffic(
-        dto: IncrementUsedTrafficCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<IncrementUsedTrafficCommand, ICommandResponse<void>>(
-            new IncrementUsedTrafficCommand(dto.nodeUuid, dto.bytes),
-        );
     }
 
     private async sendNodeMetrics(dto: {

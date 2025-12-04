@@ -21,10 +21,10 @@ import {
     getLastTwoWeeksRanges,
 } from '@common/utils/get-date-ranges.uti';
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { ICommandResponse } from '@common/types/command-response.type';
 import { createHappCryptoLink } from '@common/utils/happ-crypto-link';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
+import { fail, ok, TResult } from '@common/types';
 
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { ResponseRulesParserService } from '@modules/subscription-response-rules/services/response-rules-parser.service';
@@ -33,7 +33,6 @@ import { Get7DaysStatsQuery } from '@modules/nodes-usage-history/queries/get-7da
 import { CountOnlineUsersQuery } from '@modules/nodes/queries/count-online-users';
 import { IGet7DaysStats } from '@modules/nodes-usage-history/interfaces';
 import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
-import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
 import {
     GenerateX25519ResponseModel,
@@ -61,29 +60,20 @@ export class SystemService {
         private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
 
-    public async getStats(): Promise<ICommandResponse<GetStatsResponseModel>> {
+    public async getStats(): Promise<TResult<GetStatsResponseModel>> {
         try {
             const userStats = await this.getShortUserStats();
             const onlineUsers = await this.getOnlineUsers();
             const nodesSumLifetime = await this.queryBus.execute(new GetSumLifetimeQuery());
 
-            if (
-                !userStats.isOk ||
-                !userStats.response ||
-                !nodesSumLifetime.isOk ||
-                !nodesSumLifetime.response
-            ) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_USER_STATS_ERROR,
-                };
+            if (!userStats.isOk || !nodesSumLifetime.isOk || !onlineUsers.isOk) {
+                return fail(ERRORS.GET_USER_STATS_ERROR);
             }
 
             const [cpu, mem, time] = await Promise.all([si.cpu(), si.mem(), si.time()]);
 
-            return {
-                isOk: true,
-                response: new GetStatsResponseModel({
+            return ok(
+                new GetStatsResponseModel({
                     cpu: {
                         cores: cpu.cores,
                         physicalCores: cpu.physicalCores,
@@ -104,19 +94,16 @@ export class SystemService {
                         totalBytesLifetime: nodesSumLifetime.response.totalBytes,
                     },
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
     public async getBandwidthStats(
         query: GetStatsRequestQueryDto,
-    ): Promise<ICommandResponse<GetBandwidthStatsResponseModel>> {
+    ): Promise<TResult<GetBandwidthStatsResponseModel>> {
         try {
             let tz = 'UTC';
             if (query.tz) {
@@ -140,40 +127,30 @@ export class SystemService {
             };
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public async getNodesStatistics(): Promise<ICommandResponse<GetNodesStatisticsResponseModel>> {
+    public async getNodesStatistics(): Promise<TResult<GetNodesStatisticsResponseModel>> {
         try {
             const lastSevenDaysStats = await this.getLastSevenDaysNodesUsage();
 
-            if (!lastSevenDaysStats.isOk || !lastSevenDaysStats.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
+            if (!lastSevenDaysStats.isOk) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
             }
 
-            return {
-                isOk: true,
-                response: new GetNodesStatisticsResponseModel({
+            return ok(
+                new GetNodesStatisticsResponseModel({
                     lastSevenDays: lastSevenDaysStats.response,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public async getRemnawaveHealth(): Promise<ICommandResponse<GetRemnawaveHealthResponseModel>> {
+    public async getRemnawaveHealth(): Promise<TResult<GetRemnawaveHealthResponseModel>> {
         try {
             const list = await new Promise<pm2.ProcessDescription[]>((resolve, reject) => {
                 pm2.list((err, processes) => {
@@ -206,24 +183,22 @@ export class SystemService {
                 }
             }
 
-            return {
-                isOk: true,
-                response: new GetRemnawaveHealthResponseModel({
+            return ok(
+                new GetRemnawaveHealthResponseModel({
                     pm2Stats: Array.from(stats.values()),
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
-            return {
-                isOk: true,
-                response: new GetRemnawaveHealthResponseModel({
+            return ok(
+                new GetRemnawaveHealthResponseModel({
                     pm2Stats: [],
                 }),
-            };
+            );
         }
     }
 
-    public async getNodesMetrics(): Promise<ICommandResponse<GetNodesStatsResponseModel>> {
+    public async getNodesMetrics(): Promise<TResult<GetNodesStatsResponseModel>> {
         try {
             const metricPort = this.configService.getOrThrow<string>('METRICS_PORT');
             const username = this.configService.getOrThrow<string>('METRICS_USER');
@@ -239,12 +214,7 @@ export class SystemService {
 
             const nodeMetrics = await this.groupMetricsByNodesLodash(parsed);
 
-            return {
-                isOk: true,
-                response: new GetNodesStatsResponseModel({
-                    nodes: nodeMetrics,
-                }),
-            };
+            return ok(new GetNodesStatsResponseModel({ nodes: nodeMetrics }));
         } catch (error) {
             if (error instanceof AxiosError) {
                 this.logger.error(
@@ -252,26 +222,16 @@ export class SystemService {
                     JSON.stringify(error.message),
                 );
 
-                return {
-                    isOk: true,
-                    response: new GetNodesStatsResponseModel({
-                        nodes: [],
-                    }),
-                };
+                return ok(new GetNodesStatsResponseModel({ nodes: [] }));
             }
 
             this.logger.error('Error getting nodes metrics:', error);
 
-            return {
-                isOk: true,
-                response: new GetNodesStatsResponseModel({
-                    nodes: [],
-                }),
-            };
+            return ok(new GetNodesStatsResponseModel({ nodes: [] }));
         }
     }
 
-    public async getX25519Keypairs(): Promise<ICommandResponse<GenerateX25519ResponseModel>> {
+    public async getX25519Keypairs(): Promise<TResult<GenerateX25519ResponseModel>> {
         try {
             const generateAmount = 30;
             const keypairs: { publicKey: string; privateKey: string }[] = [];
@@ -288,32 +248,20 @@ export class SystemService {
                 });
             }
 
-            return {
-                isOk: true,
-                response: new GenerateX25519ResponseModel(keypairs),
-            };
+            return ok(new GenerateX25519ResponseModel(keypairs));
         } catch (error) {
             this.logger.error('Error getting x25519 keypairs:', error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public async encryptHappCryptoLink(linkToEncrypt: string): Promise<ICommandResponse<string>> {
+    public async encryptHappCryptoLink(linkToEncrypt: string): Promise<TResult<string>> {
         try {
             const encryptedLink = createHappCryptoLink(linkToEncrypt);
-            return {
-                isOk: true,
-                response: encryptedLink,
-            };
+            return ok(encryptedLink);
         } catch (error) {
             this.logger.error('Error encrypting happ crypto link:', error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -355,29 +303,26 @@ export class SystemService {
         }
     }
 
-    private async getShortUserStats(): Promise<ICommandResponse<ShortUserStats>> {
-        return this.queryBus.execute<GetShortUserStatsQuery, ICommandResponse<ShortUserStats>>(
+    private async getShortUserStats(): Promise<TResult<ShortUserStats>> {
+        return this.queryBus.execute<GetShortUserStatsQuery, TResult<ShortUserStats>>(
             new GetShortUserStatsQuery(),
         );
     }
 
-    private async getOnlineUsers(): Promise<ICommandResponse<{ usersOnline: number }>> {
-        return this.queryBus.execute<
-            CountOnlineUsersQuery,
-            ICommandResponse<{ usersOnline: number }>
-        >(new CountOnlineUsersQuery());
+    private async getOnlineUsers(): Promise<TResult<{ usersOnline: number }>> {
+        return this.queryBus.execute<CountOnlineUsersQuery, TResult<{ usersOnline: number }>>(
+            new CountOnlineUsersQuery(),
+        );
     }
 
-    private async getLastSevenDaysNodesUsage(): Promise<ICommandResponse<IGet7DaysStats[]>> {
-        return this.queryBus.execute<Get7DaysStatsQuery, ICommandResponse<IGet7DaysStats[]>>(
+    private async getLastSevenDaysNodesUsage(): Promise<TResult<IGet7DaysStats[]>> {
+        return this.queryBus.execute<Get7DaysStatsQuery, TResult<IGet7DaysStats[]>>(
             new Get7DaysStatsQuery(),
         );
     }
 
-    private async getNodesUsageByDtRange(
-        query: GetSumByDtRangeQuery,
-    ): Promise<ICommandResponse<bigint>> {
-        return this.queryBus.execute<GetSumByDtRangeQuery, ICommandResponse<bigint>>(
+    private async getNodesUsageByDtRange(query: GetSumByDtRangeQuery): Promise<TResult<bigint>> {
+        return this.queryBus.execute<GetSumByDtRangeQuery, TResult<bigint>>(
             new GetSumByDtRangeQuery(query.start, query.end),
         );
     }
@@ -400,8 +345,8 @@ export class SystemService {
             }),
         ]);
 
-        const currentUsage = nodesCurrentUsage.response || 0n;
-        const previousUsage = nodesPreviousUsage.response || 0n;
+        const currentUsage = nodesCurrentUsage.isOk ? nodesCurrentUsage.response : 0n;
+        const previousUsage = nodesPreviousUsage.isOk ? nodesPreviousUsage.response : 0n;
 
         const [cur, prev, diff] = calcDiff(currentUsage, previousUsage);
 
@@ -438,8 +383,8 @@ export class SystemService {
     }
 
     private async groupMetricsByNodesLodash(metrics: Metric[]): Promise<NodeMetrics[]> {
-        const nodes = await this.getAllNodes();
-        if (!nodes.isOk || !nodes.response) {
+        const nodes = await this.queryBus.execute(new GetAllNodesQuery());
+        if (!nodes.isOk) {
             return [];
         }
 
@@ -572,11 +517,5 @@ export class SystemService {
 
             return viewPositionA - viewPositionB;
         });
-    }
-
-    private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetAllNodesQuery(),
-        );
     }
 }

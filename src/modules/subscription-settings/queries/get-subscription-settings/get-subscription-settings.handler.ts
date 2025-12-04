@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsRepository } from '../../repositories/subscription-settings.repository';
@@ -11,13 +11,13 @@ import { GetSubscriptionSettingsQuery } from './get-subscription-settings.query'
 @QueryHandler(GetSubscriptionSettingsQuery)
 export class GetSubscriptionSettingsHandler implements IQueryHandler<
     GetSubscriptionSettingsQuery,
-    ICommandResponse<SubscriptionSettingsEntity>
+    TResult<SubscriptionSettingsEntity>
 > {
     private readonly logger = new Logger(GetSubscriptionSettingsHandler.name);
 
     constructor(private readonly subscriptionSettingsRepository: SubscriptionSettingsRepository) {}
 
-    async execute(): Promise<ICommandResponse<SubscriptionSettingsEntity>> {
+    async execute(): Promise<TResult<SubscriptionSettingsEntity>> {
         try {
             const settings = await this.subscriptionSettingsRepository.findFirst();
 

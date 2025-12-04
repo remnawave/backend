@@ -6,12 +6,10 @@ import { Controller, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { ICommandResponse } from '@common/types/command-response.type';
 import { MESSAGING_NAMES } from '@common/microservices';
 import { METRIC_NAMES } from '@libs/contracts/constants';
 
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid/get-node-by-uuid.query';
-import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
 import { INodeMetrics } from './node-metrics.message.interface';
 
@@ -35,13 +33,13 @@ export class NodesMetricMessageController {
     async handleNodesMetricMessage(message: INodeMetrics) {
         try {
             const { nodeUuid, inbounds, outbounds } = message;
-            const { isOk, response: node } = await this.getNodeByUuid(nodeUuid);
+            const nodeResponse = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
 
-            if (!isOk || !node) {
+            if (!nodeResponse.isOk) {
                 return;
             }
 
-            const { name, countryCode, uuid, provider, tags } = node;
+            const { name, countryCode, uuid, provider, tags } = nodeResponse.response;
 
             const countryEmoji = resolveCountryEmoji(countryCode);
             const nodeTags = tags.join(',');
@@ -104,11 +102,5 @@ export class NodesMetricMessageController {
 
             return;
         }
-    }
-
-    private async getNodeByUuid(uuid: string): Promise<ICommandResponse<NodesEntity | null>> {
-        return this.queryBus.execute<GetNodeByUuidQuery, ICommandResponse<NodesEntity | null>>(
-            new GetNodeByUuidQuery(uuid),
-        );
     }
 }

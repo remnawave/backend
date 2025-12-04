@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { GetEnabledNodesQuery } from '@modules/nodes/queries/get-enabled-nodes';
 import { NodesEntity } from '@modules/nodes';
@@ -56,8 +56,8 @@ export class NodeHealthCheckTask {
         }
     }
 
-    private async getEnabledNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetEnabledNodesQuery, ICommandResponse<NodesEntity[]>>(
+    private async getEnabledNodes(): Promise<TResult<NodesEntity[]>> {
+        return this.queryBus.execute<GetEnabledNodesQuery, TResult<NodesEntity[]>>(
             new GetEnabledNodesQuery(),
         );
     }

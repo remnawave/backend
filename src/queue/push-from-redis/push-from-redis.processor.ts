@@ -7,7 +7,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
 import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry/bulk-upsert-user-history-entry.command';
@@ -59,14 +58,6 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
         }
     }
 
-    private async reportBulkUserUsageHistory(
-        dto: BulkUpsertUserHistoryEntryCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<BulkUpsertUserHistoryEntryCommand, ICommandResponse<void>>(
-            new BulkUpsertUserHistoryEntryCommand(dto.userUsageHistoryList),
-        );
-    }
-
     private async handleRecordUserUsageJob(job: Job<IRecordUserUsageFromRedisPayload>) {
         const { redisKey } = job.data;
         const processingKey = `${redisKey}${INTERNAL_CACHE_KEYS.PROCESSING_POSTFIX}`;
@@ -92,9 +83,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
             const results = await this.redis.hgetall(processingKey);
 
             for await (const batch of this.batchEntries(results, redisKey)) {
-                await this.reportBulkUserUsageHistory({
-                    userUsageHistoryList: batch,
-                });
+                await this.commandBus.execute(new BulkUpsertUserHistoryEntryCommand(batch));
             }
 
             return {

@@ -1,29 +1,20 @@
-import { ERRORS } from '@contract/constants';
-
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
-
-import { ICommandResponse } from '@common/types/command-response.type';
 
 import { IncrementUsedTrafficCommand } from './increment-used-traffic.command';
 import { NodesRepository } from '../../repositories/nodes.repository';
 
 @CommandHandler(IncrementUsedTrafficCommand)
-export class IncrementUsedTrafficHandler implements ICommandHandler<
-    IncrementUsedTrafficCommand,
-    ICommandResponse<void>
-> {
+export class IncrementUsedTrafficHandler implements ICommandHandler<IncrementUsedTrafficCommand> {
     public readonly logger = new Logger(IncrementUsedTrafficHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    async execute(command: IncrementUsedTrafficCommand): Promise<ICommandResponse<void>> {
+    async execute(command: IncrementUsedTrafficCommand) {
         try {
             await this.nodesRepository.incrementUsedTraffic(command.nodeUuid, command.bytes);
 
-            return {
-                isOk: true,
-            };
+            return;
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -31,10 +22,7 @@ export class IncrementUsedTrafficHandler implements ICommandHandler<
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.INCREMENT_USED_TRAFFIC_ERROR,
-            };
+            return;
         }
     }
 }

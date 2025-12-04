@@ -6,9 +6,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { toNano } from '@common/utils/nano';
 import { wrapBigInt } from '@common/utils';
+import { TResult } from '@common/types';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -44,7 +44,7 @@ export class NodesService {
         private readonly commandBus: CommandBus,
     ) {}
 
-    public async createNode(body: CreateNodeRequestDto): Promise<ICommandResponse<NodesEntity>> {
+    public async createNode(body: CreateNodeRequestDto): Promise<TResult<NodesEntity>> {
         try {
             const { configProfile, ...nodeData } = body;
 
@@ -127,7 +127,7 @@ export class NodesService {
         }
     }
 
-    public async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
+    public async getAllNodes(): Promise<TResult<NodesEntity[]>> {
         try {
             return {
                 isOk: true,
@@ -142,7 +142,7 @@ export class NodesService {
         }
     }
 
-    public async restartNode(uuid: string): Promise<ICommandResponse<RestartNodeResponseModel>> {
+    public async restartNode(uuid: string): Promise<TResult<RestartNodeResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -176,7 +176,7 @@ export class NodesService {
         }
     }
 
-    public async resetNodeTraffic(uuid: string): Promise<ICommandResponse<BaseEventResponseModel>> {
+    public async resetNodeTraffic(uuid: string): Promise<TResult<BaseEventResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -186,10 +186,7 @@ export class NodesService {
                 };
             }
 
-            await this.commandBus.execute<
-                CreateNodeTrafficUsageHistoryCommand,
-                ICommandResponse<NodesTrafficUsageHistoryEntity>
-            >(
+            await this.commandBus.execute(
                 new CreateNodeTrafficUsageHistoryCommand(
                     new NodesTrafficUsageHistoryEntity({
                         nodeUuid: node.uuid,
@@ -219,7 +216,7 @@ export class NodesService {
 
     public async restartAllNodes(
         forceRestart?: boolean,
-    ): Promise<ICommandResponse<RestartNodeResponseModel>> {
+    ): Promise<TResult<RestartNodeResponseModel>> {
         try {
             const nodes = await this.nodesRepository.findByCriteria({
                 isDisabled: false,
@@ -249,7 +246,7 @@ export class NodesService {
         }
     }
 
-    public async getOneNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async getOneNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -272,7 +269,7 @@ export class NodesService {
         }
     }
 
-    public async deleteNode(uuid: string): Promise<ICommandResponse<DeleteNodeResponseModel>> {
+    public async deleteNode(uuid: string): Promise<TResult<DeleteNodeResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -304,7 +301,7 @@ export class NodesService {
         }
     }
 
-    public async updateNode(body: UpdateNodeRequestDto): Promise<ICommandResponse<NodesEntity>> {
+    public async updateNode(body: UpdateNodeRequestDto): Promise<TResult<NodesEntity>> {
         try {
             const { configProfile, ...nodeData } = body;
 
@@ -386,7 +383,7 @@ export class NodesService {
         }
     }
 
-    public async enableNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async enableNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -452,7 +449,7 @@ export class NodesService {
         }
     }
 
-    public async disableNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async disableNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
@@ -509,9 +506,7 @@ export class NodesService {
         }
     }
 
-    public async reorderNodes(
-        dto: ReorderNodeRequestDto,
-    ): Promise<ICommandResponse<NodesEntity[]>> {
+    public async reorderNodes(dto: ReorderNodeRequestDto): Promise<TResult<NodesEntity[]>> {
         try {
             await this.nodesRepository.reorderMany(dto.nodes);
 
@@ -525,7 +520,7 @@ export class NodesService {
         }
     }
 
-    public async getAllNodesTags(): Promise<ICommandResponse<string[]>> {
+    public async getAllNodesTags(): Promise<TResult<string[]>> {
         try {
             return {
                 isOk: true,
@@ -539,7 +534,7 @@ export class NodesService {
 
     public async profileModification(
         body: ProfileModificationRequestDto,
-    ): Promise<ICommandResponse<BaseEventResponseModel>> {
+    ): Promise<TResult<BaseEventResponseModel>> {
         try {
             const { uuids, configProfile } = body;
 

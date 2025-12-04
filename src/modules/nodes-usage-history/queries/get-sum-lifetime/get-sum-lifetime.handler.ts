@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesUsageHistoryRepository } from '../../repositories/nodes-usage-history.repository';
@@ -15,18 +16,10 @@ export class GetSumLifetimeHandler implements IQueryHandler<GetSumLifetimeQuery>
         try {
             const sum = await this.nodesUsageHistoryRepository.getSumLifetime();
 
-            return {
-                isOk: true,
-                response: {
-                    totalBytes: sum,
-                },
-            };
+            return ok({ totalBytes: sum });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

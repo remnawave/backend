@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { GetOnlineNodesQuery } from '@modules/nodes/queries/get-online-nodes';
 import { NodesEntity } from '@modules/nodes';
@@ -55,8 +55,8 @@ export class RecordUserUsageTask {
         }
     }
 
-    private async getOnlineNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetOnlineNodesQuery, ICommandResponse<NodesEntity[]>>(
+    private async getOnlineNodes(): Promise<TResult<NodesEntity[]>> {
+        return this.queryBus.execute<GetOnlineNodesQuery, TResult<NodesEntity[]>>(
             new GetOnlineNodesQuery(),
         );
     }

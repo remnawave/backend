@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesUserUsageHistoryRepository } from './repositories/nodes-user-usage-history.repository';
@@ -17,7 +17,7 @@ export class NodesUserUsageHistoryService {
         uuid: string,
         start: Date,
         end: Date,
-    ): Promise<ICommandResponse<IGetNodeUserUsageByRange[]>> {
+    ): Promise<TResult<IGetNodeUserUsageByRange[]>> {
         try {
             const startDate = dayjs(start).utc().toDate();
             const endDate = dayjs(end).utc().toDate();
@@ -41,7 +41,7 @@ export class NodesUserUsageHistoryService {
         }
     }
 
-    public async getNodesRealtimeUsage(): Promise<ICommandResponse<IGetNodesRealtimeUsage[]>> {
+    public async getNodesRealtimeUsage(): Promise<TResult<IGetNodesRealtimeUsage[]>> {
         try {
             const result = await this.nodeUserUsageHistoryRepository.getNodesRealtimeUsage();
 

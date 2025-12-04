@@ -1,10 +1,10 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-tag.entity';
 
-export class GetHostsForUserQuery extends Query<ICommandResponse<HostWithRawInbound[]>> {
+export class GetHostsForUserQuery extends Query<TResult<HostWithRawInbound[]>> {
     constructor(
         public readonly userId: bigint,
         public readonly returnDisabledHosts: boolean,

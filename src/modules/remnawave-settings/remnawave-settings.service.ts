@@ -5,7 +5,7 @@ import isEmail from 'validator/lib/isEmail';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
 import { RemnawaveSettingsRepository } from './repositories/remnawave-settings.repository';
@@ -20,7 +20,7 @@ export class RemnawaveSettingsService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
-    public async getSettingsFromController(): Promise<ICommandResponse<RemnawaveSettingsEntity>> {
+    public async getSettingsFromController(): Promise<TResult<RemnawaveSettingsEntity>> {
         try {
             const settings = await this.getSettings();
 
@@ -39,7 +39,7 @@ export class RemnawaveSettingsService {
 
     public async updateSettingsFromController(
         body: UpdateRemnawaveSettingsRequestDto,
-    ): Promise<ICommandResponse<RemnawaveSettingsEntity>> {
+    ): Promise<TResult<RemnawaveSettingsEntity>> {
         try {
             const settings = await this.remnawaveSettingsRepository.getSettings();
 

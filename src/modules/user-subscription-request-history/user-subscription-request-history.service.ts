@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { GetSubscriptionRequestHistoryCommand } from '@libs/contracts/commands';
 import { ERRORS } from '@libs/contracts/constants';
 
@@ -18,7 +18,7 @@ export class UserSubscriptionRequestHistoryService {
     public async getSubscriptionRequestHistory(
         dto: GetSubscriptionRequestHistoryCommand.RequestQuery,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             total: number;
             records: UserSubscriptionRequestHistoryEntity[];
         }>
@@ -46,7 +46,7 @@ export class UserSubscriptionRequestHistoryService {
     }
 
     public async getSubscriptionRequestHistoryStats(): Promise<
-        ICommandResponse<GetSubscriptionRequestHistoryStatsResponseModel>
+        TResult<GetSubscriptionRequestHistoryStatsResponseModel>
     > {
         try {
             const stats =

@@ -3,7 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { SquadsQueueService } from '@queue/_squads';
@@ -28,7 +28,7 @@ export class InternalSquadService {
         private readonly squadsQueueService: SquadsQueueService,
     ) {}
 
-    public async getInternalSquads(): Promise<ICommandResponse<GetInternalSquadsResponseModel>> {
+    public async getInternalSquads(): Promise<TResult<GetInternalSquadsResponseModel>> {
         try {
             const internalSquads = await this.internalSquadRepository.getInternalSquads();
 
@@ -47,7 +47,7 @@ export class InternalSquadService {
 
     public async getInternalSquadByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetInternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetInternalSquadByUuidResponseModel>> {
         try {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
@@ -74,7 +74,7 @@ export class InternalSquadService {
     public async createInternalSquad(
         name: string,
         inbounds: string[],
-    ): Promise<ICommandResponse<GetInternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetInternalSquadByUuidResponseModel>> {
         try {
             if (name === 'Default-Squad') {
                 return {
@@ -114,7 +114,7 @@ export class InternalSquadService {
         uuid: string,
         name?: string,
         inbounds?: string[],
-    ): Promise<ICommandResponse<GetInternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetInternalSquadByUuidResponseModel>> {
         try {
             const internalSquad = await this.internalSquadRepository.findByUUID(uuid);
 
@@ -238,7 +238,7 @@ export class InternalSquadService {
 
     public async deleteInternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteInternalSquadResponseModel>> {
+    ): Promise<TResult<DeleteInternalSquadResponseModel>> {
         try {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
@@ -279,7 +279,7 @@ export class InternalSquadService {
 
     public async addUsersToInternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<EventSentInternalSquadResponseModel>> {
+    ): Promise<TResult<EventSentInternalSquadResponseModel>> {
         try {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
@@ -309,7 +309,7 @@ export class InternalSquadService {
 
     public async removeUsersFromInternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<EventSentInternalSquadResponseModel>> {
+    ): Promise<TResult<EventSentInternalSquadResponseModel>> {
         try {
             const internalSquad = await this.internalSquadRepository.getInternalSquadsByUuid(uuid);
 
@@ -339,7 +339,7 @@ export class InternalSquadService {
 
     public async getInternalSquadAccessibleNodes(
         squadUuid: string,
-    ): Promise<ICommandResponse<GetInternalSquadAccessibleNodesResponseModel>> {
+    ): Promise<TResult<GetInternalSquadAccessibleNodesResponseModel>> {
         try {
             const internalSquad =
                 await this.internalSquadRepository.getInternalSquadsByUuid(squadUuid);
@@ -375,7 +375,7 @@ export class InternalSquadService {
 
     public async reorderInternalSquads(
         dto: ReorderInternalSquadsRequestDto,
-    ): Promise<ICommandResponse<GetInternalSquadsResponseModel>> {
+    ): Promise<TResult<GetInternalSquadsResponseModel>> {
         try {
             await this.internalSquadRepository.reorderMany(dto.items);
 

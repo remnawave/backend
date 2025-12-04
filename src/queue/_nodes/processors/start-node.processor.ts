@@ -40,27 +40,27 @@ export class StartNodeProcessor extends WorkerHost {
         try {
             const { nodeUuid } = job.data;
 
-            const { isOk, response: nodeEntity } = await this.queryBus.execute(
-                new GetNodeByUuidQuery(nodeUuid),
-            );
+            const nodeCheckup = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
 
-            if (!isOk || !nodeEntity) {
+            if (!nodeCheckup.isOk) {
                 this.logger.error(`Node ${nodeUuid} not found`);
                 return;
             }
 
-            if (nodeEntity.isConnecting) {
+            const { response: node } = nodeCheckup;
+
+            if (node.isConnecting) {
                 return;
             }
 
-            if (nodeEntity.activeInbounds.length === 0 || !nodeEntity.activeConfigProfileUuid) {
+            if (node.activeInbounds.length === 0 || !node.activeConfigProfileUuid) {
                 this.logger.warn(
                     `Node ${nodeUuid} has no active config profile or inbounds, disabling and clearing profile from node...`,
                 );
 
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
-                        uuid: nodeEntity.uuid,
+                        uuid: node.uuid,
                         isDisabled: true,
                         activeConfigProfileUuid: null,
                         isConnecting: false,
@@ -72,7 +72,7 @@ export class StartNodeProcessor extends WorkerHost {
                 );
 
                 await this.nodesQueuesService.stopNode({
-                    nodeUuid: nodeEntity.uuid,
+                    nodeUuid: node.uuid,
                     isNeedToBeDeleted: false,
                 });
 
@@ -81,20 +81,17 @@ export class StartNodeProcessor extends WorkerHost {
 
             await this.commandBus.execute(
                 new UpdateNodeCommand({
-                    uuid: nodeEntity.uuid,
+                    uuid: node.uuid,
                     isConnecting: true,
                 }),
             );
 
-            const xrayStatusResponse = await this.axios.getNodeHealth(
-                nodeEntity.address,
-                nodeEntity.port,
-            );
+            const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
 
-            if (!xrayStatusResponse.isOk || !xrayStatusResponse.response) {
+            if (!xrayStatusResponse.isOk) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
-                        uuid: nodeEntity.uuid,
+                        uuid: node.uuid,
                         lastStatusMessage: xrayStatusResponse.message ?? null,
                         lastStatusChange: new Date(),
                         isConnected: false,
@@ -104,7 +101,7 @@ export class StartNodeProcessor extends WorkerHost {
                 );
 
                 this.logger.error(
-                    `Pre-check failed. Node: ${nodeEntity.uuid} – ${nodeEntity.address}:${nodeEntity.port}, error: ${xrayStatusResponse.message}`,
+                    `Pre-check failed. Node: ${node.uuid} – ${node.address}:${node.port}, error: ${xrayStatusResponse.message}`,
                 );
 
                 return;
@@ -116,7 +113,7 @@ export class StartNodeProcessor extends WorkerHost {
             ) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
-                        uuid: nodeEntity.uuid,
+                        uuid: node.uuid,
                         lastStatusMessage:
                             'Unknown node version. Please upgrade Remnawave Node to the latest version.',
                         lastStatusChange: new Date(),
@@ -127,7 +124,7 @@ export class StartNodeProcessor extends WorkerHost {
                 );
 
                 this.logger.error(
-                    `Node ${nodeEntity.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
+                    `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
                 );
                 return;
             }
@@ -135,35 +132,35 @@ export class StartNodeProcessor extends WorkerHost {
             const startTime = getTime();
             const config = await this.queryBus.execute(
                 new GetPreparedConfigWithUsersQuery(
-                    nodeEntity.activeConfigProfileUuid,
-                    nodeEntity.activeInbounds,
+                    node.activeConfigProfileUuid,
+                    node.activeInbounds,
                 ),
             );
 
             this.logger.log(`Generated config for node in ${formatExecutionTime(startTime)}`);
 
-            if (!config.isOk || !config.response) {
+            if (!config.isOk) {
                 throw new Error('Failed to get config for node');
             }
 
             const reqStartTime = getTime();
 
-            const res = await this.axios.startXray(
+            const startNodeResult = await this.axios.startXray(
                 {
                     xrayConfig: config.response.config as unknown as Record<string, unknown>,
                     internals: { hashes: config.response.hashesPayload, forceRestart: false },
                 },
-                nodeEntity.address,
-                nodeEntity.port,
+                node.address,
+                node.port,
             );
 
             this.logger.log(`Started node in ${formatExecutionTime(reqStartTime)}`);
 
-            if (!res.isOk || !res.response) {
+            if (!startNodeResult.isOk) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
-                        uuid: nodeEntity.uuid,
-                        lastStatusMessage: res.message ?? null,
+                        uuid: node.uuid,
+                        lastStatusMessage: startNodeResult.message ?? null,
                         lastStatusChange: new Date(),
                         isConnected: false,
                         isConnecting: false,
@@ -174,11 +171,11 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            const nodeResponse = res.response.response;
+            const nodeResponse = startNodeResult.response.response;
 
-            const { isOk: isOkUpdateNode, response: updatedNode } = await this.commandBus.execute(
+            const updateNodeResult = await this.commandBus.execute(
                 new UpdateNodeCommand({
-                    uuid: nodeEntity.uuid,
+                    uuid: node.uuid,
                     xrayVersion: nodeResponse.version,
                     nodeVersion: nodeResponse.nodeInformation?.version || null,
                     isConnected: nodeResponse.isStarted,
@@ -192,15 +189,15 @@ export class StartNodeProcessor extends WorkerHost {
                 }),
             );
 
-            if (!isOkUpdateNode || !updatedNode) {
-                this.logger.error(`Failed to update node ${nodeEntity.uuid}`);
+            if (!updateNodeResult.isOk) {
+                this.logger.error(`Failed to update node ${node.uuid}`);
                 return;
             }
 
-            if (!nodeEntity.isConnected) {
+            if (!node.isConnected) {
                 this.eventEmitter.emit(
                     EVENTS.NODE.CONNECTION_RESTORED,
-                    new NodeEvent(updatedNode, EVENTS.NODE.CONNECTION_RESTORED),
+                    new NodeEvent(updateNodeResult.response, EVENTS.NODE.CONNECTION_RESTORED),
                 );
             }
 

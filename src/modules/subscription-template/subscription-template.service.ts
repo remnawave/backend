@@ -6,7 +6,7 @@ import yaml from 'yaml';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import {
@@ -34,9 +34,7 @@ export class SubscriptionTemplateService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
-    public async getAllTemplates(): Promise<
-        ICommandResponse<GetSubscriptionTemplatesResponseModel>
-    > {
+    public async getAllTemplates(): Promise<TResult<GetSubscriptionTemplatesResponseModel>> {
         try {
             const templates = await this.subscriptionTemplateRepository.getAllTemplates(false);
 
@@ -53,9 +51,7 @@ export class SubscriptionTemplateService {
         }
     }
 
-    public async getTemplateByUuid(
-        uuid: string,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    public async getTemplateByUuid(uuid: string): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
@@ -84,7 +80,7 @@ export class SubscriptionTemplateService {
         name: string | undefined,
         templateJson: object | undefined,
         encodedTemplateYaml: string | undefined,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    ): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
@@ -170,7 +166,7 @@ export class SubscriptionTemplateService {
 
     public async deleteTemplate(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteSubscriptionTemplateResponseModel>> {
+    ): Promise<TResult<DeleteSubscriptionTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
@@ -208,7 +204,7 @@ export class SubscriptionTemplateService {
     public async createTemplate(
         name: string,
         templateType: TSubscriptionTemplateType,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    ): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             if (name === DEFAULT_TEMPLATE_NAME) {
                 return {
@@ -281,7 +277,7 @@ export class SubscriptionTemplateService {
 
     public async reorderSubscriptionTemplates(
         dto: ReorderSubscriptionTemplatesRequestDto,
-    ): Promise<ICommandResponse<GetSubscriptionTemplatesResponseModel>> {
+    ): Promise<TResult<GetSubscriptionTemplatesResponseModel>> {
         try {
             await this.subscriptionTemplateRepository.reorderMany(dto.items);
 

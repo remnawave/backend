@@ -1,8 +1,8 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
-export class GetAffectedConfigProfilesBySquadUuidQuery extends Query<ICommandResponse<string[]>> {
+export class GetAffectedConfigProfilesBySquadUuidQuery extends Query<TResult<string[]>> {
     constructor(public readonly internalSquadUuid: string) {
         super();
     }

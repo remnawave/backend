@@ -5,8 +5,8 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { XRayConfig } from '@common/helpers/xray-config';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -31,7 +31,7 @@ export class ConfigProfileService {
         private readonly queryBus: QueryBus,
     ) {}
 
-    public async getConfigProfiles(): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
+    public async getConfigProfiles(): Promise<TResult<GetConfigProfilesResponseModel>> {
         try {
             const configProfiles = await this.configProfileRepository.getAllConfigProfiles();
 
@@ -58,7 +58,7 @@ export class ConfigProfileService {
 
     public async getConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
@@ -86,7 +86,7 @@ export class ConfigProfileService {
 
     public async getComputedConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
@@ -131,7 +131,7 @@ export class ConfigProfileService {
 
     public async deleteConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<DeleteConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
@@ -167,7 +167,7 @@ export class ConfigProfileService {
     public async createConfigProfile(
         name: string,
         config: object,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             if (name === 'Default-Profile') {
                 return {
@@ -232,7 +232,7 @@ export class ConfigProfileService {
         uuid: string,
         name?: string,
         config?: object,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const existingConfigProfile =
                 await this.configProfileRepository.getConfigProfileByUUID(uuid);
@@ -347,7 +347,7 @@ export class ConfigProfileService {
 
     public async getInboundsByProfileUuid(
         profileUuid: string,
-    ): Promise<ICommandResponse<GetAllInboundsResponseModel>> {
+    ): Promise<TResult<GetAllInboundsResponseModel>> {
         try {
             const configProfile =
                 await this.configProfileRepository.getConfigProfileByUUID(profileUuid);
@@ -375,7 +375,7 @@ export class ConfigProfileService {
         }
     }
 
-    public async getAllInbounds(): Promise<ICommandResponse<GetAllInboundsResponseModel>> {
+    public async getAllInbounds(): Promise<TResult<GetAllInboundsResponseModel>> {
         try {
             const inbounds = await this.configProfileRepository.getAllInbounds();
 
@@ -394,7 +394,7 @@ export class ConfigProfileService {
 
     public async reorderConfigProfiles(
         dto: ReorderConfigProfilesRequestDto,
-    ): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
+    ): Promise<TResult<GetConfigProfilesResponseModel>> {
         try {
             await this.configProfileRepository.reorderMany(dto.items);
 

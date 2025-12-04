@@ -4,8 +4,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
-
 import { CountAndDeleteSubscriptionRequestHistoryCommand } from '@modules/user-subscription-request-history/commands/count-and-delete-subscription-request-history';
 import { CreateSubscriptionRequestHistoryCommand } from '@modules/user-subscription-request-history/commands/create-subscription-request-history';
 import { UpdateSubLastOpenedAndUserAgentCommand } from '@modules/users/commands/update-sub-last-opened-and-user-agent';
@@ -81,21 +79,19 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
         try {
             const { userUuid, subLastOpenedAt, subLastUserAgent } = job.data;
 
-            await this.updateSubLastOpenedAndUserAgent({
-                userUuid,
-                subLastOpenedAt: new Date(subLastOpenedAt),
-                subLastUserAgent,
-            });
+            await this.commandBus.execute(
+                new UpdateSubLastOpenedAndUserAgentCommand(
+                    userUuid,
+                    new Date(subLastOpenedAt),
+                    subLastUserAgent,
+                ),
+            );
 
-            return {
-                isOk: true,
-            };
+            return;
         } catch (error) {
             this.logger.error(`Error updating user sub: ${error}`);
 
-            return {
-                isOk: false,
-            };
+            return;
         }
     }
 
@@ -103,50 +99,24 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
         try {
             const { hwid, userUuid, platform, osVersion, deviceModel, userAgent } = job.data;
 
-            await this.upsertHwidUserDevice({
-                hwidUserDevice: new HwidUserDeviceEntity({
-                    hwid,
-                    userUuid,
-                    platform,
-                    osVersion,
-                    deviceModel,
-                    userAgent,
-                }),
-            });
+            await this.commandBus.execute(
+                new UpsertHwidUserDeviceCommand(
+                    new HwidUserDeviceEntity({
+                        hwid,
+                        userUuid,
+                        platform,
+                        osVersion,
+                        deviceModel,
+                        userAgent,
+                    }),
+                ),
+            );
 
-            return {
-                isOk: true,
-            };
+            return;
         } catch (error) {
             this.logger.error(`Error checking and upserting hwid device: ${error}`);
 
-            return {
-                isOk: false,
-            };
+            return;
         }
-    }
-
-    private async updateSubLastOpenedAndUserAgent(
-        dto: UpdateSubLastOpenedAndUserAgentCommand,
-    ): Promise<ICommandResponse<void>> {
-        return this.commandBus.execute<
-            UpdateSubLastOpenedAndUserAgentCommand,
-            ICommandResponse<void>
-        >(
-            new UpdateSubLastOpenedAndUserAgentCommand(
-                dto.userUuid,
-                dto.subLastOpenedAt,
-                dto.subLastUserAgent,
-            ),
-        );
-    }
-
-    private async upsertHwidUserDevice(
-        dto: UpsertHwidUserDeviceCommand,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity>> {
-        return this.commandBus.execute<
-            UpsertHwidUserDeviceCommand,
-            ICommandResponse<HwidUserDeviceEntity>
-        >(new UpsertHwidUserDeviceCommand(dto.hwidUserDevice));
     }
 }

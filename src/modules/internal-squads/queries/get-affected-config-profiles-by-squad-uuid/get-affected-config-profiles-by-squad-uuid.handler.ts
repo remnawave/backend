@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { InternalSquadRepository } from '@modules/internal-squads/repositories/internal-squad.repository';
@@ -11,14 +11,12 @@ import { GetAffectedConfigProfilesBySquadUuidQuery } from './get-affected-config
 @QueryHandler(GetAffectedConfigProfilesBySquadUuidQuery)
 export class GetAffectedConfigProfilesBySquadUuidHandler implements IQueryHandler<
     GetAffectedConfigProfilesBySquadUuidQuery,
-    ICommandResponse<string[]>
+    TResult<string[]>
 > {
     private readonly logger = new Logger(GetAffectedConfigProfilesBySquadUuidHandler.name);
     constructor(private readonly internalSquadRepository: InternalSquadRepository) {}
 
-    async execute(
-        query: GetAffectedConfigProfilesBySquadUuidQuery,
-    ): Promise<ICommandResponse<string[]>> {
+    async execute(query: GetAffectedConfigProfilesBySquadUuidQuery): Promise<TResult<string[]>> {
         try {
             const result = await this.internalSquadRepository.getConfigProfilesBySquadUuid(
                 query.internalSquadUuid,

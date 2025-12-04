@@ -17,9 +17,9 @@ import {
     StopXrayCommand,
 } from '@remnawave/node-contract';
 
-import { GetNodeJwtCommand, IGetNodeJwtResponse } from '@modules/keygen/commands/get-node-jwt';
+import { GetNodeJwtCommand } from '@modules/keygen/commands/get-node-jwt';
 
-import { ICommandResponse } from '../types/command-response.type';
+import { fail, ok, TResult } from '../types';
 
 @Injectable()
 export class AxiosService {
@@ -37,14 +37,15 @@ export class AxiosService {
 
     public async setJwt() {
         try {
-            const response = await this.getNodeJwtCommand();
-            const jwt = response.response;
+            const result = await this.commandBus.execute(new GetNodeJwtCommand());
 
-            if (!jwt) {
+            if (!result.isOk) {
                 throw new Error(
                     'There are a problem with the JWT token. Please restart Remnawave.',
                 );
             }
+
+            const jwt = result.response;
 
             this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${jwt.jwtToken}`;
 
@@ -66,12 +67,6 @@ export class AxiosService {
         }
     }
 
-    private async getNodeJwtCommand(): Promise<ICommandResponse<IGetNodeJwtResponse>> {
-        return this.commandBus.execute<GetNodeJwtCommand, ICommandResponse<IGetNodeJwtResponse>>(
-            new GetNodeJwtCommand(),
-        );
-    }
-
     private getNodeUrl(url: string, path: string, port: null | number): string {
         const protocol = 'https';
         const portSuffix = port ? `:${port}` : '';
@@ -87,7 +82,7 @@ export class AxiosService {
         data: StartXrayCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<StartXrayCommand.Response>> {
+    ): Promise<TResult<StartXrayCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, StartXrayCommand.url, port);
         try {
             const response = await this.axiosInstance.post<StartXrayCommand.Response>(
@@ -98,10 +93,7 @@ export class AxiosService {
                 },
             );
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 // this.logger.error(
@@ -109,19 +101,11 @@ export class AxiosService {
                 //     JSON.stringify(error.message),
                 // );
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in Axios StartXray Request:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error)));
             }
         }
     }
@@ -129,15 +113,12 @@ export class AxiosService {
     public async stopXray(
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<StopXrayCommand.Response>> {
+    ): Promise<TResult<StopXrayCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, StopXrayCommand.url, port);
         try {
             const response = await this.axiosInstance.get<StopXrayCommand.Response>(nodeUrl);
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 this.logger.error(
@@ -145,19 +126,15 @@ export class AxiosService {
                     JSON.stringify(error.message),
                 );
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in Axios StopXray Request:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -165,7 +142,7 @@ export class AxiosService {
     public async getNodeHealth(
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<GetNodeHealthCheckCommand.Response['response']>> {
+    ): Promise<TResult<GetNodeHealthCheckCommand.Response['response']>> {
         try {
             const nodeUrl = this.getNodeUrl(url, GetNodeHealthCheckCommand.url, port);
             const { data } = await this.axiosInstance.get<GetNodeHealthCheckCommand.Response>(
@@ -175,25 +152,18 @@ export class AxiosService {
                 },
             );
 
-            return {
-                isOk: true,
-                response: data.response,
-            };
+            return ok(data.response);
         } catch (error) {
             if (error instanceof AxiosError) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in Axios getNodeHealth:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -206,7 +176,7 @@ export class AxiosService {
         data: GetUsersStatsCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<GetUsersStatsCommand.Response>> {
+    ): Promise<TResult<GetUsersStatsCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, GetUsersStatsCommand.url, port);
 
         try {
@@ -218,29 +188,22 @@ export class AxiosService {
                 },
             );
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 this.logger.error(
                     `Error in Axios getUsersStats: ${error.message}, JSON: ${JSON.stringify(error.response?.data)}`,
                 );
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in getUsersStats:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -248,7 +211,7 @@ export class AxiosService {
     public async getSystemStats(
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<GetSystemStatsCommand.Response>> {
+    ): Promise<TResult<GetSystemStatsCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, GetSystemStatsCommand.url, port);
 
         try {
@@ -256,36 +219,26 @@ export class AxiosService {
                 timeout: 15_000,
             });
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 // this.logger.error(`Error in axios request: ${JSON.stringify(error.message)}`);
 
                 if (error.code === '500') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(
-                            JSON.stringify(error.message),
-                        ),
-                    };
+                    return fail(
+                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
+                    );
                 }
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in getSystemStats:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -294,7 +247,7 @@ export class AxiosService {
         data: GetCombinedStatsCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<GetCombinedStatsCommand.Response['response']>> {
+    ): Promise<TResult<GetCombinedStatsCommand.Response['response']>> {
         const nodeUrl = this.getNodeUrl(url, GetCombinedStatsCommand.url, port);
 
         try {
@@ -303,34 +256,24 @@ export class AxiosService {
                 data,
             );
 
-            return {
-                isOk: true,
-                response: nodeResult.data.response,
-            };
+            return ok(nodeResult.data.response);
         } catch (error) {
             if (error instanceof AxiosError) {
                 if (error.code === '500') {
-                    return {
-                        isOk: false,
-                        ...ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(
-                            JSON.stringify(error.message),
-                        ),
-                    };
+                    return fail(
+                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
+                    );
                 }
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in getAllInboundStats:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -343,7 +286,7 @@ export class AxiosService {
         data: AddUserCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<AddUserCommand.Response>> {
+    ): Promise<TResult<AddUserCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, AddUserCommand.url, port);
 
         try {
@@ -351,27 +294,20 @@ export class AxiosService {
                 timeout: 20_000,
             });
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 this.logger.error(`Error in axios request: ${error.message}`);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                };
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in addUser:', error);
 
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
                         JSON.stringify(error) ?? 'Unknown error',
                     ),
-                };
+                );
             }
         }
     }
@@ -380,7 +316,7 @@ export class AxiosService {
         data: RemoveUserCommand.Request,
         url: string,
         port: null | number,
-    ): Promise<ICommandResponse<RemoveUserCommand.Response>> {
+    ): Promise<TResult<RemoveUserCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, RemoveUserCommand.url, port);
 
         try {
@@ -392,10 +328,7 @@ export class AxiosService {
                 },
             );
 
-            return {
-                isOk: true,
-                response: response.data,
-            };
+            return ok(response.data);
         } catch (error) {
             if (error instanceof AxiosError) {
                 this.logger.error('Error in deleteUser:', error.response?.data);
@@ -403,10 +336,7 @@ export class AxiosService {
                 this.logger.error('Error in deleteUser:', error);
             }
 
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -32,11 +32,9 @@ export class StopNodeProcessor extends WorkerHost {
         try {
             const { nodeUuid, isNeedToBeDeleted } = job.data;
 
-            const { isOk, response: nodeEntity } = await this.queryBus.execute(
-                new GetNodeByUuidQuery(nodeUuid),
-            );
+            const result = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
 
-            if (!isOk || !nodeEntity) {
+            if (!result.isOk) {
                 this.logger.error(`Node ${nodeUuid} not found`);
                 return false;
             }
@@ -46,12 +44,12 @@ export class StopNodeProcessor extends WorkerHost {
                 return true;
             }
 
-            await this.axios.stopXray(nodeEntity.address, nodeEntity.port);
+            await this.axios.stopXray(result.response.address, result.response.port);
 
             if (!isNeedToBeDeleted) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
-                        uuid: nodeEntity.uuid,
+                        uuid: result.response.uuid,
                         lastStatusMessage: null,
                         lastStatusChange: new Date(),
                         isConnected: false,

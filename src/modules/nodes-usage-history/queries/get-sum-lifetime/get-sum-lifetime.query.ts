@@ -1,9 +1,9 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 export class GetSumLifetimeQuery extends Query<
-    ICommandResponse<{
+    TResult<{
         totalBytes: string;
     }>
 > {

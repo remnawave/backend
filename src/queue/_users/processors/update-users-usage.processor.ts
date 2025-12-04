@@ -4,7 +4,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { EVENTS } from '@libs/contracts/constants';
 
 import { BulkIncrementUsedTrafficCommand } from '@modules/users/commands/bulk-increment-used-traffic';
@@ -41,17 +40,17 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
         try {
             const userUsageList = job.data;
 
-            const { isOk, response: firstConnectedUsers } = await this.bulkIncrementUsedTraffic({
-                userUsageList,
-            });
+            const updatedUsers = await this.commandBus.execute(
+                new BulkIncrementUsedTrafficCommand(userUsageList),
+            );
 
-            if (!isOk || !firstConnectedUsers) {
-                throw new Error(JSON.stringify(firstConnectedUsers));
+            if (!updatedUsers.isOk) {
+                throw new Error(JSON.stringify(updatedUsers));
             }
 
-            if (firstConnectedUsers.length > 0) {
+            if (updatedUsers.response.length > 0) {
                 await this.usersQueuesService.fireUserEventBulk({
-                    users: firstConnectedUsers,
+                    users: updatedUsers.response,
                     userEvent: EVENTS.USER.FIRST_CONNECTED,
                 });
             }
@@ -70,14 +69,5 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
                 isOk: false,
             };
         }
-    }
-
-    private async bulkIncrementUsedTraffic(
-        dto: BulkIncrementUsedTrafficCommand,
-    ): Promise<ICommandResponse<{ tId: bigint }[]>> {
-        return this.commandBus.execute<
-            BulkIncrementUsedTrafficCommand,
-            ICommandResponse<{ tId: bigint }[]>
-        >(new BulkIncrementUsedTrafficCommand(dto.userUsageList));
     }
 }

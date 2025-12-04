@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { HostsRepository } from '../../repositories/hosts.repository';
@@ -19,16 +20,10 @@ export class GetHostsForUserHandler implements IQueryHandler<GetHostsForUserQuer
                 query.returnHiddenHosts,
             );
 
-            return {
-                isOk: true,
-                response: hosts,
-            };
+            return ok(hosts);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

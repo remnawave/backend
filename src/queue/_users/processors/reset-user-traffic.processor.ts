@@ -5,7 +5,6 @@ import { Logger, Scope } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
-import { ICommandResponse } from '@common/types/command-response.type';
 import { RESET_PERIODS, TResetPeriods } from '@libs/contracts/constants';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
@@ -59,27 +58,17 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
 
     private async handleResetUserTraffic(job: Job, strategy: TResetPeriods) {
         try {
-            const ct = getTime();
+            await this.commandBus.execute(new BatchResetUserTrafficCommand(strategy));
 
-            const batchResetResponse = await this.batchResetUserTraffic({
-                strategy,
-            });
-
-            if (!batchResetResponse.isOk) {
-                this.logger.debug('No users found for Batch Reset Users Traffic.');
-            } else {
-                this.logger.debug(
-                    `Batch Reset ${strategy} Users Traffic. Time: ${formatExecutionTime(ct)}`,
-                );
-            }
-
-            const { isOk, response: updatedUsers } = await this.commandBus.execute(
+            const updatedUsersResult = await this.commandBus.execute(
                 new BatchResetLimitedUsersTrafficCommand(strategy),
             );
 
-            if (!isOk || !updatedUsers) {
+            if (!updatedUsersResult.isOk) {
                 return;
             }
+
+            const updatedUsers = updatedUsersResult.response;
 
             if (updatedUsers.length === 0) {
                 return;
@@ -110,17 +99,6 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
                 `Error handling "${USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC}" job: ${error}`,
             );
         }
-    }
-
-    private async batchResetUserTraffic(
-        dto: BatchResetUserTrafficCommand,
-    ): Promise<ICommandResponse<{ affectedRows: number }>> {
-        return this.commandBus.execute<
-            BatchResetUserTrafficCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >(new BatchResetUserTrafficCommand(dto.strategy));
     }
 
     private async handleResetAllUserTraffic(job: Job) {

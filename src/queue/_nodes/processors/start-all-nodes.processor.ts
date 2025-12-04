@@ -43,13 +43,13 @@ export class StartAllNodesQueueProcessor extends WorkerHost {
 
     private async handleStartAllNodes(job: Job<{ emitter: string; force?: boolean }>) {
         try {
-            const { isOk, response: nodes } = await this.queryBus.execute(
+            const result = await this.queryBus.execute(
                 new FindNodesByCriteriaQuery({
                     isDisabled: false,
                 }),
             );
 
-            if (!isOk || !nodes) {
+            if (!result.isOk) {
                 return;
             }
 
@@ -61,7 +61,7 @@ export class StartAllNodesQueueProcessor extends WorkerHost {
 
             const groupedByProfile = new Map<string, NodesEntity[]>();
 
-            for (const node of nodes) {
+            for (const node of result.response) {
                 if (!node.activeConfigProfileUuid) {
                     this.logger.warn(`Node "${node.uuid}" has no active config profile`);
                     continue;

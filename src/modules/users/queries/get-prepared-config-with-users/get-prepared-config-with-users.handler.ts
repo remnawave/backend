@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { HashedSet } from '@remnawave/hashed-set';
 
 import { XRayConfig } from '@common/helpers/xray-config/xray-config.validator';
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
@@ -19,7 +19,7 @@ import {
 @QueryHandler(GetPreparedConfigWithUsersQuery)
 export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
     GetPreparedConfigWithUsersQuery,
-    ICommandResponse<IGetPreparedConfigWithUsersResponse>
+    TResult<IGetPreparedConfigWithUsersResponse>
 > {
     private readonly logger = new Logger(GetPreparedConfigWithUsersHandler.name);
     constructor(
@@ -29,7 +29,7 @@ export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
 
     async execute(
         query: GetPreparedConfigWithUsersQuery,
-    ): Promise<ICommandResponse<IGetPreparedConfigWithUsersResponse>> {
+    ): Promise<TResult<IGetPreparedConfigWithUsersResponse>> {
         let config: XRayConfig | null = null;
         const inboundsUserSets: Map<string, HashedSet> = new Map();
         const snippetsMap: Map<string, unknown> = new Map();

@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { UpdateExpiredUsersCommand } from './update-expired-users.command';
 import { UsersRepository } from '../../repositories/users.repository';
@@ -11,13 +11,13 @@ import { UsersRepository } from '../../repositories/users.repository';
 @CommandHandler(UpdateExpiredUsersCommand)
 export class UpdateExpiredUsersHandler implements ICommandHandler<
     UpdateExpiredUsersCommand,
-    ICommandResponse<{ tId: bigint }[]>
+    TResult<{ tId: bigint }[]>
 > {
     public readonly logger = new Logger(UpdateExpiredUsersHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}
 
-    async execute(): Promise<ICommandResponse<{ tId: bigint }[]>> {
+    async execute(): Promise<TResult<{ tId: bigint }[]>> {
         try {
             const result = await this.usersRepository.updateExpiredUsers();
 

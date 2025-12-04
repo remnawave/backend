@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { BulkDeleteByStatusCommand } from './bulk-delete-by-status.command';
 import { UsersRepository } from '../../repositories/users.repository';
@@ -11,15 +11,13 @@ import { UsersRepository } from '../../repositories/users.repository';
 @CommandHandler(BulkDeleteByStatusCommand)
 export class BulkDeleteByStatusHandler implements ICommandHandler<
     BulkDeleteByStatusCommand,
-    ICommandResponse<{ deletedCount: number }>
+    TResult<{ deletedCount: number }>
 > {
     public readonly logger = new Logger(BulkDeleteByStatusHandler.name);
 
     constructor(private readonly usersRepository: UsersRepository) {}
 
-    async execute(
-        command: BulkDeleteByStatusCommand,
-    ): Promise<ICommandResponse<{ deletedCount: number }>> {
+    async execute(command: BulkDeleteByStatusCommand): Promise<TResult<{ deletedCount: number }>> {
         try {
             const result = await this.usersRepository.deleteManyByStatus(
                 command.status,

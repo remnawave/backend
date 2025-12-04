@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { UserSubscriptionRequestHistoryEntity } from '@modules/user-subscription-request-history';
 
@@ -13,7 +13,7 @@ import { CreateSubscriptionRequestHistoryCommand } from './create-subscription-r
 @CommandHandler(CreateSubscriptionRequestHistoryCommand)
 export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
     CreateSubscriptionRequestHistoryCommand,
-    ICommandResponse<{
+    TResult<{
         userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
     }>
 > {
@@ -24,7 +24,7 @@ export class CreateSubscriptionRequestHistoryHandler implements ICommandHandler<
     ) {}
 
     async execute(command: CreateSubscriptionRequestHistoryCommand): Promise<
-        ICommandResponse<{
+        TResult<{
             userSubscriptionRequestHistory: UserSubscriptionRequestHistoryEntity;
         }>
     > {

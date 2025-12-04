@@ -2,7 +2,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
 import { SnippetsRepository } from './repositories/snippets.repository';
@@ -15,7 +15,7 @@ export class SnippetsService {
 
     constructor(private readonly snippetsRepository: SnippetsRepository) {}
 
-    public async getSnippets(): Promise<ICommandResponse<GetSnippetsResponseModel>> {
+    public async getSnippets(): Promise<TResult<GetSnippetsResponseModel>> {
         try {
             const snippets = await this.snippetsRepository.getAllSnippets();
 
@@ -32,9 +32,7 @@ export class SnippetsService {
         }
     }
 
-    public async deleteSnippetByName(
-        name: string,
-    ): Promise<ICommandResponse<GetSnippetsResponseModel>> {
+    public async deleteSnippetByName(name: string): Promise<TResult<GetSnippetsResponseModel>> {
         try {
             const snippet = await this.snippetsRepository.findByName(name);
 
@@ -60,7 +58,7 @@ export class SnippetsService {
     public async createSnippet(
         name: string,
         snippet: object,
-    ): Promise<ICommandResponse<GetSnippetsResponseModel>> {
+    ): Promise<TResult<GetSnippetsResponseModel>> {
         try {
             if (!Array.isArray(snippet) || snippet.length === 0) {
                 return { isOk: false, ...ERRORS.SNIPPET_CANNOT_BE_EMPTY };
@@ -101,7 +99,7 @@ export class SnippetsService {
     public async updateSnippet(
         name: string,
         snippet: object,
-    ): Promise<ICommandResponse<GetSnippetsResponseModel>> {
+    ): Promise<TResult<GetSnippetsResponseModel>> {
         try {
             if (!Array.isArray(snippet) || snippet.length === 0) {
                 return { isOk: false, ...ERRORS.SNIPPET_CANNOT_BE_EMPTY };

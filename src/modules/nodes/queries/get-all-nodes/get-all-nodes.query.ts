@@ -1,10 +1,10 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
-export class GetAllNodesQuery extends Query<ICommandResponse<NodesEntity[]>> {
+export class GetAllNodesQuery extends Query<TResult<NodesEntity[]>> {
     constructor() {
         super();
     }

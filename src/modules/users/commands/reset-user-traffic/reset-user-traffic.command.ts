@@ -1,3 +1,7 @@
-export class ResetUserTrafficCommand {
-    constructor(public readonly uuid: string) {}
+import { Command } from '@nestjs/cqrs';
+
+export class ResetUserTrafficCommand extends Command<void> {
+    constructor(public readonly uuid: string) {
+        super();
+    }
 }

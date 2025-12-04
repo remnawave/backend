@@ -15,7 +15,7 @@ import { Cron } from '@nestjs/schedule';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { METRIC_NAMES } from '@libs/contracts/constants';
 
 import { GetShortUserStatsQuery } from '@modules/users/queries/get-short-user-stats/get-short-user-stats.query';
@@ -195,14 +195,14 @@ export class ExportMetricsTask {
         }
     }
 
-    private async getShortUserStats(): Promise<ICommandResponse<ShortUserStats>> {
-        return this.queryBus.execute<GetShortUserStatsQuery, ICommandResponse<ShortUserStats>>(
+    private async getShortUserStats(): Promise<TResult<ShortUserStats>> {
+        return this.queryBus.execute<GetShortUserStatsQuery, TResult<ShortUserStats>>(
             new GetShortUserStatsQuery(),
         );
     }
 
-    private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
+    private async getAllNodes(): Promise<TResult<NodesEntity[]>> {
+        return this.queryBus.execute<GetAllNodesQuery, TResult<NodesEntity[]>>(
             new GetAllNodesQuery(),
         );
     }

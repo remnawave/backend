@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { ExternalSquadRepository } from '@modules/external-squads/repositories/external-squad.repository';
@@ -12,7 +12,7 @@ import { GetExternalSquadSettingsQuery } from './get-external-squad-settings.que
 @QueryHandler(GetExternalSquadSettingsQuery)
 export class GetExternalSquadSettingsHandler implements IQueryHandler<
     GetExternalSquadSettingsQuery,
-    ICommandResponse<Pick<
+    TResult<Pick<
         ExternalSquadEntity,
         'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
     > | null>
@@ -23,7 +23,7 @@ export class GetExternalSquadSettingsHandler implements IQueryHandler<
     async execute(
         query: GetExternalSquadSettingsQuery,
     ): Promise<
-        ICommandResponse<Pick<
+        TResult<Pick<
             ExternalSquadEntity,
             'subscriptionSettings' | 'hostOverrides' | 'responseHeaders' | 'hwidSettings'
         > | null>

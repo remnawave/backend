@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { NodesRepository } from '@modules/nodes/repositories/nodes.repository';
 
@@ -12,7 +12,7 @@ import { SyncActiveProfileCommand } from './sync-active-profile.command';
 @CommandHandler(SyncActiveProfileCommand)
 export class SyncActiveProfileHandler implements ICommandHandler<
     SyncActiveProfileCommand,
-    ICommandResponse<{
+    TResult<{
         affectedRows: number;
     }>
 > {
@@ -21,7 +21,7 @@ export class SyncActiveProfileHandler implements ICommandHandler<
     constructor(private readonly nodesRepository: NodesRepository) {}
 
     async execute(): Promise<
-        ICommandResponse<{
+        TResult<{
             affectedRows: number;
         }>
     > {

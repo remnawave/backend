@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { HwidUserDevicesRepository } from '../../repositories/hwid-user-devices.repository';
@@ -10,12 +10,12 @@ import { CountUsersDevicesQuery } from './count-users-devices.query';
 @QueryHandler(CountUsersDevicesQuery)
 export class CountUsersDevicesHandler implements IQueryHandler<
     CountUsersDevicesQuery,
-    ICommandResponse<number>
+    TResult<number>
 > {
     private readonly logger = new Logger(CountUsersDevicesHandler.name);
     constructor(private readonly hwidUserDevicesRepository: HwidUserDevicesRepository) {}
 
-    async execute(query: CountUsersDevicesQuery): Promise<ICommandResponse<number>> {
+    async execute(query: CountUsersDevicesQuery): Promise<TResult<number>> {
         try {
             const count = await this.hwidUserDevicesRepository.countByUserUuid(query.userUuid);
 

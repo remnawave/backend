@@ -60,16 +60,18 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
         await this.nodesQueuesService.queues.startAllNodes.pause();
 
         try {
-            const { isOk, response: nodes } = await this.queryBus.execute(
+            const findNodesByCriteriaResult = await this.queryBus.execute(
                 new FindNodesByCriteriaQuery({
                     isDisabled: false,
                     activeConfigProfileUuid: payload.profileUuid,
                 }),
             );
 
-            if (!isOk || !nodes) {
+            if (!findNodesByCriteriaResult.isOk) {
                 return;
             }
+
+            const { response: nodes } = findNodesByCriteriaResult;
 
             const activeInboundsOnNodes = new Map<string, ConfigProfileInboundEntity>();
             const activeNodeTags = new Map<string, string[]>();
@@ -142,7 +144,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
             this.logger.log(`Generated config for nodes by Profile in ${Date.now() - startTime}ms`);
 
             const mapper = async (node: NodesEntity) => {
-                if (!config.response) {
+                if (!config.isOk) {
                     throw new Error('Failed to get config');
                 }
 
@@ -154,7 +156,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
 
                 const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
 
-                if (!xrayStatusResponse.isOk || !xrayStatusResponse.response) {
+                if (!xrayStatusResponse.isOk) {
                     await this.commandBus.execute(
                         new UpdateNodeCommand({
                             uuid: node.uuid,

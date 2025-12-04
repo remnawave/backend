@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesUsageByRangeResponseModel } from './models/get-nodes-usage-by-range.response.model';
@@ -16,7 +16,7 @@ export class NodesUsageHistoryService {
     async getNodesUsageByRange(
         start: Date,
         end: Date,
-    ): Promise<ICommandResponse<GetNodesUsageByRangeResponseModel[]>> {
+    ): Promise<TResult<GetNodesUsageByRangeResponseModel[]>> {
         try {
             const startDate = dayjs(start).utc().toDate();
             const endDate = dayjs(end).utc().toDate();

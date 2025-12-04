@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import {
@@ -35,7 +35,7 @@ export class InfraBillingService {
         private readonly infraProviderRepository: InfraProviderRepository,
     ) {}
 
-    public async getInfraProviders(): Promise<ICommandResponse<GetInfraProvidersResponseModel>> {
+    public async getInfraProviders(): Promise<TResult<GetInfraProvidersResponseModel>> {
         try {
             const providers = await this.infraProviderRepository.getFullInfraProviders();
 
@@ -54,7 +54,7 @@ export class InfraBillingService {
 
     public async getInfraProviderByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.getFullInfraProvidersByUuid(uuid);
 
@@ -80,7 +80,7 @@ export class InfraBillingService {
 
     public async deleteInfraProviderByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteByUuidResponseModel>> {
+    ): Promise<TResult<DeleteByUuidResponseModel>> {
         try {
             await this.infraProviderRepository.deleteByUUID(uuid);
 
@@ -99,7 +99,7 @@ export class InfraBillingService {
 
     public async createInfraProvider(
         dto: CreateInfraProviderRequestDto,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.create(
                 new InfraProviderEntity(dto),
@@ -117,7 +117,7 @@ export class InfraBillingService {
 
     public async updateInfraProvider(
         dto: UpdateInfraProviderRequestDto,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.update(
                 new InfraProviderEntity(dto),
@@ -135,7 +135,7 @@ export class InfraBillingService {
 
     public async getInfraBillingHistoryRecords(
         dto: GetInfraBillingHistoryRecordsRequestDto,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             const records = await this.infraBillingHistoryRepository.getInfraBillingHistoryRecords(
                 dto.start,
@@ -160,7 +160,7 @@ export class InfraBillingService {
 
     public async createInfraBillingHistoryRecord(
         dto: CreateInfraBillingHistoryRecordRequestDto,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             await this.infraBillingHistoryRepository.create(new InfraBillingHistoryEntity(dto));
 
@@ -179,7 +179,7 @@ export class InfraBillingService {
 
     public async deleteInfraBillingHistoryRecordByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             await this.infraBillingHistoryRepository.deleteByUUID(uuid);
 
@@ -196,7 +196,7 @@ export class InfraBillingService {
         }
     }
 
-    public async getBillingNodes(): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    public async getBillingNodes(): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             const nodes = await this.infraBillingNodeRepository.getBillingNodes();
 
@@ -225,7 +225,7 @@ export class InfraBillingService {
 
     public async updateInfraBillingNode(
         dto: UpdateInfraBillingNodeRequestDto,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.updateManyBillingAt({
                 uuids: dto.uuids,
@@ -244,7 +244,7 @@ export class InfraBillingService {
 
     public async createInfraBillingNode(
         dto: CreateInfraBillingNodeRequestDto,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.create(new InfraBillingNodeEntity(dto));
 
@@ -260,7 +260,7 @@ export class InfraBillingService {
 
     public async deleteInfraBillingNodeByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.deleteByUUID(uuid);
 

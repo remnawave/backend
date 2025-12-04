@@ -1,8 +1,8 @@
 import { errorHandler } from '@common/helpers/error-handler.helper';
 
-import { ICommandResponse } from '../types/command-response.type';
+import { TResult } from '../types/result.type';
 
-export function errorHandlerWithNull<T>(response: ICommandResponse<T>): null | T {
+export function errorHandlerWithNull<T>(response: TResult<T>): null | T {
     if (response.isOk) {
         if (!response.response) {
             return null;

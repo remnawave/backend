@@ -11,7 +11,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 import { CACHE_KEYS } from '@libs/contracts/constants';
 
@@ -39,7 +39,7 @@ export class PasskeyService {
 
     public async generatePasskeyRegistrationOptions(
         payload: IJWTAuthPayload,
-    ): Promise<ICommandResponse<PublicKeyCredentialCreationOptionsJSON>> {
+    ): Promise<TResult<PublicKeyCredentialCreationOptionsJSON>> {
         try {
             const { uuid } = payload;
 
@@ -120,26 +120,20 @@ export class PasskeyService {
     public async verifyPasskeyRegistration(
         jwtPayload: IJWTAuthPayload,
         dto: VerifyPasskeyRegistrationRequestDto,
-    ): Promise<ICommandResponse<{ verified: boolean; message: string }>> {
+    ): Promise<TResult<{ verified: boolean; message: string }>> {
         try {
             const response = dto.response as unknown as RegistrationResponseJSON;
 
             const { uuid } = jwtPayload;
 
             if (!uuid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const admin = await this.adminRepository.findByUUID(uuid);
 
             if (!admin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ADMIN_NOT_FOUND,
-                };
+                return fail(ERRORS.ADMIN_NOT_FOUND);
             }
 
             const expectedChallenge = await this.cacheManager.get<string>(
@@ -147,11 +141,10 @@ export class PasskeyService {
             );
 
             if (!expectedChallenge) {
-                return {
-                    isOk: false,
+                return fail({
                     ...ERRORS.FORBIDDEN,
                     message: 'Challenge not found or expired',
-                };
+                });
             }
 
             await this.cacheManager.del(CACHE_KEYS.PASSKEY_REGISTRATION_OPTIONS(uuid));
@@ -161,17 +154,11 @@ export class PasskeyService {
             );
 
             if (!passkeySettings.enabled) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEYS_NOT_ENABLED,
-                };
+                return fail(ERRORS.PASSKEYS_NOT_ENABLED);
             }
 
             if (!passkeySettings.rpId || !passkeySettings.origin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEYS_NOT_CONFIGURED,
-                };
+                return fail(ERRORS.PASSKEYS_NOT_CONFIGURED);
             }
 
             const verification = await verifyRegistrationResponse({
@@ -183,13 +170,8 @@ export class PasskeyService {
             });
 
             if (!verification.verified || !verification.registrationInfo) {
-                return {
-                    isOk: false,
-                    response: {
-                        verified: false,
-                        message: 'Registration verification failed',
-                    },
-                };
+                this.logger.error(`Passkey registration verification error.`);
+                return fail(ERRORS.VERIFY_PASSKEY_REGISTRATION_ERROR);
             }
 
             const { credential, credentialDeviceType, credentialBackedUp } =
@@ -214,51 +196,34 @@ export class PasskeyService {
                 }),
             );
 
-            return {
-                isOk: true,
-                response: {
-                    verified: true,
-                    message: 'Passkey registered successfully',
-                },
-            };
+            return ok({
+                verified: true,
+                message: 'Passkey registered successfully',
+            });
         } catch (error) {
             this.logger.error(`Passkey registration verification error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.VERIFY_PASSKEY_REGISTRATION_ERROR,
-            };
+            return fail(ERRORS.VERIFY_PASSKEY_REGISTRATION_ERROR);
         }
     }
 
     public async getActivePasskeys(
         payload: IJWTAuthPayload,
-    ): Promise<ICommandResponse<GetActivePasskeysResponseModel>> {
+    ): Promise<TResult<GetActivePasskeysResponseModel>> {
         try {
             const { uuid } = payload;
 
-            if (!uuid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
-            }
+            if (!uuid) return fail(ERRORS.FORBIDDEN);
 
             const admin = await this.adminRepository.findByUUID(uuid);
 
-            if (!admin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ADMIN_NOT_FOUND,
-                };
-            }
+            if (!admin) return fail(ERRORS.ADMIN_NOT_FOUND);
 
             const passkeys = await this.passkeyRepository.findByCriteria({
                 adminUuid: admin.uuid,
             });
 
-            return {
-                isOk: true,
-                response: new GetActivePasskeysResponseModel({
+            return ok(
+                new GetActivePasskeysResponseModel({
                     passkeys: passkeys.map((passkey) => ({
                         id: passkey.id,
                         name: passkey.passkeyProvider ?? 'Unknown',
@@ -266,72 +231,47 @@ export class PasskeyService {
                         lastUsedAt: passkey.updatedAt,
                     })),
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(`Get active passkeys error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ACTIVE_PASSKEYS_ERROR,
-            };
+            return fail(ERRORS.GET_ACTIVE_PASSKEYS_ERROR);
         }
     }
 
     public async deletePasskey(
         payload: IJWTAuthPayload,
         id: string,
-    ): Promise<ICommandResponse<GetActivePasskeysResponseModel>> {
+    ): Promise<TResult<GetActivePasskeysResponseModel>> {
         try {
             const { uuid } = payload;
 
-            if (!uuid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
-            }
+            if (!uuid) return fail(ERRORS.FORBIDDEN);
 
             const admin = await this.adminRepository.findByUUID(uuid);
 
-            if (!admin) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ADMIN_NOT_FOUND,
-                };
-            }
+            if (!admin) return fail(ERRORS.ADMIN_NOT_FOUND);
 
             await this.passkeyRepository.deleteByUUID(id);
 
             return await this.getActivePasskeys(payload);
         } catch (error) {
             this.logger.error(`Delete passkey error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_PASSKEY_ERROR,
-            };
+            return fail(ERRORS.DELETE_PASSKEY_ERROR);
         }
     }
 
     public async updatePasskey(
         jwtPayload: IJWTAuthPayload,
         dto: UpdatePasskeyRequestDto,
-    ): Promise<ICommandResponse<GetActivePasskeysResponseModel>> {
+    ): Promise<TResult<GetActivePasskeysResponseModel>> {
         try {
             const { uuid } = jwtPayload;
 
-            if (!uuid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
-            }
+            if (!uuid) return fail(ERRORS.FORBIDDEN);
+
             const passkey = await this.passkeyRepository.findByUUID(dto.id);
 
-            if (!passkey) {
-                return {
-                    isOk: false,
-                    ...ERRORS.PASSKEY_NOT_FOUND,
-                };
-            }
+            if (!passkey) return fail(ERRORS.PASSKEY_NOT_FOUND);
 
             await this.passkeyRepository.update({
                 id: passkey.id,
@@ -341,10 +281,7 @@ export class PasskeyService {
             return await this.getActivePasskeys(jwtPayload);
         } catch (error) {
             this.logger.error(`Update passkey error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_PASSKEY_ERROR,
-            };
+            return fail(ERRORS.UPDATE_PASSKEY_ERROR);
         }
     }
 }

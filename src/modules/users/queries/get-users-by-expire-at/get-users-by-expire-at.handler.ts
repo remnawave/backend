@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetUsersByExpireAtQuery } from './get-users-by-expire-at.query';
@@ -15,16 +16,10 @@ export class GetUsersByExpireAtHandler implements IQueryHandler<GetUsersByExpire
         try {
             const users = await this.usersRepository.findUsersByExpireAt(query.start, query.end);
 
-            return {
-                isOk: true,
-                response: users,
-            };
+            return ok(users);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

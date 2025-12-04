@@ -2,7 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { GetAllHwidDevicesCommand } from '@libs/contracts/commands';
 import { ERRORS, EVENTS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
@@ -30,7 +30,7 @@ export class HwidUserDevicesService {
 
     public async createUserHwidDevice(
         dto: CreateUserHwidDeviceRequestDto,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -129,9 +129,7 @@ export class HwidUserDevicesService {
         }
     }
 
-    public async getUserHwidDevices(
-        userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    public async getUserHwidDevices(userUuid: string): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -171,7 +169,7 @@ export class HwidUserDevicesService {
     public async deleteUserHwidDevice(
         hwid: string,
         userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -233,7 +231,7 @@ export class HwidUserDevicesService {
 
     public async deleteAllUserHwidDevices(
         userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -273,7 +271,7 @@ export class HwidUserDevicesService {
     }
 
     public async getAllHwidDevices(dto: GetAllHwidDevicesCommand.RequestQuery): Promise<
-        ICommandResponse<{
+        TResult<{
             total: number;
             devices: HwidUserDeviceEntity[];
         }>
@@ -297,9 +295,7 @@ export class HwidUserDevicesService {
         }
     }
 
-    public async getHwidDevicesStats(): Promise<
-        ICommandResponse<GetHwidDevicesStatsResponseModel>
-    > {
+    public async getHwidDevicesStats(): Promise<TResult<GetHwidDevicesStatsResponseModel>> {
         try {
             const stats = await this.hwidUserDevicesRepository.getHwidDevicesStats();
 

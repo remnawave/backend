@@ -5,7 +5,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { AuthGuard } from '@nestjs/passport';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import {
     REMNAWAVE_CLIENT_TYPE_BROWSER,
     REMNAWAVE_CLIENT_TYPE_HEADER,
@@ -78,18 +78,14 @@ export class JwtDefaultGuard extends AuthGuard('registeredUserJWT') {
         }
     }
 
-    private async getAdminByUsername(
-        dto: GetAdminByUsernameQuery,
-    ): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetAdminByUsernameQuery, ICommandResponse<AdminEntity>>(
+    private async getAdminByUsername(dto: GetAdminByUsernameQuery): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetAdminByUsernameQuery, TResult<AdminEntity>>(
             new GetAdminByUsernameQuery(dto.username, dto.role),
         );
     }
 
-    private async getTokenByUuid(
-        dto: GetTokenByUuidQuery,
-    ): Promise<ICommandResponse<ApiTokenEntity>> {
-        return this.queryBus.execute<GetTokenByUuidQuery, ICommandResponse<ApiTokenEntity>>(
+    private async getTokenByUuid(dto: GetTokenByUuidQuery): Promise<TResult<ApiTokenEntity>> {
+        return this.queryBus.execute<GetTokenByUuidQuery, TResult<ApiTokenEntity>>(
             new GetTokenByUuidQuery(dto.uuid),
         );
     }

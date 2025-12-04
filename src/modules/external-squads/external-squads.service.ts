@@ -6,7 +6,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
@@ -32,7 +32,7 @@ export class ExternalSquadService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
-    public async getExternalSquads(): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
+    public async getExternalSquads(): Promise<TResult<GetExternalSquadsResponseModel>> {
         try {
             const externalSquads = await this.externalSquadRepository.getExternalSquads();
 
@@ -51,7 +51,7 @@ export class ExternalSquadService {
 
     public async getExternalSquadByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetExternalSquadByUuidResponseModel>> {
         try {
             const externalSquad = await this.externalSquadRepository.getExternalSquadByUuid(uuid);
 
@@ -77,7 +77,7 @@ export class ExternalSquadService {
 
     public async createExternalSquad(
         name: string,
-    ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetExternalSquadByUuidResponseModel>> {
         try {
             const externalSquad = await this.externalSquadRepository.create(
                 new ExternalSquadEntity({
@@ -109,7 +109,7 @@ export class ExternalSquadService {
 
     public async updateExternalSquad(
         dto: UpdateExternalSquadRequestDto,
-    ): Promise<ICommandResponse<GetExternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<GetExternalSquadByUuidResponseModel>> {
         const {
             uuid,
             name,
@@ -209,7 +209,7 @@ export class ExternalSquadService {
 
     public async deleteExternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteExternalSquadByUuidResponseModel>> {
+    ): Promise<TResult<DeleteExternalSquadByUuidResponseModel>> {
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
@@ -239,7 +239,7 @@ export class ExternalSquadService {
 
     public async addUsersToExternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<EventSentExternalSquadResponseModel>> {
+    ): Promise<TResult<EventSentExternalSquadResponseModel>> {
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
@@ -269,7 +269,7 @@ export class ExternalSquadService {
 
     public async removeUsersFromExternalSquad(
         uuid: string,
-    ): Promise<ICommandResponse<EventSentExternalSquadResponseModel>> {
+    ): Promise<TResult<EventSentExternalSquadResponseModel>> {
         try {
             const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
 
@@ -299,7 +299,7 @@ export class ExternalSquadService {
 
     public async reorderExternalSquads(
         dto: ReorderExternalSquadsRequestDto,
-    ): Promise<ICommandResponse<GetExternalSquadsResponseModel>> {
+    ): Promise<TResult<GetExternalSquadsResponseModel>> {
         try {
             await this.externalSquadRepository.reorderMany(dto.items);
 

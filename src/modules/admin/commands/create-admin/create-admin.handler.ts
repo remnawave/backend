@@ -3,7 +3,7 @@ import { ERRORS } from '@contract/constants';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 
@@ -13,13 +13,13 @@ import { CreateAdminCommand } from './create-admin.command';
 @CommandHandler(CreateAdminCommand)
 export class CreateAdminHandler implements ICommandHandler<
     CreateAdminCommand,
-    ICommandResponse<AdminEntity>
+    TResult<AdminEntity>
 > {
     public readonly logger = new Logger(CreateAdminHandler.name);
 
     constructor(private readonly adminRepository: AdminRepository) {}
 
-    async execute(command: CreateAdminCommand): Promise<ICommandResponse<AdminEntity>> {
+    async execute(command: CreateAdminCommand): Promise<TResult<AdminEntity>> {
         try {
             const result = await this.adminRepository.create(
                 new AdminEntity({

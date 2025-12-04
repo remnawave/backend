@@ -1,13 +1,12 @@
 import { Job } from 'bullmq';
 import dayjs from 'dayjs';
 
-import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
 import { TriggerThresholdNotificationCommand } from '@modules/users/commands/trigger-threshold-notification';
@@ -30,8 +29,6 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
     constructor(
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
-        private readonly eventBus: EventBus,
-        private readonly eventEmitter: EventEmitter2,
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly configService: ConfigService,
         private readonly usersQueuesService: UsersQueuesService,
@@ -58,19 +55,19 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
     private async handleFindExpiredUsers(job: Job) {
         try {
             const usersResponse = await this.updateExpiredUsers();
-            if (!usersResponse.isOk || !usersResponse.response) {
+            if (!usersResponse.isOk) {
                 this.logger.error('No expired users found');
                 return;
             }
 
-            const updatedUsers = usersResponse.response;
+            const { response: updatedUsers } = usersResponse;
 
             if (updatedUsers.length === 0) {
                 this.logger.debug('No expired users found');
                 return;
             }
 
-            if (usersResponse.response.length >= 10_000) {
+            if (updatedUsers.length >= 10_000) {
                 this.logger.log(
                     'More than 10,000 expired users found, skipping webhook/telegram events.',
                 );
@@ -82,12 +79,10 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
                 return;
             }
 
-            this.logger.log(
-                `Job ${job.name} has found ${usersResponse.response.length} expired users.`,
-            );
+            this.logger.log(`Job ${job.name} has found ${updatedUsers.length} expired users.`);
 
             await this.usersQueuesService.fireUserEventBulk({
-                users: usersResponse.response,
+                users: updatedUsers,
                 userEvent: EVENTS.USER.EXPIRED,
             });
         } catch (error) {
@@ -99,11 +94,13 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
 
     private async handleFindExceededUsers(job: Job) {
         try {
-            const { isOk, response: users } = await this.updateExceededTrafficUsers();
-            if (!isOk || !users) {
+            const updateExceededTrafficUsersResult = await this.updateExceededTrafficUsers();
+            if (!updateExceededTrafficUsersResult.isOk) {
                 this.logger.error('No exceeded traffic usage users found');
                 return;
             }
+
+            const { response: users } = updateExceededTrafficUsersResult;
 
             if (users.length === 0) {
                 this.logger.debug('No exceeded traffic usage users found');
@@ -147,13 +144,15 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
         // Loop reason: SQL query is strictly limited by 5000 users
         while (true) {
             try {
-                const { isOk, response: users } =
+                const triggerThresholdNotificationsResult =
                     await this.triggerThresholdNotifications(percentages);
 
-                if (!isOk || !users) {
+                if (!triggerThresholdNotificationsResult.isOk) {
                     this.logger.debug('No users found for threshold notification');
                     break;
                 }
+
+                const { response: users } = triggerThresholdNotificationsResult;
 
                 if (users.length === 0) {
                     this.logger.debug('No users found for threshold notification');
@@ -205,17 +204,19 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
                 const start = targetTime.subtract(10, 'minutes').toDate();
                 const end = targetTime.toDate();
 
-                const { isOk, response: users } = await this.queryBus.execute(
+                const getNotConnectedUsersResult = await this.queryBus.execute(
                     new GetNotConnectedUsersQuery(start, end),
                 );
 
-                if (!isOk || !users) {
+                if (!getNotConnectedUsersResult.isOk) {
                     continue;
                 }
 
-                if (users.length === 0) {
+                if (getNotConnectedUsersResult.response.length === 0) {
                     continue;
                 }
+
+                const { response: users } = getNotConnectedUsersResult;
 
                 this.logger.log(
                     `Job ${job.name} has found ${users.length} users for not connected interval ${interval} users notification.`,
@@ -249,26 +250,25 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
         }
     }
 
-    private async updateExpiredUsers(): Promise<ICommandResponse<{ tId: bigint }[]>> {
-        return this.commandBus.execute<
-            UpdateExpiredUsersCommand,
-            ICommandResponse<{ tId: bigint }[]>
-        >(new UpdateExpiredUsersCommand());
+    private async updateExpiredUsers(): Promise<TResult<{ tId: bigint }[]>> {
+        return this.commandBus.execute<UpdateExpiredUsersCommand, TResult<{ tId: bigint }[]>>(
+            new UpdateExpiredUsersCommand(),
+        );
     }
 
-    private async updateExceededTrafficUsers(): Promise<ICommandResponse<{ tId: bigint }[]>> {
+    private async updateExceededTrafficUsers(): Promise<TResult<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             UpdateExceededTrafficUsersCommand,
-            ICommandResponse<{ tId: bigint }[]>
+            TResult<{ tId: bigint }[]>
         >(new UpdateExceededTrafficUsersCommand());
     }
 
     private async triggerThresholdNotifications(
         percentages: number[],
-    ): Promise<ICommandResponse<{ tId: bigint }[]>> {
+    ): Promise<TResult<{ tId: bigint }[]>> {
         return this.commandBus.execute<
             TriggerThresholdNotificationCommand,
-            ICommandResponse<{ tId: bigint }[]>
+            TResult<{ tId: bigint }[]>
         >(new TriggerThresholdNotificationCommand(percentages));
     }
 }

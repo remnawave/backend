@@ -1,12 +1,10 @@
 import { Query } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { SubscriptionTemplateEntity } from '../../entities/subscription-template.entity';
 
-export class GetSubscriptionTemplateByUuidQuery extends Query<
-    ICommandResponse<SubscriptionTemplateEntity>
-> {
+export class GetSubscriptionTemplateByUuidQuery extends Query<TResult<SubscriptionTemplateEntity>> {
     constructor(public readonly uuid: string) {
         super();
     }

@@ -6,8 +6,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
+import { ok, TResult } from '@common/types';
 import { EVENTS, TUsersStatus, USERS_STATUS } from '@libs/contracts/constants';
 
 import { GetUsersByExpireAtQuery } from '@modules/users/queries/get-users-by-expire-at/get-users-by-expire-at.query';
@@ -85,20 +85,20 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 Object.values(DATES),
                 async (date) => {
                     try {
-                        const { isOk, response: users } = await this.queryBus.execute(
+                        const result = await this.queryBus.execute(
                             new GetUsersByExpireAtQuery(date.START, date.END),
                         );
 
-                        if (!isOk || !users) {
+                        if (!result.isOk) {
                             return;
                         }
 
-                        if (users.length === 0) {
+                        if (result.response.length === 0) {
                             return;
                         }
 
                         await this.usersQueuesService.fireUserEventBulk({
-                            users,
+                            users: result.response,
                             userEvent: date.NAME,
                         });
                     } catch (error) {
@@ -125,7 +125,7 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
             while (hasMoreData) {
                 const result = await this.bulkDeleteByStatus(status, 30_000);
 
-                if (!result.response || !result.isOk) {
+                if (!result.isOk) {
                     this.logger.error(
                         `Error handling "${USERS_JOB_NAMES.DELETE_BY_STATUS}" job: ${result.message}`,
                     );
@@ -150,12 +150,9 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 });
             }
 
-            return {
-                isOk: true,
-                response: {
-                    deletedCount,
-                },
-            };
+            return ok({
+                deletedCount,
+            });
         } catch (error) {
             this.logger.error(`Error handling "${USERS_JOB_NAMES.DELETE_BY_STATUS}" job: ${error}`);
 
@@ -169,13 +166,13 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
         status: TUsersStatus,
         limit?: number,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             deletedCount: number;
         }>
     > {
         return this.commandBus.execute<
             BulkDeleteByStatusCommand,
-            ICommandResponse<{
+            TResult<{
                 deletedCount: number;
             }>
         >(new BulkDeleteByStatusCommand(status, limit));

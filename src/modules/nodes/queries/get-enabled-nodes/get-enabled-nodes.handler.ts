@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
@@ -11,12 +11,12 @@ import { NodesEntity } from '../../entities/nodes.entity';
 @QueryHandler(GetEnabledNodesQuery)
 export class GetEnabledNodesHandler implements IQueryHandler<
     GetEnabledNodesQuery,
-    ICommandResponse<NodesEntity[]>
+    TResult<NodesEntity[]>
 > {
     private readonly logger = new Logger(GetEnabledNodesHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    async execute(): Promise<ICommandResponse<NodesEntity[]>> {
+    async execute(): Promise<TResult<NodesEntity[]>> {
         try {
             const nodes = await this.nodesRepository.findByCriteria({
                 isDisabled: false,
