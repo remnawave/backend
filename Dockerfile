@@ -8,18 +8,18 @@ ARG FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/latest/
 RUN apk add --no-cache curl unzip ca-certificates \
     && curl -L ${FRONTEND_URL} -o frontend.zip \
     && unzip frontend.zip -d frontend_temp \
-    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_temp/dist/wasm_exec.js \
-    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_temp/dist/xray.schema.json \
-    && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_temp/dist/xray.schema.cn.json \
-    && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/dist/main.wasm
+    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_temp/dist/assets/wasm_exec.js \
+    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_temp/dist/assets/xray.schema.json \
+    && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_temp/dist/assets/xray.schema.cn.json \
+    && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/dist/assets/main.wasm
 
 RUN if [ "$BRANCH" = "dev" ]; then \
     curl -L ${FRONTEND_WITH_CROWDIN} -o frontend-crowdin.zip \
     && unzip frontend-crowdin.zip -d frontend_crowdin_temp \
-    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_crowdin_temp/dist/wasm_exec.js \
-    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_crowdin_temp/dist/xray.schema.json \
-    && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_crowdin_temp/dist/xray.schema.cn.json \
-    && curl -L https://validator.remna.dev/main.wasm -o frontend_crowdin_temp/dist/main.wasm; \
+    && curl -L https://validator.remna.dev/wasm_exec.js -o frontend_crowdin_temp/dist/assets/wasm_exec.js \
+    && curl -L https://validator.remna.dev/xray.schema.json -o frontend_crowdin_temp/dist/assets/xray.schema.json \
+    && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_crowdin_temp/dist/assets/xray.schema.cn.json \
+    && curl -L https://validator.remna.dev/main.wasm -o frontend_crowdin_temp/dist/assets/main.wasm; \
     else \
     mkdir -p frontend_crowdin_temp/dist; \
     fi
