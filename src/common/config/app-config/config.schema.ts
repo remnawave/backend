@@ -158,6 +158,11 @@ export const configSchema = z
                 }
             })
             .pipe(z.array(z.number()).optional()),
+        USER_USAGE_IGNORE_BELOW_BYTES: z
+            .string()
+            .default('0')
+            .transform((bytes) => BigInt(bytes))
+            .pipe(z.bigint().max(1_048_576n).default(0n)),
     })
     .superRefine((data, ctx) => {
         if (!data.REDIS_SOCKET && (!data.REDIS_HOST || !data.REDIS_PORT)) {

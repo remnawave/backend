@@ -5,6 +5,7 @@ import { Job } from 'bullmq';
 import { t } from 'try';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
@@ -28,15 +29,21 @@ import { IRecordUserUsagePayload } from '../interfaces';
 })
 export class RecordUserUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordUserUsageQueueProcessor.name);
+    private readonly ignoreBelowBytes: bigint;
 
     constructor(
         private readonly commandBus: CommandBus,
         private readonly axios: AxiosService,
+        private readonly configService: ConfigService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly pushFromRedisQueueService: PushFromRedisQueueService,
         @InjectRedis() private readonly redis: Redis,
     ) {
         super();
+
+        this.ignoreBelowBytes = this.configService.getOrThrow<bigint>(
+            'USER_USAGE_IGNORE_BELOW_BYTES',
+        );
     }
 
     async process(job: Job<IRecordUserUsagePayload>) {
@@ -120,6 +127,10 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
                 }
 
                 const totalBytes = user.downlink + user.uplink;
+
+                if (totalBytes < this.ignoreBelowBytes) {
+                    return;
+                }
 
                 pipeline.hincrby(nodeRedisKey, user.username, totalBytes);
 
