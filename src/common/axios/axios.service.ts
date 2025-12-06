@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
+import { compress } from '@mongodb-js/zstd';
 import https from 'node:https';
 
 import { ERRORS } from '@contract/constants';
@@ -16,6 +17,9 @@ import {
     StartXrayCommand,
     StopXrayCommand,
 } from '@remnawave/node-contract';
+
+import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
+import { prettyBytesUtil } from '@common/utils/bytes';
 
 import { GetNodeJwtCommand } from '@modules/keygen/commands/get-node-jwt';
 
@@ -84,12 +88,24 @@ export class AxiosService {
         port: null | number,
     ): Promise<TResult<StartXrayCommand.Response>> {
         const nodeUrl = this.getNodeUrl(url, StartXrayCommand.url, port);
+
         try {
+            const ct = getTime();
+
+            const compressedData = await this.compressData(data);
+
+            this.logger.log(
+                `Compressed data in: ${formatExecutionTime(ct)}, size: ${prettyBytesUtil(compressedData.length, false, 0, true)}`,
+            );
+
             const response = await this.axiosInstance.post<StartXrayCommand.Response>(
                 nodeUrl,
-                data,
+                this.compressData(data),
                 {
                     timeout: 60_000,
+                    headers: {
+                        'Content-Encoding': 'zstd',
+                    },
                 },
             );
 
@@ -338,5 +354,9 @@ export class AxiosService {
 
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private async compressData(data: any): Promise<Buffer> {
+        return await compress(Buffer.from(JSON.stringify(data)), 1);
     }
 }
