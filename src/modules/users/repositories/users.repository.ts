@@ -9,6 +9,7 @@ import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-pr
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 import { TxKyselyService } from '@common/database/tx-kysely.service';
 import { getKyselyUuid } from '@common/helpers/kysely';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
@@ -733,10 +734,10 @@ export class UsersRepository {
                 .orderBy(sql<string>`users.t_id asc`)
                 .limit(BATCH_SIZE);
 
-            const start = performance.now();
+            const startTime = getTime();
             const result = await builder.execute();
             this.logger.log(
-                `[getUsersForConfigStream] ${performance.now() - start}ms, length: ${result.length}`,
+                `[getUsersForConfigStream] ${formatExecutionTime(startTime)}, length: ${result.length}`,
             );
 
             if (result.length < BATCH_SIZE) {
