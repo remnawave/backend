@@ -90,12 +90,17 @@ export class AxiosService {
         const nodeUrl = this.getNodeUrl(url, StartXrayCommand.url, port);
 
         try {
+            // TODO: Remove this log
+            this.logger.log(
+                `Uncompressed data size: ${prettyBytesUtil(JSON.stringify(data).length)}`,
+            );
+
             const ct = getTime();
 
             const compressedData = await this.compressData(data);
 
             this.logger.log(
-                `Compressed data in: ${formatExecutionTime(ct)}, size: ${prettyBytesUtil(compressedData.length, false, 0, true)}`,
+                `Compressed data in: ${formatExecutionTime(ct)}, size: ${prettyBytesUtil(compressedData.length)}`,
             );
 
             const response = await this.axiosInstance.post<StartXrayCommand.Response>(
