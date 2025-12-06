@@ -100,7 +100,7 @@ export class AxiosService {
 
             const response = await this.axiosInstance.post<StartXrayCommand.Response>(
                 nodeUrl,
-                this.compressData(data),
+                compressedData,
                 {
                     timeout: 60_000,
                     headers: {
