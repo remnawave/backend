@@ -77,30 +77,26 @@ export class XrayJsonGeneratorService {
 
             const templateContent = templateContentDb as unknown as XrayJsonConfig;
 
-            const templatedOutbounds: XrayJsonConfig[] = [];
+            const preparedXrayJsonConfigs: XrayJsonConfig[] = [];
 
             for (const host of hosts) {
-                if (!host) {
-                    continue;
-                }
-
                 const templatedOutbound = this.createConfigForHost(host, isHapp);
                 if (templatedOutbound) {
-                    templatedOutbounds.push(templatedOutbound);
+                    const baseTemplate = host.xrayJsonTemplate ?? templateContent;
+
+                    preparedXrayJsonConfigs.push({
+                        ...baseTemplate,
+                        outbounds: [
+                            ...templatedOutbound.outbounds,
+                            ...(baseTemplate as XrayJsonConfig).outbounds,
+                        ],
+                        remarks: templatedOutbound.remarks,
+                        meta: templatedOutbound.meta,
+                    });
                 }
             }
 
-            const preparedXrayJsonConfig: XrayJsonConfig[] = [];
-            for (const templatedOutbound of templatedOutbounds) {
-                preparedXrayJsonConfig.push({
-                    ...templateContent,
-                    outbounds: [...templatedOutbound.outbounds, ...templateContent.outbounds],
-                    remarks: templatedOutbound.remarks,
-                    meta: templatedOutbound.meta,
-                });
-            }
-
-            return this.renderConfigs(preparedXrayJsonConfig);
+            return this.renderConfigs(preparedXrayJsonConfigs);
         } catch (error) {
             this.logger.error('Error generating xray-json config:', error);
             return '';
@@ -149,7 +145,7 @@ export class XrayJsonGeneratorService {
     private createOutboundSettings(host: IFormattedHost): OutboundSettings {
         switch (host.protocol) {
             case 'vless':
-                const vnextWithoutFlow = {
+                return {
                     vnext: [
                         {
                             address: host.address,
@@ -158,24 +154,12 @@ export class XrayJsonGeneratorService {
                                 {
                                     id: host.password.vlessPassword,
                                     encryption: host.encryption || 'none',
-                                    flow: 'xtls-rprx-vision' as string | undefined,
+                                    flow: host.flow,
                                 },
                             ],
                         },
                     ],
                 };
-
-                if (
-                    !(
-                        ['reality', 'tls'].includes(host.tls) &&
-                        ['raw', 'tcp'].includes(host.network) &&
-                        host.headerType !== 'http'
-                    )
-                ) {
-                    vnextWithoutFlow.vnext[0].users[0].flow = undefined;
-                }
-
-                return vnextWithoutFlow;
 
             case 'trojan':
                 return {
@@ -282,17 +266,21 @@ export class XrayJsonGeneratorService {
     private createTcpSettings(host: IFormattedHost): Record<string, unknown> {
         const settings: Record<string, any> = {};
 
-        if (host.headerType === 'http') {
+        if (host.rawSettings && host.rawSettings.headerType === 'http') {
             settings.header = { type: 'http' };
-            settings.header.request = {
-                version: '1.1',
-                method: 'GET',
-                headers: {
-                    'Accept-Encoding': ['gzip', 'deflate'],
-                    Connection: ['keep-alive'],
-                    Pragma: 'no-cache',
-                },
-            };
+            if (host.rawSettings.request) {
+                settings.header.request = host.rawSettings.request;
+            } else {
+                settings.header.request = {
+                    version: '1.1',
+                    method: 'GET',
+                    headers: {
+                        'Accept-Encoding': ['gzip', 'deflate'],
+                        Connection: ['keep-alive'],
+                        Pragma: 'no-cache',
+                    },
+                };
+            }
 
             if (host.path) {
                 settings.header.request.path = [host.path];

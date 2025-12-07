@@ -13,6 +13,7 @@ import {
     VerifyPasskeyRegistrationCommand,
     DeletePasskeyCommand,
     GetAllPasskeysCommand,
+    UpdatePasskeyCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, PASSKEYS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
@@ -24,6 +25,8 @@ import {
     DeletePasskeyResponseDto,
     GetAllPasskeysResponseDto,
     GetPasskeyRegistrationOptionsResponseDto,
+    UpdatePasskeyRequestDto,
+    UpdatePasskeyResponseDto,
     VerifyPasskeyRegistrationRequestDto,
     VerifyPasskeyRegistrationResponseDto,
 } from '../dtos';
@@ -111,6 +114,27 @@ export class PasskeyController {
         @GetJWTPayload() payload: IJWTAuthPayload,
     ): Promise<DeletePasskeyResponseDto> {
         const result = await this.passkeyService.deletePasskey(payload, body.id);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiResponse({
+        type: UpdatePasskeyResponseDto,
+        description: 'Update passkey',
+    })
+    @Endpoint({
+        command: UpdatePasskeyCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: UpdatePasskeyRequestDto,
+    })
+    async updatePasskey(
+        @Body() body: UpdatePasskeyRequestDto,
+        @GetJWTPayload() payload: IJWTAuthPayload,
+    ): Promise<UpdatePasskeyResponseDto> {
+        const result = await this.passkeyService.updatePasskey(payload, body);
 
         const data = errorHandler(result);
         return {

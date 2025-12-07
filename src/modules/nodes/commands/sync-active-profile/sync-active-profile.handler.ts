@@ -1,32 +1,27 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 
 import { NodesRepository } from '@modules/nodes/repositories/nodes.repository';
 
 import { SyncActiveProfileCommand } from './sync-active-profile.command';
 
 @CommandHandler(SyncActiveProfileCommand)
-export class SyncActiveProfileHandler
-    implements
-        ICommandHandler<
-            SyncActiveProfileCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class SyncActiveProfileHandler implements ICommandHandler<
+    SyncActiveProfileCommand,
+    TResult<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(SyncActiveProfileHandler.name);
 
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    @Transactional()
     async execute(): Promise<
-        ICommandResponse<{
+        TResult<{
             affectedRows: number;
         }>
     > {
@@ -34,12 +29,7 @@ export class SyncActiveProfileHandler
             const affectedRows =
                 await this.nodesRepository.clearActiveConfigProfileForNodesWithoutInbounds();
 
-            return {
-                isOk: true,
-                response: {
-                    affectedRows,
-                },
-            };
+            return ok({ affectedRows });
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -47,10 +37,7 @@ export class SyncActiveProfileHandler
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.SYNC_ACTIVE_PROFILE_ERROR,
-            };
+            return fail(ERRORS.SYNC_ACTIVE_PROFILE_ERROR);
         }
     }
 }

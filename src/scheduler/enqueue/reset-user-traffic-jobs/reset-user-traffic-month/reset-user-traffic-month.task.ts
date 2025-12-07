@@ -3,14 +3,14 @@ import { Cron } from '@nestjs/schedule';
 
 import { JOBS_INTERVALS } from '@scheduler/intervals';
 
-import { ResetUserTrafficQueueService } from '@queue/reset-user-traffic';
+import { UsersQueuesService } from '@queue/_users';
 
 @Injectable()
 export class ResetUserTrafficCalendarMonthTask {
     private static readonly CRON_NAME = 'resetUserTrafficCalendarMonth';
     private readonly logger = new Logger(ResetUserTrafficCalendarMonthTask.name);
 
-    constructor(private readonly resetUserTrafficQueueService: ResetUserTrafficQueueService) {}
+    constructor(private readonly usersQueuesService: UsersQueuesService) {}
 
     @Cron(JOBS_INTERVALS.RESET_USER_TRAFFIC.MONTHLY, {
         name: ResetUserTrafficCalendarMonthTask.CRON_NAME,
@@ -18,7 +18,7 @@ export class ResetUserTrafficCalendarMonthTask {
     })
     async handleCron() {
         try {
-            await this.resetUserTrafficQueueService.resetMonthlyUserTraffic();
+            await this.usersQueuesService.resetMonthlyUserTraffic();
         } catch (error) {
             this.logger.error(`Error in ResetUserTrafficCalendarMonthTask: ${error}`);
         }

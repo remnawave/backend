@@ -15,7 +15,7 @@ import { Cron } from '@nestjs/schedule';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import { METRIC_NAMES } from '@libs/contracts/constants';
 
 import { GetShortUserStatsQuery } from '@modules/users/queries/get-short-user-stats/get-short-user-stats.query';
@@ -23,6 +23,7 @@ import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes/get-all-n
 import { ShortUserStats } from '@modules/users/interfaces/user-stats.interface';
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
+import { INodeBaseMetricLabels } from '@scheduler/metrics-providers';
 import { JOBS_INTERVALS } from '@scheduler/intervals';
 
 interface AxmMonitorMetric {
@@ -121,7 +122,7 @@ export class ExportMetricsTask {
                 // this.logger.debug('Updating user stats cache from database...');
                 const usersResponse = await this.getShortUserStats();
 
-                if (!usersResponse.isOk || !usersResponse.response) {
+                if (!usersResponse.isOk) {
                     return;
                 }
 
@@ -160,7 +161,7 @@ export class ExportMetricsTask {
     private async reportNodesStats() {
         try {
             const nodesResponse = await this.getAllNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            if (!nodesResponse.isOk) {
                 return;
             }
 
@@ -173,7 +174,8 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
-                    },
+                        tags: node.tags.join(','),
+                    } satisfies INodeBaseMetricLabels,
                     node.usersOnline ?? 0,
                 );
 
@@ -183,7 +185,8 @@ export class ExportMetricsTask {
                         node_name: node.name,
                         node_country_emoji: resolveCountryEmoji(node.countryCode),
                         provider_name: node.provider?.name || 'unknown',
-                    },
+                        tags: node.tags.join(','),
+                    } satisfies INodeBaseMetricLabels,
                     node.isConnected ? 1 : 0,
                 );
             });
@@ -192,14 +195,14 @@ export class ExportMetricsTask {
         }
     }
 
-    private async getShortUserStats(): Promise<ICommandResponse<ShortUserStats>> {
-        return this.queryBus.execute<GetShortUserStatsQuery, ICommandResponse<ShortUserStats>>(
+    private async getShortUserStats(): Promise<TResult<ShortUserStats>> {
+        return this.queryBus.execute<GetShortUserStatsQuery, TResult<ShortUserStats>>(
             new GetShortUserStatsQuery(),
         );
     }
 
-    private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
+    private async getAllNodes(): Promise<TResult<NodesEntity[]>> {
+        return this.queryBus.execute<GetAllNodesQuery, TResult<NodesEntity[]>>(
             new GetAllNodesQuery(),
         );
     }

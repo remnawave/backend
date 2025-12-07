@@ -12,9 +12,9 @@ import { Logger } from '@nestjs/common';
 
 import { IBaseWebhookLogger } from './interfaces';
 import { WebhookLoggerJobNames } from './enums';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
-@Processor(QueueNames.webhookLogger, {
+@Processor(QUEUES_NAMES.NOTIFICATIONS.WEBHOOK, {
     concurrency: 150,
     limiter: {
         max: 130,

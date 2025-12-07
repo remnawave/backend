@@ -62,7 +62,14 @@ export namespace GetRawSubscriptionByShortUuidCommand {
                     sni: z.optional(z.nullable(z.string())),
                     spiderX: z.optional(z.nullable(z.string())),
                     tls: z.optional(z.nullable(z.string())),
-                    headerType: z.optional(z.nullable(z.string())),
+                    rawSettings: z.optional(
+                        z.nullable(
+                            z.object({
+                                headerType: z.optional(z.nullable(z.string())),
+                                request: z.optional(z.nullable(z.object({}))),
+                            }),
+                        ),
+                    ),
                     additionalParams: z.optional(
                         z.nullable(
                             z.object({
@@ -76,6 +83,7 @@ export namespace GetRawSubscriptionByShortUuidCommand {
                     sockoptParams: z.optional(z.nullable(z.object({}))),
                     serverDescription: z.optional(z.nullable(z.string())),
                     flow: z.optional(z.nullable(z.string())),
+
                     allowInsecure: z.optional(z.nullable(z.boolean())),
                     shuffleHost: z.optional(z.nullable(z.boolean())),
                     mihomoX25519: z.optional(z.nullable(z.boolean())),
@@ -109,6 +117,7 @@ export namespace GetRawSubscriptionByShortUuidCommand {
                             vlessRouteId: z.number().int().nullable(),
                         }),
                     ),
+                    xrayJsonTemplate: z.optional(z.nullable(z.object({}))),
                 }),
             ),
         }),

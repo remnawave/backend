@@ -13,8 +13,12 @@ process.env.INSTANCE_TYPE = 'api';
 
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
 import { createLogger } from 'winston';
 import * as winston from 'winston';
+import utc from 'dayjs/plugin/utc';
+import dayjs from 'dayjs';
 
 import { ROOT } from '@contract/api';
 
@@ -24,6 +28,10 @@ import { ghActionsDocs } from '@common/utils/startup-app/gh-actions-docs';
 import { isDevelopment } from '@common/utils/startup-app';
 
 import { AppModule } from '../../app.module';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 patchNestJsSwagger();
 

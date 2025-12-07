@@ -1,8 +1,8 @@
 import { Command } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
-export class DeletePasskeyCommand extends Command<ICommandResponse<boolean>> {
+export class DeletePasskeyCommand extends Command<TResult<boolean>> {
     constructor(public readonly id: string) {
         super();
     }

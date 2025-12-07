@@ -14,7 +14,6 @@ export interface IGetUserAccessibleNodes {
 }
 
 export interface IGetUserAccessibleNodesResponse {
-    userUuid: string;
     activeNodes: {
         uuid: string;
         nodeName: string;

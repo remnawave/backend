@@ -1,12 +1,21 @@
 #!/usr/bin/env node
 
 import { Prisma, PrismaClient } from '@prisma/client';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
+import utc from 'dayjs/plugin/utc';
 import consola from 'consola';
 import Redis from 'ioredis';
+import dayjs from 'dayjs';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
+import { getRedisConnectionOptions } from '@common/utils';
 import { generateNodeCert } from '@common/utils/certs';
 import { CACHE_KEYS } from '@libs/contracts/constants';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 const prisma = new PrismaClient({
     datasources: {
@@ -16,9 +25,15 @@ const prisma = new PrismaClient({
     },
 });
 
+const redisOptions = getRedisConnectionOptions(
+    process.env.REDIS_SOCKET,
+    process.env.REDIS_HOST,
+    process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : undefined,
+    'ioredis',
+);
+
 const redis = new Redis({
-    host: process.env.REDIS_HOST!,
-    port: parseInt(process.env.REDIS_PORT!),
+    ...redisOptions,
     password: process.env.REDIS_PASSWORD,
     db: parseInt(process.env.REDIS_DB ?? '1'),
     keyPrefix: 'rmnwv:',

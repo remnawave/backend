@@ -56,7 +56,31 @@ export function Endpoint(options: ApiEndpointOptions) {
                 properties: {
                     message: { type: 'string' },
                     statusCode: { type: 'number', example: 400 },
-                    error: { type: 'string' },
+                    errors: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                validation: { type: 'string', example: 'uuid' },
+                                code: { type: 'string', example: 'invalid_string' },
+                                message: { type: 'string', example: 'Invalid uuid' },
+                                path: {
+                                    type: 'array',
+                                    items: { type: 'string' },
+                                    example: ['uuid'],
+                                },
+                            },
+                            required: ['validation', 'code', 'message', 'path'],
+                        },
+                        example: [
+                            {
+                                validation: 'uuid',
+                                code: 'invalid_string',
+                                message: 'Invalid uuid',
+                                path: ['uuid'],
+                            },
+                        ],
+                    },
                 },
             },
         }),

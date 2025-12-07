@@ -3,7 +3,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
@@ -33,8 +32,13 @@ export class ReviewNodesTask {
     async handleCron() {
         let nodes: NodesEntity[] | null = null;
         try {
-            const nodesResponse = await this.getEnabledNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            const nodesResponse = await this.queryBus.execute(new GetEnabledNodesQuery());
+
+            if (!nodesResponse.isOk) {
+                return;
+            }
+
+            if (nodesResponse.response.length === 0) {
                 return;
             }
 
@@ -73,11 +77,5 @@ export class ReviewNodesTask {
         } finally {
             nodes = null;
         }
-    }
-
-    private async getEnabledNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetEnabledNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetEnabledNodesQuery(),
-        );
     }
 }

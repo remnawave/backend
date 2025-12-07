@@ -1,10 +1,10 @@
 import { IRawHost } from '@modules/subscription-template/generators/interfaces';
-import { GetUserResponseModel } from '@modules/users/models';
+import { GetFullUserResponseModel } from '@modules/users/models';
 
 import { ISubscriptionHeaders } from '../interfaces';
 
 export class RawSubscriptionWithHostsResponse {
-    public user: GetUserResponseModel;
+    public user: GetFullUserResponseModel;
     public convertedUserInfo: {
         daysLeft: number;
         trafficLimit: string;

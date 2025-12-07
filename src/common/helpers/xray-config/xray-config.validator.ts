@@ -328,6 +328,7 @@ export class XRayConfig {
                     break;
                 case 'vless':
                     (inbound.settings as VLessSettings).clients = [];
+                    (inbound.settings as VLessSettings).flow = getVlessFlow(inbound) || '';
                     break;
                 case 'shadowsocks':
                     (inbound.settings as ShadowsocksSettings).clients = [];
@@ -345,7 +346,7 @@ export class XRayConfig {
                 for (const user of users) {
                     (inbound.settings as TrojanSettings).clients.push({
                         password: user.trojanPassword,
-                        email: user.username,
+                        email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
                 }
@@ -355,8 +356,7 @@ export class XRayConfig {
                 for (const user of users) {
                     (inbound.settings as VLessSettings).clients.push({
                         id: user.vlessUuid,
-                        email: user.username,
-                        flow: getVlessFlow(inbound),
+                        email: user.tId.toString(),
                     });
                 }
                 break;
@@ -366,7 +366,7 @@ export class XRayConfig {
                     (inbound.settings as ShadowsocksSettings).clients.push({
                         password: user.ssPassword,
                         method: 'chacha20-ietf-poly1305',
-                        email: user.username,
+                        email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
                 }
@@ -495,6 +495,9 @@ export class XRayConfig {
         if (this.config.routing) {
             if (typeof this.config.routing === 'object' && 'rules' in this.config.routing) {
                 this.replaceSnippetsInArray(this.config.routing.rules as any[], snippets);
+            }
+            if (typeof this.config.routing === 'object' && 'balancers' in this.config.routing) {
+                this.replaceSnippetsInArray(this.config.routing.balancers as any[], snippets);
             }
         }
     }

@@ -1,5 +1,4 @@
 import { InjectBot } from '@kastov/grammy-nestjs';
-import { readPackageJSON } from 'pkg-types';
 import { Context } from 'grammy';
 import { Bot } from 'grammy';
 
@@ -28,13 +27,11 @@ export class ServiceEvents {
     }
 
     @OnEvent(EVENTS.SERVICE.PANEL_STARTED)
-    async onPanelStarted(): Promise<void> {
-        const pkg = await readPackageJSON();
-
+    async onPanelStarted(event: ServiceEvent): Promise<void> {
         const msg = `
 🌊 <b>#panel_started</b>
 ➖➖➖➖➖➖➖➖➖
-✅ Remnawave v${pkg.version} is up and running.
+✅ Remnawave v${event.data.panelVersion} is up and running.
 
 🦋 Join community: @remnawave
 📚 Documentation: https://docs.rw

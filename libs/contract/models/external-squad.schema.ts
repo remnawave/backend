@@ -5,10 +5,12 @@ import {
     ExternalSquadHostOverridesSchema,
     ExternalSquadResponseHeadersSchema,
 } from './external-squads';
+import { HwidSettingsSchema, CustomRemarksSchema } from './subscription-settings';
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 
 export const ExternalSquadSchema = z.object({
     uuid: z.string().uuid(),
+    viewPosition: z.number().int(),
     name: z.string(),
 
     info: z.object({
@@ -24,6 +26,8 @@ export const ExternalSquadSchema = z.object({
     subscriptionSettings: z.nullable(ExternalSquadSubscriptionSettingsSchema),
     hostOverrides: z.nullable(ExternalSquadHostOverridesSchema),
     responseHeaders: ExternalSquadResponseHeadersSchema,
+    hwidSettings: z.nullable(HwidSettingsSchema),
+    customRemarks: z.nullable(CustomRemarksSchema),
 
     createdAt: z
         .string()

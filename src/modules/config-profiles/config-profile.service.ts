@@ -5,12 +5,11 @@ import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
 import { XRayConfig } from '@common/helpers/xray-config';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
-import { StartAllNodesByProfileQueueService } from '@queue/start-all-nodes-by-profile';
-import { StopNodeQueueService } from '@queue/stop-node';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { GetConfigProfileByUuidResponseModel } from './models/get-config-profile-by-uuid.response.model';
 import { DeleteConfigProfileByUuidResponseModel, GetAllInboundsResponseModel } from './models';
@@ -20,6 +19,7 @@ import { ConfigProfileRepository } from './repositories/config-profile.repositor
 import { ConfigProfileEntity } from './entities/config-profile.entity';
 import { ConfigProfileWithInboundsAndNodesEntity } from './entities';
 import { GetSnippetsQuery } from './queries/get-snippets';
+import { ReorderConfigProfilesRequestDto } from './dtos';
 
 @Injectable()
 export class ConfigProfileService {
@@ -27,12 +27,11 @@ export class ConfigProfileService {
 
     constructor(
         private readonly configProfileRepository: ConfigProfileRepository,
-        private readonly startAllNodesByProfileQueueService: StartAllNodesByProfileQueueService,
-        private readonly stopNodeQueueService: StopNodeQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
     ) {}
 
-    public async getConfigProfiles(): Promise<ICommandResponse<GetConfigProfilesResponseModel>> {
+    public async getConfigProfiles(): Promise<TResult<GetConfigProfilesResponseModel>> {
         try {
             const configProfiles = await this.configProfileRepository.getAllConfigProfiles();
 
@@ -44,68 +43,47 @@ export class ConfigProfileService {
 
             const total = await this.configProfileRepository.getTotalConfigProfiles();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfilesResponseModel(configProfiles, total),
-            };
+            return ok(new GetConfigProfilesResponseModel(configProfiles, total));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_CONFIG_PROFILES_ERROR,
-            };
+            return fail(ERRORS.GET_CONFIG_PROFILES_ERROR);
         }
     }
 
     public async getConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             configProfile.config = new XRayConfig(configProfile.config as object).getSortedConfig();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfileByUuidResponseModel(configProfile),
-            };
+            return ok(new GetConfigProfileByUuidResponseModel(configProfile));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
     public async getComputedConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const snippetsMap: Map<string, unknown> = new Map();
             const snippetsResponse = await this.queryBus.execute(new GetSnippetsQuery());
 
-            if (!snippetsResponse.isOk || !snippetsResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
+            if (!snippetsResponse.isOk) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
             }
 
             for (const snippet of snippetsResponse.response) {
@@ -117,34 +95,25 @@ export class ConfigProfileService {
 
             configProfile.config = config.getSortedConfig();
 
-            return {
-                isOk: true,
-                response: new GetConfigProfileByUuidResponseModel(configProfile),
-            };
+            return ok(new GetConfigProfileByUuidResponseModel(configProfile));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_COMPUTED_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
     public async deleteConfigProfileByUUID(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<DeleteConfigProfileByUuidResponseModel>> {
         try {
             const configProfile = await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             for (const node of configProfile.nodes) {
-                await this.stopNodeQueueService.stopNode({
+                await this.nodesQueuesService.stopNode({
                     nodeUuid: node.uuid,
                     isNeedToBeDeleted: false,
                 });
@@ -152,30 +121,20 @@ export class ConfigProfileService {
 
             const result = await this.configProfileRepository.deleteByUUID(uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteConfigProfileByUuidResponseModel(result),
-            };
+            return ok(new DeleteConfigProfileByUuidResponseModel(result));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_CONFIG_PROFILE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.DELETE_CONFIG_PROFILE_BY_UUID_ERROR);
         }
     }
 
-    @Transactional()
     public async createConfigProfile(
         name: string,
         config: object,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             if (name === 'Default-Profile') {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_CONFIG_PROFILE_NAME,
-                };
+                return fail(ERRORS.RESERVED_CONFIG_PROFILE_NAME);
             }
 
             const validatedConfig = new XRayConfig(config);
@@ -188,12 +147,9 @@ export class ConfigProfileService {
 
             const inbounds = validatedConfig.getAllInbounds();
 
-            const configProfile = await this.configProfileRepository.create(profileEntity);
-
             const inboundsEntities = inbounds.map(
                 (inbound) =>
                     new ConfigProfileInboundEntity({
-                        profileUuid: configProfile.uuid,
                         tag: inbound.tag,
                         type: inbound.type,
                         network: inbound.network,
@@ -203,13 +159,12 @@ export class ConfigProfileService {
                     }),
             );
 
-            if (inboundsEntities.length) {
-                await this.configProfileRepository.createManyConfigProfileInbounds(
-                    inboundsEntities,
-                );
-            }
+            const { uuid } = await this.configProfileRepository.create(
+                profileEntity,
+                inboundsEntities,
+            );
 
-            return this.getConfigProfileByUUID(configProfile.uuid);
+            return await this.getConfigProfileByUUID(uuid);
         } catch (error) {
             if (
                 error instanceof PrismaClientKnownRequestError &&
@@ -220,17 +175,14 @@ export class ConfigProfileService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('tag')) {
-                    return { isOk: false, ...ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS };
+                    return fail(ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS);
                 }
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS);
                 }
             }
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_CONFIG_PROFILE_ERROR,
-            };
+            return fail(ERRORS.CREATE_CONFIG_PROFILE_ERROR);
         }
     }
 
@@ -238,23 +190,17 @@ export class ConfigProfileService {
         uuid: string,
         name?: string,
         config?: object,
-    ): Promise<ICommandResponse<GetConfigProfileByUuidResponseModel>> {
+    ): Promise<TResult<GetConfigProfileByUuidResponseModel>> {
         try {
             const existingConfigProfile =
                 await this.configProfileRepository.getConfigProfileByUUID(uuid);
 
             if (!existingConfigProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             if (!name && !config) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NAME_OR_CONFIG_REQUIRED,
-                };
+                return fail(ERRORS.NAME_OR_CONFIG_REQUIRED);
             }
 
             await this.updateConfigProfileTransactional(existingConfigProfile, uuid, name, config);
@@ -263,7 +209,7 @@ export class ConfigProfileService {
                 // No need for now
                 // await this.commandBus.execute(new SyncActiveProfileCommand());
 
-                await this.startAllNodesByProfileQueueService.startAllNodesByProfile({
+                await this.nodesQueuesService.startAllNodesByProfile({
                     profileUuid: existingConfigProfile.uuid,
                     emitter: 'updateConfigProfile',
                 });
@@ -282,24 +228,18 @@ export class ConfigProfileService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('tag')) {
-                    return { isOk: false, ...ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS };
+                    return fail(ERRORS.INBOUNDS_WITH_SAME_TAG_ALREADY_EXISTS);
                 }
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.CONFIG_PROFILE_NAME_ALREADY_EXISTS);
                 }
             }
 
             if (error instanceof Error) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_VALIDATION_ERROR.withMessage(error.message),
-                };
+                return fail(ERRORS.CONFIG_VALIDATION_ERROR.withMessage(error.message));
             }
 
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_CONFIG_PROFILE_ERROR,
-            };
+            return fail(ERRORS.UPDATE_CONFIG_PROFILE_ERROR);
         }
     }
 
@@ -353,48 +293,46 @@ export class ConfigProfileService {
 
     public async getInboundsByProfileUuid(
         profileUuid: string,
-    ): Promise<ICommandResponse<GetAllInboundsResponseModel>> {
+    ): Promise<TResult<GetAllInboundsResponseModel>> {
         try {
             const configProfile =
                 await this.configProfileRepository.getConfigProfileByUUID(profileUuid);
 
             if (!configProfile) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const inbounds =
                 await this.configProfileRepository.getInboundsWithSquadsByProfileUuid(profileUuid);
 
-            return {
-                isOk: true,
-                response: new GetAllInboundsResponseModel(inbounds, inbounds.length),
-            };
+            return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INBOUNDS_BY_PROFILE_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_INBOUNDS_BY_PROFILE_UUID_ERROR);
         }
     }
 
-    public async getAllInbounds(): Promise<ICommandResponse<GetAllInboundsResponseModel>> {
+    public async getAllInbounds(): Promise<TResult<GetAllInboundsResponseModel>> {
         try {
             const inbounds = await this.configProfileRepository.getAllInbounds();
 
-            return {
-                isOk: true,
-                response: new GetAllInboundsResponseModel(inbounds, inbounds.length),
-            };
+            return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_INBOUNDS_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_INBOUNDS_ERROR);
+        }
+    }
+
+    public async reorderConfigProfiles(
+        dto: ReorderConfigProfilesRequestDto,
+    ): Promise<TResult<GetConfigProfilesResponseModel>> {
+        try {
+            await this.configProfileRepository.reorderMany(dto.items);
+
+            return await this.getConfigProfiles();
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GENERIC_REORDER_ERROR);
         }
     }
 

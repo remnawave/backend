@@ -5,6 +5,7 @@ import { ConfigProfileInboundEntity } from './config-profile-inbound.entity';
 
 export class ConfigProfileWithInboundsAndNodesEntity implements ConfigProfiles {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
     public config: string | number | boolean | JsonObject | JsonArray | null | object;
 

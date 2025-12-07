@@ -4,6 +4,7 @@ import { ConfigProfileInboundsSchema } from './config-profile-inbounds.schema';
 
 export const ConfigProfileSchema = z.object({
     uuid: z.string().uuid(),
+    viewPosition: z.number().int(),
     name: z.string(),
     config: z.unknown(),
     inbounds: z.array(ConfigProfileInboundsSchema),

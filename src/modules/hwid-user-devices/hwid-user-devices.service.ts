@@ -1,14 +1,16 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { GetAllHwidDevicesCommand } from '@libs/contracts/commands';
 import { ERRORS, EVENTS } from '@libs/contracts/constants';
+import { THwidSettings } from '@libs/contracts/models';
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
+import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 
 import { HwidUserDevicesRepository } from './repositories/hwid-user-devices.repository';
@@ -19,25 +21,16 @@ import { CreateUserHwidDeviceRequestDto } from './dtos';
 @Injectable()
 export class HwidUserDevicesService {
     private readonly logger = new Logger(HwidUserDevicesService.name);
-    private readonly hwidDeviceLimitEnabled: boolean;
-    private readonly hwidGlobalDeviceLimit: number | undefined;
 
     constructor(
         private readonly eventEmitter: EventEmitter2,
         private readonly hwidUserDevicesRepository: HwidUserDevicesRepository,
-        private readonly configService: ConfigService,
         private readonly queryBus: QueryBus,
-    ) {
-        this.hwidDeviceLimitEnabled =
-            this.configService.getOrThrow<string>('HWID_DEVICE_LIMIT_ENABLED') === 'true';
-        this.hwidGlobalDeviceLimit = this.configService.get<number | undefined>(
-            'HWID_FALLBACK_DEVICE_LIMIT',
-        );
-    }
+    ) {}
 
     public async createUserHwidDevice(
         dto: CreateUserHwidDeviceRequestDto,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -46,16 +39,12 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const isDeviceExists = await this.hwidUserDevicesRepository.checkHwidExists(
@@ -64,22 +53,41 @@ export class HwidUserDevicesService {
             );
 
             if (isDeviceExists) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_HWID_DEVICE_ALREADY_EXISTS,
-                };
+                return fail(ERRORS.USER_HWID_DEVICE_ALREADY_EXISTS);
             }
 
-            if (this.hwidDeviceLimitEnabled && this.hwidGlobalDeviceLimit) {
+            let hwidSettings: THwidSettings | undefined;
+
+            const subscrtipionSettings = await this.queryBus.execute(
+                new GetCachedSubscriptionSettingsQuery(),
+            );
+
+            if (!subscrtipionSettings) {
+                return fail(ERRORS.SUBSCRIPTION_SETTINGS_NOT_FOUND);
+            }
+
+            if (subscrtipionSettings.hwidSettings.enabled) {
+                hwidSettings = subscrtipionSettings.hwidSettings;
+            }
+
+            if (user.response.externalSquadUuid) {
+                const externalSquadSettings = await this.queryBus.execute(
+                    new GetCachedExternalSquadSettingsQuery(user.response.externalSquadUuid),
+                );
+
+                if (externalSquadSettings && externalSquadSettings.hwidSettings) {
+                    hwidSettings = externalSquadSettings.hwidSettings;
+                }
+            }
+
+            if (hwidSettings && hwidSettings.enabled) {
                 const count = await this.hwidUserDevicesRepository.countByUserUuid(dto.userUuid);
 
-                const deviceLimit = user.response.hwidDeviceLimit ?? this.hwidGlobalDeviceLimit;
+                const deviceLimit =
+                    user.response.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
                 if (count >= deviceLimit) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.USER_HWID_DEVICE_LIMIT_REACHED,
-                    };
+                    return fail(ERRORS.USER_HWID_DEVICE_LIMIT_REACHED);
                 }
             }
 
@@ -96,22 +104,14 @@ export class HwidUserDevicesService {
                 userUuid: dto.userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_HWID_USER_DEVICE_ERROR,
-            };
+            return fail(ERRORS.CREATE_HWID_USER_DEVICE_ERROR);
         }
     }
 
-    public async getUserHwidDevices(
-        userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    public async getUserHwidDevices(userUuid: string): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -120,39 +120,29 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_USER_HWID_DEVICES_ERROR,
-            };
+            return fail(ERRORS.GET_USER_HWID_DEVICES_ERROR);
         }
     }
 
     public async deleteUserHwidDevice(
         hwid: string,
         userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -161,16 +151,12 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             const hwidDevice = await this.hwidUserDevicesRepository.findFirstByCriteria({
@@ -178,39 +164,35 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
+            if (!hwidDevice) {
+                return fail(ERRORS.HWID_DEVICE_NOT_FOUND);
+            }
+
             await this.hwidUserDevicesRepository.deleteByHwidAndUserUuid(hwid, userUuid);
 
-            if (hwidDevice) {
-                this.eventEmitter.emit(
+            this.eventEmitter.emit(
+                EVENTS.USER_HWID_DEVICES.DELETED,
+                new UserHwidDeviceEvent(
+                    user.response,
+                    hwidDevice,
                     EVENTS.USER_HWID_DEVICES.DELETED,
-                    new UserHwidDeviceEvent(
-                        user.response,
-                        hwidDevice,
-                        EVENTS.USER_HWID_DEVICES.DELETED,
-                    ),
-                );
-            }
+                ),
+            );
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_HWID_USER_DEVICE_ERROR,
-            };
+            return fail(ERRORS.DELETE_HWID_USER_DEVICE_ERROR);
         }
     }
 
     public async deleteAllUserHwidDevices(
         userUuid: string,
-    ): Promise<ICommandResponse<HwidUserDeviceEntity[]>> {
+    ): Promise<TResult<HwidUserDeviceEntity[]>> {
         try {
             const user = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(
@@ -219,16 +201,12 @@ export class HwidUserDevicesService {
                     },
                     {
                         activeInternalSquads: false,
-                        lastConnectedNode: false,
                     },
                 ),
             );
 
-            if (!user.isOk || !user.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.USER_NOT_FOUND,
-                };
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
             }
 
             await this.hwidUserDevicesRepository.deleteByUserUuid(userUuid);
@@ -237,21 +215,15 @@ export class HwidUserDevicesService {
                 userUuid,
             });
 
-            return {
-                isOk: true,
-                response: userHwidDevices,
-            };
+            return ok(userHwidDevices);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_HWID_USER_DEVICES_ERROR,
-            };
+            return fail(ERRORS.DELETE_HWID_USER_DEVICES_ERROR);
         }
     }
 
     public async getAllHwidDevices(dto: GetAllHwidDevicesCommand.RequestQuery): Promise<
-        ICommandResponse<{
+        TResult<{
             total: number;
             devices: HwidUserDeviceEntity[];
         }>
@@ -259,42 +231,27 @@ export class HwidUserDevicesService {
         try {
             const [devices, total] = await this.hwidUserDevicesRepository.getAllHwidDevices(dto);
 
-            return {
-                isOk: true,
-                response: {
-                    devices,
-                    total,
-                },
-            };
+            return ok({ devices, total });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_HWID_DEVICES_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_HWID_DEVICES_ERROR);
         }
     }
 
-    public async getHwidDevicesStats(): Promise<
-        ICommandResponse<GetHwidDevicesStatsResponseModel>
-    > {
+    public async getHwidDevicesStats(): Promise<TResult<GetHwidDevicesStatsResponseModel>> {
         try {
             const stats = await this.hwidUserDevicesRepository.getHwidDevicesStats();
 
-            return {
-                isOk: true,
-                response: new GetHwidDevicesStatsResponseModel({
+            return ok(
+                new GetHwidDevicesStatsResponseModel({
                     byPlatform: stats.byPlatform,
                     byApp: stats.byApp,
                     stats: stats.stats,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_HWID_DEVICES_STATS_ERROR,
-            };
+            return fail(ERRORS.GET_HWID_DEVICES_STATS_ERROR);
         }
     }
 }

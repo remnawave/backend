@@ -14,6 +14,7 @@ import { disableFrontend, isCrowdinEditorEnabled } from '@common/utils/startup-a
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 import { PrismaService } from '@common/database/prisma.service';
 import { configSchema, Env } from '@common/config/app-config';
+import { getRedisConnectionOptions } from '@common/utils';
 import { AxiosModule } from '@common/axios/axios.module';
 import { PrismaModule } from '@common/database';
 
@@ -28,6 +29,7 @@ import { QueueModule } from '@queue/queue.module';
         AxiosModule,
         ConfigModule.forRoot({
             isGlobal: true,
+            cache: true,
             envFilePath: '.env',
             validate: (config) => validateEnvConfig<Env>(configSchema, config),
         }),
@@ -88,7 +90,12 @@ import { QueueModule } from '@queue/queue.module';
                     stores: [
                         createKeyv(
                             {
-                                url: `redis://${configService.getOrThrow<string>('REDIS_HOST')}:${configService.getOrThrow<number>('REDIS_PORT')}`,
+                                ...getRedisConnectionOptions(
+                                    configService.get<string>('REDIS_SOCKET'),
+                                    configService.get<string>('REDIS_HOST'),
+                                    configService.get<number>('REDIS_PORT'),
+                                    'node-redis',
+                                ),
                                 database: configService.getOrThrow<number>('REDIS_DB'),
                                 password: configService.get<string | undefined>('REDIS_PASSWORD'),
                             },

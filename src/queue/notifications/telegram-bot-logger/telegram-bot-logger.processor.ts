@@ -11,9 +11,9 @@ import { BOT_NAME } from '@integration-modules/notifications/telegram-bot/consta
 
 import { TelegramBotLoggerQueueService } from './telegram-bot-logger.service';
 import { TelegramBotLoggerJobNames } from './enums';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
-@Processor(QueueNames.telegramBotLogger, {
+@Processor(QUEUES_NAMES.NOTIFICATIONS.TELEGRAM, {
     concurrency: 100,
     limiter: {
         max: 20,

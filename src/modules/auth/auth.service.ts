@@ -20,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import {
     CACHE_KEYS,
     EVENTS,
@@ -75,7 +75,7 @@ export class AuthService {
         ip: string,
         userAgent: string,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -84,11 +84,8 @@ export class AuthService {
 
             const statusResponse = await this.getStatus();
 
-            if (!statusResponse.isOk || !statusResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+            if (!statusResponse.isOk) {
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (!statusResponse.response.isLoginAllowed) {
@@ -99,17 +96,11 @@ export class AuthService {
                     userAgent,
                     'Login is not allowed.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication.password.enabled) {
@@ -120,10 +111,7 @@ export class AuthService {
                     userAgent,
                     'Someone tried to login with password authentication, but it is disabled.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const admin = await this.getAdminByUsername({
@@ -131,7 +119,7 @@ export class AuthService {
                 role: ROLE.ADMIN,
             });
 
-            if (!admin.isOk || !admin.response) {
+            if (!admin.isOk) {
                 await this.emitFailedLoginAttempt(
                     username,
                     password,
@@ -139,10 +127,7 @@ export class AuthService {
                     userAgent,
                     'Admin is not found in database.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const isPasswordValid = await this.verifyPassword(
@@ -158,10 +143,7 @@ export class AuthService {
                     userAgent,
                     'Invalid password.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const accessToken = this.jwtService.sign(
@@ -175,21 +157,15 @@ export class AuthService {
 
             await this.emitLoginSuccess(username, ip, userAgent);
 
-            return {
-                isOk: true,
-                response: { accessToken },
-            };
+            return ok({ accessToken });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.LOGIN_ERROR,
-            };
+            return fail(ERRORS.LOGIN_ERROR);
         }
     }
 
     public async register(dto: IRegister): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -198,18 +174,12 @@ export class AuthService {
 
             const statusResponse = await this.getStatus();
 
-            if (!statusResponse.isOk || !statusResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+            if (!statusResponse.isOk) {
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (!statusResponse.response.isRegisterAllowed) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const admin = await this.getAdminByUsername({
@@ -217,11 +187,8 @@ export class AuthService {
                 role: ROLE.ADMIN,
             });
 
-            if (admin.isOk && admin.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+            if (admin.isOk) {
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const hashedPassword = await this.hashPassword(password);
@@ -232,11 +199,8 @@ export class AuthService {
                 role: ROLE.ADMIN,
             });
 
-            if (!createAdminResponse.isOk || !createAdminResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CREATE_ADMIN_ERROR,
-                };
+            if (!createAdminResponse.isOk) {
+                return fail(ERRORS.CREATE_ADMIN_ERROR);
             }
 
             const accessToken = this.jwtService.sign(
@@ -248,20 +212,14 @@ export class AuthService {
                 { expiresIn: `${this.jwtLifetime}h` },
             );
 
-            return {
-                isOk: true,
-                response: { accessToken },
-            };
+            return ok({ accessToken });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.LOGIN_ERROR,
-            };
+            return fail(ERRORS.LOGIN_ERROR);
         }
     }
 
-    public async getStatus(): Promise<ICommandResponse<GetStatusResponseModel>> {
+    public async getStatus(): Promise<TResult<GetStatusResponseModel>> {
         try {
             const remnawaveSettings = await this.queryBus.execute(
                 new GetCachedRemnawaveSettingsQuery(),
@@ -270,34 +228,26 @@ export class AuthService {
             const adminCount = await this.getAdminCount();
 
             if (!adminCount.isOk) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (adminCount.response === undefined) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (adminCount.response === 0) {
-                return {
-                    isOk: true,
-                    response: new GetStatusResponseModel({
+                return ok(
+                    new GetStatusResponseModel({
                         isLoginAllowed: false,
                         isRegisterAllowed: true,
                         authentication: null,
                         branding: remnawaveSettings.brandingSettings,
                     }),
-                };
+                );
             }
 
-            return {
-                isOk: true,
-                response: new GetStatusResponseModel({
+            return ok(
+                new GetStatusResponseModel({
                     isLoginAllowed: true,
                     isRegisterAllowed: false,
                     authentication: {
@@ -326,13 +276,10 @@ export class AuthService {
                     },
                     branding: remnawaveSettings.brandingSettings,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_AUTH_STATUS_ERROR,
-            };
+            return fail(ERRORS.GET_AUTH_STATUS_ERROR);
         }
     }
 
@@ -341,7 +288,7 @@ export class AuthService {
         ip: string,
         userAgent: string,
     ): Promise<
-        ICommandResponse<{
+        TResult<{
             accessToken: string;
         }>
     > {
@@ -350,11 +297,8 @@ export class AuthService {
 
             const statusResponse = await this.getStatus();
 
-            if (!statusResponse.isOk || !statusResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+            if (!statusResponse.isOk) {
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (!statusResponse.response.isLoginAllowed) {
@@ -365,10 +309,7 @@ export class AuthService {
                     userAgent,
                     'Login is not allowed.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const remnawaveSettings = await this.queryBus.execute(
@@ -383,10 +324,7 @@ export class AuthService {
                     userAgent,
                     'Telegram authentication is not enabled.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!remnawaveSettings.tgAuthSettings.adminIds.includes(id.toString())) {
@@ -397,10 +335,7 @@ export class AuthService {
                     userAgent,
                     'UserID is not in the allowed list.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const isHashValid = new TelegramOAuth2({
@@ -423,15 +358,12 @@ export class AuthService {
                     ip,
                     userAgent,
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const firstAdmin = await this.getFirstAdmin();
 
-            if (!firstAdmin.isOk || !firstAdmin.response) {
+            if (!firstAdmin.isOk) {
                 await this.emitFailedLoginAttempt(
                     username ? `@${username}` : first_name,
                     `Telegram ID: ${id}`,
@@ -439,10 +371,7 @@ export class AuthService {
                     userAgent,
                     'Superadmin is not found.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const accessToken = this.jwtService.sign(
@@ -461,51 +390,33 @@ export class AuthService {
                 'Logged via Telegram OAuth.',
             );
 
-            return {
-                isOk: true,
-                response: { accessToken },
-            };
+            return ok({ accessToken });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.LOGIN_ERROR,
-            };
+            return fail(ERRORS.LOGIN_ERROR);
         }
     }
 
     public async oauth2Authorize(
         provider: TOAuth2ProvidersKeys,
-    ): Promise<ICommandResponse<OAuth2AuthorizeResponseModel>> {
+    ): Promise<TResult<OAuth2AuthorizeResponseModel>> {
         try {
             const statusResponse = await this.getStatus();
 
-            if (!statusResponse.isOk || !statusResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+            if (!statusResponse.isOk) {
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (!statusResponse.response.isLoginAllowed) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication?.oauth2.providers[provider]) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const remnawaveSettings = await this.queryBus.execute(
@@ -550,26 +461,19 @@ export class AuthService {
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.YANDEX}`;
                     break;
                 default:
-                    return {
-                        isOk: false,
-                        ...ERRORS.OAUTH2_PROVIDER_NOT_FOUND,
-                    };
+                    return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
             }
 
             await this.cacheManager.set(stateKey, state, 600_000);
 
-            return {
-                isOk: true,
-                response: new OAuth2AuthorizeResponseModel({
+            return ok(
+                new OAuth2AuthorizeResponseModel({
                     authorizationUrl: authorizationURL.toString(),
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('GitHub authorization error:', error);
-            return {
-                isOk: false,
-                ...ERRORS.OAUTH2_AUTHORIZE_ERROR,
-            };
+            return fail(ERRORS.OAUTH2_AUTHORIZE_ERROR);
         }
     }
 
@@ -579,14 +483,11 @@ export class AuthService {
         provider: TOAuth2ProvidersKeys,
         ip: string,
         userAgent: string,
-    ): Promise<ICommandResponse<OAuth2CallbackResponseModel>> {
+    ): Promise<TResult<OAuth2CallbackResponseModel>> {
         try {
             const statusResponse = await this.getStatus();
-            if (!statusResponse.isOk || !statusResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.GET_AUTH_STATUS_ERROR,
-                };
+            if (!statusResponse.isOk) {
+                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
             }
 
             if (!statusResponse.response.isLoginAllowed) {
@@ -598,17 +499,11 @@ export class AuthService {
                     'Login is not allowed.',
                 );
 
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (!statusResponse.response.authentication.oauth2.providers[provider]) {
@@ -620,14 +515,11 @@ export class AuthService {
                     'Someone tried to authorize with OAuth2, but the provider is disabled.',
                 );
 
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const firstAdmin = await this.getFirstAdmin();
-            if (!firstAdmin.isOk || !firstAdmin.response) {
+            if (!firstAdmin.isOk) {
                 await this.emitFailedLoginAttempt(
                     'Unknown',
                     '–',
@@ -635,10 +527,7 @@ export class AuthService {
                     userAgent,
                     'Superadmin is not found.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             let callbackResult: {
@@ -660,17 +549,11 @@ export class AuthService {
                     callbackResult = await this.yandexCallback(code, state, ip, userAgent);
                     break;
                 default:
-                    return {
-                        isOk: false,
-                        ...ERRORS.FORBIDDEN,
-                    };
+                    return fail(ERRORS.FORBIDDEN);
             }
 
             if (!callbackResult.isAllowed || !callbackResult.email) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const jwtToken = this.jwtService.sign(
@@ -689,18 +572,14 @@ export class AuthService {
                 `Logged via ${provider} OAuth2.`,
             );
 
-            return {
-                isOk: true,
-                response: new OAuth2CallbackResponseModel({
+            return ok(
+                new OAuth2CallbackResponseModel({
                     accessToken: jwtToken,
                 }),
-            };
+            );
         } catch (error) {
             this.logger.error('GitHub callback error:', error);
-            return {
-                isOk: false,
-                ...ERRORS.LOGIN_ERROR,
-            };
+            return fail(ERRORS.LOGIN_ERROR);
         }
     }
 
@@ -1044,22 +923,20 @@ export class AuthService {
         }
     }
 
-    private async getAdminCount(): Promise<ICommandResponse<number>> {
-        return this.queryBus.execute<CountAdminsByRoleQuery, ICommandResponse<number>>(
+    private async getAdminCount(): Promise<TResult<number>> {
+        return this.queryBus.execute<CountAdminsByRoleQuery, TResult<number>>(
             new CountAdminsByRoleQuery(ROLE.ADMIN),
         );
     }
 
-    private async getAdminByUsername(
-        dto: GetAdminByUsernameQuery,
-    ): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetAdminByUsernameQuery, ICommandResponse<AdminEntity>>(
+    private async getAdminByUsername(dto: GetAdminByUsernameQuery): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetAdminByUsernameQuery, TResult<AdminEntity>>(
             new GetAdminByUsernameQuery(dto.username, dto.role),
         );
     }
 
-    private async getFirstAdmin(): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetFirstAdminQuery, ICommandResponse<AdminEntity>>(
+    private async getFirstAdmin(): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetFirstAdminQuery, TResult<AdminEntity>>(
             new GetFirstAdminQuery(ROLE.ADMIN),
         );
     }
@@ -1092,8 +969,8 @@ export class AuthService {
         return timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash));
     }
 
-    private async createAdmin(dto: CreateAdminCommand): Promise<ICommandResponse<AdminEntity>> {
-        return this.commandBus.execute<CreateAdminCommand, ICommandResponse<AdminEntity>>(
+    private async createAdmin(dto: CreateAdminCommand): Promise<TResult<AdminEntity>> {
+        return this.commandBus.execute<CreateAdminCommand, TResult<AdminEntity>>(
             new CreateAdminCommand(dto.username, dto.password, dto.role),
         );
     }
@@ -1140,51 +1017,36 @@ export class AuthService {
 
     public async generatePasskeyAuthenticationOptions(
         remnawaveSettings: RemnawaveSettingsEntity,
-    ): Promise<ICommandResponse<PublicKeyCredentialRequestOptionsJSON>> {
+    ): Promise<TResult<PublicKeyCredentialRequestOptionsJSON>> {
         try {
             if (!remnawaveSettings.passkeySettings.enabled) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (
                 !remnawaveSettings.passkeySettings.rpId ||
                 !remnawaveSettings.passkeySettings.origin
             ) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const admin = await this.getFirstAdmin();
 
-            if (!admin.isOk || !admin.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+            if (!admin.isOk) {
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const userPasskeys = await this.queryBus.execute(
                 new GetPasskeysByAdminUuidQuery(admin.response.uuid),
             );
 
-            if (!userPasskeys.isOk || !userPasskeys.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+            if (!userPasskeys.isOk) {
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (userPasskeys.response.length === 0) {
                 this.logger.warn('No passkeys registered for this user');
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const options = await generateAuthenticationOptions({
@@ -1202,16 +1064,10 @@ export class AuthService {
                 60_000, // 1 minute
             );
 
-            return {
-                isOk: true,
-                response: options,
-            };
+            return ok(options);
         } catch (error) {
             this.logger.error(`Passkey authentication options error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -1220,7 +1076,7 @@ export class AuthService {
         remnawaveSettings: RemnawaveSettingsEntity,
         ip: string,
         userAgent: string,
-    ): Promise<ICommandResponse<{ accessToken: string }>> {
+    ): Promise<TResult<{ accessToken: string }>> {
         try {
             if (!remnawaveSettings.passkeySettings.enabled) {
                 await this.emitFailedLoginAttempt(
@@ -1230,10 +1086,7 @@ export class AuthService {
                     userAgent,
                     'Passkey authentication is not enabled.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             if (
@@ -1247,17 +1100,14 @@ export class AuthService {
                     userAgent,
                     'Passkey authentication is not configured.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const response = dto.response as unknown as AuthenticationResponseJSON;
 
             const admin = await this.getFirstAdmin();
 
-            if (!admin.isOk || !admin.response) {
+            if (!admin.isOk) {
                 await this.emitFailedLoginAttempt(
                     'Unknown',
                     '–',
@@ -1265,10 +1115,7 @@ export class AuthService {
                     userAgent,
                     'Admin is not found.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const expectedChallenge = await this.cacheManager.get<string>(
@@ -1283,17 +1130,14 @@ export class AuthService {
                     userAgent,
                     'Challenge not found.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const passkey = await this.queryBus.execute(
                 new FindPasskeyByIdAndAdminUuidQuery(response.id, admin.response.uuid),
             );
 
-            if (!passkey.isOk || !passkey.response) {
+            if (!passkey.isOk) {
                 await this.emitFailedLoginAttempt(
                     'Unknown',
                     '–',
@@ -1301,10 +1145,7 @@ export class AuthService {
                     userAgent,
                     'Passkey not found.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             const verification = await verifyAuthenticationResponse({
@@ -1333,10 +1174,7 @@ export class AuthService {
                     userAgent,
                     'Passkey authentication failed.',
                 );
-                return {
-                    isOk: false,
-                    ...ERRORS.FORBIDDEN,
-                };
+                return fail(ERRORS.FORBIDDEN);
             }
 
             await this.commandBus.execute(
@@ -1362,16 +1200,10 @@ export class AuthService {
                 'Passkey authentication successful.',
             );
 
-            return {
-                isOk: true,
-                response: { accessToken },
-            };
+            return ok({ accessToken });
         } catch (error) {
             this.logger.error(`Passkey authentication verification error: ${error}`);
-            return {
-                isOk: false,
-                ...ERRORS.FORBIDDEN,
-            };
+            return fail(ERRORS.FORBIDDEN);
         }
     }
 }

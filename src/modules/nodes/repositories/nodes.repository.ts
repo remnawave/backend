@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { sql } from 'kysely';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -8,6 +9,8 @@ import { getKyselyUuid } from '@common/helpers/kysely/get-kysely-uuid';
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
 
+import { IGetEnabledNodesPartialResponse } from '../queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
+import { IGetOnlineNodesPartialResponse } from '../queries/get-online-nodes';
 import { NodesEntity } from '../entities/nodes.entity';
 import { NodesConverter } from '../nodes.converter';
 import { IReorderNode } from '../interfaces';
@@ -54,8 +57,6 @@ export class NodesRepository implements ICrud<NodesEntity> {
         const nodesList = await this.prisma.tx.nodes.findMany({
             where: {
                 isConnected: true,
-                isXrayRunning: true,
-                isNodeOnline: true,
                 isDisabled: false,
                 isConnecting: false,
                 activeConfigProfileUuid: {
@@ -66,6 +67,30 @@ export class NodesRepository implements ICrud<NodesEntity> {
         });
 
         return nodesList.map((value) => new NodesEntity(value));
+    }
+
+    public async findConnectedNodesPartial(): Promise<IGetOnlineNodesPartialResponse[]> {
+        const nodesList = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(['uuid', 'address', 'port', 'consumptionMultiplier', 'id'])
+            .where('isConnected', '=', true)
+            .where('isDisabled', '=', false)
+            .where('isConnecting', '=', false)
+            .where('activeConfigProfileUuid', 'is not', null)
+            .execute();
+
+        return nodesList;
+    }
+
+    public async findEnabledNodesPartial(): Promise<IGetEnabledNodesPartialResponse[]> {
+        const nodesList = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(['uuid', 'address', 'port', 'isConnected'])
+            .where('isDisabled', '=', false)
+            .where('isConnecting', '=', false)
+            .execute();
+
+        return nodesList;
     }
 
     public async findConnectedNodesWithoutInbounds(): Promise<
@@ -83,8 +108,6 @@ export class NodesRepository implements ICrud<NodesEntity> {
             },
             where: {
                 isConnected: true,
-                isXrayRunning: true,
-                isNodeOnline: true,
                 isDisabled: false,
                 activeConfigProfileUuid: {
                     not: null,
@@ -133,8 +156,21 @@ export class NodesRepository implements ICrud<NodesEntity> {
     }
 
     public async findByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity[]> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tags, ...rest } = dto;
         const nodesList = await this.prisma.tx.nodes.findMany({
-            where: dto,
+            where: rest,
+            orderBy: {
+                viewPosition: 'asc',
+            },
+            include: INCLUDE_RESOLVED_INBOUNDS,
+        });
+        return nodesList.map((value) => new NodesEntity(value));
+    }
+
+    public async findByCriteriaPrisma(where: Prisma.NodesWhereInput): Promise<NodesEntity[]> {
+        const nodesList = await this.prisma.tx.nodes.findMany({
+            where,
             orderBy: {
                 viewPosition: 'asc',
             },
@@ -144,8 +180,10 @@ export class NodesRepository implements ICrud<NodesEntity> {
     }
 
     public async findFirstByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity | null> {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { tags, ...rest } = dto;
         const result = await this.prisma.tx.nodes.findFirst({
-            where: dto,
+            where: rest,
             include: INCLUDE_RESOLVED_INBOUNDS,
         });
 
@@ -213,6 +251,38 @@ export class NodesRepository implements ICrud<NodesEntity> {
         return !!result;
     }
 
+    public async removeInboundsFromNodes(nodeUuids: string[]): Promise<boolean> {
+        const result = await this.qb.kysely
+            .deleteFrom('configProfileInboundsToNodes')
+            .where(
+                'nodeUuid',
+                'in',
+                nodeUuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .executeTakeFirst();
+
+        return !!result;
+    }
+
+    public async addInboundsToNodes(
+        nodeUuids: string[],
+        inboundsUuids: string[],
+    ): Promise<boolean> {
+        const values = nodeUuids.flatMap((nodeUuid) =>
+            inboundsUuids.map((uuid) => ({
+                nodeUuid: getKyselyUuid(nodeUuid),
+                configProfileInboundUuid: getKyselyUuid(uuid),
+            })),
+        );
+
+        const result = await this.qb.kysely
+            .insertInto('configProfileInboundsToNodes')
+            .values(values)
+            .executeTakeFirst();
+
+        return !!result;
+    }
+
     public async clearActiveConfigProfileForNodesWithoutInbounds(): Promise<number> {
         const result = await this.qb.kysely
             .updateTable('nodes')
@@ -233,5 +303,17 @@ export class NodesRepository implements ICrud<NodesEntity> {
             .executeTakeFirst();
 
         return Number(result.numUpdatedRows || 0);
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
     }
 }

@@ -18,22 +18,19 @@ const entityToModel = (entity: SubscriptionSettingsEntity): SubscriptionSettings
         profileUpdateInterval: entity.profileUpdateInterval,
         isProfileWebpageUrlEnabled: entity.isProfileWebpageUrlEnabled,
         serveJsonAtBaseSubscription: entity.serveJsonAtBaseSubscription,
-        addUsernameToBaseSubscription: entity.addUsernameToBaseSubscription,
         isShowCustomRemarks: entity.isShowCustomRemarks,
 
         happAnnounce: entity.happAnnounce,
         happRouting: entity.happRouting,
 
-        expiredUsersRemarks: entity.expiredUsersRemarks,
-        limitedUsersRemarks: entity.limitedUsersRemarks,
-        disabledUsersRemarks: entity.disabledUsersRemarks,
+        customRemarks: entity.customRemarks,
 
         customResponseHeaders: entity.customResponseHeaders,
 
         randomizeHosts: entity.randomizeHosts,
 
         responseRules: entity.responseRules,
-
+        hwidSettings: entity.hwidSettings,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

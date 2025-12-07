@@ -6,52 +6,25 @@ import { ConfigService } from '@nestjs/config';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 
+import { getRedisConnectionOptions } from '@common/utils';
 import { BasicAuthMiddleware } from '@common/middlewares';
 import { useBullBoard } from '@common/utils/startup-app';
 import { BULLBOARD_ROOT } from '@libs/contracts/api';
 
-import { UserSubscriptionRequestHistoryQueueModule } from './user-subscription-request-history/user-subscription-request-history.module';
-import { StartAllNodesByProfileQueueModule } from './start-all-nodes-by-profile/start-all-nodes-by-profile.module';
-import { ExpireUserNotificationsQueueModule } from './expire-user-notifications/expire-user-notifications.module';
-import { InternalSquadActionsQueueModule } from './internal-squad-actions/internal-squad-actions.module';
-import { ExternalSquadActionsQueueModule } from './external-squad-actions/external-squad-actions.module';
-import { FirstConnectedUsersQueueModule } from './first-connected-users/first-connected-users.module';
-import { BulkUserOperationsQueueModule } from './bulk-user-operations/bulk-user-operations.module';
-import { ResetUserTrafficQueueModule } from './reset-user-traffic/reset-user-traffic.module';
-import { UpdateUsersUsageQueueModule } from './update-users-usage/update-users-usage.module';
-import { NodeHealthCheckQueueModule } from './node-health-check/node-health-check.module';
-import { RecordNodeUsageQueueModule } from './record-node-usage/record-node-usage.module';
-import { RecordUserUsageQueueModule } from './record-user-usage/record-user-usage.module';
-import { StartAllNodesQueueModule } from './start-all-nodes/start-all-nodes.module';
+import { PushFromRedisQueueModule } from './push-from-redis/push-from-redis.module';
 import { NOTIFICATIONS_MODULES } from './notifications/notifications-modules';
-import { UserActionsQueueModule } from './user-actions/user-actions.module';
-import { StartNodeQueueModule } from './start-node/start-node.module';
-import { NodeUsersQueueModule } from './node-users/node-users.module';
-import { StopNodeQueueModule } from './stop-node/stop-node.module';
-import { UserJobsQueueModule } from './user-jobs/user-jobs.module';
+import { SquadsQueueModule } from './_squads/squads-queue.module';
+import { NodesQueuesModule } from './_nodes/nodes-queues.module';
+import { UsersQueuesModule } from './_users/users-queues.module';
 import { ServiceQueueModule } from './service/service.module';
 
 const queueModules = [
-    StartAllNodesByProfileQueueModule,
-    StartAllNodesQueueModule,
+    NodesQueuesModule,
+    UsersQueuesModule,
+    PushFromRedisQueueModule,
+    SquadsQueueModule,
 
-    StartNodeQueueModule,
-    StopNodeQueueModule,
-    NodeHealthCheckQueueModule,
-    NodeUsersQueueModule,
-    RecordNodeUsageQueueModule,
-    RecordUserUsageQueueModule,
-    ResetUserTrafficQueueModule,
-    UserJobsQueueModule,
-    BulkUserOperationsQueueModule,
-    ExpireUserNotificationsQueueModule,
-    UpdateUsersUsageQueueModule,
-    FirstConnectedUsersQueueModule,
-    UserActionsQueueModule,
     ServiceQueueModule,
-    InternalSquadActionsQueueModule,
-    ExternalSquadActionsQueueModule,
-    UserSubscriptionRequestHistoryQueueModule,
 
     ...NOTIFICATIONS_MODULES,
 ];
@@ -100,18 +73,24 @@ const bullBoard = [
     imports: [
         BullModule.forRootAsync({
             imports: [ConfigModule],
-            useFactory: (configService: ConfigService) => ({
-                connection: {
-                    host: configService.getOrThrow<string>('REDIS_HOST'),
-                    port: configService.getOrThrow<number>('REDIS_PORT'),
-                    db: configService.getOrThrow<number>('REDIS_DB'),
-                    password: configService.get<string | undefined>('REDIS_PASSWORD'),
-                },
-                defaultJobOptions: {
-                    removeOnComplete: 500,
-                    removeOnFail: 500,
-                },
-            }),
+            useFactory: (configService: ConfigService) => {
+                return {
+                    connection: {
+                        ...getRedisConnectionOptions(
+                            configService.get<string>('REDIS_SOCKET'),
+                            configService.get<string>('REDIS_HOST'),
+                            configService.get<number>('REDIS_PORT'),
+                            'ioredis',
+                        ),
+                        db: configService.getOrThrow<number>('REDIS_DB'),
+                        password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                    },
+                    defaultJobOptions: {
+                        removeOnComplete: 500,
+                        removeOnFail: 500,
+                    },
+                };
+            },
             inject: [ConfigService],
         }),
 

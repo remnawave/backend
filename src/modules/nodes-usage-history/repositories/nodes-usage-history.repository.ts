@@ -10,9 +10,7 @@ import { IGet7DaysStats, IGetNodesUsageByRange } from '../interfaces';
 import { Get7DaysStatsBuilder } from '../builders';
 
 @Injectable()
-export class NodesUsageHistoryRepository
-    implements ICrudHistoricalRecords<NodesUsageHistoryEntity>
-{
+export class NodesUsageHistoryRepository implements ICrudHistoricalRecords<NodesUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: NodesUsageHistoryConverter,
@@ -96,5 +94,17 @@ export class NodesUsageHistoryRepository
             GROUP BY n.uuid, n.name, n.country_code, DATE_TRUNC('day', h."created_at")
             ORDER BY "date" ASC
         `;
+    }
+
+    public async getSumLifetime(): Promise<string> {
+        const result = await this.prisma.tx.nodesUsageHistory.aggregate({
+            _sum: { totalBytes: true },
+        });
+
+        if (!result._sum.totalBytes) {
+            return '0';
+        }
+
+        return result._sum.totalBytes.toString();
     }
 }

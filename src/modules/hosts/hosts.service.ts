@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
+import { GetSubscriptionTemplateByUuidQuery } from '@modules/subscription-template/queries/get-template-by-uuid';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 import { ReorderHostRequestDto } from '@modules/hosts/dtos/reorder-hosts.dto';
 
@@ -21,8 +22,22 @@ export class HostsService {
         private readonly queryBus: QueryBus,
     ) {}
 
-    public async createHost(dto: CreateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
+    public async createHost(dto: CreateHostRequestDto): Promise<TResult<HostsEntity>> {
         try {
+            if (dto.xrayJsonTemplateUuid) {
+                const xrayJsonTemplate = await this.queryBus.execute(
+                    new GetSubscriptionTemplateByUuidQuery(dto.xrayJsonTemplateUuid),
+                );
+
+                if (!xrayJsonTemplate.isOk) {
+                    return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
+                }
+
+                if (xrayJsonTemplate.response.templateType !== 'XRAY_JSON') {
+                    return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
+                }
+            }
+
             let xHttpExtraParams: null | object | undefined;
             if (dto.xHttpExtraParams !== undefined && dto.xHttpExtraParams !== null) {
                 xHttpExtraParams = dto.xHttpExtraParams;
@@ -67,28 +82,21 @@ export class HostsService {
                 serverDescription = undefined;
             }
 
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const configProfile = await this.queryBus.execute(
                 new GetConfigProfileByUuidQuery(inboundObj.configProfileUuid),
             );
 
-            if (!configProfile.isOk || !configProfile.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+            if (!configProfile.isOk) {
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const configProfileInbound = configProfile.response.inbounds.find(
                 (inbound) => inbound.uuid === inboundObj.configProfileInboundUuid,
             );
-
             if (!configProfileInbound) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
             }
 
             const hostEntity = new HostsEntity({
@@ -113,27 +121,45 @@ export class HostsService {
                 });
             }
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            if (excludedInternalSquads !== undefined && excludedInternalSquads.length > 0) {
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    result.uuid,
+                    excludedInternalSquads,
+                );
+                result.excludedInternalSquads = excludedInternalSquads.map((squad) => {
+                    return {
+                        squadUuid: squad,
+                    };
+                });
+            }
+
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
 
-            return { isOk: false, ...ERRORS.CREATE_HOST_ERROR };
+            return fail(ERRORS.CREATE_HOST_ERROR);
         }
     }
 
-    public async updateHost(dto: UpdateHostRequestDto): Promise<ICommandResponse<HostsEntity>> {
+    public async updateHost(dto: UpdateHostRequestDto): Promise<TResult<HostsEntity>> {
         try {
-            const { inbound: inboundObj, nodes, ...rest } = dto;
+            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
 
             const host = await this.hostsRepository.findByUUID(dto.uuid);
-            if (!host) {
-                return {
-                    isOk: false,
-                    ...ERRORS.HOST_NOT_FOUND,
-                };
+            if (!host) return fail(ERRORS.HOST_NOT_FOUND);
+
+            if (dto.xrayJsonTemplateUuid) {
+                const xrayJsonTemplate = await this.queryBus.execute(
+                    new GetSubscriptionTemplateByUuidQuery(dto.xrayJsonTemplateUuid),
+                );
+
+                if (!xrayJsonTemplate.isOk) {
+                    return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
+                }
+
+                if (xrayJsonTemplate.response.templateType !== 'XRAY_JSON') {
+                    return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
+                }
             }
 
             let xHttpExtraParams: null | object | undefined;
@@ -187,11 +213,8 @@ export class HostsService {
                     new GetConfigProfileByUuidQuery(inboundObj.configProfileUuid),
                 );
 
-                if (!configProfile.isOk || !configProfile.response) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                    };
+                if (!configProfile.isOk) {
+                    return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
                 }
 
                 const configProfileInbound = configProfile.response.inbounds.find(
@@ -199,10 +222,7 @@ export class HostsService {
                 );
 
                 if (!configProfileInbound) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                    };
+                    return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
                 }
 
                 configProfileUuid = configProfile.response.uuid;
@@ -212,6 +232,14 @@ export class HostsService {
             if (nodes !== undefined) {
                 await this.hostsRepository.clearNodesFromHost(host.uuid);
                 await this.hostsRepository.addNodesToHost(host.uuid, nodes);
+            }
+
+            if (excludedInternalSquads !== undefined) {
+                await this.hostsRepository.clearExcludedInternalSquadsFromHost(host.uuid);
+                await this.hostsRepository.addExcludedInternalSquadsToHost(
+                    host.uuid,
+                    excludedInternalSquads,
+                );
             }
 
             const result = await this.hostsRepository.update({
@@ -225,141 +253,119 @@ export class HostsService {
                 serverDescription,
             });
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
 
-            return { isOk: false, ...ERRORS.UPDATE_HOST_ERROR };
+            return fail(ERRORS.UPDATE_HOST_ERROR);
         }
     }
 
-    public async deleteHost(hostUuid: string): Promise<ICommandResponse<DeleteHostResponseModel>> {
+    public async deleteHost(hostUuid: string): Promise<TResult<DeleteHostResponseModel>> {
         try {
             const host = await this.hostsRepository.findByUUID(hostUuid);
             if (!host) {
-                return {
-                    isOk: false,
-                    ...ERRORS.HOST_NOT_FOUND,
-                };
+                return fail(ERRORS.HOST_NOT_FOUND);
             }
             const result = await this.hostsRepository.deleteByUUID(host.uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteHostResponseModel({
-                    isDeleted: result,
-                }),
-            };
+            return ok(new DeleteHostResponseModel({ isDeleted: result }));
         } catch (error) {
             this.logger.error(error);
             this.logger.error(JSON.stringify(error));
-            return { isOk: false, ...ERRORS.DELETE_HOST_ERROR };
+            return fail(ERRORS.DELETE_HOST_ERROR);
         }
     }
 
-    public async getAllHosts(): Promise<ICommandResponse<HostsEntity[]>> {
+    public async getAllHosts(): Promise<TResult<HostsEntity[]>> {
         try {
             const result = await this.hostsRepository.findAll();
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return { isOk: false, ...ERRORS.GET_ALL_HOSTS_ERROR };
+            return fail(ERRORS.GET_ALL_HOSTS_ERROR);
         }
     }
 
-    public async getOneHost(hostUuid: string): Promise<ICommandResponse<HostsEntity>> {
+    public async getOneHost(hostUuid: string): Promise<TResult<HostsEntity>> {
         try {
             const result = await this.hostsRepository.findByUUID(hostUuid);
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.HOST_NOT_FOUND,
-                };
+                return fail(ERRORS.HOST_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GET_ONE_HOST_ERROR };
+            return fail(ERRORS.GET_ONE_HOST_ERROR);
         }
     }
 
     public async reorderHosts(dto: ReorderHostRequestDto): Promise<
-        ICommandResponse<{
+        TResult<{
             isUpdated: boolean;
         }>
     > {
         try {
             const result = await this.hostsRepository.reorderMany(dto.hosts);
 
-            return {
-                isOk: true,
-                response: {
-                    isUpdated: result,
-                },
-            };
+            return ok({ isUpdated: result });
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.REORDER_HOSTS_ERROR };
+            return fail(ERRORS.REORDER_HOSTS_ERROR);
         }
     }
 
-    public async deleteHosts(uuids: string[]): Promise<ICommandResponse<HostsEntity[]>> {
+    public async deleteHosts(uuids: string[]): Promise<TResult<HostsEntity[]>> {
         try {
             await this.hostsRepository.deleteMany(uuids);
 
             const result = await this.getAllHosts();
 
-            return {
-                isOk: true,
-                response: result.response,
-            };
+            if (!result.isOk) {
+                return fail(ERRORS.DELETE_HOSTS_ERROR);
+            }
+
+            return ok(result.response);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.DELETE_HOSTS_ERROR };
+            return fail(ERRORS.DELETE_HOSTS_ERROR);
         }
     }
 
-    public async bulkEnableHosts(uuids: string[]): Promise<ICommandResponse<HostsEntity[]>> {
+    public async bulkEnableHosts(uuids: string[]): Promise<TResult<HostsEntity[]>> {
         try {
             await this.hostsRepository.enableMany(uuids);
 
             const result = await this.getAllHosts();
 
-            return {
-                isOk: true,
-                response: result.response,
-            };
+            if (!result.isOk) {
+                return fail(ERRORS.BULK_ENABLE_HOSTS_ERROR);
+            }
+
+            return ok(result.response);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.BULK_ENABLE_HOSTS_ERROR };
+            return fail(ERRORS.BULK_ENABLE_HOSTS_ERROR);
         }
     }
 
-    public async bulkDisableHosts(uuids: string[]): Promise<ICommandResponse<HostsEntity[]>> {
+    public async bulkDisableHosts(uuids: string[]): Promise<TResult<HostsEntity[]>> {
         try {
             await this.hostsRepository.disableMany(uuids);
 
             const result = await this.getAllHosts();
 
-            return {
-                isOk: true,
-                response: result.response,
-            };
+            if (!result.isOk) {
+                return fail(ERRORS.BULK_DISABLE_HOSTS_ERROR);
+            }
+
+            return ok(result.response);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.BULK_DISABLE_HOSTS_ERROR };
+            return fail(ERRORS.BULK_DISABLE_HOSTS_ERROR);
         }
     }
 
@@ -367,17 +373,14 @@ export class HostsService {
         uuids: string[],
         configProfileUuid: string,
         configProfileInboundUuid: string,
-    ): Promise<ICommandResponse<HostsEntity[]>> {
+    ): Promise<TResult<HostsEntity[]>> {
         try {
             const configProfile = await this.queryBus.execute(
                 new GetConfigProfileByUuidQuery(configProfileUuid),
             );
 
-            if (!configProfile.isOk || !configProfile.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_NOT_FOUND,
-                };
+            if (!configProfile.isOk) {
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
             }
 
             const configProfileInbound = configProfile.response.inbounds.find(
@@ -385,10 +388,7 @@ export class HostsService {
             );
 
             if (!configProfileInbound) {
-                return {
-                    isOk: false,
-                    ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                };
+                return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
             }
 
             await this.hostsRepository.setInboundToManyHosts(
@@ -399,43 +399,46 @@ export class HostsService {
 
             const result = await this.getAllHosts();
 
-            return {
-                isOk: true,
-                response: result.response,
-            };
+            if (!result.isOk) {
+                return fail(ERRORS.SET_INBOUND_TO_HOSTS_ERROR);
+            }
+
+            if (!result.isOk) {
+                return fail(ERRORS.SET_INBOUND_TO_HOSTS_ERROR);
+            }
+
+            return ok(result.response);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.SET_INBOUND_TO_HOSTS_ERROR };
+            return fail(ERRORS.SET_INBOUND_TO_HOSTS_ERROR);
         }
     }
 
-    public async setPortToHosts(
-        uuids: string[],
-        port: number,
-    ): Promise<ICommandResponse<HostsEntity[]>> {
+    public async setPortToHosts(uuids: string[], port: number): Promise<TResult<HostsEntity[]>> {
         try {
             await this.hostsRepository.setPortToManyHosts(uuids, port);
 
             const result = await this.getAllHosts();
 
-            return {
-                isOk: true,
-                response: result.response,
-            };
+            if (!result.isOk) {
+                return fail(ERRORS.SET_PORT_TO_HOSTS_ERROR);
+            }
+
+            return ok(result.response);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.SET_PORT_TO_HOSTS_ERROR };
+            return fail(ERRORS.SET_PORT_TO_HOSTS_ERROR);
         }
     }
 
-    public async getAllHostTags(): Promise<ICommandResponse<string[]>> {
+    public async getAllHostTags(): Promise<TResult<string[]>> {
         try {
             const result = await this.hostsRepository.getAllHostTags();
 
-            return { isOk: true, response: result };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.GET_ALL_HOST_TAGS_ERROR };
+            return fail(ERRORS.GET_ALL_HOST_TAGS_ERROR);
         }
     }
 }

@@ -1,13 +1,12 @@
 import { Prisma } from '@prisma/client';
 
-import { StartAllNodesQueueService } from 'src/queue/start-all-nodes/start-all-nodes.service';
 import { ERRORS, EVENTS } from '@contract/constants';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { toNano } from '@common/utils/nano';
 import { wrapBigInt } from '@common/utils';
 
@@ -17,15 +16,19 @@ import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usa
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 
-import { StartNodeQueueService } from '@queue/start-node/start-node.service';
-import { StopNodeQueueService } from '@queue/stop-node/stop-node.service';
+import { NodesQueuesService } from '@queue/_nodes';
 
+import {
+    CreateNodeRequestDto,
+    ProfileModificationRequestDto,
+    ReorderNodeRequestDto,
+    UpdateNodeRequestDto,
+} from './dtos';
 import {
     BaseEventResponseModel,
     DeleteNodeResponseModel,
     RestartNodeResponseModel,
 } from './models';
-import { CreateNodeRequestDto, ReorderNodeRequestDto, UpdateNodeRequestDto } from './dtos';
 import { NodesRepository } from './repositories/nodes.repository';
 import { NodesEntity } from './entities';
 
@@ -36,14 +39,12 @@ export class NodesService {
     constructor(
         private readonly nodesRepository: NodesRepository,
         private readonly eventEmitter: EventEmitter2,
-        private readonly startAllNodesQueue: StartAllNodesQueueService,
-        private readonly startNodeQueue: StartNodeQueueService,
-        private readonly stopNodeQueue: StopNodeQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
     ) {}
 
-    public async createNode(body: CreateNodeRequestDto): Promise<ICommandResponse<NodesEntity>> {
+    public async createNode(body: CreateNodeRequestDto): Promise<TResult<NodesEntity>> {
         try {
             const { configProfile, ...nodeData } = body;
 
@@ -53,8 +54,6 @@ export class NodesService {
                 isConnected: false,
                 isConnecting: false,
                 isDisabled: false,
-                isNodeOnline: false,
-                isXrayRunning: false,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: nodeData.consumptionMultiplier
                     ? toNano(nodeData.consumptionMultiplier)
@@ -69,7 +68,7 @@ export class NodesService {
                     new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
                 );
 
-                if (configProfileResponse.isOk && configProfileResponse.response) {
+                if (configProfileResponse.isOk) {
                     const inbounds = configProfileResponse.response.inbounds;
 
                     const areAllInboundsFromConfigProfile = configProfile.activeInbounds.every(
@@ -83,10 +82,7 @@ export class NodesService {
                             configProfile.activeInbounds,
                         );
                     } else {
-                        return {
-                            isOk: false,
-                            ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                        };
+                        return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
                     }
                 }
             }
@@ -97,16 +93,13 @@ export class NodesService {
                 throw new Error('Node not found');
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: node.uuid,
             });
 
             this.eventEmitter.emit(EVENTS.NODE.CREATED, new NodeEvent(node, EVENTS.NODE.CREATED));
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
             if (
@@ -117,80 +110,56 @@ export class NodesService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.NODE_NAME_ALREADY_EXISTS };
+                    return fail(ERRORS.NODE_NAME_ALREADY_EXISTS);
                 }
                 if (fields.includes('address')) {
-                    return { isOk: false, ...ERRORS.NODE_ADDRESS_ALREADY_EXISTS };
+                    return fail(ERRORS.NODE_ADDRESS_ALREADY_EXISTS);
                 }
             }
 
-            return { isOk: false, ...ERRORS.CREATE_NODE_ERROR };
+            return fail(ERRORS.CREATE_NODE_ERROR);
         }
     }
 
-    public async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
+    public async getAllNodes(): Promise<TResult<NodesEntity[]>> {
         try {
-            return {
-                isOk: true,
-                response: await this.nodesRepository.findByCriteria({}),
-            };
+            return ok(await this.nodesRepository.findByCriteria({}));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_NODES_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_NODES_ERROR);
         }
     }
 
-    public async restartNode(uuid: string): Promise<ICommandResponse<RestartNodeResponseModel>> {
+    public async restartNode(uuid: string): Promise<TResult<RestartNodeResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (node.isDisabled) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_IS_DISABLED,
-                };
+                return fail(ERRORS.NODE_IS_DISABLED);
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: node.uuid,
             });
 
-            return {
-                isOk: true,
-                response: new RestartNodeResponseModel(true),
-            };
+            return ok(new RestartNodeResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESTART_NODE_ERROR,
-            };
+            return fail(ERRORS.RESTART_NODE_ERROR);
         }
     }
 
-    public async resetNodeTraffic(uuid: string): Promise<ICommandResponse<BaseEventResponseModel>> {
+    public async resetNodeTraffic(uuid: string): Promise<TResult<BaseEventResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
-            await this.commandBus.execute<
-                CreateNodeTrafficUsageHistoryCommand,
-                ICommandResponse<NodesTrafficUsageHistoryEntity>
-            >(
+            await this.commandBus.execute(
                 new CreateNodeTrafficUsageHistoryCommand(
                     new NodesTrafficUsageHistoryEntity({
                         nodeUuid: node.uuid,
@@ -205,116 +174,78 @@ export class NodesService {
                 trafficUsedBytes: BigInt(0),
             });
 
-            return {
-                isOk: true,
-                response: new BaseEventResponseModel(true),
-            };
+            return ok(new BaseEventResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESET_NODE_TRAFFIC_ERROR,
-            };
+            return fail(ERRORS.RESET_NODE_TRAFFIC_ERROR);
         }
     }
 
     public async restartAllNodes(
         forceRestart?: boolean,
-    ): Promise<ICommandResponse<RestartNodeResponseModel>> {
+    ): Promise<TResult<RestartNodeResponseModel>> {
         try {
             const nodes = await this.nodesRepository.findByCriteria({
                 isDisabled: false,
             });
             if (nodes.length === 0) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ENABLED_NODES_NOT_FOUND,
-                };
+                return fail(ERRORS.ENABLED_NODES_NOT_FOUND);
             }
 
-            await this.startAllNodesQueue.startAllNodes({
+            await this.nodesQueuesService.startAllNodes({
                 emitter: NodesService.name,
                 force: forceRestart ?? false,
             });
 
-            return {
-                isOk: true,
-                response: new RestartNodeResponseModel(true),
-            };
+            return ok(new RestartNodeResponseModel(true));
         } catch (error) {
             this.logger.error(JSON.stringify(error));
-            return {
-                isOk: false,
-                ...ERRORS.RESTART_NODE_ERROR,
-            };
+            return fail(ERRORS.RESTART_NODE_ERROR);
         }
     }
 
-    public async getOneNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async getOneNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: node,
-            };
+            return ok(node);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ONE_NODE_ERROR,
-            };
+            return fail(ERRORS.GET_ONE_NODE_ERROR);
         }
     }
 
-    public async deleteNode(uuid: string): Promise<ICommandResponse<DeleteNodeResponseModel>> {
+    public async deleteNode(uuid: string): Promise<TResult<DeleteNodeResponseModel>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
-            await this.stopNodeQueue.stopNode({
+            await this.nodesQueuesService.stopNode({
                 nodeUuid: node.uuid,
                 isNeedToBeDeleted: true,
             });
 
             this.eventEmitter.emit(EVENTS.NODE.DELETED, new NodeEvent(node, EVENTS.NODE.DELETED));
 
-            return {
-                isOk: true,
-                response: new DeleteNodeResponseModel({
-                    isDeleted: true,
-                }),
-            };
+            return ok(new DeleteNodeResponseModel({ isDeleted: true }));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_NODE_ERROR,
-            };
+            return fail(ERRORS.DELETE_NODE_ERROR);
         }
     }
 
-    public async updateNode(body: UpdateNodeRequestDto): Promise<ICommandResponse<NodesEntity>> {
+    public async updateNode(body: UpdateNodeRequestDto): Promise<TResult<NodesEntity>> {
         try {
             const { configProfile, ...nodeData } = body;
 
             const node = await this.nodesRepository.findByUUID(body.uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (configProfile) {
@@ -322,7 +253,7 @@ export class NodesService {
                     new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
                 );
 
-                if (configProfileResponse.isOk && configProfileResponse.response) {
+                if (configProfileResponse.isOk) {
                     const inbounds = configProfileResponse.response.inbounds;
 
                     const areAllInboundsFromConfigProfile = configProfile.activeInbounds.every(
@@ -338,10 +269,7 @@ export class NodesService {
                             configProfile.activeInbounds,
                         );
                     } else {
-                        return {
-                            isOk: false,
-                            ...ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE,
-                        };
+                        return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
                     }
                 }
             }
@@ -357,14 +285,11 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.UPDATE_NODE_ERROR,
-                };
+                return fail(ERRORS.UPDATE_NODE_ERROR);
             }
 
             if (!node.isDisabled) {
-                await this.startNodeQueue.startNode({
+                await this.nodesQueuesService.startNode({
                     nodeUuid: result.uuid,
                 });
             }
@@ -374,27 +299,18 @@ export class NodesService {
                 new NodeEvent(result, EVENTS.NODE.MODIFIED),
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
-    public async enableNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async enableNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (!node.activeConfigProfileUuid || node.activeInbounds.length === 0) {
@@ -403,8 +319,6 @@ export class NodesService {
                     isDisabled: true,
                     activeConfigProfileUuid: null,
                     isConnecting: false,
-                    isXrayRunning: false,
-                    isNodeOnline: false,
                     isConnected: false,
                     lastStatusMessage: null,
                     lastStatusChange: new Date(),
@@ -412,16 +326,10 @@ export class NodesService {
                 });
 
                 if (!result) {
-                    return {
-                        isOk: false,
-                        ...ERRORS.ENABLE_NODE_ERROR,
-                    };
+                    return fail(ERRORS.ENABLE_NODE_ERROR);
                 }
 
-                return {
-                    isOk: true,
-                    response: result,
-                };
+                return ok(result);
             }
 
             const result = await this.nodesRepository.update({
@@ -430,39 +338,27 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.ENABLE_NODE_ERROR,
-                };
+                return fail(ERRORS.ENABLE_NODE_ERROR);
             }
 
-            await this.startNodeQueue.startNode({
+            await this.nodesQueuesService.startNode({
                 nodeUuid: result.uuid,
             });
 
             this.eventEmitter.emit(EVENTS.NODE.ENABLED, new NodeEvent(result, EVENTS.NODE.ENABLED));
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
-    public async disableNode(uuid: string): Promise<ICommandResponse<NodesEntity>> {
+    public async disableNode(uuid: string): Promise<TResult<NodesEntity>> {
         try {
             const node = await this.nodesRepository.findByUUID(uuid);
             if (!node) {
-                return {
-                    isOk: false,
-                    ...ERRORS.NODE_NOT_FOUND,
-                };
+                return fail(ERRORS.NODE_NOT_FOUND);
             }
 
             if (!node.activeConfigProfileUuid || node.activeInbounds.length === 0) {
@@ -476,8 +372,6 @@ export class NodesService {
                 uuid: node.uuid,
                 isDisabled: true,
                 isConnecting: false,
-                isXrayRunning: false,
-                isNodeOnline: false,
                 isConnected: false,
                 lastStatusMessage: null,
                 lastStatusChange: new Date(),
@@ -485,13 +379,10 @@ export class NodesService {
             });
 
             if (!result) {
-                return {
-                    isOk: false,
-                    ...ERRORS.DISABLE_NODE_ERROR,
-                };
+                return fail(ERRORS.DISABLE_NODE_ERROR);
             }
 
-            await this.stopNodeQueue.stopNode({
+            await this.nodesQueuesService.stopNode({
                 nodeUuid: result.uuid,
                 isNeedToBeDeleted: false,
             });
@@ -501,32 +392,71 @@ export class NodesService {
                 new NodeEvent(result, EVENTS.NODE.DISABLED),
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.ENABLE_NODE_ERROR,
-            };
+            return fail(ERRORS.ENABLE_NODE_ERROR);
         }
     }
 
-    public async reorderNodes(
-        dto: ReorderNodeRequestDto,
-    ): Promise<ICommandResponse<NodesEntity[]>> {
+    public async reorderNodes(dto: ReorderNodeRequestDto): Promise<TResult<NodesEntity[]>> {
         try {
             await this.nodesRepository.reorderMany(dto.nodes);
 
-            return {
-                isOk: true,
-                response: await this.nodesRepository.findByCriteria({}),
-            };
+            return ok(await this.nodesRepository.findByCriteria({}));
         } catch (error) {
             this.logger.error(error);
-            return { isOk: false, ...ERRORS.REORDER_NODES_ERROR };
+            return fail(ERRORS.REORDER_NODES_ERROR);
+        }
+    }
+
+    public async getAllNodesTags(): Promise<TResult<string[]>> {
+        try {
+            return ok(await this.nodesRepository.findAllTags());
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async profileModification(
+        body: ProfileModificationRequestDto,
+    ): Promise<TResult<BaseEventResponseModel>> {
+        try {
+            const { uuids, configProfile } = body;
+
+            const configProfileResponse = await this.queryBus.execute(
+                new GetConfigProfileByUuidQuery(configProfile.activeConfigProfileUuid),
+            );
+
+            if (!configProfileResponse.isOk) {
+                return fail(ERRORS.CONFIG_PROFILE_NOT_FOUND);
+            }
+
+            const inbounds = configProfileResponse.response.inbounds;
+
+            const allActiveInboundsExistInProfile = configProfile.activeInbounds.every(
+                (activeInboundUuid) =>
+                    inbounds.some((inbound) => inbound.uuid === activeInboundUuid),
+            );
+
+            if (!allActiveInboundsExistInProfile) {
+                return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
+            }
+
+            await this.nodesRepository.removeInboundsFromNodes(uuids);
+
+            await this.nodesRepository.addInboundsToNodes(uuids, configProfile.activeInbounds);
+
+            await this.nodesQueuesService.startAllNodesByProfile({
+                profileUuid: configProfile.activeConfigProfileUuid,
+                emitter: 'bulkProfileModification',
+            }); // no need to restart all nodes
+
+            return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

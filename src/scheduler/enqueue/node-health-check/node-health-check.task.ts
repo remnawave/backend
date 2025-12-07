@@ -2,13 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { GetEnabledNodesPartialQuery } from '@modules/nodes/queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
 
-import { GetEnabledNodesQuery } from '@modules/nodes/queries/get-enabled-nodes';
-import { NodesEntity } from '@modules/nodes';
-
-import { NodeHealthCheckQueueService } from '@queue/node-health-check/node-health-check.service';
-import { StartAllNodesQueueService } from '@queue/start-all-nodes/start-all-nodes.service';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { JOBS_INTERVALS } from '../../intervals';
 
@@ -21,8 +17,7 @@ export class NodeHealthCheckTask {
     private isNodesRestarted: boolean;
     constructor(
         private readonly queryBus: QueryBus,
-        private readonly startAllNodesQueueService: StartAllNodesQueueService,
-        private readonly nodeHealthCheckQueueService: NodeHealthCheckQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {
         this.cronName = NodeHealthCheckTask.CRON_NAME;
         this.isNodesRestarted = false;
@@ -38,29 +33,27 @@ export class NodeHealthCheckTask {
                 this.isNodesRestarted = true;
                 this.logger.log('Restarting all nodes on application start.');
 
-                await this.startAllNodesQueueService.startAllNodes({
+                await this.nodesQueuesService.startAllNodes({
                     emitter: this.cronName,
                 });
 
                 return;
             }
 
-            const nodesResponse = await this.getEnabledNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            const nodesResponse = await this.queryBus.execute(new GetEnabledNodesPartialQuery());
+            if (!nodesResponse.isOk) {
                 return;
             }
 
-            await this.nodeHealthCheckQueueService.checkNodeHealthBulk(nodesResponse.response);
+            if (nodesResponse.response.length === 0) {
+                return;
+            }
+
+            await this.nodesQueuesService.checkNodeHealthBulk(nodesResponse.response);
 
             return;
         } catch (error) {
             this.logger.error(`Error in NodeHealthCheckService: ${error}`);
         }
-    }
-
-    private async getEnabledNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetEnabledNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetEnabledNodesQuery(),
-        );
     }
 }

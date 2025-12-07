@@ -4,7 +4,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usage-history/commands/create-node-traffic-usage-history';
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
@@ -31,7 +31,7 @@ export class ResetNodeTrafficTask {
     async handleCron() {
         try {
             const nodesResponse = await this.getAllNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            if (!nodesResponse.isOk) {
                 return;
             }
 
@@ -56,16 +56,14 @@ export class ResetNodeTrafficTask {
                         resetAt: today.toDate(),
                     });
 
-                    await this.createNodeTrafficUsageHistory({
-                        nodeTrafficUsageHistory: entity,
-                    });
+                    await this.commandBus.execute(new CreateNodeTrafficUsageHistoryCommand(entity));
 
-                    await this.updateNode({
-                        node: {
+                    await this.commandBus.execute(
+                        new UpdateNodeCommand({
                             uuid: node.uuid,
                             trafficUsedBytes: BigInt(0),
-                        },
-                    });
+                        }),
+                    );
                 }
             }
         } catch (error) {
@@ -73,24 +71,9 @@ export class ResetNodeTrafficTask {
         }
     }
 
-    private async getAllNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetAllNodesQuery, ICommandResponse<NodesEntity[]>>(
+    private async getAllNodes(): Promise<TResult<NodesEntity[]>> {
+        return this.queryBus.execute<GetAllNodesQuery, TResult<NodesEntity[]>>(
             new GetAllNodesQuery(),
         );
-    }
-
-    private async updateNode(dto: UpdateNodeCommand): Promise<ICommandResponse<NodesEntity>> {
-        return this.commandBus.execute<UpdateNodeCommand, ICommandResponse<NodesEntity>>(
-            new UpdateNodeCommand(dto.node),
-        );
-    }
-
-    private async createNodeTrafficUsageHistory(
-        dto: CreateNodeTrafficUsageHistoryCommand,
-    ): Promise<ICommandResponse<NodesTrafficUsageHistoryEntity>> {
-        return this.commandBus.execute<
-            CreateNodeTrafficUsageHistoryCommand,
-            ICommandResponse<NodesTrafficUsageHistoryEntity>
-        >(new CreateNodeTrafficUsageHistoryCommand(dto.nodeTrafficUsageHistory));
     }
 }

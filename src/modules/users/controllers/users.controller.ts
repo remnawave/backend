@@ -25,6 +25,7 @@ import {
     GetAllUsersCommand,
     GetUserAccessibleNodesCommand,
     GetUserByEmailCommand,
+    GetUserByIdCommand,
     GetUserByShortUuidCommand,
     GetUserByTagCommand,
     GetUserByTelegramIdCommand,
@@ -52,6 +53,8 @@ import {
     GetAllUsersResponseDto,
     GetUserAccessibleNodesRequestDto,
     GetUserAccessibleNodesResponseDto,
+    GetUserByIdRequestDto,
+    GetUserByIdResponseDto,
     GetUserByShortUuidRequestDto,
     GetUserByShortUuidResponseDto,
     GetUserByTagRequestDto,
@@ -71,16 +74,14 @@ import {
     UpdateUserResponseDto,
 } from '../dtos';
 import {
-    CreateUserResponseModel,
-    GetAllTagsResponseModel,
-    GetAllUsersResponseModel,
-    GetFullUserResponseModel,
-    GetUserResponseModel,
-} from '../models';
-import {
     GetUserByTelegramIdRequestDto,
     GetUserByTelegramIdResponseDto,
 } from '../dtos/get-user-by-telegram-id.dto';
+import {
+    GetAllTagsResponseModel,
+    GetAllUsersResponseModel,
+    GetFullUserResponseModel,
+} from '../models';
 import { GetUserByEmailResponseDto } from '../dtos/get-user-by-email.dto';
 import { GetUserByEmailRequestDto } from '../dtos/get-user-by-email.dto';
 import { UsersService } from '../users.service';
@@ -114,7 +115,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new CreateUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -132,7 +133,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -355,8 +356,33 @@ export class UsersController {
     }
 
     @ApiNotFoundResponse({
-        description: 'Users not found',
+        description: 'User not found',
     })
+    @ApiOkResponse({
+        type: GetUserByIdResponseDto,
+        description: 'User fetched successfully',
+    })
+    @ApiParam({
+        name: 'id',
+        type: String,
+        description: 'ID of the user',
+        required: true,
+    })
+    @Endpoint({
+        command: GetUserByIdCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getUserById(@Param() paramData: GetUserByIdRequestDto): Promise<GetUserByIdResponseDto> {
+        const result = await this.usersService.getUserByUniqueFields({
+            tId: paramData.id,
+        });
+
+        const data = errorHandler(result);
+        return {
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
+        };
+    }
+
     @ApiOkResponse({
         type: GetUserByTelegramIdResponseDto,
         description: 'Users fetched successfully',
@@ -384,9 +410,6 @@ export class UsersController {
         };
     }
 
-    @ApiNotFoundResponse({
-        description: 'Users not found',
-    })
     @ApiOkResponse({
         type: GetUserByEmailResponseDto,
         description: 'Users fetched successfully',
@@ -414,9 +437,6 @@ export class UsersController {
         };
     }
 
-    @ApiNotFoundResponse({
-        description: 'Users not found',
-    })
     @ApiOkResponse({
         type: GetUserByTagResponseDto,
         description: 'Users fetched successfully',
@@ -474,7 +494,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -495,7 +515,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -516,7 +536,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 
@@ -539,7 +559,7 @@ export class UsersController {
 
         const data = errorHandler(result);
         return {
-            response: new GetUserResponseModel(data, this.subPublicDomain),
+            response: new GetFullUserResponseModel(data, this.subPublicDomain),
         };
     }
 }

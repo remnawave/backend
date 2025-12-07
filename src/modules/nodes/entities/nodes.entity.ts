@@ -6,6 +6,7 @@ import { InfraProviderEntity } from '@modules/infra-billing/entities';
 import { INodesWithResolvedInbounds } from '../repositories/nodes.repository';
 
 export class NodesEntity implements Nodes {
+    public id: bigint;
     public uuid: string;
     public name: string;
     public address: string;
@@ -13,8 +14,6 @@ export class NodesEntity implements Nodes {
     public isConnected: boolean;
     public isConnecting: boolean;
     public isDisabled: boolean;
-    public isNodeOnline: boolean;
-    public isXrayRunning: boolean;
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
 
@@ -32,6 +31,7 @@ export class NodesEntity implements Nodes {
 
     public viewPosition: number;
     public countryCode: string;
+    public tags: string[];
     public consumptionMultiplier: bigint;
 
     public cpuCount: null | number;

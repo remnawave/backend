@@ -25,6 +25,7 @@ export class HostsEntity implements Hosts {
     isHidden: boolean;
 
     overrideSniFromAddress: boolean;
+    keepSniBlank: boolean;
     vlessRouteId: number | null;
     shuffleHost: boolean;
     mihomoX25519: boolean;
@@ -32,8 +33,14 @@ export class HostsEntity implements Hosts {
     configProfileUuid: string | null;
     configProfileInboundUuid: string | null;
 
+    xrayJsonTemplateUuid: string | null;
+
     nodes: {
         nodeUuid: string;
+    }[];
+
+    excludedInternalSquads: {
+        squadUuid: string;
     }[];
 
     constructor(data: Partial<Hosts>) {

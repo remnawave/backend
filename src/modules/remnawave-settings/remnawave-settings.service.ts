@@ -5,7 +5,7 @@ import isEmail from 'validator/lib/isEmail';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
 import { RemnawaveSettingsRepository } from './repositories/remnawave-settings.repository';
@@ -20,26 +20,20 @@ export class RemnawaveSettingsService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
-    public async getSettingsFromController(): Promise<ICommandResponse<RemnawaveSettingsEntity>> {
+    public async getSettingsFromController(): Promise<TResult<RemnawaveSettingsEntity>> {
         try {
             const settings = await this.getSettings();
 
-            return {
-                isOk: true,
-                response: settings,
-            };
+            return ok(settings);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_REMNAAWAVE_SETTINGS_ERROR,
-            };
+            return fail(ERRORS.GET_REMNAAWAVE_SETTINGS_ERROR);
         }
     }
 
     public async updateSettingsFromController(
         body: UpdateRemnawaveSettingsRequestDto,
-    ): Promise<ICommandResponse<RemnawaveSettingsEntity>> {
+    ): Promise<TResult<RemnawaveSettingsEntity>> {
         try {
             const settings = await this.remnawaveSettingsRepository.getSettings();
 
@@ -51,12 +45,9 @@ export class RemnawaveSettingsService {
             const validationResult = await this.validateSettings(mergeSettings);
 
             if (!validationResult.valid) {
-                return {
-                    isOk: false,
-                    ...ERRORS.VALIDATE_REMNAAWAVE_SETTINGS_ERROR.withMessage(
-                        validationResult.error!,
-                    ),
-                };
+                return fail(
+                    ERRORS.VALIDATE_REMNAAWAVE_SETTINGS_ERROR.withMessage(validationResult.error!),
+                );
             }
 
             await this.remnawaveSettingsRepository.update({
@@ -68,10 +59,7 @@ export class RemnawaveSettingsService {
             return await this.getSettingsFromController();
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_REMNAAWAVE_SETTINGS_ERROR,
-            };
+            return fail(ERRORS.UPDATE_REMNAAWAVE_SETTINGS_ERROR);
         }
     }
 

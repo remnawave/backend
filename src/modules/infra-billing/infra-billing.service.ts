@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import {
@@ -35,71 +35,50 @@ export class InfraBillingService {
         private readonly infraProviderRepository: InfraProviderRepository,
     ) {}
 
-    public async getInfraProviders(): Promise<ICommandResponse<GetInfraProvidersResponseModel>> {
+    public async getInfraProviders(): Promise<TResult<GetInfraProvidersResponseModel>> {
         try {
             const providers = await this.infraProviderRepository.getFullInfraProviders();
 
-            return {
-                isOk: true,
-                response: new GetInfraProvidersResponseModel(providers, providers.length),
-            };
+            return ok(new GetInfraProvidersResponseModel(providers, providers.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INFRA_PROVIDERS_ERROR,
-            };
+            return fail(ERRORS.GET_INFRA_PROVIDERS_ERROR);
         }
     }
 
     public async getInfraProviderByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.getFullInfraProvidersByUuid(uuid);
 
             if (!provider) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INFRA_PROVIDER_NOT_FOUND,
-                };
+                return fail(ERRORS.INFRA_PROVIDER_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: new GetInfraProviderByUuidResponseModel(provider),
-            };
+            return ok(new GetInfraProviderByUuidResponseModel(provider));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INFRA_PROVIDER_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_INFRA_PROVIDER_BY_UUID_ERROR);
         }
     }
 
     public async deleteInfraProviderByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteByUuidResponseModel>> {
+    ): Promise<TResult<DeleteByUuidResponseModel>> {
         try {
             await this.infraProviderRepository.deleteByUUID(uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteByUuidResponseModel(true),
-            };
+            return ok(new DeleteByUuidResponseModel(true));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_INFRA_PROVIDER_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.DELETE_INFRA_PROVIDER_BY_UUID_ERROR);
         }
     }
 
     public async createInfraProvider(
         dto: CreateInfraProviderRequestDto,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.create(
                 new InfraProviderEntity(dto),
@@ -108,16 +87,13 @@ export class InfraBillingService {
             return await this.getInfraProviderByUuid(provider.uuid);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_INFRA_PROVIDER_ERROR,
-            };
+            return fail(ERRORS.CREATE_INFRA_PROVIDER_ERROR);
         }
     }
 
     public async updateInfraProvider(
         dto: UpdateInfraProviderRequestDto,
-    ): Promise<ICommandResponse<GetInfraProviderByUuidResponseModel>> {
+    ): Promise<TResult<GetInfraProviderByUuidResponseModel>> {
         try {
             const provider = await this.infraProviderRepository.update(
                 new InfraProviderEntity(dto),
@@ -126,16 +102,13 @@ export class InfraBillingService {
             return await this.getInfraProviderByUuid(provider.uuid);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_INFRA_PROVIDER_ERROR,
-            };
+            return fail(ERRORS.UPDATE_INFRA_PROVIDER_ERROR);
         }
     }
 
     public async getInfraBillingHistoryRecords(
         dto: GetInfraBillingHistoryRecordsRequestDto,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             const records = await this.infraBillingHistoryRepository.getInfraBillingHistoryRecords(
                 dto.start,
@@ -145,22 +118,16 @@ export class InfraBillingService {
             const count =
                 await this.infraBillingHistoryRepository.getInfraBillingHistoryRecordsCount();
 
-            return {
-                isOk: true,
-                response: new GetInfraBillingHistoryRecordsResponseModel(records, count),
-            };
+            return ok(new GetInfraBillingHistoryRecordsResponseModel(records, count));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_INFRA_BILLING_HISTORY_RECORDS_ERROR,
-            };
+            return fail(ERRORS.GET_INFRA_BILLING_HISTORY_RECORDS_ERROR);
         }
     }
 
     public async createInfraBillingHistoryRecord(
         dto: CreateInfraBillingHistoryRecordRequestDto,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             await this.infraBillingHistoryRepository.create(new InfraBillingHistoryEntity(dto));
 
@@ -170,16 +137,13 @@ export class InfraBillingService {
             });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_INFRA_BILLING_HISTORY_RECORD_ERROR,
-            };
+            return fail(ERRORS.CREATE_INFRA_BILLING_HISTORY_RECORD_ERROR);
         }
     }
 
     public async deleteInfraBillingHistoryRecordByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetInfraBillingHistoryRecordsResponseModel>> {
+    ): Promise<TResult<GetInfraBillingHistoryRecordsResponseModel>> {
         try {
             await this.infraBillingHistoryRepository.deleteByUUID(uuid);
 
@@ -189,14 +153,11 @@ export class InfraBillingService {
             });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_INFRA_BILLING_HISTORY_RECORD_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.DELETE_INFRA_BILLING_HISTORY_RECORD_BY_UUID_ERROR);
         }
     }
 
-    public async getBillingNodes(): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    public async getBillingNodes(): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             const nodes = await this.infraBillingNodeRepository.getBillingNodes();
 
@@ -204,28 +165,24 @@ export class InfraBillingService {
 
             const summary = await this.infraBillingNodeRepository.getInfraSummary();
 
-            return {
-                isOk: true,
-                response: new GetBillingNodesResponseModel(
+            return ok(
+                new GetBillingNodesResponseModel(
                     nodes,
                     availableNodes,
                     nodes.length,
                     availableNodes.length,
                     summary,
                 ),
-            };
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_BILLING_NODES_ERROR,
-            };
+            return fail(ERRORS.GET_BILLING_NODES_ERROR);
         }
     }
 
     public async updateInfraBillingNode(
         dto: UpdateInfraBillingNodeRequestDto,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.updateManyBillingAt({
                 uuids: dto.uuids,
@@ -235,42 +192,33 @@ export class InfraBillingService {
             return await this.getBillingNodes();
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_INFRA_BILLING_NODE_ERROR,
-            };
+            return fail(ERRORS.UPDATE_INFRA_BILLING_NODE_ERROR);
         }
     }
 
     public async createInfraBillingNode(
         dto: CreateInfraBillingNodeRequestDto,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.create(new InfraBillingNodeEntity(dto));
 
             return await this.getBillingNodes();
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_INFRA_BILLING_NODE_ERROR,
-            };
+            return fail(ERRORS.CREATE_INFRA_BILLING_NODE_ERROR);
         }
     }
 
     public async deleteInfraBillingNodeByUuid(
         uuid: string,
-    ): Promise<ICommandResponse<GetBillingNodesResponseModel>> {
+    ): Promise<TResult<GetBillingNodesResponseModel>> {
         try {
             await this.infraBillingNodeRepository.deleteByUUID(uuid);
 
             return await this.getBillingNodes();
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_INFRA_BILLING_NODE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.DELETE_INFRA_BILLING_NODE_BY_UUID_ERROR);
         }
     }
 }

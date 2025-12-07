@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { generateNodeCert } from '@common/utils';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
@@ -14,22 +14,16 @@ export class KeygenService {
 
     constructor(private readonly keygenRepository: KeygenRepository) {}
 
-    public async generateKey(): Promise<ICommandResponse<{ payload: string } & KeygenEntity>> {
+    public async generateKey(): Promise<TResult<{ payload: string } & KeygenEntity>> {
         try {
             const pubKey = await this.keygenRepository.findFirstByCriteria({});
 
             if (!pubKey) {
-                return {
-                    isOk: false,
-                    ...ERRORS.KEYPAIR_CREATION_ERROR,
-                };
+                return fail(ERRORS.KEYPAIR_CREATION_ERROR);
             }
 
             if (!pubKey.caCert || !pubKey.caKey || !pubKey.clientCert || !pubKey.clientKey) {
-                return {
-                    isOk: false,
-                    ...ERRORS.KEYPAIR_NOT_FOUND,
-                };
+                return fail(ERRORS.KEYPAIR_NOT_FOUND);
             }
 
             const { nodeCertPem, nodeKeyPem } = await generateNodeCert(pubKey.caCert, pubKey.caKey);
@@ -41,19 +35,10 @@ export class KeygenService {
                 jwtPublicKey: pubKey.pubKey,
             });
 
-            return {
-                isOk: true,
-                response: {
-                    payload: nodePayload,
-                    ...pubKey,
-                },
-            };
+            return ok({ payload: nodePayload, ...pubKey });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_PUBLIC_KEY_ERROR,
-            };
+            return fail(ERRORS.GET_PUBLIC_KEY_ERROR);
         }
     }
 }

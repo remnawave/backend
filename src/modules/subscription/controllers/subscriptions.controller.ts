@@ -123,10 +123,13 @@ export class SubscriptionsController {
         @Param() paramData: GetSubscriptionByUsernameRequestDto,
     ): Promise<GetSubscriptionByUsernameResponseDto> {
         const { username } = paramData;
-        const result = await this.subscriptionService.getSubscriptionByUniqueField(
-            username,
-            'username',
-        );
+        const result = await this.subscriptionService.getSubscriptionInfo({
+            searchBy: {
+                uniqueField: username,
+                uniqueFieldKey: 'username',
+            },
+            authenticated: true,
+        });
 
         const data = errorHandler(result);
 
@@ -165,10 +168,13 @@ export class SubscriptionsController {
         @Param() paramData: GetSubscriptionByShortUuidProtectedRequestDto,
     ): Promise<GetSubscriptionByShortUuidProtectedResponseDto> {
         const { shortUuid } = paramData;
-        const result = await this.subscriptionService.getSubscriptionByUniqueField(
-            shortUuid,
-            'shortUuid',
-        );
+        const result = await this.subscriptionService.getSubscriptionInfo({
+            searchBy: {
+                uniqueField: shortUuid,
+                uniqueFieldKey: 'shortUuid',
+            },
+            authenticated: true,
+        });
 
         const data = errorHandler(result);
 
@@ -207,7 +213,13 @@ export class SubscriptionsController {
         @Param() paramData: GetSubscriptionByUuidRequestDto,
     ): Promise<GetSubscriptionByUuidResponseDto> {
         const { uuid } = paramData;
-        const result = await this.subscriptionService.getSubscriptionByUniqueField(uuid, 'uuid');
+        const result = await this.subscriptionService.getSubscriptionInfo({
+            searchBy: {
+                uniqueField: uuid,
+                uniqueFieldKey: 'uuid',
+            },
+            authenticated: true,
+        });
 
         const data = errorHandler(result);
 

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { REST_API, SUBSCRIPTION_TEMPLATE_ROUTES } from '../../api';
-import { SUBSCRIPTION_TEMPLATE_TYPE } from '../../constants';
+import { SubscriptionTemplateSchema } from '../../models';
 import { getEndpointDetails } from '../../constants';
 
 export namespace GetSubscriptionTemplatesCommand {
@@ -17,15 +17,7 @@ export namespace GetSubscriptionTemplatesCommand {
     export const ResponseSchema = z.object({
         response: z.object({
             total: z.number(),
-            templates: z.array(
-                z.object({
-                    uuid: z.string().uuid(),
-                    name: z.string(),
-                    templateType: z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE),
-                    templateJson: z.nullable(z.unknown()),
-                    encodedTemplateYaml: z.nullable(z.string()),
-                }),
-            ),
+            templates: z.array(SubscriptionTemplateSchema),
         }),
     });
 

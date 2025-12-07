@@ -1,6 +1,14 @@
+(BigInt.prototype as any).toJSON = function () {
+    return this.toString();
+};
+
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
 import { createLogger } from 'winston';
 import * as winston from 'winston';
+import utc from 'dayjs/plugin/utc';
+import dayjs from 'dayjs';
 
 import { NestFactory } from '@nestjs/core';
 
@@ -12,6 +20,10 @@ import { AxiosService } from '@common/axios';
 import { METRICS_ROOT } from '@libs/contracts/api';
 
 import { ProcessorsRootModule } from './processors.root.module';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 // const levels = {
 //     error: 0,

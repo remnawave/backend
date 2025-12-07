@@ -1,34 +1,29 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
 import { GetNodeByUuidQuery } from './get-node-by-uuid.query';
-import { NodesEntity } from '../../entities/nodes.entity';
 
 @QueryHandler(GetNodeByUuidQuery)
-export class GetNodeByUuidHandler
-    implements IQueryHandler<GetNodeByUuidQuery, ICommandResponse<NodesEntity | null>>
-{
+export class GetNodeByUuidHandler implements IQueryHandler<GetNodeByUuidQuery> {
     private readonly logger = new Logger(GetNodeByUuidHandler.name);
     constructor(private readonly nodesRepository: NodesRepository) {}
 
-    async execute(query: GetNodeByUuidQuery): Promise<ICommandResponse<NodesEntity | null>> {
+    async execute(query: GetNodeByUuidQuery) {
         try {
             const node = await this.nodesRepository.findByUUID(query.uuid);
 
-            return {
-                isOk: true,
-                response: node,
-            };
+            if (!node) {
+                return fail(ERRORS.NODE_NOT_FOUND);
+            }
+
+            return ok(node);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

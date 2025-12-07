@@ -13,8 +13,6 @@ export class GetAllNodesResponseModel {
     public isConnected: boolean;
     public isConnecting: boolean;
     public isDisabled: boolean;
-    public isNodeOnline: boolean;
-    public isXrayRunning: boolean;
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
     public xrayVersion: null | string;
@@ -33,7 +31,7 @@ export class GetAllNodesResponseModel {
 
     public viewPosition: number;
     public countryCode: string;
-
+    public tags: string[];
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -53,8 +51,6 @@ export class GetAllNodesResponseModel {
         this.isConnected = data.isConnected;
         this.isConnecting = data.isConnecting;
         this.isDisabled = data.isDisabled;
-        this.isNodeOnline = data.isNodeOnline;
-        this.isXrayRunning = data.isXrayRunning;
         this.lastStatusChange = data.lastStatusChange;
         this.lastStatusMessage = data.lastStatusMessage;
         this.xrayVersion = data.xrayVersion;
@@ -72,6 +68,7 @@ export class GetAllNodesResponseModel {
         this.cpuModel = data.cpuModel;
         this.totalRam = data.totalRam;
 
+        this.tags = data.tags;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
         this.viewPosition = data.viewPosition;

@@ -12,9 +12,10 @@ import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities';
 import { GetCachedRemnawaveSettingsQuery } from './get-cached-remnawave-settings.query';
 
 @QueryHandler(GetCachedRemnawaveSettingsQuery)
-export class GetCachedRemnawaveSettingsHandler
-    implements IQueryHandler<GetCachedRemnawaveSettingsQuery, RemnawaveSettingsEntity>
-{
+export class GetCachedRemnawaveSettingsHandler implements IQueryHandler<
+    GetCachedRemnawaveSettingsQuery,
+    RemnawaveSettingsEntity
+> {
     private readonly logger = new Logger(GetCachedRemnawaveSettingsHandler.name);
     constructor(
         private readonly remnawaveSettingsRepository: RemnawaveSettingsRepository,

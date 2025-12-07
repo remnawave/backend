@@ -2,12 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
-
 import { GetOnlineNodesQuery } from '@modules/nodes/queries/get-online-nodes/get-online-nodes.query';
-import { NodesEntity } from '@modules/nodes';
 
-import { RecordNodeUsageQueueService } from '@queue/record-node-usage';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { JOBS_INTERVALS } from '../../intervals';
 
@@ -19,7 +16,7 @@ export class RecordNodesUsageTask {
     constructor(
         private readonly queryBus: QueryBus,
 
-        private readonly recordNodeUsageQueueService: RecordNodeUsageQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {}
 
     @Cron(JOBS_INTERVALS.RECORD_NODE_USAGE, {
@@ -28,19 +25,17 @@ export class RecordNodesUsageTask {
     })
     async handleCron() {
         try {
-            const nodesResponse = await this.getOnlineNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            const nodesResponse = await this.queryBus.execute(new GetOnlineNodesQuery());
+            if (!nodesResponse.isOk) {
                 return;
             }
 
-            const nodes = nodesResponse.response;
-
-            if (nodes.length === 0) {
+            if (nodesResponse.response.length === 0) {
                 return;
             }
 
-            await this.recordNodeUsageQueueService.recordNodeUsageBulk(
-                nodes.map((node) => ({
+            await this.nodesQueuesService.recordNodeUsageBulk(
+                nodesResponse.response.map((node) => ({
                     nodeUuid: node.uuid,
                     nodeAddress: node.address,
                     nodePort: node.port,
@@ -51,11 +46,5 @@ export class RecordNodesUsageTask {
         } catch (error) {
             this.logger.error(error);
         }
-    }
-
-    private async getOnlineNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetOnlineNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetOnlineNodesQuery(),
-        );
     }
 }

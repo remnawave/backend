@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 import { RESET_PERIODS, USERS_STATUS } from '../constants';
-import { HappSchema } from './happ.schema';
 
 export const SubscriptionInfoSchema = z.object({
     isFound: z.boolean(),
@@ -26,5 +25,4 @@ export const SubscriptionInfoSchema = z.object({
     links: z.array(z.string()),
     ssConfLinks: z.record(z.string(), z.string()),
     subscriptionUrl: z.string(),
-    happ: HappSchema,
 });

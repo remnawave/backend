@@ -4,6 +4,7 @@ import { InternalSquadWithInfoEntity } from '../entities/internal-squad-with-inf
 
 export class GetInternalSquadByUuidResponseModel {
     public readonly uuid: string;
+    public readonly viewPosition: number;
     public readonly name: string;
     public readonly info: {
         membersCount: number;
@@ -16,6 +17,7 @@ export class GetInternalSquadByUuidResponseModel {
 
     constructor(entity: InternalSquadWithInfoEntity) {
         this.uuid = entity.uuid;
+        this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         this.info = {
             membersCount: Number(entity.membersCount),

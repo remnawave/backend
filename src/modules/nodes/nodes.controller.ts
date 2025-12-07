@@ -22,7 +22,9 @@ import {
     DisableNodeCommand,
     EnableNodeCommand,
     GetAllNodesCommand,
+    GetAllNodesTagsCommand,
     GetOneNodeCommand,
+    BulkNodesProfileModificationCommand,
     ReorderNodeCommand,
     ResetNodeTrafficCommand,
     RestartAllNodesCommand,
@@ -39,8 +41,11 @@ import {
     DisableNodeResponseDto,
     EnableNodeResponseDto,
     GetAllNodesResponseDto,
+    GetAllNodesTagsResponseDto,
     GetOneNodeRequestParamDto,
     GetOneNodeResponseDto,
+    ProfileModificationRequestDto,
+    ProfileModificationResponseDto,
     ReorderNodeRequestDto,
     ReorderNodeResponseDto,
     ResetNodeTrafficRequestDto,
@@ -55,6 +60,7 @@ import {
 import {
     CreateNodeResponseModel,
     GetAllNodesResponseModel,
+    GetAllNodesTagsResponseModel,
     GetOneNodeResponseModel,
 } from './models';
 import { EnableNodeRequestParamDto } from './dtos';
@@ -68,6 +74,22 @@ import { NodesService } from './nodes.service';
 @Controller(NODES_CONTROLLER)
 export class NodesController {
     constructor(private readonly nodesService: NodesService) {}
+
+    @ApiOkResponse({
+        type: GetAllNodesTagsResponseDto,
+        description: 'Nodes tags fetched',
+    })
+    @Endpoint({
+        command: GetAllNodesTagsCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getAllNodesTags(): Promise<GetAllNodesTagsResponseDto> {
+        const res = await this.nodesService.getAllNodesTags();
+        const data = errorHandler(res);
+        return {
+            response: new GetAllNodesTagsResponseModel(data),
+        };
+    }
 
     @ApiCreatedResponse({
         type: CreateNodeResponseDto,
@@ -257,6 +279,26 @@ export class NodesController {
         const data = errorHandler(result);
         return {
             response: data.map((node) => new GetAllNodesResponseModel(node)),
+        };
+    }
+
+    @ApiOkResponse({
+        type: ProfileModificationResponseDto,
+        description: 'Event sent successfully',
+    })
+    @Endpoint({
+        command: BulkNodesProfileModificationCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ProfileModificationRequestDto,
+    })
+    async profileModification(
+        @Body() body: ProfileModificationRequestDto,
+    ): Promise<ProfileModificationResponseDto> {
+        const result = await this.nodesService.profileModification(body);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
         };
     }
 }

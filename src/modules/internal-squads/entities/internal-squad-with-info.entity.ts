@@ -4,6 +4,7 @@ import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 
 export class InternalSquadWithInfoEntity implements InternalSquads {
     public uuid: string;
+    public viewPosition: number;
     public name: string;
 
     public membersCount: number | string | bigint | null;

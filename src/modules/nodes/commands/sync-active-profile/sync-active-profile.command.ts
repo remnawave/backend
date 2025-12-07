@@ -1,9 +1,9 @@
 import { Command } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 
 export class SyncActiveProfileCommand extends Command<
-    ICommandResponse<{
+    TResult<{
         affectedRows: number;
     }>
 > {

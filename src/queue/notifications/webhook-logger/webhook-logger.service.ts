@@ -7,7 +7,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { AbstractQueueService } from '../../queue.service';
 import { IBaseWebhookLogger } from './interfaces';
 import { WebhookLoggerJobNames } from './enums';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
 @Injectable()
 export class WebhookLoggerQueueService
@@ -15,7 +15,7 @@ export class WebhookLoggerQueueService
     implements OnApplicationBootstrap
 {
     protected readonly logger: Logger = new Logger(
-        _.upperFirst(_.camelCase(QueueNames.webhookLogger)),
+        _.upperFirst(_.camelCase(QUEUES_NAMES.NOTIFICATIONS.WEBHOOK)),
     );
 
     private _queue: Queue;
@@ -24,7 +24,9 @@ export class WebhookLoggerQueueService
         return this._queue;
     }
 
-    constructor(@InjectQueue(QueueNames.webhookLogger) private readonly webhookLoggerQueue: Queue) {
+    constructor(
+        @InjectQueue(QUEUES_NAMES.NOTIFICATIONS.WEBHOOK) private readonly webhookLoggerQueue: Queue,
+    ) {
         super();
         this._queue = this.webhookLoggerQueue;
     }

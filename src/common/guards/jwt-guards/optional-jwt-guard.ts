@@ -2,7 +2,7 @@ import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { QueryBus } from '@nestjs/cqrs';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { TResult } from '@common/types';
 import {
     REMNAWAVE_CLIENT_TYPE_BROWSER,
     REMNAWAVE_CLIENT_TYPE_HEADER,
@@ -60,10 +60,8 @@ export class OptionalJwtGuard extends AuthGuard('registeredUserJWT') {
         return true;
     }
 
-    private async getAdminByUsername(
-        dto: GetAdminByUsernameQuery,
-    ): Promise<ICommandResponse<AdminEntity>> {
-        return this.queryBus.execute<GetAdminByUsernameQuery, ICommandResponse<AdminEntity>>(
+    private async getAdminByUsername(dto: GetAdminByUsernameQuery): Promise<TResult<AdminEntity>> {
+        return this.queryBus.execute<GetAdminByUsernameQuery, TResult<AdminEntity>>(
             new GetAdminByUsernameQuery(dto.username, dto.role),
         );
     }

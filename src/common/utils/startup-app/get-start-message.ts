@@ -1,29 +1,46 @@
 import { getBorderCharacters, table } from 'table';
 import { readPackageJSON } from 'pkg-types';
+import gradient from 'gradient-string';
+import chalk from 'chalk';
 
-export async function getStartMessage(appPort: number, metricsPort: number) {
+export async function getStartMessage() {
     const pkg = await readPackageJSON();
+
+    const gradientRange = gradient(['#f093fb', '#f5576c']);
 
     return table(
         [
-            [`API Port: ${appPort} | Metrics Port: ${metricsPort}`],
-            ['Docs → https://docs.rw\nCommunity → https://t.me/remnawave'],
-            ['Rescue CLI → docker exec -it remnawave remnawave'],
+            [gradientRange('▰▱'.repeat(30))],
+            [gradientRange(`🌊 Remnawave Backend v${pkg.version}`)],
+            [chalk.gray('─'.repeat(60))],
+            [
+                chalk.cyan('📚 Documentation') +
+                    chalk.gray(' ········ ') +
+                    chalk.white('https://docs.rw'),
+            ],
+            [
+                chalk.green('💬 Community') +
+                    chalk.gray(' ······ ') +
+                    chalk.white('https://t.me/remnawave'),
+            ],
+            [chalk.gray('─'.repeat(60))],
+            [
+                chalk.yellow('🛠️  Rescue CLI') +
+                    chalk.gray(' ······ ') +
+                    chalk.dim('docker exec -it remnawave remnawave'),
+            ],
+            [gradientRange('▰▱'.repeat(30))],
         ],
         {
-            header: {
-                content: `Remnawave Backend v${pkg.version}`,
-                alignment: 'center',
-            },
             columnDefault: {
-                width: 60,
+                width: 64,
             },
             columns: {
                 0: { alignment: 'center' },
-                1: { alignment: 'center' },
             },
             drawVerticalLine: () => false,
-            border: getBorderCharacters('ramac'),
+            drawHorizontalLine: () => false,
+            border: getBorderCharacters('honeywell'),
         },
     );
 }

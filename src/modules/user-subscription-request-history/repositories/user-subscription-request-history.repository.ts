@@ -15,9 +15,7 @@ import { UserSubscriptionRequestHistoryEntity } from '../entities/user-subscript
 import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-request-history.converter';
 
 @Injectable()
-export class UserSubscriptionRequestHistoryRepository
-    implements ICrudWithId<UserSubscriptionRequestHistoryEntity>
-{
+export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<UserSubscriptionRequestHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
         private readonly converter: UserSubscriptionRequestHistoryConverter,
@@ -129,6 +127,22 @@ export class UserSubscriptionRequestHistoryRepository
                     continue;
                 }
 
+                if (filter.id === 'id') {
+                    try {
+                        const searchValue = filter.value as string;
+                        BigInt(searchValue);
+
+                        whereBuilder = whereBuilder.where(
+                            sql`CAST(id AS TEXT)`,
+                            'like',
+                            `%${searchValue}%`,
+                        );
+                    } catch {
+                        whereBuilder = whereBuilder.where('id', 'is', null);
+                    }
+                    continue;
+                }
+
                 const field = filter.id as keyof DB['userSubscriptionRequestHistory'];
 
                 switch (mode) {
@@ -177,6 +191,22 @@ export class UserSubscriptionRequestHistoryRepository
                             '=',
                             new Date(filter.value as string),
                         );
+                        continue;
+                    }
+
+                    if (filter.id === 'id') {
+                        try {
+                            const searchValue = filter.value as string;
+                            BigInt(searchValue);
+
+                            countBuilder = countBuilder.where(
+                                sql`CAST(id AS TEXT)`,
+                                'like',
+                                `%${searchValue}%`,
+                            );
+                        } catch {
+                            countBuilder = countBuilder.where('id', 'is', null);
+                        }
                         continue;
                     }
 

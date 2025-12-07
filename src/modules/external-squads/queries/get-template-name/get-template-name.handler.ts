@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { ExternalSquadRepository } from '@modules/external-squads/repositories/external-squad.repository';
@@ -9,19 +9,14 @@ import { ExternalSquadRepository } from '@modules/external-squads/repositories/e
 import { GetTemplateNameQuery } from './get-template-name.query';
 
 @QueryHandler(GetTemplateNameQuery)
-export class GetTemplateNameHandler
-    implements IQueryHandler<GetTemplateNameQuery, ICommandResponse<string | null>>
-{
+export class GetTemplateNameHandler implements IQueryHandler<GetTemplateNameQuery> {
     private readonly logger = new Logger(GetTemplateNameHandler.name);
     constructor(private readonly externalSquadRepository: ExternalSquadRepository) {}
 
-    async execute(query: GetTemplateNameQuery): Promise<ICommandResponse<string | null>> {
+    async execute(query: GetTemplateNameQuery) {
         try {
             if (query.templateType === 'XRAY_BASE64') {
-                return {
-                    isOk: true,
-                    response: null,
-                };
+                return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
             }
 
             const result = await this.externalSquadRepository.getTemplateName(
@@ -29,16 +24,14 @@ export class GetTemplateNameHandler
                 query.templateType,
             );
 
-            return {
-                isOk: true,
-                response: result || null,
-            };
+            if (!result) {
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
+            }
+
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

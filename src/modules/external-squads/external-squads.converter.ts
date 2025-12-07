@@ -13,10 +13,13 @@ const modelToEntity = (model: ExternalSquads): ExternalSquadEntity => {
 const entityToModel = (entity: ExternalSquadEntity): ExternalSquads => {
     return {
         uuid: entity.uuid,
+        viewPosition: entity.viewPosition,
         name: entity.name,
         subscriptionSettings: entity.subscriptionSettings,
         hostOverrides: entity.hostOverrides,
         responseHeaders: entity.responseHeaders,
+        hwidSettings: entity.hwidSettings,
+        customRemarks: entity.customRemarks,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

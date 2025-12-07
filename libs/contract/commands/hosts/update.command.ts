@@ -76,11 +76,16 @@ export namespace UpdateHostCommand {
             ),
         isHidden: z.optional(z.boolean()),
         overrideSniFromAddress: z.optional(z.boolean()),
+        keepSniBlank: z.optional(z.boolean()),
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
         allowInsecure: z.optional(z.boolean()),
         shuffleHost: z.optional(z.boolean()),
         mihomoX25519: z.optional(z.boolean()),
         nodes: z.optional(z.array(z.string().uuid())),
+        xrayJsonTemplateUuid: z.optional(z.string().uuid().nullable()),
+        excludedInternalSquads: z
+            .optional(z.array(z.string().uuid()))
+            .describe('Optional. Internal squads from which the host will be excluded.'),
     });
     export type Request = z.infer<typeof RequestSchema>;
 

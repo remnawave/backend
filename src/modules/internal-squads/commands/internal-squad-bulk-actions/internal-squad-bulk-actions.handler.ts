@@ -1,31 +1,26 @@
 import { ERRORS } from '@contract/constants';
 
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Transactional } from '@nestjs-cls/transactional';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 
 import { InternalSquadBulkActionsCommand } from './internal-squad-bulk-actions.command';
 import { InternalSquadRepository } from '../../repositories/internal-squad.repository';
 
 @CommandHandler(InternalSquadBulkActionsCommand)
-export class InternalSquadBulkActionsHandler
-    implements
-        ICommandHandler<
-            InternalSquadBulkActionsCommand,
-            ICommandResponse<{
-                affectedRows: number;
-            }>
-        >
-{
+export class InternalSquadBulkActionsHandler implements ICommandHandler<
+    InternalSquadBulkActionsCommand,
+    TResult<{
+        affectedRows: number;
+    }>
+> {
     public readonly logger = new Logger(InternalSquadBulkActionsHandler.name);
 
     constructor(private readonly internalSquadRepository: InternalSquadRepository) {}
 
-    @Transactional()
     async execute(command: InternalSquadBulkActionsCommand): Promise<
-        ICommandResponse<{
+        TResult<{
             affectedRows: number;
         }>
     > {
@@ -45,12 +40,7 @@ export class InternalSquadBulkActionsHandler
                 affectedRows = result.affectedCount;
             }
 
-            return {
-                isOk: true,
-                response: {
-                    affectedRows,
-                },
-            };
+            return ok({ affectedRows });
         } catch (error: unknown) {
             this.logger.error('Error:', {
                 message: (error as Error).message,
@@ -58,10 +48,7 @@ export class InternalSquadBulkActionsHandler
                 stack: (error as Error).stack,
                 ...(error as object),
             });
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SQUAD_BULK_ACTIONS_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SQUAD_BULK_ACTIONS_ERROR);
         }
     }
 }

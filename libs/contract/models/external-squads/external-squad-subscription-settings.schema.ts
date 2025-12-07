@@ -6,7 +6,6 @@ export const ExternalSquadSubscriptionSettingsSchema = SubscriptionSettingsSchem
     profileUpdateInterval: true,
     isProfileWebpageUrlEnabled: true,
     serveJsonAtBaseSubscription: true,
-    addUsernameToBaseSubscription: true,
     isShowCustomRemarks: true,
     happAnnounce: true,
     happRouting: true,

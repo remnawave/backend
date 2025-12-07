@@ -1,7 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { IGetUserUsageByRange } from '@modules/users/interfaces';
@@ -10,17 +10,16 @@ import { NodesUserUsageHistoryRepository } from '../../repositories/nodes-user-u
 import { GetUserUsageByRangeQuery } from './get-user-usage-by-range.query';
 
 @QueryHandler(GetUserUsageByRangeQuery)
-export class GetUserUsageByRangeHandler
-    implements IQueryHandler<GetUserUsageByRangeQuery, ICommandResponse<IGetUserUsageByRange[]>>
-{
+export class GetUserUsageByRangeHandler implements IQueryHandler<
+    GetUserUsageByRangeQuery,
+    TResult<IGetUserUsageByRange[]>
+> {
     private readonly logger = new Logger(GetUserUsageByRangeHandler.name);
     constructor(
         private readonly nodesUserUsageHistoryRepository: NodesUserUsageHistoryRepository,
     ) {}
 
-    async execute(
-        query: GetUserUsageByRangeQuery,
-    ): Promise<ICommandResponse<IGetUserUsageByRange[]>> {
+    async execute(query: GetUserUsageByRangeQuery): Promise<TResult<IGetUserUsageByRange[]>> {
         try {
             const result = await this.nodesUserUsageHistoryRepository.getUserUsageByRange(
                 query.userUuid,
@@ -28,16 +27,10 @@ export class GetUserUsageByRangeHandler
                 query.end,
             );
 
-            return {
-                isOk: true,
-                response: result,
-            };
+            return ok(result);
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

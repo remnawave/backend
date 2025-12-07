@@ -4,7 +4,7 @@ import { Logger } from '@nestjs/common';
 import { HashedSet } from '@remnawave/hashed-set';
 
 import { XRayConfig } from '@common/helpers/xray-config/xray-config.validator';
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
@@ -17,13 +17,10 @@ import {
 } from './get-prepared-config-with-users.query';
 
 @QueryHandler(GetPreparedConfigWithUsersQuery)
-export class GetPreparedConfigWithUsersHandler
-    implements
-        IQueryHandler<
-            GetPreparedConfigWithUsersQuery,
-            ICommandResponse<IGetPreparedConfigWithUsersResponse>
-        >
-{
+export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
+    GetPreparedConfigWithUsersQuery,
+    TResult<IGetPreparedConfigWithUsersResponse>
+> {
     private readonly logger = new Logger(GetPreparedConfigWithUsersHandler.name);
     constructor(
         private readonly usersRepository: UsersRepository,
@@ -32,7 +29,7 @@ export class GetPreparedConfigWithUsersHandler
 
     async execute(
         query: GetPreparedConfigWithUsersQuery,
-    ): Promise<ICommandResponse<IGetPreparedConfigWithUsersResponse>> {
+    ): Promise<TResult<IGetPreparedConfigWithUsersResponse>> {
         let config: XRayConfig | null = null;
         const inboundsUserSets: Map<string, HashedSet> = new Map();
         const snippetsMap: Map<string, unknown> = new Map();
@@ -45,23 +42,11 @@ export class GetPreparedConfigWithUsersHandler
 
             const snippetsResponse = await this.queryBus.execute(new GetSnippetsQuery());
 
-            if (!configProfile.isOk || !configProfile.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
+            if (!configProfile.isOk || !snippetsResponse.isOk) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
             }
 
-            if (!snippetsResponse.isOk || !snippetsResponse.response) {
-                return {
-                    isOk: false,
-                    ...ERRORS.INTERNAL_SERVER_ERROR,
-                };
-            }
-
-            const snippets = snippetsResponse.response;
-
-            for (const snippet of snippets) {
+            for (const snippet of snippetsResponse.response) {
                 snippetsMap.set(snippet.name, snippet.snippet);
             }
 
@@ -89,26 +74,20 @@ export class GetPreparedConfigWithUsersHandler
                 this.logger.debug(`Inbound ${tag}: hash ${set.hash64String} and ${set.size} users`);
             }
 
-            return {
-                isOk: true,
-                response: {
-                    config: config.getConfig(),
-                    hashes: {
-                        emptyConfig: configHash,
-                        inbounds: Array.from(inboundsUserSets.entries()).map(([tag, set]) => ({
-                            usersCount: set.size,
-                            hash: set.hash64String,
-                            tag,
-                        })),
-                    },
+            return ok({
+                config: config.getConfig(),
+                hashesPayload: {
+                    emptyConfig: configHash,
+                    inbounds: Array.from(inboundsUserSets.entries()).map(([tag, set]) => ({
+                        usersCount: set.size,
+                        hash: set.hash64String,
+                        tag,
+                    })),
                 },
-            };
+            });
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.INTERNAL_SERVER_ERROR,
-            };
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         } finally {
             config = null;
             for (const [, set] of inboundsUserSets) {

@@ -1,38 +1,31 @@
 import { InternalSquadEntity } from '@modules/internal-squads/entities';
 
+import { UserTrafficEntity } from './user-traffic.entity';
 import { BaseUserEntity } from './base-users.entity';
 
-export interface ILastConnectedNode {
-    nodeName: string;
-    countryCode: string;
-    connectedAt: Date;
-}
-
-interface ILastConnectedNodeWithActiveInternalSquads {
-    lastConnectedNode?: {
-        name: string;
-        countryCode: string;
-    } | null;
-    activeInternalSquads?: Omit<InternalSquadEntity, 'createdAt' | 'updatedAt'>[];
+interface IActiveInternalSquads {
+    activeInternalSquads?: Omit<InternalSquadEntity, 'createdAt' | 'updatedAt' | 'viewPosition'>[];
 }
 
 export class UserEntity extends BaseUserEntity {
-    public readonly activeInternalSquads: Omit<InternalSquadEntity, 'createdAt' | 'updatedAt'>[];
-    public readonly lastConnectedNode: ILastConnectedNode | null;
+    public readonly activeInternalSquads: Omit<
+        InternalSquadEntity,
+        'createdAt' | 'updatedAt' | 'viewPosition'
+    >[];
+    public readonly userTraffic: Omit<UserTrafficEntity, 'tId'>;
 
-    constructor(user: BaseUserEntity & ILastConnectedNodeWithActiveInternalSquads) {
+    constructor(user: BaseUserEntity & IActiveInternalSquads & UserTrafficEntity) {
         super(user);
+
         Object.assign(this, user);
 
-        if (user.lastConnectedNode && user.onlineAt) {
-            this.lastConnectedNode = {
-                nodeName: user.lastConnectedNode.name,
-                countryCode: user.lastConnectedNode.countryCode,
-                connectedAt: user.onlineAt,
-            };
-        } else {
-            this.lastConnectedNode = null;
-        }
+        this.userTraffic = new UserTrafficEntity({
+            usedTrafficBytes: user.usedTrafficBytes,
+            lifetimeUsedTrafficBytes: user.lifetimeUsedTrafficBytes,
+            firstConnectedAt: user.firstConnectedAt,
+            onlineAt: user.onlineAt,
+            lastConnectedNodeUuid: user.lastConnectedNodeUuid,
+        });
 
         this.activeInternalSquads = user.activeInternalSquads ?? [];
 

@@ -16,7 +16,10 @@ export namespace BulkUpdateUsersCommand {
     );
 
     export const RequestSchema = z.object({
-        uuids: z.array(z.string().uuid()),
+        uuids: z
+            .array(z.string().uuid())
+            .min(1, 'Must be at least 1 user UUID')
+            .max(500, 'Maximum 500 user UUIDs'),
         fields: z.object({
             status: UsersSchema.shape.status.optional(),
             trafficLimitBytes: z.optional(

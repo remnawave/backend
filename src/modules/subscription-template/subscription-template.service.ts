@@ -6,7 +6,7 @@ import yaml from 'yaml';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import {
@@ -21,6 +21,7 @@ import { GetSubscriptionTemplatesResponseModel } from './models/get-templates.re
 import { SubscriptionTemplateEntity } from './entities/subscription-template.entity';
 import { BaseTemplateResponseModel } from './models/base-template.response.model';
 import { DeleteSubscriptionTemplateResponseModel } from './models';
+import { ReorderSubscriptionTemplatesRequestDto } from './dtos';
 
 const DEFAULT_TEMPLATE_NAME = 'Default';
 
@@ -33,48 +34,29 @@ export class SubscriptionTemplateService {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {}
 
-    public async getAllTemplates(): Promise<
-        ICommandResponse<GetSubscriptionTemplatesResponseModel>
-    > {
+    public async getAllTemplates(): Promise<TResult<GetSubscriptionTemplatesResponseModel>> {
         try {
             const templates = await this.subscriptionTemplateRepository.getAllTemplates(false);
 
-            return {
-                isOk: true,
-                response: new GetSubscriptionTemplatesResponseModel(templates, templates.length),
-            };
+            return ok(new GetSubscriptionTemplatesResponseModel(templates, templates.length));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_ALL_SUBSCRIPTION_TEMPLATES_ERROR,
-            };
+            return fail(ERRORS.GET_ALL_SUBSCRIPTION_TEMPLATES_ERROR);
         }
     }
 
-    public async getTemplateByUuid(
-        uuid: string,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    public async getTemplateByUuid(uuid: string): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
             if (!template) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
             }
 
-            return {
-                isOk: true,
-                response: new BaseTemplateResponseModel(template),
-            };
+            return ok(new BaseTemplateResponseModel(template));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_SUBSCRIPTION_TEMPLATE_BY_UUID_ERROR,
-            };
+            return fail(ERRORS.GET_SUBSCRIPTION_TEMPLATE_BY_UUID_ERROR);
         }
     }
 
@@ -83,22 +65,16 @@ export class SubscriptionTemplateService {
         name: string | undefined,
         templateJson: object | undefined,
         encodedTemplateYaml: string | undefined,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    ): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
             if (!template) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
             }
 
             if (name && name === DEFAULT_TEMPLATE_NAME) {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_TEMPLATE_NAME,
-                };
+                return fail(ERRORS.RESERVED_TEMPLATE_NAME);
             }
 
             const isYamlTemplate =
@@ -110,24 +86,15 @@ export class SubscriptionTemplateService {
                 template.templateType === 'XRAY_JSON' || template.templateType === 'SINGBOX';
 
             if (isYamlTemplate && templateJson !== undefined) {
-                return {
-                    isOk: false,
-                    ...ERRORS.TEMPLATE_JSON_NOT_ALLOWED_FOR_YAML_TEMPLATE,
-                };
+                return fail(ERRORS.TEMPLATE_JSON_NOT_ALLOWED_FOR_YAML_TEMPLATE);
             }
 
             if (isJsonTemplate && encodedTemplateYaml !== undefined) {
-                return {
-                    isOk: false,
-                    ...ERRORS.TEMPLATE_YAML_NOT_ALLOWED_FOR_JSON_TEMPLATE,
-                };
+                return fail(ERRORS.TEMPLATE_YAML_NOT_ALLOWED_FOR_JSON_TEMPLATE);
             }
 
             if (encodedTemplateYaml !== undefined && templateJson !== undefined) {
-                return {
-                    isOk: false,
-                    ...ERRORS.TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY,
-                };
+                return fail(ERRORS.TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY);
             }
 
             const updatedTemplate = await this.subscriptionTemplateRepository.update({
@@ -141,10 +108,7 @@ export class SubscriptionTemplateService {
 
             await this.removeCachedTemplate(template.templateType, template.name);
 
-            return {
-                isOk: true,
-                response: new BaseTemplateResponseModel(updatedTemplate),
-            };
+            return ok(new BaseTemplateResponseModel(updatedTemplate));
         } catch (error) {
             this.logger.error(error);
 
@@ -156,71 +120,50 @@ export class SubscriptionTemplateService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE };
+                    return fail(ERRORS.TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE);
                 }
             }
 
-            return {
-                isOk: false,
-                ...ERRORS.UPDATE_SUBSCRIPTION_TEMPLATE_ERROR,
-            };
+            return fail(ERRORS.UPDATE_SUBSCRIPTION_TEMPLATE_ERROR);
         }
     }
 
     public async deleteTemplate(
         uuid: string,
-    ): Promise<ICommandResponse<DeleteSubscriptionTemplateResponseModel>> {
+    ): Promise<TResult<DeleteSubscriptionTemplateResponseModel>> {
         try {
             const template = await this.subscriptionTemplateRepository.findByUUID(uuid);
 
             if (!template) {
-                return {
-                    isOk: false,
-                    ...ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND,
-                };
+                return fail(ERRORS.SUBSCRIPTION_TEMPLATE_NOT_FOUND);
             }
 
             if (template.name === DEFAULT_TEMPLATE_NAME) {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_TEMPLATE_CANNOT_BE_DELETED,
-                };
+                return fail(ERRORS.RESERVED_TEMPLATE_CANNOT_BE_DELETED);
             }
 
             await this.removeCachedTemplate(template.templateType, template.name);
 
             const deletedTemplate = await this.subscriptionTemplateRepository.deleteByUUID(uuid);
 
-            return {
-                isOk: true,
-                response: new DeleteSubscriptionTemplateResponseModel(deletedTemplate),
-            };
+            return ok(new DeleteSubscriptionTemplateResponseModel(deletedTemplate));
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.DELETE_SUBSCRIPTION_TEMPLATE_ERROR,
-            };
+            return fail(ERRORS.DELETE_SUBSCRIPTION_TEMPLATE_ERROR);
         }
     }
 
     public async createTemplate(
         name: string,
         templateType: TSubscriptionTemplateType,
-    ): Promise<ICommandResponse<BaseTemplateResponseModel>> {
+    ): Promise<TResult<BaseTemplateResponseModel>> {
         try {
             if (name === DEFAULT_TEMPLATE_NAME) {
-                return {
-                    isOk: false,
-                    ...ERRORS.RESERVED_TEMPLATE_NAME,
-                };
+                return fail(ERRORS.RESERVED_TEMPLATE_NAME);
             }
 
             if (templateType === 'XRAY_BASE64') {
-                return {
-                    isOk: false,
-                    ...ERRORS.TEMPLATE_TYPE_NOT_ALLOWED,
-                };
+                return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
             }
 
             let templateJson = undefined;
@@ -252,10 +195,7 @@ export class SubscriptionTemplateService {
 
             const template = await this.subscriptionTemplateRepository.create(templateEntity);
 
-            return {
-                isOk: true,
-                response: new BaseTemplateResponseModel(template),
-            };
+            return ok(new BaseTemplateResponseModel(template));
         } catch (error) {
             this.logger.error(error);
 
@@ -267,14 +207,24 @@ export class SubscriptionTemplateService {
             ) {
                 const fields = error.meta.target as string[];
                 if (fields.includes('name')) {
-                    return { isOk: false, ...ERRORS.TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE };
+                    return fail(ERRORS.TEMPLATE_NAME_ALREADY_EXISTS_FOR_THIS_TYPE);
                 }
             }
 
-            return {
-                isOk: false,
-                ...ERRORS.CREATE_SUBSCRIPTION_TEMPLATE_ERROR,
-            };
+            return fail(ERRORS.CREATE_SUBSCRIPTION_TEMPLATE_ERROR);
+        }
+    }
+
+    public async reorderSubscriptionTemplates(
+        dto: ReorderSubscriptionTemplatesRequestDto,
+    ): Promise<TResult<GetSubscriptionTemplatesResponseModel>> {
+        try {
+            await this.subscriptionTemplateRepository.reorderMany(dto.items);
+
+            return await this.getAllTemplates();
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GENERIC_REORDER_ERROR);
         }
     }
 

@@ -6,7 +6,7 @@ type TTransports = AuthenticatorTransportFuture;
 export class PasskeyEntity implements Passkeys {
     public id: string;
     public adminUuid: string;
-    public publicKey: Uint8Array<ArrayBufferLike>;
+    public publicKey: Uint8Array<ArrayBuffer>;
     public counter: bigint;
     public deviceType: string;
     public backedUp: boolean;

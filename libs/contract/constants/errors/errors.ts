@@ -1014,4 +1014,24 @@ export const ERRORS = {
         message: 'Reset node traffic error',
         httpCode: 500,
     },
+    UPDATE_PASSKEY_ERROR: {
+        code: 'A202',
+        message: 'Update passkey error',
+        httpCode: 500,
+    },
+    GENERIC_REORDER_ERROR: {
+        code: 'A203',
+        message: 'Generic reorder error',
+        httpCode: 500,
+    },
+    HWID_DEVICE_NOT_FOUND: {
+        code: 'A204',
+        message: 'HWID device not found',
+        httpCode: 404,
+    },
+    BULK_EXTEND_EXPIRATION_DATE_ERROR: {
+        code: 'A205',
+        message: 'Bulk extend expiration date error',
+        httpCode: 500,
+    },
 } as const;

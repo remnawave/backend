@@ -1,17 +1,12 @@
-import relativeTime from 'dayjs/plugin/relativeTime';
-import utc from 'dayjs/plugin/utc';
 import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { ICommandResponse } from '@common/types/command-response.type';
+import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesUsageByRangeResponseModel } from './models/get-nodes-usage-by-range.response.model';
 import { NodesUsageHistoryRepository } from './repositories/nodes-usage-history.repository';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 @Injectable()
 export class NodesUsageHistoryService {
@@ -21,7 +16,7 @@ export class NodesUsageHistoryService {
     async getNodesUsageByRange(
         start: Date,
         end: Date,
-    ): Promise<ICommandResponse<GetNodesUsageByRangeResponseModel[]>> {
+    ): Promise<TResult<GetNodesUsageByRangeResponseModel[]>> {
         try {
             const startDate = dayjs(start).utc().toDate();
             const endDate = dayjs(end).utc().toDate();
@@ -31,18 +26,12 @@ export class NodesUsageHistoryService {
                 endDate,
             );
 
-            return {
-                isOk: true,
-                response: nodesUsage.map(
-                    (nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage),
-                ),
-            };
+            return ok(
+                nodesUsage.map((nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage)),
+            );
         } catch (error) {
             this.logger.error(error);
-            return {
-                isOk: false,
-                ...ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR,
-            };
+            return fail(ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR);
         }
     }
 }

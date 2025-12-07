@@ -2,12 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 import { Cron } from '@nestjs/schedule';
 
-import { ICommandResponse } from '@common/types/command-response.type';
-
 import { GetOnlineNodesQuery } from '@modules/nodes/queries/get-online-nodes';
-import { NodesEntity } from '@modules/nodes';
 
-import { RecordUserUsageQueueService } from '@queue/record-user-usage';
+import { NodesQueuesService } from '@queue/_nodes';
 
 import { JOBS_INTERVALS } from '../../intervals';
 
@@ -17,7 +14,7 @@ export class RecordUserUsageTask {
     private readonly logger = new Logger(RecordUserUsageTask.name);
     constructor(
         private readonly queryBus: QueryBus,
-        private readonly recordUserUsageQueueService: RecordUserUsageQueueService,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {}
 
     @Cron(JOBS_INTERVALS.RECORD_USER_USAGE, {
@@ -25,26 +22,23 @@ export class RecordUserUsageTask {
         waitForCompletion: true,
     })
     async handleCron() {
-        let nodes: NodesEntity[] | null = null;
-
         try {
-            const nodesResponse = await this.getOnlineNodes();
-            if (!nodesResponse.isOk || !nodesResponse.response) {
+            const nodesResponse = await this.queryBus.execute(new GetOnlineNodesQuery());
+            if (!nodesResponse.isOk) {
                 return;
             }
 
-            nodes = nodesResponse.response;
-
-            if (nodes.length === 0) {
+            if (nodesResponse.response.length === 0) {
                 return;
             }
 
-            await this.recordUserUsageQueueService.recordUserUsageBulk(
-                nodes.map((node) => ({
+            await this.nodesQueuesService.recordUserUsageBulk(
+                nodesResponse.response.map((node) => ({
                     nodeUuid: node.uuid,
                     nodeAddress: node.address,
                     nodePort: node.port,
                     consumptionMultiplier: node.consumptionMultiplier.toString(),
+                    nodeId: node.id.toString(),
                 })),
             );
 
@@ -52,11 +46,5 @@ export class RecordUserUsageTask {
         } catch (error) {
             this.logger.error(`Error in RecordUserUsageTask: ${error}`);
         }
-    }
-
-    private async getOnlineNodes(): Promise<ICommandResponse<NodesEntity[]>> {
-        return this.queryBus.execute<GetOnlineNodesQuery, ICommandResponse<NodesEntity[]>>(
-            new GetOnlineNodesQuery(),
-        );
     }
 }

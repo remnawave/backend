@@ -105,6 +105,7 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
     ): Promise<SubscriptionTemplateEntity[]> {
         const result = await this.prisma.tx.subscriptionTemplate.findMany({
             select: {
+                viewPosition: true,
                 name: true,
                 templateType: true,
                 uuid: true,
@@ -116,7 +117,7 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
                     : {}),
             },
             orderBy: {
-                createdAt: 'asc',
+                viewPosition: 'asc',
             },
         });
         return result.map((item) => new SubscriptionTemplateEntity(item));
@@ -150,5 +151,26 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
         }
 
         return null;
+    }
+
+    public async reorderMany(
+        dto: {
+            uuid: string;
+            viewPosition: number;
+        }[],
+    ): Promise<boolean> {
+        await this.prisma.withTransaction(async () => {
+            for (const { uuid, viewPosition } of dto) {
+                await this.prisma.tx.subscriptionTemplate.updateMany({
+                    where: { uuid },
+                    data: { viewPosition },
+                });
+            }
+        });
+
+        await this.prisma.tx
+            .$executeRaw`SELECT setval('subscription_templates_view_position_seq', (SELECT MAX(view_position) FROM subscription_templates) + 1)`;
+
+        return true;
     }
 }

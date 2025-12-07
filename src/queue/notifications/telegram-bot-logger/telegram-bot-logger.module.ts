@@ -12,7 +12,7 @@ import { TelegramBotModule } from '@integration-modules/notifications/telegram-b
 
 import { TelegramBotLoggerQueueProcessor } from './telegram-bot-logger.processor';
 import { TelegramBotLoggerQueueService } from './telegram-bot-logger.service';
-import { QueueNames } from '../../queue.enum';
+import { QUEUES_NAMES } from '../../queue.enum';
 
 const requiredModules = [
     CqrsModule,
@@ -24,12 +24,15 @@ const services = [TelegramBotLoggerQueueService];
 
 const queues = [
     BullModule.registerQueue({
-        name: QueueNames.telegramBotLogger,
+        name: QUEUES_NAMES.NOTIFICATIONS.TELEGRAM,
     }),
 ];
 
 const bullBoard = [
-    BullBoardModule.forFeature({ name: QueueNames.telegramBotLogger, adapter: BullMQAdapter }),
+    BullBoardModule.forFeature({
+        name: QUEUES_NAMES.NOTIFICATIONS.TELEGRAM,
+        adapter: BullMQAdapter,
+    }),
 ];
 
 const providers = useQueueProcessor() ? processors : [];

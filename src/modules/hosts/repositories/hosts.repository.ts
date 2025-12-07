@@ -8,17 +8,21 @@ import { Injectable } from '@nestjs/common';
 
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
-import { getKyselyUuid } from '@common/helpers';
 import { TSecurityLayers } from '@libs/contracts/constants';
 
 import { HostWithRawInbound } from '../entities/host-with-inbound-tag.entity';
 import { HostsEntity } from '../entities/hosts.entity';
 import { HostsConverter } from '../hosts.converter';
 
-const INCLUDE_NODES = {
+const INCLUDE_RELATED = {
     nodes: {
         select: {
             nodeUuid: true,
+        },
+    },
+    excludedInternalSquads: {
+        select: {
+            squadUuid: true,
         },
     },
 } as const;
@@ -40,7 +44,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 muxParams: model.muxParams as Prisma.InputJsonValue,
                 sockoptParams: model.sockoptParams as Prisma.InputJsonValue,
             },
-            include: INCLUDE_NODES,
+            include: INCLUDE_RELATED,
         });
 
         return this.hostsConverter.fromPrismaModelToEntity(result);
@@ -49,7 +53,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async findByUUID(uuid: string): Promise<HostsEntity | null> {
         const result = await this.prisma.tx.hosts.findUnique({
             where: { uuid },
-            include: INCLUDE_NODES,
+            include: INCLUDE_RELATED,
         });
         if (!result) {
             return null;
@@ -60,7 +64,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async update({
         uuid,
         ...data
-    }: Partial<Omit<HostsEntity, 'nodes'>>): Promise<HostsEntity> {
+    }: Partial<Omit<HostsEntity, 'nodes' | 'excludedInternalSquads'>>): Promise<HostsEntity> {
         const result = await this.prisma.tx.hosts.update({
             where: {
                 uuid,
@@ -71,7 +75,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 muxParams: data.muxParams as Prisma.InputJsonValue,
                 sockoptParams: data.sockoptParams as Prisma.InputJsonValue,
             },
-            include: INCLUDE_NODES,
+            include: INCLUDE_RELATED,
         });
 
         return this.hostsConverter.fromPrismaModelToEntity(result);
@@ -80,12 +84,12 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async findByCriteria(
         dto: Omit<
             Partial<HostsEntity>,
-            'xHttpExtraParams' | 'muxParams' | 'sockoptParams' | 'nodes'
+            'xHttpExtraParams' | 'muxParams' | 'sockoptParams' | 'nodes' | 'excludedInternalSquads'
         >,
     ): Promise<HostsEntity[]> {
         const list = await this.prisma.tx.hosts.findMany({
             where: dto,
-            include: INCLUDE_NODES,
+            include: INCLUDE_RELATED,
         });
         return this.hostsConverter.fromPrismaModelsToEntities(list);
     }
@@ -95,7 +99,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             orderBy: {
                 viewPosition: 'asc',
             },
-            include: INCLUDE_NODES,
+            include: INCLUDE_RELATED,
         });
         return this.hostsConverter.fromPrismaModelsToEntities(list);
     }
@@ -149,8 +153,8 @@ export class HostsRepository implements ICrud<HostsEntity> {
         return !!result;
     }
 
-    public async findActiveHostsByUserUuid(
-        userUuid: string,
+    public async findActiveHostsByUserId(
+        userId: bigint,
         returnDisabledHosts: boolean = false,
         returnHiddenHosts: boolean = false,
     ): Promise<HostWithRawInbound[]> {
@@ -172,11 +176,37 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 'configProfileInbounds.uuid',
                 'hosts.configProfileInboundUuid',
             )
+            .leftJoin(
+                'subscriptionTemplates',
+                'subscriptionTemplates.uuid',
+                'hosts.xrayJsonTemplateUuid',
+            )
+
+            .where((eb) =>
+                eb.not(
+                    eb.exists(
+                        eb
+                            .selectFrom('internalSquadHostExclusions')
+                            .whereRef('internalSquadHostExclusions.hostUuid', '=', 'hosts.uuid')
+                            .whereRef(
+                                'internalSquadHostExclusions.squadUuid',
+                                '=',
+                                'internalSquadInbounds.internalSquadUuid',
+                            )
+                            .select(eb.val(1).as('one')),
+                    ),
+                ),
+            )
             .$if(!returnDisabledHosts, (eb) => eb.where('hosts.isDisabled', '=', false))
             .$if(!returnHiddenHosts, (eb) => eb.where('hosts.isHidden', '=', false))
-            .where('internalSquadMembers.userUuid', '=', getKyselyUuid(userUuid))
+            .where('internalSquadMembers.userId', '=', userId)
             .selectAll('hosts')
-            .select(['configProfileInbounds.rawInbound', 'configProfileInbounds.tag as inboundTag'])
+
+            .select([
+                'configProfileInbounds.rawInbound',
+                'configProfileInbounds.tag as inboundTag',
+                'subscriptionTemplates.templateJson as xrayJsonTemplate',
+            ])
             .orderBy('hosts.viewPosition', 'asc')
             .execute();
 
@@ -231,6 +261,28 @@ export class HostsRepository implements ICrud<HostsEntity> {
 
     public async clearNodesFromHost(hostUuid: string): Promise<boolean> {
         const result = await this.prisma.tx.hostsToNodes.deleteMany({
+            where: { hostUuid },
+        });
+        return !!result;
+    }
+
+    public async addExcludedInternalSquadsToHost(
+        hostUuid: string,
+        squadUuids: string[],
+    ): Promise<boolean> {
+        if (squadUuids.length === 0) {
+            return true;
+        }
+
+        const result = await this.prisma.tx.internalSquadHostExclusions.createMany({
+            data: squadUuids.map((squad) => ({ hostUuid, squadUuid: squad })),
+            skipDuplicates: true,
+        });
+        return !!result;
+    }
+
+    public async clearExcludedInternalSquadsFromHost(hostUuid: string): Promise<boolean> {
+        const result = await this.prisma.tx.internalSquadHostExclusions.deleteMany({
             where: { hostUuid },
         });
         return !!result;

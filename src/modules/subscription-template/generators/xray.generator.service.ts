@@ -113,7 +113,7 @@ export class XrayGeneratorService {
         const payload: Record<string, unknown> = {
             security: params.tls,
             type: params.network,
-            headerType: params.headerType || '',
+            headerType: params.rawSettings?.headerType || '',
         };
 
         const network = params.network || 'tcp';
@@ -122,17 +122,6 @@ export class XrayGeneratorService {
                 payload,
                 NETWORK_CONFIGS[network as StreamSettingsObject['network']](params),
             );
-        }
-
-        if (
-            ['reality', 'tls'].includes(params.tls) &&
-            ['raw', 'tcp'].includes(params.network) &&
-            params.protocol !== 'trojan' &&
-            params.headerType !== 'http'
-        ) {
-            Object.assign(payload, {
-                flow: 'xtls-rprx-vision',
-            });
         }
 
         if (params.network === 'xhttp') {
@@ -195,10 +184,10 @@ export class XrayGeneratorService {
         const payload: Record<string, unknown> = {
             security: params.tls,
             type: params.network,
-            headerType: params.headerType || '',
+            headerType: params.rawSettings?.headerType || '',
         };
 
-        const network = params.network || 'tcp';
+        const network = params.network;
         if (network in NETWORK_CONFIGS) {
             Object.assign(
                 payload,
@@ -206,13 +195,9 @@ export class XrayGeneratorService {
             );
         }
 
-        if (
-            ['reality', 'tls'].includes(params.tls) &&
-            ['raw', 'tcp'].includes(params.network) &&
-            params.headerType !== 'http'
-        ) {
+        if (params.flow !== undefined) {
             Object.assign(payload, {
-                flow: 'xtls-rprx-vision',
+                flow: params.flow,
             });
         }
 
