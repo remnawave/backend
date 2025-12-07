@@ -72,6 +72,7 @@ export namespace CreateHostCommand {
             ),
         isHidden: z.optional(z.boolean().default(false)),
         overrideSniFromAddress: z.optional(z.boolean().default(false)),
+        keepSniBlank: z.optional(z.boolean().default(false)),
         allowInsecure: z.optional(z.boolean().default(false)),
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
         shuffleHost: z.optional(z.boolean().default(false)),

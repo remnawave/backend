@@ -283,6 +283,7 @@ model Hosts {
   shuffleHost          Boolean @default(false) @map("shuffle_host")
   mihomoX25519         Boolean @default(false) @map("mihomo_x25519")
   xrayJsonTemplateUuid String? @map("xray_json_template_uuid") @db.Uuid
+  keepSniBlank         Boolean @default(false) @map("keep_sni_blank")
 
   tag      String? @map("tag")
   isHidden Boolean @default(false) @map("is_hidden")

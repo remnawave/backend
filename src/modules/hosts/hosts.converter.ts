@@ -37,7 +37,7 @@ const entityToModel = (entity: HostsEntity): Hosts => {
         isHidden: entity.isHidden,
 
         overrideSniFromAddress: entity.overrideSniFromAddress,
-
+        keepSniBlank: entity.keepSniBlank,
         configProfileUuid: entity.configProfileUuid,
         configProfileInboundUuid: entity.configProfileInboundUuid,
 

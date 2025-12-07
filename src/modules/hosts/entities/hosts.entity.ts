@@ -25,6 +25,7 @@ export class HostsEntity implements Hosts {
     isHidden: boolean;
 
     overrideSniFromAddress: boolean;
+    keepSniBlank: boolean;
     vlessRouteId: number | null;
     shuffleHost: boolean;
     mihomoX25519: boolean;

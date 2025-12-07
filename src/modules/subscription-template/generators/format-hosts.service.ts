@@ -428,6 +428,10 @@ export class FormatHostsService {
                 sni = address;
             }
 
+            if (inputHost.keepSniBlank) {
+                sni = '';
+            }
+
             formattedHosts.push({
                 remark: finalRemark,
                 address,

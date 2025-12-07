@@ -76,6 +76,7 @@ export namespace UpdateHostCommand {
             ),
         isHidden: z.optional(z.boolean()),
         overrideSniFromAddress: z.optional(z.boolean()),
+        keepSniBlank: z.optional(z.boolean()),
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
         allowInsecure: z.optional(z.boolean()),
         shuffleHost: z.optional(z.boolean()),

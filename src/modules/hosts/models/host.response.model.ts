@@ -30,6 +30,7 @@ export class HostResponseModel {
     public isHidden: boolean;
 
     public overrideSniFromAddress: boolean;
+    public keepSniBlank: boolean;
     public vlessRouteId: number | null;
 
     public inbound: {
@@ -70,6 +71,7 @@ export class HostResponseModel {
         this.isHidden = data.isHidden;
 
         this.overrideSniFromAddress = data.overrideSniFromAddress;
+        this.keepSniBlank = data.keepSniBlank;
         this.vlessRouteId = data.vlessRouteId;
         this.inbound = {
             configProfileUuid: data.configProfileUuid,
