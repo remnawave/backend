@@ -15,11 +15,7 @@ import { WebhookLoggerJobNames } from './enums';
 import { QUEUES_NAMES } from '../../queue.enum';
 
 @Processor(QUEUES_NAMES.NOTIFICATIONS.WEBHOOK, {
-    concurrency: 150,
-    limiter: {
-        max: 130,
-        duration: 1_000,
-    },
+    concurrency: 100,
 })
 export class WebhookLoggerQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(WebhookLoggerQueueProcessor.name);

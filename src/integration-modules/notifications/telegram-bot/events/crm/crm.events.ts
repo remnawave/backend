@@ -1,181 +1,57 @@
-import { InjectBot } from '@kastov/grammy-nestjs';
-import { Context } from 'grammy';
-import { Bot } from 'grammy';
-import dayjs from 'dayjs';
-
-import { OnEvent } from '@nestjs/event-emitter';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
-import { EVENTS } from '@libs/contracts/constants';
+import { NotificationsConfigService } from '@common/config/common-config';
+import { TCRMEvents } from '@libs/contracts/constants';
 
 import { CrmEvent } from '@integration-modules/notifications/interfaces';
 
 import { TelegramBotLoggerQueueService } from '@queue/notifications/telegram-bot-logger';
 
-import { BOT_NAME } from '../../constants/bot-name.constant';
-import { RequireAdminId } from '../../decorators';
+import { CRM_EVENTS_TEMPLATES, CrmEventsTemplate } from './crm.events.templates';
 
-export class CrmEvents {
-    private readonly adminId: string | undefined;
-    private readonly adminThreadId: string | undefined;
+@Injectable()
+export class CrmEvents implements OnApplicationBootstrap {
+    private readonly logger = new Logger(CrmEvents.name);
+    private readonly chatId: string | undefined;
+    private readonly threadId: string | undefined;
 
     constructor(
-        @InjectBot(BOT_NAME)
-        private readonly _: Bot<Context>,
-
-        private readonly telegramBotLoggerQueueService: TelegramBotLoggerQueueService,
+        private readonly eventEmitter: EventEmitter2,
+        private readonly notificationsConfig: NotificationsConfigService,
+        private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.adminId = this.configService.get<string>('TELEGRAM_NOTIFY_CRM_CHAT_ID');
-        this.adminThreadId = this.configService.get<string>('TELEGRAM_NOTIFY_CRM_THREAD_ID');
+        this.chatId = this.configService.get<string>('TELEGRAM_NOTIFY_CRM_CHAT_ID');
+        this.threadId = this.configService.get<string>('TELEGRAM_NOTIFY_CRM_THREAD_ID');
     }
 
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_IN_7_DAYS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentIn7Days(event: CrmEvent): Promise<void> {
-        const msg = `
-📅 <b>Payment Reminder</b>
-
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
+    onApplicationBootstrap(): void {
+        this.registerEnabledListeners();
     }
 
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_IN_48HRS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentIn48Hrs(event: CrmEvent): Promise<void> {
-        const msg = `
-⚠️ <b>Payment Alert - 2 Days Warning</b>
+    private registerEnabledListeners(): void {
+        if (!this.chatId) return;
 
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
+        for (const [eventName, template] of Object.entries(CRM_EVENTS_TEMPLATES)) {
+            if (!this.notificationsConfig.isEnabled(eventName as TCRMEvents, 'telegram')) {
+                this.logger.debug(`Event "${eventName}" is not enabled for Telegram`);
+                continue;
+            }
 
-⚡ <i>Payment is due in 2 days!</i>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
+            this.eventEmitter.on(eventName, (event: CrmEvent) => this.handleEvent(event, template));
+        }
     }
 
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_IN_24HRS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentIn24Hrs(event: CrmEvent): Promise<void> {
-        const msg = `
-🚨 <b>URGENT: Payment Due Tomorrow!</b>
+    private async handleEvent(event: CrmEvent, template: CrmEventsTemplate): Promise<void> {
+        const message = template(event);
+        if (!message) return;
 
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-
-🔥 <i>Payment is due tomorrow!</i>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_DUE_TODAY)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentDueToday(event: CrmEvent): Promise<void> {
-        const msg = `
-🔴 <b>CRITICAL: Payment Due TODAY!</b>
-
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-
-⚡ <i>Payment must be completed today!</i>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_OVERDUE_24HRS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentOverdue24Hrs(event: CrmEvent): Promise<void> {
-        const daysPastDue = Math.abs(dayjs().diff(dayjs(event.data.nextBillingAt), 'day'));
-        const msg = `
-❌ <b>OVERDUE: First Notice</b>
-
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-⚠️ <b>Days Overdue:</b> <code>${daysPastDue} day(s)</code>
-
-🚨 <i>Payment is overdue!</i>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_OVERDUE_48HRS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentOverdue48Hrs(event: CrmEvent): Promise<void> {
-        const daysPastDue = Math.abs(dayjs().diff(dayjs(event.data.nextBillingAt), 'day'));
-        const msg = `
-🔥 <b>OVERDUE: Second Notice</b>
-
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-⚠️ <b>Days Overdue:</b> <code>${daysPastDue} day(s)</code>
-
-⚡ <i>Critical: Service suspension imminent!</i>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_OVERDUE_7_DAYS)
-    @RequireAdminId()
-    async onInfraBillingNodePaymentOverdue7Days(event: CrmEvent): Promise<void> {
-        const daysPastDue = Math.abs(dayjs().diff(dayjs(event.data.nextBillingAt), 'day'));
-        const msg = `
-💀 <b>FINAL NOTICE: Service Termination Risk</b>
-
-🏢 <b>Provider:</b> <code>${event.data.providerName}</code>
-🖥️ <b>Node:</b> <code>${event.data.nodeName}</code>
-📆 <b>Due Date:</b> <code>${dayjs(event.data.nextBillingAt).format('DD.MM.YYYY')}</code>
-⚠️ <b>Days Overdue:</b> <code>${daysPastDue} day(s)</code>
-
-🔗 <a href="${event.data.loginUrl}">Open Provider Panel</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
+        await this.telegramQueue.addJobToSendTelegramMessage({
+            message,
+            chatId: this.chatId!,
+            threadId: this.threadId,
         });
     }
 }

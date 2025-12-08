@@ -26,10 +26,10 @@ export const EVENTS = {
         NOT_CONNECTED: 'user.not_connected',
     },
     /**
-     * HWID events are emitted only when HWID Device Limit feature is enabled in .env.
+     * HWID events are emitted only when HWID Device Limit feature is enabled.
      * Event payload contains user and HWID device entities.
      * Note: Telegram notifications are skipped for this event.
-     * Note: For performance reasons, user entity's activeInternalSquads and lastConnectedNode fields are always empty.
+     * Note: For performance reasons, user entity's activeInternalSquads field is always empty.
      * Returns: user and HWID device entities.
      */
     USER_HWID_DEVICES: {
@@ -80,3 +80,12 @@ export type TErrorsEvents = (typeof EVENTS.ERRORS)[keyof typeof EVENTS.ERRORS];
 export type TCRMEvents = (typeof EVENTS.CRM)[keyof typeof EVENTS.CRM];
 export type TUserHwidDevicesEvents =
     (typeof EVENTS.USER_HWID_DEVICES)[keyof typeof EVENTS.USER_HWID_DEVICES];
+
+export type TAllEvents =
+    | TUserEvents
+    | TNodeEvents
+    | TServiceEvents
+    | TErrorsEvents
+    | TCRMEvents
+    | TUserHwidDevicesEvents;
+export type TAllEventChannels = 'telegram' | 'webhook';
