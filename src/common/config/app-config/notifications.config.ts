@@ -5,6 +5,7 @@ import * as yaml from 'js-yaml';
 
 import { registerAs } from '@nestjs/config';
 
+import { isProduction } from '@common/utils/startup-app';
 import { EVENTS } from '@libs/contracts/constants';
 
 const ALL_EVENTS = [
@@ -56,19 +57,20 @@ Please fix the notifications config file and restart the application.`);
     }
 }
 
-const CONFIG_FILENAME = 'notifications-config.yml';
+const PRODUCTION_CONFIG_PATH = '/var/lib/remnawave/configs/notifications/notifications-config.yml';
+
+const LOCAL_CONFIG_FILENAME = join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    '..',
+    'configs/notifications/notifications-config.yml',
+);
 
 export default registerAs('notifications', (): NotificationsConfig => {
-    const configPath = join(
-        __dirname,
-        '..',
-        '..',
-        '..',
-        '..',
-        '..',
-        'configs/notifications/',
-        CONFIG_FILENAME,
-    );
+    const configPath = isProduction() ? PRODUCTION_CONFIG_PATH : LOCAL_CONFIG_FILENAME;
 
     if (!existsSync(configPath)) {
         return { events: {} };
