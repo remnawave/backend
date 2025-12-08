@@ -18,18 +18,28 @@ const userFullInfo = (e: UserEvent) => `${userBasicInfo(e)}
 <b>Valid until:</b> <code>${dayjs(e.user.expireAt).format('DD.MM.YYYY HH:mm')} UTC</code>
 <b>Sub:</b> <code>${e.user.shortUuid}</code>`;
 
+const includeInternalSquadsInfo = (e: UserEvent) => {
+    if (e.user.activeInternalSquads.length > 0) {
+        return `<b>Internal squads:</b> <code>${e.user.activeInternalSquads.map((squad) => squad.name).join(', ')}</code>`;
+    }
+    return '<b>Internal squads:</b> <code>-</code>';
+};
+
 export const USERS_EVENTS_TEMPLATES: Record<TUserEvents, UsersEventsTemplate> = {
     [EVENTS.USER.CREATED]: (e) => `
 ${userHeader('🆕', 'created')}
-${userFullInfo(e)}`,
+${userFullInfo(e)}
+${includeInternalSquadsInfo(e)}`,
 
     [EVENTS.USER.MODIFIED]: (e) => `
 ${userHeader('📝', 'modified')}
-${userFullInfo(e)}`,
+${userFullInfo(e)}
+${includeInternalSquadsInfo(e)}`,
 
     [EVENTS.USER.REVOKED]: (e) => `
 ${userHeader('🔄', 'revoked')}
-${userFullInfo(e)}`,
+${userFullInfo(e)}
+${includeInternalSquadsInfo(e)}`,
 
     [EVENTS.USER.DELETED]: (e) => `
 ${userHeader('🗑️', 'deleted')}
