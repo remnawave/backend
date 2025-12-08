@@ -387,9 +387,9 @@ export class SubscriptionService {
         params: IGetSubscriptionInfo,
     ): Promise<TResult<SubscriptionRawResponse>> {
         try {
-            const { searchBy, authenticated } = params;
+            const { searchBy, authenticated, userEntity: userEntityParam } = params;
 
-            let userEntity: UserEntity | undefined;
+            let userEntity: UserEntity | undefined = userEntityParam;
 
             if (!userEntity && searchBy) {
                 const userResult = await this.queryBus.execute(
