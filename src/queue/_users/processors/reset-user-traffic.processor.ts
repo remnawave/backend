@@ -5,6 +5,7 @@ import { Logger, Scope } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
+import { throttleQueue } from '@common/utils/throttle-queue.util';
 import { RESET_PERIODS, TResetPeriods } from '@libs/contracts/constants';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
@@ -23,7 +24,7 @@ import { UsersQueuesService } from '../users-queues.service';
         scope: Scope.REQUEST,
     },
     {
-        concurrency: 2,
+        concurrency: 1,
     },
 )
 export class ResetUserTrafficQueueProcessor extends WorkerHost {
@@ -39,20 +40,31 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
     }
 
     async process(job: Job) {
-        switch (job.name) {
-            case USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC:
-                return this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
-            case USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC:
-                return this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
-            case USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC:
-                return this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
-            case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
-                return this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
-            case USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC:
-                return this.handleResetAllUserTraffic(job);
-            default:
-                this.logger.warn(`Job "${job.name}" is not handled.`);
-                break;
+        const activateQueue = await throttleQueue(
+            this.usersQueuesService.queues.updateUsersUsage,
+            this.logger,
+        );
+
+        try {
+            switch (job.name) {
+                case USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC:
+                    return this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
+                case USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC:
+                    return this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
+                case USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC:
+                    return this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
+                case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
+                    return this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
+                case USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC:
+                    return this.handleResetAllUserTraffic(job);
+                default:
+                    this.logger.warn(`Job "${job.name}" is not handled.`);
+                    break;
+            }
+        } catch (error) {
+            this.logger.error(`Error handling "${job.name}" job: ${error}`);
+        } finally {
+            await activateQueue();
         }
     }
 

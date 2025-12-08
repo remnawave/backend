@@ -63,7 +63,7 @@ export class UsersQueuesService implements OnApplicationBootstrap {
         this.logger.log(`${Object.values(this.queues).length} queues are connected.`);
 
         await this.serialUsersOperationsQueue.setGlobalConcurrency(1);
-        await this.resetUserTrafficQueue.setGlobalConcurrency(2);
+        await this.resetUserTrafficQueue.setGlobalConcurrency(1);
         await this.usersWatchdogQueue.setGlobalConcurrency(2);
 
         await this.updateUsersUsageQueue.setGlobalConcurrency(5); // TODO: carefully
