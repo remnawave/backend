@@ -17,11 +17,6 @@ import { GetAllUsersCommand } from '@libs/contracts/commands';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 
 import {
-    BatchResetLimitedUsersUsageBuilder,
-    BulkDeleteByStatusBuilder,
-    BulkUpdateUserUsedTrafficBuilder,
-} from '../builders';
-import {
     IGetUserAccessibleNodes,
     IGetUserAccessibleNodesResponse,
     IUserOnlineStats,
@@ -34,6 +29,7 @@ import {
     UserWithResolvedInboundEntity,
 } from '../entities';
 import { TriggerThresholdNotificationsBuilder } from '../builders/trigger-threshold-notifications-builder';
+import { BulkDeleteByStatusBuilder, BulkUpdateUserUsedTrafficBuilder } from '../builders';
 import { UserTrafficEntity } from '../entities/user-traffic.entity';
 import { UserConverter } from '../users.converter';
 
@@ -651,16 +647,25 @@ export class UsersRepository {
 
     public async resetUserTraffic(strategy: TResetPeriods): Promise<void> {
         await this.qb.kysely
+            .with('targetUsers', (db) =>
+                db
+                    .selectFrom('users')
+                    .select('tId')
+                    .where('trafficLimitStrategy', '=', strategy)
+                    .where('status', '!=', USERS_STATUS.LIMITED)
+                    .orderBy('tId')
+                    .forUpdate(),
+            )
             .with('updateUsers', (db) =>
                 db
                     .updateTable('users')
+                    .from('targetUsers')
+                    .whereRef('users.tId', '=', 'targetUsers.tId')
                     .set({
                         lastTrafficResetAt: new Date(),
                         lastTriggeredThreshold: 0,
                     })
-                    .where('trafficLimitStrategy', '=', strategy)
-                    .where('status', '!=', USERS_STATUS.LIMITED)
-                    .returning('tId'),
+                    .returning('users.tId'),
             )
             .updateTable('userTraffic')
             .from('updateUsers')
@@ -671,9 +676,37 @@ export class UsersRepository {
             .execute();
     }
 
-    public async resetLimitedUsersTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {
-        const { query } = new BatchResetLimitedUsersUsageBuilder(strategy);
-        const result = await this.prisma.tx.$queryRaw<{ tId: bigint }[]>(query);
+    public async resetLimitedUserTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {
+        const result = await this.qb.kysely
+            .with('targetUsers', (db) =>
+                db
+                    .selectFrom('users')
+                    .select('tId')
+                    .where('trafficLimitStrategy', '=', strategy)
+                    .where('status', '=', USERS_STATUS.LIMITED)
+                    .orderBy('tId')
+                    .forUpdate(),
+            )
+            .with('updateUsers', (db) =>
+                db
+                    .updateTable('users')
+                    .from('targetUsers')
+                    .whereRef('users.tId', '=', 'targetUsers.tId')
+                    .set({
+                        lastTrafficResetAt: new Date(),
+                        lastTriggeredThreshold: 0,
+                        status: USERS_STATUS.ACTIVE,
+                    })
+                    .returning('users.tId'),
+            )
+            .updateTable('userTraffic')
+            .from('updateUsers')
+            .whereRef('userTraffic.tId', '=', 'updateUsers.tId')
+            .set({
+                usedTrafficBytes: 0n,
+            })
+            .returning('userTraffic.tId')
+            .execute();
 
         return result;
     }

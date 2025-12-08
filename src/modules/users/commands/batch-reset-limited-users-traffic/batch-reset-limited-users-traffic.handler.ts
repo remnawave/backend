@@ -16,7 +16,7 @@ export class BatchResetLimitedUsersTrafficHandler implements ICommandHandler<Bat
 
     async execute(command: BatchResetLimitedUsersTrafficCommand) {
         try {
-            const result = await this.usersRepository.resetLimitedUsersTraffic(command.strategy);
+            const result = await this.usersRepository.resetLimitedUserTraffic(command.strategy);
 
             return ok(result);
         } catch (error: unknown) {

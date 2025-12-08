@@ -11,9 +11,8 @@ import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 
-import { validateEnvConfig } from '@common/utils/validate-env-config';
+import { CommonConfigModule } from '@common/config/common-config';
 import { PrismaService } from '@common/database/prisma.service';
-import { configSchema, Env } from '@common/config/app-config';
 import { RedisProducerModule } from '@common/microservices';
 import { getRedisConnectionOptions } from '@common/utils';
 import { isProcessor } from '@common/utils/startup-app';
@@ -25,12 +24,7 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 @Module({
     imports: [
         AxiosModule,
-        ConfigModule.forRoot({
-            isGlobal: true,
-            cache: true,
-            envFilePath: '.env',
-            validate: (config) => validateEnvConfig<Env>(configSchema, config),
-        }),
+        CommonConfigModule,
         PrismaModule,
         ClsModule.forRoot({
             plugins: [

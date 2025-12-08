@@ -1,96 +1,94 @@
-import { InjectBot } from '@kastov/grammy-nestjs';
-import { Context } from 'grammy';
-import { Bot } from 'grammy';
-
-import { OnEvent } from '@nestjs/event-emitter';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
-import { EVENTS } from '@libs/contracts/constants';
+import { NotificationsConfigService } from '@common/config/common-config';
+import { TServiceEvents, TErrorsEvents } from '@libs/contracts/constants';
 
-import { CustomErrorEvent, ServiceEvent } from '@integration-modules/notifications/interfaces';
-import { BOT_NAME } from '@integration-modules/notifications/telegram-bot/constants';
+import { ServiceEvent, CustomErrorEvent } from '@integration-modules/notifications/interfaces';
 
 import { TelegramBotLoggerQueueService } from '@queue/notifications/telegram-bot-logger';
 
-export class ServiceEvents {
-    private readonly adminId: string;
-    private readonly adminThreadId: string | undefined;
-    constructor(
-        @InjectBot(BOT_NAME)
-        private readonly _: Bot<Context>,
+import {
+    SERVICE_EVENTS_TEMPLATES,
+    ERRORS_EVENTS_TEMPLATES,
+    ServiceEventsTemplate,
+    ErrorsEventsTemplate,
+} from './service.events.templates';
 
-        private readonly telegramBotLoggerQueueService: TelegramBotLoggerQueueService,
+@Injectable()
+export class ServiceEvents implements OnApplicationBootstrap {
+    private readonly logger = new Logger(ServiceEvents.name);
+    private readonly chatId: string | undefined;
+    private readonly threadId: string | undefined;
+
+    constructor(
+        private readonly eventEmitter: EventEmitter2,
+        private readonly notificationsConfig: NotificationsConfigService,
+        private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.adminId = this.configService.getOrThrow<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
-        this.adminThreadId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_THREAD_ID');
+        this.chatId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
+        this.threadId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_THREAD_ID');
     }
 
-    @OnEvent(EVENTS.SERVICE.PANEL_STARTED)
-    async onPanelStarted(event: ServiceEvent): Promise<void> {
-        const msg = `
-🌊 <b>#panel_started</b>
-➖➖➖➖➖➖➖➖➖
-✅ Remnawave v${event.data.panelVersion} is up and running.
+    onApplicationBootstrap(): void {
+        this.registerEnabledListeners();
+    }
 
-🦋 Join community: @remnawave
-📚 Documentation: https://docs.rw
+    private registerEnabledListeners(): void {
+        if (!this.chatId) return;
 
-⭐ <a href="https://github.com/remnawave/panel">Leave a star on GitHub</a>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId,
-            threadId: this.adminThreadId,
+        for (const [eventName, template] of Object.entries(SERVICE_EVENTS_TEMPLATES)) {
+            if (!this.notificationsConfig.isEnabled(eventName as TServiceEvents, 'telegram')) {
+                this.logger.debug(`Event "${eventName}" is not enabled for Telegram`);
+                continue;
+            }
+
+            this.eventEmitter.on(eventName, (event: ServiceEvent) =>
+                this.handleServiceEvent(event, template),
+            );
+        }
+
+        for (const [eventName, template] of Object.entries(ERRORS_EVENTS_TEMPLATES)) {
+            if (!this.notificationsConfig.isEnabled(eventName as TErrorsEvents, 'telegram')) {
+                this.logger.debug(`Event "${eventName}" is not enabled for Telegram`);
+                continue;
+            }
+
+            this.eventEmitter.on(eventName, (event: CustomErrorEvent) =>
+                this.handleErrorEvent(event, template),
+            );
+        }
+    }
+
+    private async handleServiceEvent(
+        event: ServiceEvent,
+        template: ServiceEventsTemplate,
+    ): Promise<void> {
+        const message = template(event);
+
+        if (!message) return;
+
+        await this.telegramQueue.addJobToSendTelegramMessage({
+            message,
+            chatId: this.chatId!,
+            threadId: this.threadId,
         });
     }
 
-    @OnEvent(EVENTS.SERVICE.LOGIN_ATTEMPT_FAILED)
-    async onLoginAttemptFailed(event: ServiceEvent): Promise<void> {
-        const msg = `
-🔑 ❌ <b>#login_attempt_failed</b>
-➖➖➖➖➖➖➖➖➖
-<b>👥</b> <code>${event.data.loginAttempt?.username}</code>
-<b>🔑 Password:</b> <code>${event.data.loginAttempt?.password}</code>
-<b>🌐 IP:</b> <code>${event.data.loginAttempt?.ip}</code>
-<b>💻 User agent:</b> <code>${event.data.loginAttempt?.userAgent}</code>
-<b>💬 Description:</b> <code>${event.data.loginAttempt?.description}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId,
-            threadId: this.adminThreadId,
-        });
-    }
+    private async handleErrorEvent(
+        event: CustomErrorEvent,
+        template: ErrorsEventsTemplate,
+    ): Promise<void> {
+        const message = template(event);
 
-    @OnEvent(EVENTS.SERVICE.LOGIN_ATTEMPT_SUCCESS)
-    async onLoginAttemptSuccess(event: ServiceEvent): Promise<void> {
-        const msg = `
-🔑 ✅ <b>#login_attempt_success</b>
-➖➖➖➖➖➖➖➖➖
-<b>👥</b> <code>${event.data.loginAttempt?.username}</code>
-<b>🌐 IP:</b> <code>${event.data.loginAttempt?.ip}</code>
-<b>💻 User agent:</b> <code>${event.data.loginAttempt?.userAgent}</code>
-<b>💬 Description:</b> <code>${event.data.loginAttempt?.description}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId,
-            threadId: this.adminThreadId,
-        });
-    }
+        if (!message) return;
 
-    @OnEvent(EVENTS.ERRORS.BANDWIDTH_USAGE_THRESHOLD_REACHED_MAX_NOTIFICATIONS)
-    async onBandwidthUsageThresholdReachedMaxNotifications(event: CustomErrorEvent): Promise<void> {
-        const msg = `
-📢 <b>#bandwidth_usage_threshold_reached_max_notifications</b>
-➖➖➖➖➖➖➖➖➖
-<b>Description:</b> <code>${event.data.description}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.adminId,
-            threadId: this.adminThreadId,
+        await this.telegramQueue.addJobToSendTelegramMessage({
+            message,
+            chatId: this.chatId!,
+            threadId: this.threadId,
         });
     }
 }

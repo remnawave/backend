@@ -6,6 +6,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
+import { NotificationsConfigService } from '@common/config/common-config';
 import { EVENTS } from '@libs/contracts/constants';
 
 import {
@@ -29,6 +30,7 @@ export class WebhookEvents {
     constructor(
         private readonly webhookLoggerQueueService: WebhookLoggerQueueService,
         private readonly configService: ConfigService,
+        private readonly notificationsConfig: NotificationsConfigService,
     ) {
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
         this.webhookUrls = this.configService
@@ -40,6 +42,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_USER_EVENTS)
     async onCatchAllUserEvents(event: UserEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
@@ -66,6 +72,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_NODE_EVENTS)
     async onCatchAllNodeEvents(event: NodeEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
@@ -89,6 +99,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_SERVICE_EVENTS)
     async onCatchAllServiceEvents(event: ServiceEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
@@ -112,6 +126,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_ERRORS_EVENTS)
     async onCatchAllErrorsEvents(event: CustomErrorEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
@@ -135,6 +153,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_CRM_EVENTS)
     async onCatchAllCrmEvents(event: CrmEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
@@ -158,6 +180,10 @@ export class WebhookEvents {
     @OnEvent(EVENTS.CATCH_ALL_USER_HWID_DEVICES_EVENTS)
     async onCatchAllUserHwidDevicesEvents(event: UserHwidDeviceEvent): Promise<void> {
         try {
+            if (!this.notificationsConfig.isEnabled(event.eventName, 'webhook')) {
+                return;
+            }
+
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),

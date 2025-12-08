@@ -11,9 +11,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { CacheModule } from '@nestjs/cache-manager';
 
 import { disableFrontend, isCrowdinEditorEnabled } from '@common/utils/startup-app/is-development';
-import { validateEnvConfig } from '@common/utils/validate-env-config';
+import { CommonConfigModule } from '@common/config/common-config/common-config.module';
 import { PrismaService } from '@common/database/prisma.service';
-import { configSchema, Env } from '@common/config/app-config';
 import { getRedisConnectionOptions } from '@common/utils';
 import { AxiosModule } from '@common/axios/axios.module';
 import { PrismaModule } from '@common/database';
@@ -27,12 +26,7 @@ import { QueueModule } from '@queue/queue.module';
 @Module({
     imports: [
         AxiosModule,
-        ConfigModule.forRoot({
-            isGlobal: true,
-            cache: true,
-            envFilePath: '.env',
-            validate: (config) => validateEnvConfig<Env>(configSchema, config),
-        }),
+        CommonConfigModule,
         PrismaModule,
         ClsModule.forRoot({
             plugins: [

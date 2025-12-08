@@ -12,9 +12,8 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ScheduleModule } from '@nestjs/schedule';
 
 import { getRedisConnectionOptions } from '@common/utils/get-redis-connection-options';
-import { validateEnvConfig } from '@common/utils/validate-env-config';
+import { CommonConfigModule } from '@common/config/common-config';
 import { PrismaService } from '@common/database/prisma.service';
-import { configSchema, Env } from '@common/config/app-config';
 import { PrismaModule } from '@common/database';
 import { AxiosModule } from '@common/axios';
 
@@ -28,12 +27,7 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
 @Module({
     imports: [
         AxiosModule,
-        ConfigModule.forRoot({
-            isGlobal: true,
-            cache: true,
-            envFilePath: '.env',
-            validate: (config) => validateEnvConfig<Env>(configSchema, config),
-        }),
+        CommonConfigModule,
         PrismaModule,
         ClsModule.forRoot({
             plugins: [

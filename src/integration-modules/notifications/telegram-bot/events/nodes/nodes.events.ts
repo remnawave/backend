@@ -1,172 +1,60 @@
-import { InjectBot } from '@kastov/grammy-nestjs';
-import { Context } from 'grammy';
-import { Bot } from 'grammy';
-import dayjs from 'dayjs';
-
-import { OnEvent } from '@nestjs/event-emitter';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
-import { prettyBytesUtil } from '@common/utils/bytes';
-import { EVENTS } from '@libs/contracts/constants';
+import { NotificationsConfigService } from '@common/config/common-config';
+import { TNodeEvents } from '@libs/contracts/constants';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
 import { TelegramBotLoggerQueueService } from '@queue/notifications/telegram-bot-logger';
 
-import { BOT_NAME } from '../../constants/bot-name.constant';
+import { NODES_EVENTS_TEMPLATES, NodesEventsTemplate } from './nodes.events.templates';
 
-export class NodesEvents {
-    private readonly notifyChatId: string;
-    private readonly nodesNotifyThreadId: string | undefined;
+@Injectable()
+export class NodesEvents implements OnApplicationBootstrap {
+    private readonly logger = new Logger(NodesEvents.name);
+    private readonly chatId: string | undefined;
+    private readonly threadId: string | undefined;
 
     constructor(
-        @InjectBot(BOT_NAME)
-        private readonly _: Bot<Context>,
-
-        private readonly telegramBotLoggerQueueService: TelegramBotLoggerQueueService,
+        private readonly eventEmitter: EventEmitter2,
+        private readonly notificationsConfig: NotificationsConfigService,
+        private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.notifyChatId = this.configService.getOrThrow<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
-        this.nodesNotifyThreadId = this.configService.get<string>(
-            'TELEGRAM_NOTIFY_NODES_THREAD_ID',
-        );
+        this.chatId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
+        this.threadId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_THREAD_ID');
     }
 
-    @OnEvent(EVENTS.NODE.CREATED)
-    async onNodeCreated(event: NodeEvent): Promise<void> {
-        const msg = `
-💻 <b>#nodeCreated</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}</code>
-<b>Port:</b> <code>${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
+    onApplicationBootstrap(): void {
+        this.registerEnabledListeners();
     }
 
-    @OnEvent(EVENTS.NODE.MODIFIED)
-    async onNodeModified(event: NodeEvent): Promise<void> {
-        const msg = `
-📝 <b>#nodeModified</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}</code>
-<b>Port:</b> <code>${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
+    private registerEnabledListeners(): void {
+        if (!this.chatId) return;
+
+        for (const [eventName, template] of Object.entries(NODES_EVENTS_TEMPLATES)) {
+            if (!this.notificationsConfig.isEnabled(eventName as TNodeEvents, 'telegram')) {
+                this.logger.debug(`Event "${eventName}" is not enabled for Telegram`);
+                continue;
+            }
+
+            this.eventEmitter.on(eventName, (event: NodeEvent) =>
+                this.handleEvent(event, template),
+            );
+        }
     }
 
-    @OnEvent(EVENTS.NODE.DISABLED)
-    async onNodeDisabled(event: NodeEvent): Promise<void> {
-        const msg = `
-⚠️ <b>#nodeDisabled</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}</code>
-<b>Port:</b> <code>${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
-    }
+    private async handleEvent(event: NodeEvent, template: NodesEventsTemplate): Promise<void> {
+        const message = template(event);
 
-    @OnEvent(EVENTS.NODE.ENABLED)
-    async onNodeEnabled(event: NodeEvent): Promise<void> {
-        const msg = `
-🟩 <b>#nodeEnabled</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}</code>
-<b>Port:</b> <code>${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
-    }
+        if (!message) return;
 
-    @OnEvent(EVENTS.NODE.CONNECTION_LOST)
-    async onNodeConnectionLost(event: NodeEvent): Promise<void> {
-        const msg = `
-🚨 <b>#nodeConnectionLost</b>
-<b>Connection to node lost</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Reason:</b> <code>${event.node.lastStatusMessage}</code>
-<b>Last status change:</b> <code>${dayjs(event.node.lastStatusChange).format('DD.MM.YYYY HH:mm')}</code>
-<b>Address:</b> <code>${event.node.address}:${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.NODE.CONNECTION_RESTORED)
-    async onNodeConnectionRestored(event: NodeEvent): Promise<void> {
-        const msg = `
-❇️ <b>#nodeConnectionRestored</b>
-<b>Connection to node restored</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Reason:</b> <code>${event.node.lastStatusMessage}</code>
-<b>Last status change:</b> <code>${dayjs(event.node.lastStatusChange).format('DD.MM.YYYY HH:mm')}</code>
-<b>Address:</b> <code>${event.node.address}:${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.NODE.DELETED)
-    async onNodeDeleted(event: NodeEvent): Promise<void> {
-        const msg = `
-💀 <b>#nodeDeleted</b>
-<b>Node deleted</b>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}:${event.node.port}</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
-        });
-    }
-
-    @OnEvent(EVENTS.NODE.TRAFFIC_NOTIFY)
-    async onNodeTrafficNotify(event: NodeEvent): Promise<void> {
-        const used = prettyBytesUtil(Number(event.node.trafficUsedBytes), true, 3, true);
-        const limit = prettyBytesUtil(Number(event.node.trafficLimitBytes), true, 3, true);
-
-        const msg = `
-📊 <b>#nodeTrafficNotify</b>
-<b>Bandwidth limit reached</b>
-🌐 <code>${used}</code> <b>/</b> <code>${limit}</code>
-➖➖➖➖➖➖➖➖➖
-<b>Name:</b> <code>${event.node.name}</code>
-<b>Address:</b> <code>${event.node.address}:${event.node.port}</code>
-<b>Traffic reset day:</b> <code>${event.node.trafficResetDay}</code>
-<b>Percent:</b> <code>${event.node.notifyPercent} %</code>
-        `;
-        await this.telegramBotLoggerQueueService.addJobToSendTelegramMessage({
-            message: msg,
-            chatId: this.notifyChatId,
-            threadId: this.nodesNotifyThreadId,
+        await this.telegramQueue.addJobToSendTelegramMessage({
+            message,
+            chatId: this.chatId!,
+            threadId: this.threadId,
         });
     }
 }
