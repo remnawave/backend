@@ -13,9 +13,9 @@ import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settin
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 
+import { GetHwidDevicesStatsResponseModel, GetTopUsersByHwidDevicesResponseModel } from './models';
 import { HwidUserDevicesRepository } from './repositories/hwid-user-devices.repository';
 import { HwidUserDeviceEntity } from './entities/hwid-user-device.entity';
-import { GetHwidDevicesStatsResponseModel } from './models';
 import { CreateUserHwidDeviceRequestDto } from './dtos';
 
 @Injectable()
@@ -252,6 +252,25 @@ export class HwidUserDevicesService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GET_HWID_DEVICES_STATS_ERROR);
+        }
+    }
+
+    public async getTopUsersByHwidDevices(dto: {
+        start: number;
+        size: number;
+    }): Promise<TResult<GetTopUsersByHwidDevicesResponseModel>> {
+        try {
+            const result = await this.hwidUserDevicesRepository.getTopUsersByHwidDevices(dto);
+
+            return ok(
+                new GetTopUsersByHwidDevicesResponseModel({
+                    users: result.users,
+                    total: result.total,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

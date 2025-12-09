@@ -620,7 +620,7 @@ export class UsersRepository {
             .select((eb) => [
                 eb.fn
                     .count('userTraffic.tId')
-                    .filterWhere('userTraffic.onlineAt', '>=', now.subtract(1, 'minute').toDate())
+                    .filterWhere('userTraffic.onlineAt', '>=', now.subtract(30, 'second').toDate())
                     .as('onlineNow'),
                 eb.fn
                     .count('userTraffic.tId')

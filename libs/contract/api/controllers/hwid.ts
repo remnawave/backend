@@ -8,4 +8,5 @@ export const HWID_ROUTES = {
     DELETE_ALL_USER_HWID_DEVICES: 'devices/delete-all',
 
     STATS: 'devices/stats', // get
+    TOP_USERS_BY_DEVICES: 'devices/top-users', // get
 } as const;

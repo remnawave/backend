@@ -10,7 +10,13 @@ import {
     UseFilters,
     UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+    ApiBearerAuth,
+    ApiCreatedResponse,
+    ApiOkResponse,
+    ApiResponse,
+    ApiTags,
+} from '@nestjs/swagger';
 
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
@@ -166,9 +172,9 @@ export class SystemController {
         };
     }
 
-    @ApiCreatedResponse({
+    @ApiOkResponse({
         type: EncryptHappCryptoLinkResponseDto,
-        description: 'Happ crypto link encrypted successfully',
+        description: 'Returns encrypted Happ crypto link',
     })
     @Endpoint({
         command: EncryptHappCryptoLinkCommand,

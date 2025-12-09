@@ -20,6 +20,7 @@ import {
     DeleteUserHwidDeviceCommand,
     GetAllHwidDevicesCommand,
     GetHwidDevicesStatsCommand,
+    GetTopUsersByHwidDevicesCommand,
     GetUserHwidDevicesCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, HWID_CONTROLLER } from '@libs/contracts/api';
@@ -35,6 +36,8 @@ import {
     GetAllHwidDevicesRequestQueryDto,
     GetAllHwidDevicesResponseDto,
     GetHwidDevicesStatsResponseDto,
+    GetTopUsersByHwidDevicesRequestQueryDto,
+    GetTopUsersByHwidDevicesResponseDto,
     GetUserHwidDevicesRequestDto,
     GetUserHwidDevicesResponseDto,
 } from './dtos';
@@ -183,6 +186,41 @@ export class HwidUserDevicesController {
     })
     async getHwidDevicesStats(): Promise<GetHwidDevicesStatsResponseDto> {
         const result = await this.hwidUserDevicesService.getHwidDevicesStats();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetTopUsersByHwidDevicesResponseDto,
+        description: 'Top users by HWID devices fetched successfully',
+    })
+    @ApiQuery({
+        name: 'start',
+        type: 'number',
+        required: false,
+        description: 'Offset for pagination',
+    })
+    @ApiQuery({
+        name: 'size',
+        type: 'number',
+        required: false,
+        description: 'Page size for pagination',
+    })
+    @Endpoint({
+        command: GetTopUsersByHwidDevicesCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getTopUsersByHwidDevices(
+        @Query() query: GetTopUsersByHwidDevicesRequestQueryDto,
+    ): Promise<GetTopUsersByHwidDevicesResponseDto> {
+        const { start, size } = query;
+        const result = await this.hwidUserDevicesService.getTopUsersByHwidDevices({
+            start,
+            size,
+        });
 
         const data = errorHandler(result);
         return {

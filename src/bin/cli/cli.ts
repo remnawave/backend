@@ -43,9 +43,11 @@ const enum CLI_ACTIONS {
     ENABLE_PASSWORD_AUTH = 'enable-password-auth',
     EXIT = 'exit',
     FIX_POSTGRES_COLLATION = 'fix-postgres-collation',
-    GET_SSL_CERT_FOR_NODE = 'get-ssl-cert-for-node',
+    GET_SECRET_KEY_FOR_NODE = 'get-secret-key-for-node',
     RESET_CERTS = 'reset-certs',
     RESET_SUPERADMIN = 'reset-superadmin',
+    TRUNCATE_HWID_USER_DEVICES = 'truncate-hwid-user-devices',
+    TRUNCATE_SRH_TABLE = 'truncate-srh-table',
 }
 
 async function checkDatabaseConnection() {
@@ -143,19 +145,19 @@ async function resetCerts() {
     }
 }
 
-async function getSslCertForNode() {
-    consola.start('🔑 Getting SSL cert for node...');
+async function getSecretKeyForNode() {
+    consola.start('🔑 Getting SECRET_KEY for node...');
 
     try {
         const keygen = await prisma.keygen.findFirst();
 
         if (!keygen) {
-            consola.error('❌ Keygen not found. Reset certs first or restart Remnawave.');
+            consola.error('❌ Keygen not found. Reset SECRET_KEY first or restart Remnawave.');
             process.exit(1);
         }
 
         if (!keygen.caCert || !keygen.caKey) {
-            consola.error('❌ Certs not found. Reset certs first or restart Remnawave.');
+            consola.error('❌ Certs not found. Reset SECRET_KEY first or restart Remnawave.');
             process.exit(1);
         }
 
@@ -168,13 +170,13 @@ async function getSslCertForNode() {
             jwtPublicKey: keygen.pubKey,
         });
 
-        consola.success('✅ SSL cert for node generated successfully.');
+        consola.success('✅ SECRET_KEY for node generated successfully.');
 
-        consola.info(`\nSSL_CERT="${nodePayload}"`);
+        consola.info(`\nSECRET_KEY="${nodePayload}"`);
 
         process.exit(0);
     } catch (error) {
-        consola.error('❌ Failed to get SSL cert for node:', error);
+        consola.error('❌ Failed to get SECRET_KEY for node:', error);
         process.exit(1);
     }
 }
@@ -244,8 +246,55 @@ async function enablePasswordAuth() {
         process.exit(1);
     }
 }
+
+async function truncateHwidUserDevices() {
+    consola.start('🔄 Cleaning up HWID Devices...');
+
+    const answer = await consola.prompt('Are you sure you want to clean up HWID Devices?', {
+        type: 'confirm',
+        required: true,
+    });
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.$executeRaw`TRUNCATE hwid_user_devices;`;
+        consola.success('✅ HWID Devices cleaned up successfully.');
+        process.exit(0);
+    } catch (error) {
+        consola.error('❌ Failed to clean up HWID Devices:', error);
+        process.exit(1);
+    }
+}
+
+async function truncateSrhTable() {
+    consola.start('🔄 Cleaning up SRH Table...');
+
+    const answer = await consola.prompt('Are you sure you want to clean up SRH Table?', {
+        type: 'confirm',
+        required: true,
+    });
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.$executeRaw`TRUNCATE user_subscription_request_history RESTART IDENTITY;`;
+        consola.success('✅ SRH Table cleaned up successfully.');
+        process.exit(0);
+    } catch (error) {
+        consola.error('❌ Failed to clean up SRH Table:', error);
+        process.exit(1);
+    }
+}
+
 async function main() {
-    consola.box('Remnawave Rescue CLI v0.3');
+    consola.box('Remnawave Rescue CLI v0.4');
 
     consola.start('🌱 Checking database connection...');
     const isConnected = await checkDatabaseConnection();
@@ -283,14 +332,24 @@ async function main() {
                 hint: 'Fully reset certs',
             },
             {
-                value: CLI_ACTIONS.GET_SSL_CERT_FOR_NODE,
-                label: 'Get SSL_CERT for a Remnawave Node',
-                hint: 'Get SSL_CERT in cases, where you can not get from Panel',
+                value: CLI_ACTIONS.GET_SECRET_KEY_FOR_NODE,
+                label: 'Get SECRET_KEY for a Remnawave Node',
+                hint: 'Get SECRET_KEY in cases, where you can not get from Panel',
             },
             {
                 value: CLI_ACTIONS.FIX_POSTGRES_COLLATION,
                 label: 'Fix Collation',
                 hint: 'Fix Collation issues for current database',
+            },
+            {
+                value: CLI_ACTIONS.TRUNCATE_HWID_USER_DEVICES,
+                label: 'Clean up HWID Devices',
+                hint: 'Remove all HWID Devices from the database',
+            },
+            {
+                value: CLI_ACTIONS.TRUNCATE_SRH_TABLE,
+                label: 'Clean up SRH Table',
+                hint: 'Remove all SRH data from the database',
             },
             {
                 value: CLI_ACTIONS.EXIT,
@@ -307,14 +366,20 @@ async function main() {
         case CLI_ACTIONS.RESET_CERTS:
             await resetCerts();
             break;
-        case CLI_ACTIONS.GET_SSL_CERT_FOR_NODE:
-            await getSslCertForNode();
+        case CLI_ACTIONS.GET_SECRET_KEY_FOR_NODE:
+            await getSecretKeyForNode();
             break;
         case CLI_ACTIONS.FIX_POSTGRES_COLLATION:
             await fixPostgresCollation();
             break;
         case CLI_ACTIONS.ENABLE_PASSWORD_AUTH:
             await enablePasswordAuth();
+            break;
+        case CLI_ACTIONS.TRUNCATE_HWID_USER_DEVICES:
+            await truncateHwidUserDevices();
+            break;
+        case CLI_ACTIONS.TRUNCATE_SRH_TABLE:
+            await truncateSrhTable();
             break;
         case CLI_ACTIONS.EXIT:
             consola.info('👋 Exiting...');
