@@ -46,6 +46,8 @@ const enum CLI_ACTIONS {
     GET_SSL_CERT_FOR_NODE = 'get-ssl-cert-for-node',
     RESET_CERTS = 'reset-certs',
     RESET_SUPERADMIN = 'reset-superadmin',
+    TRUNCATE_HWID_USER_DEVICES = 'truncate-hwid-user-devices',
+    TRUNCATE_SRH_TABLE = 'truncate-srh-table',
 }
 
 async function checkDatabaseConnection() {
@@ -244,8 +246,55 @@ async function enablePasswordAuth() {
         process.exit(1);
     }
 }
+
+async function truncateHwidUserDevices() {
+    consola.start('🔄 Cleaning up HWID Devices...');
+
+    const answer = await consola.prompt('Are you sure you want to clean up HWID Devices?', {
+        type: 'confirm',
+        required: true,
+    });
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.$executeRaw`TRUNCATE hwid_user_devices;`;
+        consola.success('✅ HWID Devices cleaned up successfully.');
+        process.exit(0);
+    } catch (error) {
+        consola.error('❌ Failed to clean up HWID Devices:', error);
+        process.exit(1);
+    }
+}
+
+async function truncateSrhTable() {
+    consola.start('🔄 Cleaning up SRH Table...');
+
+    const answer = await consola.prompt('Are you sure you want to clean up SRH Table?', {
+        type: 'confirm',
+        required: true,
+    });
+
+    if (!answer) {
+        consola.error('❌ Aborted.');
+        process.exit(1);
+    }
+
+    try {
+        await prisma.$executeRaw`TRUNCATE user_subscription_request_history RESTART IDENTITY;`;
+        consola.success('✅ SRH Table cleaned up successfully.');
+        process.exit(0);
+    } catch (error) {
+        consola.error('❌ Failed to clean up SRH Table:', error);
+        process.exit(1);
+    }
+}
+
 async function main() {
-    consola.box('Remnawave Rescue CLI v0.3');
+    consola.box('Remnawave Rescue CLI v0.4');
 
     consola.start('🌱 Checking database connection...');
     const isConnected = await checkDatabaseConnection();
@@ -293,6 +342,16 @@ async function main() {
                 hint: 'Fix Collation issues for current database',
             },
             {
+                value: CLI_ACTIONS.TRUNCATE_HWID_USER_DEVICES,
+                label: 'Clean up HWID Devices',
+                hint: 'Remove all HWID Devices from the database',
+            },
+            {
+                value: CLI_ACTIONS.TRUNCATE_SRH_TABLE,
+                label: 'Clean up SRH Table',
+                hint: 'Remove all SRH data from the database',
+            },
+            {
                 value: CLI_ACTIONS.EXIT,
                 label: 'Exit',
             },
@@ -315,6 +374,12 @@ async function main() {
             break;
         case CLI_ACTIONS.ENABLE_PASSWORD_AUTH:
             await enablePasswordAuth();
+            break;
+        case CLI_ACTIONS.TRUNCATE_HWID_USER_DEVICES:
+            await truncateHwidUserDevices();
+            break;
+        case CLI_ACTIONS.TRUNCATE_SRH_TABLE:
+            await truncateSrhTable();
             break;
         case CLI_ACTIONS.EXIT:
             consola.info('👋 Exiting...');

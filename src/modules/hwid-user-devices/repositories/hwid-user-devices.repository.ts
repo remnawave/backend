@@ -263,4 +263,36 @@ export class HwidUserDevicesRepository implements Omit<
             },
         };
     }
+
+    public async getTopUsersByHwidDevices({ start, size }: { start: number; size: number }) {
+        const query = this.qb.kysely
+            .selectFrom('hwidUserDevices as d')
+            .innerJoin('users as u', 'u.uuid', 'd.userUuid')
+            .select([
+                'u.uuid as userUuid',
+                'u.tId as id',
+                'u.username',
+                (eb) => eb.fn.count('d.hwid').as('devicesCount'),
+            ])
+            .groupBy(['u.uuid', 'u.tId', 'u.username'])
+            .orderBy('devicesCount', 'desc')
+            .offset(start)
+            .limit(size);
+
+        const countQuery = this.qb.kysely
+            .selectFrom('hwidUserDevices')
+            .select((eb) => eb.fn.count(eb.fn('distinct', ['userUuid'])).as('count'))
+            .executeTakeFirstOrThrow();
+
+        const [users, { count }] = await Promise.all([query.execute(), countQuery]);
+
+        return {
+            users: users.map((u) => ({
+                ...u,
+                id: Number(u.id),
+                devicesCount: Number(u.devicesCount),
+            })),
+            total: Number(count),
+        };
+    }
 }
