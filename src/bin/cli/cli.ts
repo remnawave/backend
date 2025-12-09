@@ -43,7 +43,7 @@ const enum CLI_ACTIONS {
     ENABLE_PASSWORD_AUTH = 'enable-password-auth',
     EXIT = 'exit',
     FIX_POSTGRES_COLLATION = 'fix-postgres-collation',
-    GET_SSL_CERT_FOR_NODE = 'get-ssl-cert-for-node',
+    GET_SECRET_KEY_FOR_NODE = 'get-secret-key-for-node',
     RESET_CERTS = 'reset-certs',
     RESET_SUPERADMIN = 'reset-superadmin',
     TRUNCATE_HWID_USER_DEVICES = 'truncate-hwid-user-devices',
@@ -145,19 +145,19 @@ async function resetCerts() {
     }
 }
 
-async function getSslCertForNode() {
-    consola.start('🔑 Getting SSL cert for node...');
+async function getSecretKeyForNode() {
+    consola.start('🔑 Getting SECRET_KEY for node...');
 
     try {
         const keygen = await prisma.keygen.findFirst();
 
         if (!keygen) {
-            consola.error('❌ Keygen not found. Reset certs first or restart Remnawave.');
+            consola.error('❌ Keygen not found. Reset SECRET_KEY first or restart Remnawave.');
             process.exit(1);
         }
 
         if (!keygen.caCert || !keygen.caKey) {
-            consola.error('❌ Certs not found. Reset certs first or restart Remnawave.');
+            consola.error('❌ Certs not found. Reset SECRET_KEY first or restart Remnawave.');
             process.exit(1);
         }
 
@@ -170,13 +170,13 @@ async function getSslCertForNode() {
             jwtPublicKey: keygen.pubKey,
         });
 
-        consola.success('✅ SSL cert for node generated successfully.');
+        consola.success('✅ SECRET_KEY for node generated successfully.');
 
-        consola.info(`\nSSL_CERT="${nodePayload}"`);
+        consola.info(`\nSECRET_KEY="${nodePayload}"`);
 
         process.exit(0);
     } catch (error) {
-        consola.error('❌ Failed to get SSL cert for node:', error);
+        consola.error('❌ Failed to get SECRET_KEY for node:', error);
         process.exit(1);
     }
 }
@@ -332,9 +332,9 @@ async function main() {
                 hint: 'Fully reset certs',
             },
             {
-                value: CLI_ACTIONS.GET_SSL_CERT_FOR_NODE,
-                label: 'Get SSL_CERT for a Remnawave Node',
-                hint: 'Get SSL_CERT in cases, where you can not get from Panel',
+                value: CLI_ACTIONS.GET_SECRET_KEY_FOR_NODE,
+                label: 'Get SECRET_KEY for a Remnawave Node',
+                hint: 'Get SECRET_KEY in cases, where you can not get from Panel',
             },
             {
                 value: CLI_ACTIONS.FIX_POSTGRES_COLLATION,
@@ -366,8 +366,8 @@ async function main() {
         case CLI_ACTIONS.RESET_CERTS:
             await resetCerts();
             break;
-        case CLI_ACTIONS.GET_SSL_CERT_FOR_NODE:
-            await getSslCertForNode();
+        case CLI_ACTIONS.GET_SECRET_KEY_FOR_NODE:
+            await getSecretKeyForNode();
             break;
         case CLI_ACTIONS.FIX_POSTGRES_COLLATION:
             await fixPostgresCollation();

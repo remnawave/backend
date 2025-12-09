@@ -15,7 +15,8 @@
     "url": "https://github.com/remnawave/backend/issues"
   },
   "bin": {
-    "remnawave": "dist/src/bin/cli/cli.js"
+    "remnawave": "dist/src/bin/cli/cli.js",
+    "cli": "dist/src/bin/cli/cli.js"
   },
   "scripts": {
     "build": "nest build",
