@@ -19,6 +19,7 @@ import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import {
     IGetUserAccessibleNodes,
     IGetUserAccessibleNodesResponse,
+    IUpdateUserDto,
     IUserOnlineStats,
     IUserStats,
 } from '../interfaces';
@@ -479,14 +480,8 @@ export class UsersRepository {
     }
 
     @Transactional()
-    public async update(
-        dto: {
-            tId: bigint;
-            activeInternalSquads: string[];
-            updateInternalSquads: boolean;
-        } & Partial<BaseUserEntity>,
-    ): Promise<UserEntity | null> {
-        const { tId, activeInternalSquads, updateInternalSquads, ...data } = dto;
+    public async update(dto: IUpdateUserDto): Promise<UserEntity | null> {
+        const { tId, activeInternalSquads, ...data } = dto;
 
         await this.prisma.tx.users.update({
             select: {
@@ -496,7 +491,7 @@ export class UsersRepository {
             data,
         });
 
-        if (updateInternalSquads) {
+        if (activeInternalSquads) {
             await this.removeUserFromInternalSquads(tId);
             await this.addUserToInternalSquads(tId, activeInternalSquads);
         }

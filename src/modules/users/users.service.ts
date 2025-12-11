@@ -41,7 +41,12 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
 } from './dtos';
-import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IGetUserUsageByRange } from './interfaces';
+import {
+    IGetUserByUnique,
+    IGetUsersByTelegramIdOrEmail,
+    IGetUserUsageByRange,
+    IUpdateUserDto,
+} from './interfaces';
 import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
@@ -165,7 +170,6 @@ export class UsersService {
 
             let addToNode = false;
             let removeFromNode = false;
-            let updateInternalSquads = false;
 
             if (user.status !== 'ACTIVE' && status === 'ACTIVE') {
                 addToNode = true;
@@ -202,6 +206,10 @@ export class UsersService {
                 }
             }
 
+            const updateDto: IUpdateUserDto = {
+                ...newUserEntity,
+            };
+
             if (newActiveInternalSquadsUuids) {
                 const currentInternalSquadsUuids = user.activeInternalSquads.map(
                     (squad) => squad.uuid,
@@ -214,17 +222,13 @@ export class UsersService {
                     );
 
                 if (hasChanges) {
-                    updateInternalSquads = true;
+                    updateDto.activeInternalSquads = newActiveInternalSquadsUuids;
                     removeFromNode = newActiveInternalSquadsUuids.length === 0;
                     addToNode = newActiveInternalSquadsUuids.length > 0;
                 }
             }
 
-            const updatedUser = await this.userRepository.update({
-                ...newUserEntity,
-                activeInternalSquads: newActiveInternalSquadsUuids || [],
-                updateInternalSquads,
-            });
+            const updatedUser = await this.userRepository.update(updateDto);
 
             if (!updatedUser) {
                 return fail(ERRORS.UPDATE_USER_ERROR);
