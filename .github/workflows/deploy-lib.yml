@@ -11,6 +11,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,8 +29,6 @@ jobs:
       - name: Publish package on NPM
         working-directory: 'libs/contract'
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # - name: Install HashedSet dependencies and build
       #   working-directory: 'libs/hashed-set'
