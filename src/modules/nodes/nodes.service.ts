@@ -6,9 +6,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
+import { mapDefined, wrapBigInt } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
 import { toNano } from '@common/utils/nano';
-import { wrapBigInt } from '@common/utils';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -55,9 +55,7 @@ export class NodesService {
                 isConnecting: false,
                 isDisabled: false,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
-                consumptionMultiplier: nodeData.consumptionMultiplier
-                    ? toNano(nodeData.consumptionMultiplier)
-                    : undefined,
+                consumptionMultiplier: mapDefined(nodeData.consumptionMultiplier, toNano),
                 activeConfigProfileUuid: configProfile.activeConfigProfileUuid,
             });
 
@@ -278,9 +276,7 @@ export class NodesService {
                 ...nodeData,
                 address: nodeData.address ? nodeData.address.trim() : undefined,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
-                consumptionMultiplier: nodeData.consumptionMultiplier
-                    ? toNano(nodeData.consumptionMultiplier)
-                    : undefined,
+                consumptionMultiplier: mapDefined(nodeData.consumptionMultiplier, toNano),
                 activeConfigProfileUuid: configProfile?.activeConfigProfileUuid,
             });
 
