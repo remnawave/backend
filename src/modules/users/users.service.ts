@@ -5,11 +5,10 @@ import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import dayjs from 'dayjs';
 
-import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Transactional } from '@nestjs-cls/transactional';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { EventBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 
 import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
@@ -54,7 +53,6 @@ export class UsersService {
 
     constructor(
         private readonly userRepository: UsersRepository,
-        private readonly commandBus: CommandBus,
         private readonly eventBus: EventBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly queryBus: QueryBus,
@@ -72,9 +70,9 @@ export class UsersService {
             const userEntity = new BaseUserEntity({
                 username: dto.username,
                 shortUuid: dto.shortUuid || this.createNanoId(),
-                trojanPassword: dto.trojanPassword || this.createTrojanPassword(),
+                trojanPassword: dto.trojanPassword || this.createPassword(),
                 vlessUuid: dto.vlessUuid || this.createUuid(),
-                ssPassword: dto.ssPassword || this.createSSPassword(),
+                ssPassword: dto.ssPassword || this.createPassword(),
                 status: dto.status,
                 trafficLimitBytes: wrapBigInt(dto.trafficLimitBytes),
                 trafficLimitStrategy: dto.trafficLimitStrategy,
@@ -139,71 +137,12 @@ export class UsersService {
 
     public async updateUser(dto: UpdateUserRequestDto): Promise<TResult<UserEntity>> {
         try {
-            const user = await this.updateUserTransactional(dto);
-
-            if (!user.isOk) return fail(ERRORS.UPDATE_USER_ERROR);
-
-            if (
-                user.response.user.status === USERS_STATUS.ACTIVE &&
-                user.response.isNeedToBeAddedToNode &&
-                !user.response.isNeedToBeRemovedFromNode
-            ) {
-                this.eventBus.publish(new AddUserToNodeEvent(user.response.user.uuid));
-            }
-
-            if (user.response.isNeedToBeRemovedFromNode) {
-                this.eventBus.publish(
-                    new RemoveUserFromNodeEvent(
-                        user.response.user.tId,
-                        user.response.user.vlessUuid,
-                    ),
-                );
-            }
-
-            this.eventEmitter.emit(
-                EVENTS.USER.MODIFIED,
-                new UserEvent({
-                    user: user.response.user,
-                    event: EVENTS.USER.MODIFIED,
-                }),
-            );
-
-            await this.invalidateShortUuidRangeCache(user.response.user.shortUuid);
-
-            return ok(user.response.user);
-        } catch (error) {
-            if (error instanceof Error && error.message === ERRORS.USER_NOT_FOUND.code) {
-                return fail(ERRORS.USER_NOT_FOUND);
-            }
-
-            if (
-                error instanceof Error &&
-                error.message === ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code
-            ) {
-                return fail(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS);
-            }
-
-            this.logger.error(error);
-
-            return fail(ERRORS.UPDATE_USER_ERROR);
-        }
-    }
-
-    @Transactional()
-    public async updateUserTransactional(dto: UpdateUserRequestDto): Promise<
-        TResult<{
-            isNeedToBeAddedToNode: boolean;
-            isNeedToBeRemovedFromNode: boolean;
-            user: UserEntity;
-        }>
-    > {
-        try {
             const {
                 username,
                 uuid,
                 trafficLimitBytes,
                 telegramId,
-                activeInternalSquads,
+                activeInternalSquads: newActiveInternalSquadsUuids,
                 status,
                 ...rest
             } = dto;
@@ -214,28 +153,27 @@ export class UsersService {
                 activeInternalSquads: true,
             });
 
-            if (!user) {
-                throw new Error(ERRORS.USER_NOT_FOUND.code);
-            }
+            if (!user) return fail(ERRORS.USER_NOT_FOUND);
 
             const newUserEntity = new BaseUserEntity({
                 ...rest,
-                uuid: user.uuid,
+                tId: user.tId,
                 trafficLimitBytes: wrapBigInt(trafficLimitBytes),
                 telegramId: wrapBigIntNullable(telegramId),
                 lastTriggeredThreshold: trafficLimitBytes !== undefined ? 0 : undefined,
             });
 
-            let isNeedToBeAddedToNode = false;
-            let isNeedToBeRemovedFromNode = false;
+            let addToNode = false;
+            let removeFromNode = false;
+            let updateInternalSquads = false;
 
             if (user.status !== 'ACTIVE' && status === 'ACTIVE') {
-                isNeedToBeAddedToNode = true;
+                addToNode = true;
                 newUserEntity.status = 'ACTIVE';
             }
 
             if (user.status === 'ACTIVE' && status === 'DISABLED') {
-                isNeedToBeRemovedFromNode = true;
+                removeFromNode = true;
                 newUserEntity.status = 'DISABLED';
             }
 
@@ -246,7 +184,7 @@ export class UsersService {
                         trafficLimitBytes === 0
                     ) {
                         newUserEntity.status = 'ACTIVE';
-                        isNeedToBeAddedToNode = true;
+                        addToNode = true;
                     }
                 }
             }
@@ -259,18 +197,15 @@ export class UsersService {
                 if (!currentExpireDate.isSame(newExpireDate)) {
                     if (newExpireDate.isAfter(now)) {
                         newUserEntity.status = 'ACTIVE';
-                        isNeedToBeAddedToNode = true;
+                        addToNode = true;
                     }
                 }
             }
 
-            const result = await this.userRepository.update(newUserEntity);
-
-            if (activeInternalSquads) {
-                const newActiveInternalSquadsUuids = activeInternalSquads;
-
-                const currentInternalSquadsUuids =
-                    user.activeInternalSquads.map((squad) => squad.uuid) || [];
+            if (newActiveInternalSquadsUuids) {
+                const currentInternalSquadsUuids = user.activeInternalSquads.map(
+                    (squad) => squad.uuid,
+                );
 
                 const hasChanges =
                     newActiveInternalSquadsUuids.length !== currentInternalSquadsUuids.length ||
@@ -279,41 +214,47 @@ export class UsersService {
                     );
 
                 if (hasChanges) {
-                    await this.userRepository.removeUserFromInternalSquads(result.tId);
-
-                    if (newActiveInternalSquadsUuids.length === 0) {
-                        isNeedToBeRemovedFromNode = true;
-                    }
-
-                    if (newActiveInternalSquadsUuids.length > 0) {
-                        await this.userRepository.addUserToInternalSquads(
-                            result.tId,
-                            newActiveInternalSquadsUuids,
-                        );
-
-                        isNeedToBeAddedToNode = true;
-                    }
+                    updateInternalSquads = true;
+                    removeFromNode = newActiveInternalSquadsUuids.length === 0;
+                    addToNode = newActiveInternalSquadsUuids.length > 0;
                 }
             }
 
-            const userWithInbounds = await this.userRepository.findUniqueByCriteria(
-                { tId: result.tId },
-                {
-                    activeInternalSquads: true,
-                },
-            );
+            const updatedUser = await this.userRepository.update({
+                ...newUserEntity,
+                activeInternalSquads: newActiveInternalSquadsUuids || [],
+                updateInternalSquads,
+            });
 
-            if (!userWithInbounds) {
-                throw new Error(ERRORS.CANT_GET_CREATED_USER_WITH_INBOUNDS.code);
+            if (!updatedUser) {
+                return fail(ERRORS.UPDATE_USER_ERROR);
             }
 
-            return ok({
-                user: userWithInbounds,
-                isNeedToBeAddedToNode,
-                isNeedToBeRemovedFromNode,
-            });
+            if (updatedUser.status === USERS_STATUS.ACTIVE && addToNode && !removeFromNode) {
+                this.eventBus.publish(new AddUserToNodeEvent(updatedUser.uuid));
+            }
+
+            if (removeFromNode) {
+                this.eventBus.publish(
+                    new RemoveUserFromNodeEvent(updatedUser.tId, updatedUser.vlessUuid),
+                );
+            }
+
+            this.eventEmitter.emit(
+                EVENTS.USER.MODIFIED,
+                new UserEvent({
+                    user: updatedUser,
+                    event: EVENTS.USER.MODIFIED,
+                }),
+            );
+
+            await this.invalidateShortUuidRangeCache(updatedUser.shortUuid);
+
+            return ok(updatedUser);
         } catch (error) {
-            throw error;
+            this.logger.error(error);
+
+            return fail(ERRORS.UPDATE_USER_ERROR);
         }
     }
 
@@ -383,10 +324,12 @@ export class UsersService {
             const updateResult = await this.userRepository.revokeUserSubscription({
                 uuid: user.uuid,
                 shortUuid: shortUuid ?? this.createNanoId(),
-                trojanPassword: this.createTrojanPassword(),
+                trojanPassword: this.createPassword(),
                 vlessUuid: this.createUuid(),
-                ssPassword: this.createTrojanPassword(),
+                ssPassword: this.createPassword(),
                 subRevokedAt: new Date(),
+                subLastOpenedAt: null,
+                subLastUserAgent: null,
             });
 
             if (!updateResult) return fail(ERRORS.REVOKE_USER_SUBSCRIPTION_ERROR);
@@ -867,16 +810,9 @@ export class UsersService {
         return nanoid();
     }
 
-    private createTrojanPassword(): string {
+    private createPassword(length: number = 32): string {
         const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
-        const nanoid = customAlphabet(alphabet, 30);
-
-        return nanoid();
-    }
-
-    private createSSPassword(): string {
-        const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
-        const nanoid = customAlphabet(alphabet, 32);
+        const nanoid = customAlphabet(alphabet, length);
 
         return nanoid();
     }
