@@ -22,13 +22,16 @@ jobs:
           node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies and build
         working-directory: 'libs/contract'
         run: npm i && npm run prepublish
 
       - name: Publish package on NPM
         working-directory: 'libs/contract'
-        run: npm publish --provenance --access public
+        run: npm publish
 
       # - name: Install HashedSet dependencies and build
       #   working-directory: 'libs/hashed-set'
