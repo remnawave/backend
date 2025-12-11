@@ -11,5 +11,6 @@ export const TEMPLATE_KEYS = [
     'TAG',
     'EXPIRE_UNIX',
     'SHORT_UUID',
+    'ID',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];
