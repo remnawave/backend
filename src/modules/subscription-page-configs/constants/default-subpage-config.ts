@@ -14,6 +14,7 @@ export const DEFAULT_SUBPAGE_CONFIG = {
             block: 'expanded',
         },
         installationGuides: {
+            block: 'cards',
             headerText: {
                 en: 'Installation',
                 ru: 'Установка',

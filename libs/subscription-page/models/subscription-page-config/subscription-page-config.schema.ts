@@ -82,9 +82,10 @@ const BrandingSettingsSchema = z.object({
 
 const UiConfigSchema = z.object({
     subscriptionInfo: z.object({
-        block: z.enum(['collapsed', 'expanded']),
+        block: z.enum(['collapsed', 'expanded', 'cards', 'hidden']),
     }),
     installationGuides: z.object({
+        block: z.enum(['cards', 'accordion', 'minimal', 'timeline']).default('cards'),
         headerText: LocalizedTextSchema,
     }),
     connectionKeys: z.object({
