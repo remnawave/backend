@@ -36,6 +36,35 @@ export const validateLocalizedTexts = (
     }
 };
 
+export const validateSvgReferences = (
+    data: { svgLibrary: Record<string, string>; platforms: Record<string, unknown> },
+    ctx: z.RefinementCtx,
+): void => {
+    const validKeys = new Set(Object.keys(data.svgLibrary));
+
+    const checkSvgRef = (obj: unknown, path: string): void => {
+        if (obj === null || typeof obj !== 'object') return;
+
+        for (const [key, value] of Object.entries(obj)) {
+            if (key === 'svgIcon' && typeof value === 'string') {
+                if (!validKeys.has(value)) {
+                    ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `Unknown svgIcon '${value}' at ${path}.${key}. Available: ${[...validKeys].join(', ')}`,
+                        path: [path, key],
+                    });
+                }
+            } else if (Array.isArray(value)) {
+                value.forEach((item, index) => checkSvgRef(item, `${path}.${key}[${index}]`));
+            } else if (typeof value === 'object' && value !== null) {
+                checkSvgRef(value, `${path}.${key}`);
+            }
+        }
+    };
+
+    checkSvgRef(data.platforms, 'platforms');
+};
+
 export const cleanLocalizedTexts = <T>(
     obj: T,
     activeLocales: TSubscriptionPageConfigAdditionalLocales[],

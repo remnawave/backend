@@ -76,7 +76,12 @@ export class SubscriptionPageConfigService {
 
                 if (!validatedConfig.success) {
                     this.logger.error(
-                        validatedConfig.error.errors.map((e) => e.message).join(', '),
+                        validatedConfig.error.errors
+                            .map(
+                                (err) =>
+                                    `${err.path.length ? `${err.path.join('.')}: ` : ''}${err.message}`,
+                            )
+                            .join(', '),
                     );
                     return fail(ERRORS.INVALID_SUBSCRIPTION_PAGE_CONFIG);
                 }

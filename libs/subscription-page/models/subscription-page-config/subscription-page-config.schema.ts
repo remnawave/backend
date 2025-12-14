@@ -5,7 +5,10 @@ import {
     SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES,
     SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES,
 } from '../../constants';
-import { validateLocalizedTexts } from './subscription-page-config.validator';
+import {
+    validateLocalizedTexts,
+    validateSvgReferences,
+} from './subscription-page-config.validator';
 
 export const LocalizedTextSchema = z.object({
     en: z.string(),
@@ -15,15 +18,20 @@ export const LocalizedTextSchema = z.object({
     fr: z.string().optional(),
 });
 
+const SvgLibrarySchema = z.record(
+    z.string().regex(/^[A-Za-z]+$/, { message: 'Only latin characters, no spaces allowed' }),
+    z.string(),
+);
+
 const ButtonSchema = z.object({
     link: z.string(),
     type: z.enum(['external', 'subscriptionLink']),
     text: LocalizedTextSchema,
-    svgIcon: z.string(),
+    svgIconKey: z.string(),
 });
 
 const BlockSchema = z.object({
-    svgIcon: z.string(),
+    svgIconKey: z.string(),
     svgIconColor: z
         .string()
         .refine(
@@ -62,7 +70,7 @@ const PlatformAppSchema = z.object({
 
 const PlatformSchema = z.object({
     displayName: LocalizedTextSchema,
-    svgIcon: z.string(),
+    svgIconKey: z.string(),
     apps: z.array(PlatformAppSchema),
 });
 
@@ -90,12 +98,15 @@ export const SubscriptionPageRawConfigSchema = z
         additionalLocales: z.array(z.enum(SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES)),
         brandingSettings: BrandingSettingsSchema,
         uiConfig: UiConfigSchema,
+        svgLibrary: SvgLibrarySchema,
         platforms: z.record(z.nativeEnum(SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES), PlatformSchema),
     })
     .superRefine((data, ctx) => {
         validateLocalizedTexts(data.platforms, data.additionalLocales, 'platforms', ctx);
+        validateSvgReferences(data, ctx);
     });
 
+export type TSubscriptionPageSvgLibrary = z.infer<typeof SvgLibrarySchema>;
 export type TSubscriptionPageRawConfig = z.infer<typeof SubscriptionPageRawConfigSchema>;
 export type TSubscriptionPageBrandingSettings = z.infer<typeof BrandingSettingsSchema>;
 export type TSubscriptionPagePlatformSchema = z.infer<typeof PlatformSchema>;
