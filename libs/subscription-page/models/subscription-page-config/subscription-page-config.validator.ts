@@ -46,11 +46,11 @@ export const validateSvgReferences = (
         if (obj === null || typeof obj !== 'object') return;
 
         for (const [key, value] of Object.entries(obj)) {
-            if (key === 'svgIcon' && typeof value === 'string') {
+            if (key === 'svgIconKey' && typeof value === 'string') {
                 if (!validKeys.has(value)) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
-                        message: `Unknown svgIcon '${value}' at ${path}.${key}. Available: ${[...validKeys].join(', ')}`,
+                        message: `Unknown svgIconKey '${value}' at ${path}.${key}. Available: ${[...validKeys].join(', ')}`,
                         path: [path, key],
                     });
                 }

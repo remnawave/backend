@@ -824,6 +824,8 @@ async function seedSubscriptionPageConfig() {
         consola.success('🔐 Subscription page config seeded!');
 
         return;
+    } else {
+        consola.success('🔐 Subscription page config already exists!');
     }
 }
 
