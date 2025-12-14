@@ -26,6 +26,9 @@
       "@libs/contracts/*": [
         "./libs/contract/*"
       ],
+      "@libs/subscription-page/*": [
+        "./libs/subscription-page/*"
+      ],
       "@contract/*": [
         "./libs/contract/*"
       ],

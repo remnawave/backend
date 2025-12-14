@@ -1034,4 +1034,54 @@ export const ERRORS = {
         message: 'Bulk extend expiration date error',
         httpCode: 500,
     },
+    SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND: {
+        code: 'A206',
+        message: 'Subscription page config not found',
+        httpCode: 404,
+    },
+    GET_SUBSCRIPTION_PAGE_CONFIG_BY_UUID_ERROR: {
+        code: 'A207',
+        message: 'Get subscription page config by UUID error',
+        httpCode: 500,
+    },
+    GET_ALL_SUBSCRIPTION_PAGE_CONFIGS_ERROR: {
+        code: 'A208',
+        message: 'Get all subscription page configs error',
+        httpCode: 500,
+    },
+    RESERVED_CONFIG_NAME: {
+        code: 'A209',
+        message: 'Reserved config name',
+        httpCode: 400,
+    },
+    CONFIG_NAME_ALREADY_EXISTS: {
+        code: 'A210',
+        message: 'Config name already exists',
+        httpCode: 400,
+    },
+    UPDATE_SUBSCRIPTION_PAGE_CONFIG_ERROR: {
+        code: 'A211',
+        message: 'Update subscription page config error',
+        httpCode: 500,
+    },
+    RESERVED_SUBPAGE_CONFIG_CANT_BE_DELETED: {
+        code: 'A212',
+        message: 'Reserved subpage config cannot be deleted',
+        httpCode: 400,
+    },
+    DELETE_SUBSCRIPTION_PAGE_CONFIG_ERROR: {
+        code: 'A213',
+        message: 'Delete subscription page config error',
+        httpCode: 500,
+    },
+    CREATE_SUBSCRIPTION_PAGE_CONFIG_ERROR: {
+        code: 'A214',
+        message: 'Create subscription page config error',
+        httpCode: 500,
+    },
+    INVALID_SUBSCRIPTION_PAGE_CONFIG: {
+        code: 'A215',
+        message: 'Invalid subscription page config',
+        httpCode: 400,
+    },
 } as const;

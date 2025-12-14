@@ -98,4 +98,8 @@ export const CONTROLLERS_INFO = {
         tag: 'Remnawave Settings Controller',
         description: '',
     },
+    SUBSCRIPTION_PAGE_CONFIGS: {
+        tag: 'Subscription Page Configs Controller',
+        description: '',
+    },
 } as const;

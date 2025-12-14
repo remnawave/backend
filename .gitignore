@@ -10,6 +10,9 @@
 /libs/hashed-set/build
 /libs/hashed-set/node_modules
 /libs/hashed-set/dist
+/libs/subscription-page/build
+/libs/subscription-page/node_modules
+/libs/subscription-page/dist
 # Logs
 logs
 *.log

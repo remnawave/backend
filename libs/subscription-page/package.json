@@ -1,9 +1,9 @@
 {
-  "name": "@remnawave/backend-contract",
-  "version": "2.3.54",
+  "name": "@remnawave/subscription-page-types",
+  "version": "0.0.2",
   "public": true,
   "license": "AGPL-3.0-only",
-  "description": "A contract library for Remnawave Backend. It can be used in backend and frontend.",
+  "description": "A types library for Remnawave Subscription Page.",
   "author": "REMNAWAVE <github.com/remnawave>",
   "homepage": "https://github.com/remnawave",
   "repository": {

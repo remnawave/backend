@@ -19,6 +19,7 @@ export * from './nodes.schema';
 export * from './remnawave-settings';
 export * from './response-rules';
 export * from './snippets.schema';
+export * from './subscripion-page-config.schema';
 export * from './subscription-info.schema';
 export * from './subscription-request-history.schema';
 export * from './subscription-settings';
