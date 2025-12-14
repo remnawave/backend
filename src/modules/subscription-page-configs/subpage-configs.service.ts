@@ -3,6 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { fail, ok, TResult } from '@common/types';
+import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config/subscription-page-config.validator';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
 import { ERRORS } from '@libs/contracts/constants';
 
@@ -79,6 +80,18 @@ export class SubscriptionPageConfigService {
                     );
                     return fail(ERRORS.INVALID_SUBSCRIPTION_PAGE_CONFIG);
                 }
+
+                validatedConfig.data.platforms = cleanLocalizedTexts(
+                    validatedConfig.data.platforms,
+                    validatedConfig.data.additionalLocales,
+                );
+
+                validatedConfig.data.uiConfig = cleanLocalizedTexts(
+                    validatedConfig.data.uiConfig,
+                    validatedConfig.data.additionalLocales,
+                );
+
+                inputConfig = validatedConfig.data;
             }
 
             const updatedConfig = await this.subscriptionPageConfigRepository.update({
