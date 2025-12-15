@@ -28,6 +28,7 @@ export const ExternalSquadSchema = z.object({
     responseHeaders: ExternalSquadResponseHeadersSchema,
     hwidSettings: z.nullable(HwidSettingsSchema),
     customRemarks: z.nullable(CustomRemarksSchema),
+    subpageConfigUuid: z.nullable(z.string().uuid()),
 
     createdAt: z
         .string()

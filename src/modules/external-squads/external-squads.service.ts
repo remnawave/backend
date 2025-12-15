@@ -101,6 +101,7 @@ export class ExternalSquadService {
             responseHeaders,
             hwidSettings,
             customRemarks,
+            subpageConfigUuid,
         } = dto;
 
         try {
@@ -117,7 +118,8 @@ export class ExternalSquadService {
                 !hostOverrides &&
                 !responseHeaders &&
                 hwidSettings === undefined &&
-                customRemarks === undefined
+                customRemarks === undefined &&
+                subpageConfigUuid === undefined
             ) {
                 return fail(ERRORS.NAME_OR_TEMPLATES_REQUIRED);
             }
@@ -130,6 +132,7 @@ export class ExternalSquadService {
                 responseHeaders: responseHeaders || undefined,
                 hwidSettings: hwidSettings,
                 customRemarks: customRemarks,
+                subpageConfigUuid: subpageConfigUuid,
             });
 
             if (templates !== undefined) {

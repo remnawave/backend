@@ -550,11 +550,14 @@ model ExternalSquads {
   hwidSettings  Json? @map("hwid_settings")
   customRemarks Json? @map("custom_remarks")
 
+  subpageConfigUuid String? @map("subpage_config_uuid") @db.Uuid
+
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
   externalSquadsTemplates ExternalSquadsTemplates[]
   users                   Users[]
+  subpageConfig           SubscriptionPageConfig?   @relation(fields: [subpageConfigUuid], references: [uuid], onDelete: SetNull)
 
   @@map("external_squads")
 }
@@ -579,6 +582,8 @@ model SubscriptionPageConfig {
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  externalSquads ExternalSquads[]
 
   @@map("subscription_page_config")
 }

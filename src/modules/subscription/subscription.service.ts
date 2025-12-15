@@ -17,6 +17,7 @@ import { THwidSettings } from '@libs/contracts/models';
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
+import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
@@ -30,6 +31,7 @@ import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-wi
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
+import { GetUserSubpageConfigQuery } from '@modules/users/queries/get-user-subpage-config';
 import { GetTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { UserEntity } from '@modules/users/entities/user.entity';
@@ -44,6 +46,7 @@ import {
     SubscriptionWithConfigResponse,
 } from './models';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
+import { GetSubpageConfigResponseModel } from './models/get-subpage-config.response.model';
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
 import { ISubscriptionHeaders, IGetSubscriptionInfo } from './interfaces';
 import { GetAllSubscriptionsQueryDto } from './dto';
@@ -62,6 +65,7 @@ export class SubscriptionService {
         private readonly formatHostsService: FormatHostsService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly usersQueuesService: UsersQueuesService,
+        private readonly srrMatcher: ResponseRulesMatcherService,
     ) {
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
     }
@@ -854,6 +858,50 @@ export class SubscriptionService {
             this.logger.error(`Error updating and reporting subscription request: ${error}`);
 
             return;
+        }
+    }
+
+    public async getSubpageConfigByShortUuid(
+        shortUuid: string,
+        requestHeaders: Record<string, string>,
+    ): Promise<TResult<GetSubpageConfigResponseModel>> {
+        let subpageConfigUuid: string | null = null;
+        let webpageAllowed: boolean = false;
+
+        try {
+            const [subpageConfigUuidResult, settingsEntity] = await Promise.all([
+                this.queryBus.execute(new GetUserSubpageConfigQuery(shortUuid)),
+                this.queryBus.execute(new GetCachedSubscriptionSettingsQuery()),
+            ]);
+
+            if (subpageConfigUuidResult.isOk) {
+                subpageConfigUuid = subpageConfigUuidResult.response;
+            }
+
+            if (settingsEntity && settingsEntity.responseRules) {
+                const result = this.srrMatcher.matchRules(
+                    settingsEntity.responseRules,
+                    requestHeaders,
+                    undefined,
+                );
+
+                webpageAllowed = result.matched === true && result.responseType === 'BROWSER';
+            }
+
+            return ok(
+                new GetSubpageConfigResponseModel({
+                    subpageConfigUuid,
+                    webpageAllowed,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(`Error getting subpage config by short uuid: ${error}`);
+            return ok(
+                new GetSubpageConfigResponseModel({
+                    subpageConfigUuid: null,
+                    webpageAllowed: false,
+                }),
+            );
         }
     }
 }

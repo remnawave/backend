@@ -8,7 +8,16 @@ import {
     ApiQuery,
     ApiTags,
 } from '@nestjs/swagger';
-import { Controller, HttpStatus, Param, Query, Req, UseFilters, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    HttpStatus,
+    Param,
+    Query,
+    Req,
+    UseFilters,
+    UseGuards,
+} from '@nestjs/common';
 
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
 import { JwtDefaultGuard } from '@common/guards/jwt-guards/def-jwt-guard';
@@ -25,6 +34,7 @@ import {
     GetSubscriptionByUsernameCommand,
     GetSubscriptionByUuidCommand,
 } from '@libs/contracts/commands';
+import { GetSubpageConfigByShortUuidCommand } from '@libs/contracts/commands/subscriptions/subpage/get-subpage-config-by-shortuuid.command';
 import { CONTROLLERS_INFO, SUBSCRIPTIONS_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
@@ -41,6 +51,11 @@ import {
     GetSubscriptionByUuidRequestDto,
     GetSubscriptionByUuidResponseDto,
 } from '../dto';
+import {
+    GetSubpageConfigByShortUuidRequestBodyDto,
+    GetSubpageConfigByShortUuidRequestDto,
+    GetSubpageConfigByShortUuidResponseDto,
+} from '../dto/get-subpage-config.dto';
 import { AllSubscriptionsResponseModel, SubscriptionRawResponse } from '../models';
 import { SubscriptionService } from '../subscription.service';
 
@@ -264,6 +279,36 @@ export class SubscriptionsController {
 
         const data = errorHandler(result);
 
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetSubpageConfigByShortUuidResponseDto,
+        description: 'Subpage config fetched successfully',
+    })
+    @ApiParam({
+        name: 'shortUuid',
+        type: String,
+        description: 'Short UUID of the user',
+        required: true,
+    })
+    @Endpoint({
+        command: GetSubpageConfigByShortUuidCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: GetSubpageConfigByShortUuidRequestBodyDto,
+    })
+    async getSubpageConfigByShortUuid(
+        @Param() paramData: GetSubpageConfigByShortUuidRequestDto,
+        @Body() body: GetSubpageConfigByShortUuidRequestBodyDto,
+    ): Promise<GetSubpageConfigByShortUuidResponseDto> {
+        const { shortUuid } = paramData;
+        const result = await this.subscriptionService.getSubpageConfigByShortUuid(
+            shortUuid,
+            body.requestHeaders,
+        );
+        const data = errorHandler(result);
         return {
             response: data,
         };

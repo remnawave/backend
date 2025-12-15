@@ -276,6 +276,12 @@ export const REST_API = {
                     shortUuid,
                 )}`,
         },
+        SUBPAGE: {
+            GET_CONFIG: (shortUuid: string) =>
+                `${ROOT}/${CONTROLLERS.SUBSCRIPTIONS_CONTROLLER}/${CONTROLLERS.SUBSCRIPTIONS_ROUTES.SUBPAGE.GET_CONFIG(
+                    shortUuid,
+                )}`,
+        },
     },
     CONFIG_PROFILES: {
         GET: `${ROOT}/${CONTROLLERS.CONFIG_PROFILES_CONTROLLER}/${CONTROLLERS.CONFIG_PROFILES_ROUTES.GET}`,

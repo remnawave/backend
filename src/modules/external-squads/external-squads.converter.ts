@@ -20,6 +20,7 @@ const entityToModel = (entity: ExternalSquadEntity): ExternalSquads => {
         responseHeaders: entity.responseHeaders,
         hwidSettings: entity.hwidSettings,
         customRemarks: entity.customRemarks,
+        subpageConfigUuid: entity.subpageConfigUuid,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

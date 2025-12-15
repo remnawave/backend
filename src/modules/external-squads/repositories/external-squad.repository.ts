@@ -123,6 +123,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.responseHeaders',
                 'externalSquads.hwidSettings',
                 'externalSquads.customRemarks',
+                'externalSquads.subpageConfigUuid',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 
@@ -158,6 +159,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.responseHeaders',
                 'externalSquads.hwidSettings',
                 'externalSquads.customRemarks',
+                'externalSquads.subpageConfigUuid',
                 'externalSquads.createdAt',
                 'externalSquads.updatedAt',
 

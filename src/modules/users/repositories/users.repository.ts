@@ -1313,4 +1313,20 @@ export class UsersRepository {
             max: Number(result.maxLength),
         };
     }
+
+    public async getUserSubpageConfigUuid(shortUuid: string): Promise<string | null> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .where('shortUuid', '=', shortUuid)
+            .where('externalSquadUuid', 'is not', null)
+            .innerJoin('externalSquads', 'users.externalSquadUuid', 'externalSquads.uuid')
+            .select('externalSquads.subpageConfigUuid')
+            .executeTakeFirst();
+
+        if (!result || !result.subpageConfigUuid) {
+            return null;
+        }
+
+        return result.subpageConfigUuid;
+    }
 }
