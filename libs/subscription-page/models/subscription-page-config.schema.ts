@@ -3,23 +3,21 @@ import { z } from 'zod';
 import {
     SUBSCRIPTION_PAGE_CONFIG_VERSION,
     SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES,
-    SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES,
     SUBSCRIPTION_INFO_BLOCK_VARIANTS,
     INSTALLATION_GUIDE_BLOCKS_VARIANTS,
     BUTTON_TYPES,
-} from '../../constants';
+    LANGUAGE_CODES,
+} from '../constants';
 import {
     validateLocalizedTexts,
     validateSvgReferences,
 } from './subscription-page-config.validator';
 
-export const LocalizedTextSchema = z.object({
-    en: z.string(),
-    ru: z.string().optional(),
-    zh: z.string().optional(),
-    fa: z.string().optional(),
-    fr: z.string().optional(),
-});
+const LocalizedTextSchema = z
+    .record(z.string().regex(/^[a-z]{2}$/, 'Language code must be 2 lowercase letters'), z.string())
+    .refine((obj) => Object.keys(obj).length > 0, {
+        message: 'At least one language must be specified',
+    });
 
 const SvgLibrarySchema = z.record(
     z.string().regex(/^[A-Za-z]+$/, { message: 'Only latin characters, no spaces allowed' }),
@@ -67,6 +65,7 @@ const BlockSchema = z.object({
 
 const PlatformAppSchema = z.object({
     name: z.string(),
+    svgIconKey: z.optional(z.string()),
     featured: z.boolean(),
     blocks: z.array(BlockSchema),
 });
@@ -84,31 +83,44 @@ const BrandingSettingsSchema = z.object({
 });
 
 const UiConfigSchema = z.object({
-    subscriptionInfo: z.object({
-        block: z.nativeEnum(SUBSCRIPTION_INFO_BLOCK_VARIANTS),
-    }),
-    installationGuides: z.object({
-        block: z
-            .nativeEnum(INSTALLATION_GUIDE_BLOCKS_VARIANTS)
-            .default(INSTALLATION_GUIDE_BLOCKS_VARIANTS.CARDS),
-        headerText: LocalizedTextSchema,
-    }),
-    connectionKeys: z.object({
-        headerText: LocalizedTextSchema,
-    }),
+    subscriptionInfoBlockType: z.nativeEnum(SUBSCRIPTION_INFO_BLOCK_VARIANTS),
+    installationGuidesBlockType: z.nativeEnum(INSTALLATION_GUIDE_BLOCKS_VARIANTS),
+});
+
+const SubscriptionPageTranslateKeysSchema = z.object({
+    installationGuideHeader: LocalizedTextSchema,
+    connectionKeysHeader: LocalizedTextSchema,
+    linkCopied: LocalizedTextSchema,
+    linkCopiedToClipboard: LocalizedTextSchema,
+    getLink: LocalizedTextSchema,
+    scanQrCode: LocalizedTextSchema,
+    scanQrCodeDescription: LocalizedTextSchema,
+    copyLink: LocalizedTextSchema,
+    name: LocalizedTextSchema,
+    status: LocalizedTextSchema,
+    active: LocalizedTextSchema,
+    inactive: LocalizedTextSchema,
+    expires: LocalizedTextSchema,
+    bandwidth: LocalizedTextSchema,
+    scanToImport: LocalizedTextSchema,
+    expiresIn: LocalizedTextSchema,
+    expired: LocalizedTextSchema,
+    unknown: LocalizedTextSchema,
+    indefinitely: LocalizedTextSchema,
 });
 
 export const SubscriptionPageRawConfigSchema = z
     .object({
         version: z.nativeEnum(SUBSCRIPTION_PAGE_CONFIG_VERSION),
-        additionalLocales: z.array(z.enum(SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES)),
+        locales: z.array(z.enum(LANGUAGE_CODES)).min(1, 'At least one locale must be specified'),
         brandingSettings: BrandingSettingsSchema,
         uiConfig: UiConfigSchema,
+        baseTranslations: SubscriptionPageTranslateKeysSchema,
         svgLibrary: SvgLibrarySchema,
         platforms: z.record(z.nativeEnum(SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES), PlatformSchema),
     })
     .superRefine((data, ctx) => {
-        validateLocalizedTexts(data.platforms, data.additionalLocales, 'platforms', ctx);
+        validateLocalizedTexts(data, data.locales, ctx);
         validateSvgReferences(data, ctx);
     });
 
@@ -122,6 +134,5 @@ export type TSubscriptionPageBlockConfig = z.infer<typeof BlockSchema>;
 export type TSubscriptionPageButtonConfig = z.infer<typeof ButtonSchema>;
 export type TSubscriptionPageLocalizedText = z.infer<typeof LocalizedTextSchema>;
 export type TSubscriptionPageUiConfig = z.infer<typeof UiConfigSchema>;
-export type TSubscriptionPageLocales =
-    | TSubscriptionPageRawConfig['additionalLocales'][number]
-    | 'en';
+export type TSubscriptionPageTranslateKeys = z.infer<typeof SubscriptionPageTranslateKeysSchema>;
+export type TSubscriptionPageBaseTranslationKeys = keyof TSubscriptionPageTranslateKeys;

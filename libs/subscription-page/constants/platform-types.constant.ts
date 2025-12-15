@@ -2,7 +2,8 @@ export const SUBSCRIPTION_PAGE_CONFIG_VERSION = {
     1: '1',
 } as const;
 
-export const SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES = ['ru', 'zh', 'fa', 'fr'] as const;
+export type TSubscriptionPageConfigVersion =
+    (typeof SUBSCRIPTION_PAGE_CONFIG_VERSION)[keyof typeof SUBSCRIPTION_PAGE_CONFIG_VERSION];
 
 export const SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES = {
     IOS: 'ios',
@@ -14,5 +15,5 @@ export const SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES = {
     APPLE_TV: 'appleTV',
 } as const;
 
-export type TSubscriptionPageConfigAdditionalLocales =
-    (typeof SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES)[number];
+export type TSubscriptionPageConfigPlatformType =
+    (typeof SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES)[keyof typeof SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES];

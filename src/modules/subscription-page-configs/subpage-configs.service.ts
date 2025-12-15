@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { fail, ok, TResult } from '@common/types';
-import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config/subscription-page-config.validator';
+import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config.validator';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
 import { ERRORS } from '@libs/contracts/constants';
 
@@ -89,12 +89,12 @@ export class SubscriptionPageConfigService {
 
                 validatedConfig.data.platforms = cleanLocalizedTexts(
                     validatedConfig.data.platforms,
-                    validatedConfig.data.additionalLocales,
+                    validatedConfig.data.locales,
                 );
 
-                validatedConfig.data.uiConfig = cleanLocalizedTexts(
-                    validatedConfig.data.uiConfig,
-                    validatedConfig.data.additionalLocales,
+                validatedConfig.data.baseTranslations = cleanLocalizedTexts(
+                    validatedConfig.data.baseTranslations,
+                    validatedConfig.data.locales,
                 );
 
                 inputConfig = validatedConfig.data;
