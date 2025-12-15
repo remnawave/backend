@@ -9,6 +9,6 @@ export const SUBSCRIPTIONS_ROUTES = {
         SHORT_UUID_RAW: (shortUuid: string) => `by-short-uuid/${shortUuid}/raw`,
     },
     SUBPAGE: {
-        GET_CONFIG: (shortUuid: string) => `subppage-config/${shortUuid}`,
+        GET_CONFIG: (shortUuid: string) => `subpage-config/${shortUuid}`,
     },
 } as const;
