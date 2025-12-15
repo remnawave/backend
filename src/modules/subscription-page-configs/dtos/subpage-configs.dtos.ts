@@ -7,6 +7,7 @@ import {
     DeleteSubscriptionPageConfigCommand,
     CreateSubscriptionPageConfigCommand,
     ReorderSubscriptionPageConfigsCommand,
+    CloneSubscriptionPageConfigCommand,
 } from '@libs/contracts/commands';
 
 export class GetSubscriptionPageConfigsResponseDto extends createZodDto(
@@ -51,3 +52,10 @@ export class ReorderSubscriptionPageConfigsRequestDto extends createZodDto(
 export class ReorderSubscriptionPageConfigsResponseDto extends createZodDto(
     ReorderSubscriptionPageConfigsCommand.ResponseSchema,
 ) {} // REORDER
+
+export class CloneSubscriptionPageConfigRequestDto extends createZodDto(
+    CloneSubscriptionPageConfigCommand.RequestSchema,
+) {} // CLONE
+export class CloneSubscriptionPageConfigResponseDto extends createZodDto(
+    CloneSubscriptionPageConfigCommand.ResponseSchema,
+) {} // CLONE

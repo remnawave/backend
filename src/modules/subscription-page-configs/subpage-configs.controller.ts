@@ -11,6 +11,7 @@ import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
 import {
+    CloneSubscriptionPageConfigCommand,
     CreateSubscriptionPageConfigCommand,
     DeleteSubscriptionPageConfigCommand,
     GetSubscriptionPageConfigCommand,
@@ -31,6 +32,8 @@ import {
     CreateSubscriptionPageConfigRequestDto,
     CreateSubscriptionPageConfigResponseDto,
     GetSubscriptionPageConfigRequestDto,
+    CloneSubscriptionPageConfigResponseDto,
+    CloneSubscriptionPageConfigRequestDto,
 } from './dtos/subpage-configs.dtos';
 import { SubscriptionPageConfigService } from './subpage-configs.service';
 
@@ -164,6 +167,28 @@ export class SubscriptionPageConfigController {
     ): Promise<ReorderSubscriptionPageConfigsResponseDto> {
         const result = await this.subscriptionPageConfigService.reorderSubscriptionPageConfigs(
             body.items,
+        );
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: CloneSubscriptionPageConfigResponseDto,
+        description: 'Subscription page config cloned successfully',
+    })
+    @Endpoint({
+        command: CloneSubscriptionPageConfigCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: CloneSubscriptionPageConfigRequestDto,
+    })
+    async cloneSubscriptionPageConfig(
+        @Body() body: CloneSubscriptionPageConfigRequestDto,
+    ): Promise<CloneSubscriptionPageConfigResponseDto> {
+        const result = await this.subscriptionPageConfigService.cloneSubscriptionPageConfig(
+            body.cloneFromUuid,
         );
 
         const data = errorHandler(result);

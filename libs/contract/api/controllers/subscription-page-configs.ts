@@ -11,5 +11,6 @@ export const SUBSCRIPTION_PAGE_CONFIGS_ROUTES = {
 
     ACTIONS: {
         REORDER: `${ACTIONS_ROUTE}/reorder`,
+        CLONE: `${ACTIONS_ROUTE}/clone`,
     },
 } as const;

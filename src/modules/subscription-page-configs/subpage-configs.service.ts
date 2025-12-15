@@ -1,4 +1,5 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { nanoid } from 'nanoid';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -196,6 +197,30 @@ export class SubscriptionPageConfigService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GENERIC_REORDER_ERROR);
+        }
+    }
+
+    public async cloneSubscriptionPageConfig(
+        cloneFromUuid: string,
+    ): Promise<TResult<BaseSubscriptionPageConfigResponseModel>> {
+        try {
+            const config = await this.subscriptionPageConfigRepository.findByUUID(cloneFromUuid);
+
+            if (!config) {
+                return fail(ERRORS.SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND);
+            }
+
+            const newConfig = await this.subscriptionPageConfigRepository.create(
+                new SubscriptionPageConfigEntity({
+                    name: `Clone ${nanoid(5)}`,
+                    config: config.config,
+                }),
+            );
+
+            return ok(new BaseSubscriptionPageConfigResponseModel(newConfig));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.CREATE_SUBSCRIPTION_PAGE_CONFIG_ERROR);
         }
     }
 }

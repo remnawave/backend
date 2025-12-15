@@ -4,6 +4,9 @@ import {
     SUBSCRIPTION_PAGE_CONFIG_VERSION,
     SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES,
     SUBSCRIPTION_PAGE_CONFIG_ADDITIONAL_LOCALES,
+    SUBSCRIPTION_INFO_BLOCK_VARIANTS,
+    INSTALLATION_GUIDE_BLOCKS_VARIANTS,
+    BUTTON_TYPES,
 } from '../../constants';
 import {
     validateLocalizedTexts,
@@ -25,7 +28,7 @@ const SvgLibrarySchema = z.record(
 
 const ButtonSchema = z.object({
     link: z.string(),
-    type: z.enum(['external', 'subscriptionLink']),
+    type: z.nativeEnum(BUTTON_TYPES),
     text: LocalizedTextSchema,
     svgIconKey: z.string(),
 });
@@ -82,10 +85,12 @@ const BrandingSettingsSchema = z.object({
 
 const UiConfigSchema = z.object({
     subscriptionInfo: z.object({
-        block: z.enum(['collapsed', 'expanded', 'cards', 'hidden']),
+        block: z.nativeEnum(SUBSCRIPTION_INFO_BLOCK_VARIANTS),
     }),
     installationGuides: z.object({
-        block: z.enum(['cards', 'accordion', 'minimal', 'timeline']).default('cards'),
+        block: z
+            .nativeEnum(INSTALLATION_GUIDE_BLOCKS_VARIANTS)
+            .default(INSTALLATION_GUIDE_BLOCKS_VARIANTS.CARDS),
         headerText: LocalizedTextSchema,
     }),
     connectionKeys: z.object({
