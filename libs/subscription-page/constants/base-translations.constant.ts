@@ -16,7 +16,7 @@ export const BASE_TRANSLATION_LABELS: Record<TSubscriptionPageBaseTranslationKey
     expires: 'Expires',
     bandwidth: 'Bandwidth',
     scanToImport: 'Scan to Import',
-    expiresIn: 'Expires In',
+    expiresIn: 'Expires',
     expired: 'Expired',
     unknown: 'Unknown',
     indefinitely: 'Indefinitely',

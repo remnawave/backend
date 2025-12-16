@@ -127,7 +127,7 @@ export const DEFAULT_SUBPAGE_CONFIG = {
             zh: '扫描以导入此密钥',
         },
         expiresIn: {
-            en: 'Expires in',
+            en: 'Expires',
             ru: 'Истекает',
             fr: 'Expire',
             fa: 'منقضی می‌شود در',
