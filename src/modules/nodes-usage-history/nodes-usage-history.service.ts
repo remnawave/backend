@@ -16,22 +16,49 @@ export class NodesUsageHistoryService {
     async getNodesUsageByRange(
         start: Date,
         end: Date,
-    ): Promise<TResult<GetNodesUsageByRangeResponseModel[]>> {
+    ): Promise<TResult<GetNodesUsageByRangeResponseModel>> {
         try {
             const startDate = dayjs(start).utc().toDate();
             const endDate = dayjs(end).utc().toDate();
 
-            const nodesUsage = await this.nodeUsageHistoryRepository.getNodesUsageByRange(
+            const dates = this.generateDateArray(startDate, endDate);
+
+            const dailyTraffic = await this.nodeUsageHistoryRepository.getDailyTrafficSum(
+                startDate,
+                endDate,
+                dates,
+            );
+
+            const topNodes = await this.nodeUsageHistoryRepository.getTopNodesByTraffic(
                 startDate,
                 endDate,
             );
 
+            const nodesUsage = await this.nodeUsageHistoryRepository.getNodesUsageByRange(
+                startDate,
+                endDate,
+                dates,
+            );
+
             return ok(
-                nodesUsage.map((nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage)),
+                new GetNodesUsageByRangeResponseModel({
+                    categories: dates,
+                    series: nodesUsage,
+                    sparklineData: dailyTraffic,
+                    topNodes: topNodes,
+                }),
             );
         } catch (error) {
             this.logger.error(error);
-            return fail(ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private generateDateArray(start: Date, end: Date): string[] {
+        const startDate = dayjs(start).utc().startOf('day');
+        const endDate = dayjs(end).utc().startOf('day');
+        const days = endDate.diff(startDate, 'day') + 1;
+
+        return Array.from({ length: days }, (_, i) => startDate.add(i, 'day').format('YYYY-MM-DD'));
     }
 }

@@ -21,20 +21,27 @@ export namespace GetNodesUsageByRangeCommand {
     export type RequestQuery = z.infer<typeof RequestQuerySchema>;
 
     export const ResponseSchema = z.object({
-        response: z.array(
-            z.object({
-                nodeUuid: z.string().uuid(),
-                nodeName: z.string(),
-                nodeCountryCode: z.string(),
-                total: z.number(),
-                totalDownload: z.number(),
-                totalUpload: z.number(),
-                humanReadableTotal: z.string(),
-                humanReadableTotalDownload: z.string(),
-                humanReadableTotalUpload: z.string(),
-                date: z.string().transform((str) => new Date(str)),
-            }),
-        ),
+        response: z.object({
+            categories: z.array(z.string()),
+            sparklineData: z.array(z.number()),
+            topNodes: z.array(
+                z.object({
+                    uuid: z.string().uuid(),
+                    name: z.string(),
+                    countryCode: z.string(),
+                    total: z.number(),
+                }),
+            ),
+            series: z.array(
+                z.object({
+                    uuid: z.string().uuid(),
+                    name: z.string(),
+                    countryCode: z.string(),
+                    total: z.number(),
+                    data: z.array(z.number()),
+                }),
+            ),
+        }),
     });
 
     export type Response = z.infer<typeof ResponseSchema>;
