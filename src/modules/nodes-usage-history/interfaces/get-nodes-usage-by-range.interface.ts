@@ -10,5 +10,5 @@ export interface ITopNode {
     uuid: string;
     name: string;
     countryCode: string;
-    total: number;
+    total: bigint;
 }

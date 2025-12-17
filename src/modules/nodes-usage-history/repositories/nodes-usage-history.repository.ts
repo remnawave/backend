@@ -136,7 +136,7 @@ export class NodesUsageHistoryRepository implements ICrudHistoricalRecords<Nodes
         end: Date,
         limit: number = 5,
     ): Promise<ITopNode[]> {
-        const result = await this.qb.kysely
+        return await this.qb.kysely
             .selectFrom('nodes as n')
             .innerJoin('nodesUsageHistory as h', 'h.nodeUuid', 'n.uuid')
             .select([
@@ -151,13 +151,6 @@ export class NodesUsageHistoryRepository implements ICrudHistoricalRecords<Nodes
             .orderBy((eb) => eb.fn.sum<bigint>('h.totalBytes'), 'desc')
             .limit(limit)
             .execute();
-
-        return result.map((item) => ({
-            uuid: item.uuid,
-            name: item.name,
-            countryCode: item.countryCode,
-            total: Number(item.total),
-        }));
     }
 
     public async getDailyTrafficSum(start: Date, end: Date, dates: string[]): Promise<number[]> {

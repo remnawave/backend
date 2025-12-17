@@ -53,6 +53,7 @@
     "@kastov/grammy-nestjs": "0.4.2",
     "@kastov/nestjs-prisma-kysely": "0.1.2",
     "@kastov/request-ip": "^0.0.5",
+    "@kastov/uuid-color": "^0.0.2",
     "@keyv/redis": "^5.1.5",
     "@mongodb-js/zstd": "^7.0.0",
     "@nestjs-cls/transactional": "3.1.1",
@@ -137,6 +138,7 @@
     "transliteration": "^2.3.5",
     "try": "^1.0.3",
     "ufo": "^1.6.1",
+    "uniqolor": "^1.1.1",
     "validator": "^13.15.23",
     "winston": "^3.19.0",
     "xbytes": "^1.9.1",
@@ -145,7 +147,6 @@
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.14",
-    "zod-to-json-schema": "^3.25.0",
     "@nestjs/schematics": "11.0.9",
     "@types/compression": "^1.8.1",
     "@types/cookie-parser": "^1.4.10",
@@ -176,7 +177,8 @@
     "ts-node": "10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.49.0"
+    "typescript-eslint": "^8.49.0",
+    "zod-to-json-schema": "^3.25.0"
   },
   "overrides": {
     "prisma-kysely": {

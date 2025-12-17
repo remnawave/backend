@@ -18,8 +18,8 @@ export class NodesUsageHistoryService {
         end: Date,
     ): Promise<TResult<GetNodesUsageByRangeResponseModel>> {
         try {
-            const startDate = dayjs(start).utc().toDate();
-            const endDate = dayjs(end).utc().toDate();
+            const startDate = dayjs(start).utc().startOf('day').toDate();
+            const endDate = dayjs(end).utc().endOf('day').toDate();
 
             const dates = this.generateDateArray(startDate, endDate);
 

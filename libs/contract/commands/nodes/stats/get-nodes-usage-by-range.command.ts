@@ -14,8 +14,8 @@ export namespace GetNodesUsageByRangeCommand {
     );
 
     export const RequestQuerySchema = z.object({
-        start: z.string(),
-        end: z.string(),
+        start: z.string().date(),
+        end: z.string().date(),
     });
 
     export type RequestQuery = z.infer<typeof RequestQuerySchema>;
@@ -27,6 +27,7 @@ export namespace GetNodesUsageByRangeCommand {
             topNodes: z.array(
                 z.object({
                     uuid: z.string().uuid(),
+                    color: z.string(),
                     name: z.string(),
                     countryCode: z.string(),
                     total: z.number(),
@@ -36,6 +37,7 @@ export namespace GetNodesUsageByRangeCommand {
                 z.object({
                     uuid: z.string().uuid(),
                     name: z.string(),
+                    color: z.string(),
                     countryCode: z.string(),
                     total: z.number(),
                     data: z.array(z.number()),
