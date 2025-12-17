@@ -1,5 +1,6 @@
 export * from './api-tokens';
 export * from './auth';
+export * from './bandwidth-stats';
 export * from './config-profiles';
 export * from './external-squads';
 export * from './hosts';

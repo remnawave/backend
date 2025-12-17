@@ -1,1 +1,1 @@
-export * from './get-nodes-usage-by-range.response.model';
+export * from './get-stats-nodes-usage.response.model';

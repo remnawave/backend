@@ -41,10 +41,6 @@ export const USERS_ROUTES = {
         },
     },
 
-    STATS: {
-        GET_USAGE_BY_RANGE: (uuid: string) => `stats/usage/${uuid}/range`,
-    },
-
     TAGS: {
         GET: 'tags',
     },

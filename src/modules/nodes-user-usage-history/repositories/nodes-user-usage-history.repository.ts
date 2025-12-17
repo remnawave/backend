@@ -6,15 +6,14 @@ import { Injectable } from '@nestjs/common';
 
 import { ICrudHistoricalRecords } from '@common/types/crud-port';
 
-import { IGetUserUsageByRange } from '@modules/users/interfaces';
-
 import { GetNodeUsersUsageByRangeBuilder } from '../builders/get-node-users-usage-by-range/get-node-users-usage-by-range.builder';
 import { BulkUpsertHistoryEntryBuilder } from '../builders/bulk-upsert-history-entry/bulk-upsert-history-entry.builder';
 import { GetNodesRealtimeUsageBuilder } from '../builders/get-nodes-realtime-usage/get-nodes-realtime-usage.builder';
 import { GetUserUsageByRangeBuilder } from '../builders/get-user-usage-by-range/get-user-usage-by-range.builder';
 import { NodesUserUsageHistoryEntity } from '../entities/nodes-user-usage-history.entity';
 import { NodesUserUsageHistoryConverter } from '../nodes-user-usage-history.converter';
-import { IGetNodesRealtimeUsage, IGetNodeUserUsageByRange } from '../interfaces';
+import { IGetNodesRealtimeUsage, IGetLegacyStatsNodesUsersUsage } from '../interfaces';
+import { IGetLegacyStatsUserUsage } from '../interfaces';
 
 @Injectable()
 export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity> {
@@ -48,30 +47,27 @@ export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<N
         await this.prisma.tx.$executeRaw<void>(query);
     }
 
-    public async getUserUsageByRange(
-        userUuid: string,
+    /**
+     * @deprecated This method is deprecated and may be removed in future versions.
+     */
+    public async getLegacyStatsUserUsage(
+        tId: bigint,
         start: Date,
         end: Date,
-    ): Promise<IGetUserUsageByRange[]> {
-        const userId = await this.prisma.tx.users.findFirstOrThrow({
-            select: {
-                tId: true,
-            },
-            where: {
-                uuid: userUuid,
-            },
-        });
-
-        const { query } = new GetUserUsageByRangeBuilder(userId.tId, start, end);
-        const result = await this.prisma.tx.$queryRaw<IGetUserUsageByRange[]>(query);
+    ): Promise<IGetLegacyStatsUserUsage[]> {
+        const { query } = new GetUserUsageByRangeBuilder(tId, start, end);
+        const result = await this.prisma.tx.$queryRaw<IGetLegacyStatsUserUsage[]>(query);
         return result;
     }
 
+    /**
+     * @deprecated This method is deprecated and may be removed in future versions.
+     */
     public async getNodeUsersUsageByRange(
         nodeUuid: string,
         start: Date,
         end: Date,
-    ): Promise<IGetNodeUserUsageByRange[]> {
+    ): Promise<IGetLegacyStatsNodesUsersUsage[]> {
         const nodeId = await this.prisma.tx.nodes.findFirstOrThrow({
             select: {
                 id: true,
@@ -82,7 +78,7 @@ export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<N
             },
         });
         const { query } = new GetNodeUsersUsageByRangeBuilder(nodeId.id, start, end);
-        const result = await this.prisma.tx.$queryRaw<IGetNodeUserUsageByRange[]>(query);
+        const result = await this.prisma.tx.$queryRaw<IGetLegacyStatsNodesUsersUsage[]>(query);
         return result;
     }
 

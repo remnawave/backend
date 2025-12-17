@@ -2,7 +2,7 @@ import { colorFromUuid } from '@kastov/uuid-color';
 
 import { IGetNodesUsageByRange, ITopNode } from '../interfaces';
 
-export class GetNodesUsageByRangeResponseModel {
+export class GetStatsNodesUsageResponseModel {
     public readonly categories: string[];
     public readonly series: {
         uuid: string;
@@ -12,7 +12,6 @@ export class GetNodesUsageByRangeResponseModel {
         total: number;
         data: number[];
     }[];
-    public readonly totalPerDay: number[];
     public readonly sparklineData: number[];
     public readonly topNodes: {
         uuid: string;

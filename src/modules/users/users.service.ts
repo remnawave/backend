@@ -19,7 +19,6 @@ import { GetAllUsersCommand } from '@libs/contracts/commands';
 import { UserEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
-import { GetUserUsageByRangeQuery } from '@modules/nodes-user-usage-history/queries/get-user-usage-by-range';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 
@@ -41,12 +40,7 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
 } from './dtos';
-import {
-    IGetUserByUnique,
-    IGetUsersByTelegramIdOrEmail,
-    IGetUserUsageByRange,
-    IUpdateUserDto,
-} from './interfaces';
+import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IUpdateUserDto } from './interfaces';
 import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
@@ -669,30 +663,6 @@ export class UsersService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.BULK_RESET_USER_TRAFFIC_ERROR);
-        }
-    }
-
-    public async getUserUsageByRange(
-        userUuid: string,
-        start: Date,
-        end: Date,
-    ): Promise<TResult<IGetUserUsageByRange[]>> {
-        try {
-            const startDate = dayjs(start).utc().toDate();
-            const endDate = dayjs(end).utc().toDate();
-
-            const result = await this.queryBus.execute(
-                new GetUserUsageByRangeQuery(userUuid, startDate, endDate),
-            );
-
-            if (!result.isOk) {
-                return fail(ERRORS.GET_USER_USAGE_BY_RANGE_ERROR);
-            }
-
-            return ok(result.response);
-        } catch (error) {
-            this.logger.error(error);
-            return fail(ERRORS.GET_USER_USAGE_BY_RANGE_ERROR);
         }
     }
 

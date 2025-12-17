@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
-import { getEndpointDetails } from '../../constants';
-import { REST_API, USERS_ROUTES } from '../../api';
+import { BANDWIDTH_STATS_ROUTES, REST_API } from '../../../api';
+import { getEndpointDetails } from '../../../constants';
 
-export namespace GetUserUsageByRangeCommand {
-    export const url = REST_API.USERS.STATS.GET_USAGE_BY_RANGE;
+export namespace GetLegacyStatsUserUsageCommand {
+    export const url = REST_API.BANDWIDTH_STATS.LEGACY.USERS.GET_BY_UUID;
     export const TSQ_url = url(':uuid');
 
     export const endpointDetails = getEndpointDetails(
-        USERS_ROUTES.STATS.GET_USAGE_BY_RANGE(':uuid'),
+        BANDWIDTH_STATS_ROUTES.LEGACY.USERS.GET_BY_UUID(':uuid'),
         'get',
-        'Get user usage by range',
+        'Get User Usage by Range (Legacy)',
     );
 
     export const RequestSchema = z.object({

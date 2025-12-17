@@ -1,6 +1,6 @@
 import { IGetNodesRealtimeUsage } from '../interfaces';
 
-export class GetNodesRealtimeUsageResponseModel {
+export class GetStatsNodesRealtimeUsageResponseModel {
     public readonly nodeUuid: string;
     public readonly nodeName: string;
     public readonly countryCode: string;

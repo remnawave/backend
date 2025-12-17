@@ -1,18 +1,17 @@
-import { IGetUserUsageByRange } from '../interfaces';
+import { IGetLegacyStatsNodesUsersUsage } from '../interfaces';
 
-export class GetUserUsageByRangeResponseModel {
+export class GetLegacyStatsNodesUsersUsageResponseModel {
     public readonly userUuid: string;
     public readonly nodeUuid: string;
-    public readonly nodeName: string;
-    public readonly countryCode: string;
+
+    public readonly username: string;
     public readonly total: number;
     public readonly date: Date;
 
-    constructor(data: IGetUserUsageByRange) {
+    constructor(data: IGetLegacyStatsNodesUsersUsage) {
         this.userUuid = data.userUuid;
         this.nodeUuid = data.nodeUuid;
-        this.nodeName = data.nodeName;
-        this.countryCode = data.countryCode;
+        this.username = data.username;
         this.total = Number(data.total);
         this.date = new Date(data.date);
     }

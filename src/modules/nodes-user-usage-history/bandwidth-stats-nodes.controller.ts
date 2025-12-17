@@ -8,19 +8,22 @@ import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
 import {
-    GetNodesRealtimeUsageCommand,
-    GetNodeUserUsageByRangeCommand,
+    GetLegacyStatsNodeUserUsageCommand,
+    GetStatsNodesRealtimeUsageCommand,
 } from '@libs/contracts/commands';
-import { CONTROLLERS_INFO, NODES_CONTROLLER } from '@libs/contracts/api';
+import { BANDWIDTH_STATS_NODES_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
-    GetNodeUserUsageByRangeRequestDto,
-    GetNodeUserUsageByRangeRequestQueryDto,
-    GetNodeUserUsageByRangeResponseDto,
+    GetLegacyStatsNodesUsersUsageRequestDto,
+    GetLegacyStatsNodesUsersUsageRequestQueryDto,
+    GetLegacyStatsNodesUsersUsageResponseDto,
+    GetStatsNodesRealtimeUsageResponseDto,
 } from './dtos';
-import { GetNodesRealtimeUsageResponseModel, GetNodeUserUsageByRangeResponseModel } from './models';
-import { GetNodesRealtimeUsageResponseDto } from './dtos/nodes-realtime-usage.dto';
+import {
+    GetLegacyStatsNodesUsersUsageResponseModel,
+    GetStatsNodesRealtimeUsageResponseModel,
+} from './models';
 import { NodesUserUsageHistoryService } from './nodes-user-usage-history.service';
 
 @ApiBearerAuth('Authorization')
@@ -28,13 +31,13 @@ import { NodesUserUsageHistoryService } from './nodes-user-usage-history.service
 @Roles(ROLE.ADMIN, ROLE.API)
 @UseGuards(JwtDefaultGuard, RolesGuard)
 @UseFilters(HttpExceptionFilter)
-@Controller(NODES_CONTROLLER)
-export class NodesUserUsageHistoryController {
+@Controller(BANDWIDTH_STATS_NODES_CONTROLLER)
+export class BandwidthStatsNodesController {
     constructor(private readonly nodesUserUsageHistoryService: NodesUserUsageHistoryService) {}
 
     @ApiOkResponse({
-        type: GetNodeUserUsageByRangeResponseDto,
-        description: 'Nodes user usage by range fetched successfully',
+        type: GetLegacyStatsNodesUsersUsageResponseDto,
+        description: 'Nodes users usage by range (legacy) fetched successfully',
     })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the node', required: true })
     @ApiQuery({
@@ -50,14 +53,14 @@ export class NodesUserUsageHistoryController {
         required: true,
     })
     @Endpoint({
-        command: GetNodeUserUsageByRangeCommand,
+        command: GetLegacyStatsNodeUserUsageCommand,
         httpCode: HttpStatus.OK,
     })
     async getNodeUserUsage(
-        @Query() query: GetNodeUserUsageByRangeRequestQueryDto,
-        @Param() paramData: GetNodeUserUsageByRangeRequestDto,
-    ): Promise<GetNodeUserUsageByRangeResponseDto> {
-        const result = await this.nodesUserUsageHistoryService.getNodesUserUsageByRange(
+        @Query() query: GetLegacyStatsNodesUsersUsageRequestQueryDto,
+        @Param() paramData: GetLegacyStatsNodesUsersUsageRequestDto,
+    ): Promise<GetLegacyStatsNodesUsersUsageResponseDto> {
+        const result = await this.nodesUserUsageHistoryService.getLegacyStatsNodesUsersUsage(
             paramData.uuid,
             new Date(query.start),
             new Date(query.end),
@@ -65,24 +68,24 @@ export class NodesUserUsageHistoryController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetNodeUserUsageByRangeResponseModel(item)),
+            response: data.map((item) => new GetLegacyStatsNodesUsersUsageResponseModel(item)),
         };
     }
 
     @ApiOkResponse({
-        type: GetNodesRealtimeUsageResponseDto,
+        type: GetStatsNodesRealtimeUsageResponseDto,
         description: 'Nodes realtime usage fetched successfully',
     })
     @Endpoint({
-        command: GetNodesRealtimeUsageCommand,
+        command: GetStatsNodesRealtimeUsageCommand,
         httpCode: HttpStatus.OK,
     })
-    async getNodesRealtimeUsage(): Promise<GetNodesRealtimeUsageResponseDto> {
-        const result = await this.nodesUserUsageHistoryService.getNodesRealtimeUsage();
+    async getNodesRealtimeUsage(): Promise<GetStatsNodesRealtimeUsageResponseDto> {
+        const result = await this.nodesUserUsageHistoryService.getStatsNodesRealtimeUsage();
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetNodesRealtimeUsageResponseModel(item)),
+            response: data.map((item) => new GetStatsNodesRealtimeUsageResponseModel(item)),
         };
     }
 }

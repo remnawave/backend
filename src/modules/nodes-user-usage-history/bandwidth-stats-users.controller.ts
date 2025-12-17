@@ -14,32 +14,32 @@ import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { CONTROLLERS_INFO, USERS_CONTROLLER } from '@libs/contracts/api';
-import { GetUserUsageByRangeCommand } from '@libs/contracts/commands';
+import { BANDWIDTH_STATS_USERS_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
+import { GetLegacyStatsUserUsageCommand } from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
-    GetUserUsageByRangeRequestDto,
-    GetUserUsageByRangeRequestQueryDto,
-    GetUserUsageByRangeResponseDto,
-} from '../dtos';
-import { GetUserUsageByRangeResponseModel } from '../models';
-import { UsersService } from '../users.service';
+    GetLegacyStatsUserUsageRequestDto,
+    GetLegacyStatsUserUsageRequestQueryDto,
+    GetLegacyStatsUserUsageResponseDto,
+} from './dtos/get-legacy-stats-users-usage.dto';
+import { NodesUserUsageHistoryService } from './nodes-user-usage-history.service';
+import { GetLegacyStatsUserUsageResponseModel } from './models';
 
 @ApiBearerAuth('Authorization')
-@ApiTags(CONTROLLERS_INFO.USERS_STATS.tag)
+@ApiTags(CONTROLLERS_INFO.BANDWIDTH_STATS.tag)
 @Roles(ROLE.ADMIN, ROLE.API)
 @UseGuards(JwtDefaultGuard, RolesGuard)
 @UseFilters(HttpExceptionFilter)
-@Controller(USERS_CONTROLLER)
-export class UsersStatsController {
-    constructor(private readonly usersService: UsersService) {}
+@Controller(BANDWIDTH_STATS_USERS_CONTROLLER)
+export class BandwidthStatsUsersController {
+    constructor(private readonly nodesUserUsageHistoryService: NodesUserUsageHistoryService) {}
 
     @ApiNotFoundResponse({
         description: 'User not found',
     })
     @ApiOkResponse({
-        type: GetUserUsageByRangeResponseDto,
+        type: GetLegacyStatsUserUsageResponseDto,
         description: 'User usage by range fetched successfully',
     })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the user', required: true })
@@ -56,14 +56,14 @@ export class UsersStatsController {
         required: true,
     })
     @Endpoint({
-        command: GetUserUsageByRangeCommand,
+        command: GetLegacyStatsUserUsageCommand,
         httpCode: HttpStatus.OK,
     })
     async getUserUsageByRange(
-        @Query() query: GetUserUsageByRangeRequestQueryDto,
-        @Param() paramData: GetUserUsageByRangeRequestDto,
-    ): Promise<GetUserUsageByRangeResponseDto> {
-        const result = await this.usersService.getUserUsageByRange(
+        @Query() query: GetLegacyStatsUserUsageRequestQueryDto,
+        @Param() paramData: GetLegacyStatsUserUsageRequestDto,
+    ): Promise<GetLegacyStatsUserUsageResponseDto> {
+        const result = await this.nodesUserUsageHistoryService.getLegacyStatsUserUsage(
             paramData.uuid,
             new Date(query.start),
             new Date(query.end),
@@ -71,7 +71,7 @@ export class UsersStatsController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((item) => new GetUserUsageByRangeResponseModel(item)),
+            response: data.map((item) => new GetLegacyStatsUserUsageResponseModel(item)),
         };
     }
 }

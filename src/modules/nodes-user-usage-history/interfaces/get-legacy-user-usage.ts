@@ -1,4 +1,4 @@
-export interface IGetUserUsageByRange {
+export interface IGetLegacyStatsUserUsage {
     userUuid: string;
     nodeUuid: string;
     nodeName: string;

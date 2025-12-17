@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
+import { BANDWIDTH_STATS_ROUTES, REST_API } from '../../../api';
 import { getEndpointDetails } from '../../../constants';
-import { NODES_ROUTES, REST_API } from '../../../api';
 
-export namespace GetNodesRealtimeUsageCommand {
-    export const url = REST_API.NODES.STATS.USAGE_REALTIME;
+export namespace GetStatsNodesRealtimeUsageCommand {
+    export const url = REST_API.BANDWIDTH_STATS.NODES.GET_REALTIME;
     export const TSQ_url = url;
 
     export const endpointDetails = getEndpointDetails(
-        NODES_ROUTES.STATS.USAGE_REALTIME,
+        BANDWIDTH_STATS_ROUTES.NODES.GET_REALTIME,
         'get',
-        'Get nodes realtime usage',
+        'Get Nodes Realtime Usage',
     );
 
     export const ResponseSchema = z.object({
