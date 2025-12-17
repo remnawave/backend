@@ -10,6 +10,7 @@ import { RolesGuard } from '@common/guards/roles';
 import {
     GetLegacyStatsNodeUserUsageCommand,
     GetStatsNodesRealtimeUsageCommand,
+    GetStatsNodeUsersUsageCommand,
 } from '@libs/contracts/commands';
 import { BANDWIDTH_STATS_NODES_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
@@ -19,6 +20,9 @@ import {
     GetLegacyStatsNodesUsersUsageRequestQueryDto,
     GetLegacyStatsNodesUsersUsageResponseDto,
     GetStatsNodesRealtimeUsageResponseDto,
+    GetStatsNodeUsersUsageRequestDto,
+    GetStatsNodeUsersUsageRequestQueryDto,
+    GetStatsNodeUsersUsageResponseDto,
 } from './dtos';
 import {
     GetLegacyStatsNodesUsersUsageResponseModel,
@@ -86,6 +90,49 @@ export class BandwidthStatsNodesController {
         const data = errorHandler(result);
         return {
             response: data.map((item) => new GetStatsNodesRealtimeUsageResponseModel(item)),
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetStatsNodeUsersUsageResponseDto,
+        description: 'Stats node users usage fetched successfully',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'UUID of the node', required: true })
+    @ApiQuery({
+        name: 'end',
+        type: Date,
+        description: 'End date',
+        required: true,
+    })
+    @ApiQuery({
+        name: 'start',
+        type: Date,
+        description: 'Start date',
+        required: true,
+    })
+    @ApiQuery({
+        name: 'topUsersLimit',
+        type: Number,
+        description: 'Limit of top users to return',
+        required: true,
+    })
+    @Endpoint({
+        command: GetStatsNodeUsersUsageCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getStatsNodeUsersUsage(
+        @Query() query: GetStatsNodeUsersUsageRequestQueryDto,
+        @Param() paramData: GetStatsNodeUsersUsageRequestDto,
+    ): Promise<GetStatsNodeUsersUsageResponseDto> {
+        const result = await this.nodesUserUsageHistoryService.getStatsNodesUsersUsage(
+            paramData.uuid,
+            query.start,
+            query.end,
+            query.topUsersLimit,
+        );
+        const data = errorHandler(result);
+        return {
+            response: data,
         };
     }
 }

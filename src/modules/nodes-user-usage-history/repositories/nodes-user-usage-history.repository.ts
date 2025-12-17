@@ -4,21 +4,31 @@ import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-pr
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 
+import { TxKyselyService } from '@common/database/tx-kysely.service';
 import { ICrudHistoricalRecords } from '@common/types/crud-port';
 
+import { IGetNodesUsageByRange } from '@modules/nodes-usage-history/interfaces';
+
+import {
+    IGetNodesRealtimeUsage,
+    IGetLegacyStatsNodesUsersUsage,
+    IGetUniversalTopNode,
+    IGetUniversalSeries,
+    IGetLegacyStatsUserUsage,
+    IGetUniversalTopUser,
+} from '../interfaces';
 import { GetNodeUsersUsageByRangeBuilder } from '../builders/get-node-users-usage-by-range/get-node-users-usage-by-range.builder';
 import { BulkUpsertHistoryEntryBuilder } from '../builders/bulk-upsert-history-entry/bulk-upsert-history-entry.builder';
 import { GetNodesRealtimeUsageBuilder } from '../builders/get-nodes-realtime-usage/get-nodes-realtime-usage.builder';
 import { GetUserUsageByRangeBuilder } from '../builders/get-user-usage-by-range/get-user-usage-by-range.builder';
 import { NodesUserUsageHistoryEntity } from '../entities/nodes-user-usage-history.entity';
 import { NodesUserUsageHistoryConverter } from '../nodes-user-usage-history.converter';
-import { IGetNodesRealtimeUsage, IGetLegacyStatsNodesUsersUsage } from '../interfaces';
-import { IGetLegacyStatsUserUsage } from '../interfaces';
 
 @Injectable()
 export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity> {
     constructor(
         private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly qb: TxKyselyService,
         private readonly converter: NodesUserUsageHistoryConverter,
     ) {}
 
@@ -116,5 +126,162 @@ export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<N
         `;
 
         await this.prisma.tx.$executeRaw<void>(query);
+    }
+
+    public async getUserNodesUsageByRange(
+        userId: bigint,
+        start: Date,
+        end: Date,
+        dates: string[],
+    ): Promise<IGetNodesUsageByRange[]> {
+        const query = Prisma.sql`
+            WITH daily_usage AS (
+                SELECT
+                    n.uuid,
+                    n.name,
+                    n.country_code,
+                    nuh.created_at::date AS date,
+                    SUM(nuh.total_bytes) AS bytes
+                FROM nodes n
+                INNER JOIN nodes_user_usage_history nuh ON nuh.node_id = n.id
+                WHERE
+                    nuh.user_id = ${userId}
+                    AND nuh.created_at >= ${start}::date
+                    AND nuh.created_at <= ${end}::date
+                GROUP BY n.uuid, n.name, n.country_code, nuh.created_at
+            ),
+            nodes_with_totals AS (
+                SELECT
+                    uuid,
+                    name,
+                    country_code,
+                    SUM(bytes) AS total_bytes
+                FROM daily_usage
+                GROUP BY uuid, name, country_code
+            )
+            SELECT
+                nt.uuid as "uuid",
+                nt.name as "name",
+                nt.country_code as "countryCode",
+                nt.total_bytes as "total",
+                ARRAY_AGG(
+                    COALESCE(du.bytes, 0)
+                    ORDER BY d.ord
+                ) AS "data"
+            FROM nodes_with_totals nt
+            CROSS JOIN unnest(${dates}::date[]) WITH ORDINALITY AS d(date, ord)
+            LEFT JOIN daily_usage du
+                ON du.uuid = nt.uuid
+                AND du.date = d.date::date
+            GROUP BY nt.uuid, nt.name, nt.country_code, nt.total_bytes
+            ORDER BY nt.total_bytes DESC;
+        `;
+
+        return await this.prisma.tx.$queryRaw<IGetUniversalSeries[]>(query);
+    }
+
+    public async getTopUserNodesByTraffic(
+        userId: bigint,
+        start: Date,
+        end: Date,
+        limit: number = 5,
+    ): Promise<IGetUniversalTopNode[]> {
+        return await this.qb.kysely
+            .selectFrom('nodes as n')
+            .innerJoin('nodesUserUsageHistory as nuh', 'nuh.nodeId', 'n.id')
+            .select([
+                'n.uuid',
+                'n.name',
+                'n.countryCode',
+                (eb) => eb.fn.sum<bigint>('nuh.totalBytes').as('total'),
+            ])
+            .where('nuh.userId', '=', userId)
+            .where('nuh.createdAt', '>=', start)
+            .where('nuh.createdAt', '<=', end)
+            .groupBy(['n.uuid', 'n.name', 'n.countryCode'])
+            .orderBy((eb) => eb.fn.sum<bigint>('nuh.totalBytes'), 'desc')
+            .limit(limit)
+            .execute();
+    }
+
+    public async getUserDailyTrafficSum(
+        userId: bigint,
+        start: Date,
+        end: Date,
+        dates: string[],
+    ): Promise<number[]> {
+        const query = Prisma.sql`
+            WITH daily_traffic AS (
+                SELECT 
+                    created_at::date AS date,
+                    SUM(total_bytes) AS bytes
+                FROM nodes_user_usage_history
+                WHERE 
+                    user_id = ${userId}
+                    AND created_at >= ${start}::date
+                    AND created_at <= ${end}::date
+                GROUP BY created_at
+            )
+            SELECT 
+                COALESCE(dt.bytes, 0) AS value
+            FROM unnest(${dates}::date[]) WITH ORDINALITY AS d(date, ord)
+            LEFT JOIN daily_traffic dt ON dt.date = d.date::date
+            ORDER BY d.ord;
+        `;
+
+        const result = await this.prisma.tx.$queryRaw<Array<{ value: bigint }>>(query);
+        return result.map((item) => Number(item.value));
+    }
+
+    public async getTopNodeUsersByTraffic(
+        nodeId: bigint,
+        start: Date,
+        end: Date,
+        limit: number = 5,
+    ): Promise<IGetUniversalTopUser[]> {
+        return await this.qb.kysely
+            .selectFrom('users as u')
+            .innerJoin('nodesUserUsageHistory as nuh', 'nuh.userId', 'u.tId')
+            .select([
+                'u.uuid',
+                'u.username',
+                (eb) => eb.fn.sum<bigint>('nuh.totalBytes').as('total'),
+            ])
+            .where('nuh.nodeId', '=', nodeId)
+            .where('nuh.createdAt', '>=', start)
+            .where('nuh.createdAt', '<=', end)
+            .groupBy(['u.uuid', 'u.username'])
+            .orderBy((eb) => eb.fn.sum<bigint>('nuh.totalBytes'), 'desc')
+            .limit(limit)
+            .execute();
+    }
+
+    public async getNodeDailyTrafficSum(
+        nodeId: bigint,
+        start: Date,
+        end: Date,
+        dates: string[],
+    ): Promise<number[]> {
+        const query = Prisma.sql`
+        WITH daily_traffic AS (
+            SELECT 
+                created_at::date AS date,
+                SUM(total_bytes) AS bytes
+            FROM nodes_user_usage_history
+            WHERE 
+                node_id = ${nodeId}
+                AND created_at >= ${start}::date
+                AND created_at <= ${end}::date
+            GROUP BY created_at
+        )
+        SELECT 
+            COALESCE(dt.bytes, 0) AS value
+        FROM unnest(${dates}::date[]) WITH ORDINALITY AS d(date, ord)
+        LEFT JOIN daily_traffic dt ON dt.date = d.date::date
+        ORDER BY d.ord;
+    `;
+
+        const result = await this.prisma.tx.$queryRaw<Array<{ value: bigint }>>(query);
+        return result.map((item) => Number(item.value));
     }
 }

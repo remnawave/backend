@@ -8,8 +8,8 @@ export function getDateRangeArrayUtil(
     endDate: Date;
     dates: string[];
 } {
-    const startDate = dayjs(start).utc().startOf('day');
-    const endDate = dayjs(end).utc().startOf('day');
+    const startDate = dayjs.utc(start).startOf('day');
+    const endDate = dayjs.utc(end).endOf('day');
     const days = endDate.diff(startDate, 'day') + 1;
 
     return {
