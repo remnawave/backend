@@ -215,6 +215,7 @@ model Nodes {
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
 
+  @@index([id])
   @@map("nodes")
 }
 
