@@ -49,6 +49,9 @@ export class HwidUserDevicesRepository implements Omit<
     ): Promise<HwidUserDeviceEntity[]> {
         const list = await this.prisma.tx.hwidUserDevices.findMany({
             where: dto,
+            orderBy: {
+                createdAt: 'desc',
+            },
         });
         return this.converter.fromPrismaModelsToEntities(list);
     }

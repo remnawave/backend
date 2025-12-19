@@ -2,36 +2,56 @@ import dayjs from 'dayjs';
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { getDateRangeArrayUtil } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
-import { GetNodesUsageByRangeResponseModel } from './models/get-nodes-usage-by-range.response.model';
 import { NodesUsageHistoryRepository } from './repositories/nodes-usage-history.repository';
+import { GetStatsNodesUsageResponseModel } from './models';
 
 @Injectable()
 export class NodesUsageHistoryService {
     private readonly logger = new Logger(NodesUsageHistoryService.name);
     constructor(private readonly nodeUsageHistoryRepository: NodesUsageHistoryRepository) {}
 
-    async getNodesUsageByRange(
-        start: Date,
-        end: Date,
-    ): Promise<TResult<GetNodesUsageByRangeResponseModel[]>> {
+    async getStatsNodesUsage(
+        start: string,
+        end: string,
+    ): Promise<TResult<GetStatsNodesUsageResponseModel>> {
         try {
-            const startDate = dayjs(start).utc().toDate();
-            const endDate = dayjs(end).utc().toDate();
+            const { startDate, endDate, dates } = getDateRangeArrayUtil(
+                dayjs.utc(start).startOf('day').toDate(),
+                dayjs.utc(end).endOf('day').toDate(),
+            );
 
-            const nodesUsage = await this.nodeUsageHistoryRepository.getNodesUsageByRange(
+            const dailyTraffic = await this.nodeUsageHistoryRepository.getDailyTrafficSum(
+                startDate,
+                endDate,
+                dates,
+            );
+
+            const topNodes = await this.nodeUsageHistoryRepository.getTopNodesByTraffic(
                 startDate,
                 endDate,
             );
 
+            const nodesUsage = await this.nodeUsageHistoryRepository.getNodesUsageByRange(
+                startDate,
+                endDate,
+                dates,
+            );
+
             return ok(
-                nodesUsage.map((nodeUsage) => new GetNodesUsageByRangeResponseModel(nodeUsage)),
+                new GetStatsNodesUsageResponseModel({
+                    categories: dates,
+                    series: nodesUsage,
+                    sparklineData: dailyTraffic,
+                    topNodes: topNodes,
+                }),
             );
         } catch (error) {
             this.logger.error(error);
-            return fail(ERRORS.GET_NODES_USAGE_BY_RANGE_ERROR);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

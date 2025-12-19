@@ -7,11 +7,11 @@ import { errorHandler } from '@common/helpers/error-handler.helper';
 import { Endpoint } from '@common/decorators/base-endpoint';
 import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
-import { CONTROLLERS_INFO, NODES_CONTROLLER } from '@libs/contracts/api';
-import { GetNodesUsageByRangeCommand } from '@libs/contracts/commands';
+import { BANDWIDTH_STATS_NODES_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
+import { GetStatsNodesUsageCommand } from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
-import { GetNodesUsageByRangeRequestQueryDto, GetNodesUsageByRangeResponseDto } from './dtos';
+import { GetStatsNodesUsageRequestQueryDto, GetStatsNodesUsageResponseDto } from './dtos';
 import { NodesUsageHistoryService } from './nodes-usage-history.service';
 
 @ApiBearerAuth('Authorization')
@@ -19,13 +19,13 @@ import { NodesUsageHistoryService } from './nodes-usage-history.service';
 @Roles(ROLE.ADMIN, ROLE.API)
 @UseGuards(JwtDefaultGuard, RolesGuard)
 @UseFilters(HttpExceptionFilter)
-@Controller(NODES_CONTROLLER)
+@Controller(BANDWIDTH_STATS_NODES_CONTROLLER)
 export class NodesUsageHistoryController {
     constructor(private readonly nodesUsageHistoryService: NodesUsageHistoryService) {}
 
     @ApiOkResponse({
-        type: GetNodesUsageByRangeResponseDto,
-        description: 'Nodes usage by range fetched successfully',
+        type: GetStatsNodesUsageResponseDto,
+        description: 'Stats nodes usage fetched successfully',
     })
     @ApiQuery({
         name: 'end',
@@ -40,18 +40,15 @@ export class NodesUsageHistoryController {
         required: true,
     })
     @Endpoint({
-        command: GetNodesUsageByRangeCommand,
+        command: GetStatsNodesUsageCommand,
         httpCode: HttpStatus.OK,
     })
-    async getNodesUsageByRange(
-        @Query() query: GetNodesUsageByRangeRequestQueryDto,
-    ): Promise<GetNodesUsageByRangeResponseDto> {
+    async getStatsNodesUsage(
+        @Query() query: GetStatsNodesUsageRequestQueryDto,
+    ): Promise<GetStatsNodesUsageResponseDto> {
         const { start, end } = query;
 
-        const result = await this.nodesUsageHistoryService.getNodesUsageByRange(
-            new Date(start),
-            new Date(end),
-        );
+        const result = await this.nodesUsageHistoryService.getStatsNodesUsage(start, end);
 
         const data = errorHandler(result);
         return {

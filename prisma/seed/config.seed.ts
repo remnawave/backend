@@ -30,6 +30,11 @@ import {
     TTgAuthSettings,
 } from '@libs/contracts/models';
 import { getRedisConnectionOptions } from '@common/utils';
+import {
+    DEFAULT_SUBPAGE_CONFIG_NAME,
+    DEFAULT_SUBPAGE_CONFIG,
+    DEFAULT_SUBPAGE_CONFIG_UUID,
+} from '@modules/subscription-page-configs/constants';
 
 const hash = hasher({
     trim: true,
@@ -800,6 +805,30 @@ async function seedRemnawaveSettings() {
     consola.success('🔐 Remnawave settings seeded!');
 }
 
+async function seedSubscriptionPageConfig() {
+    const existingConfig = await prisma.subscriptionPageConfig.findUnique({
+        where: {
+            uuid: DEFAULT_SUBPAGE_CONFIG_UUID,
+        },
+    });
+
+    if (!existingConfig) {
+        await prisma.subscriptionPageConfig.create({
+            data: {
+                uuid: DEFAULT_SUBPAGE_CONFIG_UUID,
+                name: DEFAULT_SUBPAGE_CONFIG_NAME,
+                config: DEFAULT_SUBPAGE_CONFIG,
+            },
+        });
+
+        consola.success('🔐 Subscription page config seeded!');
+
+        return;
+    } else {
+        consola.success('🔐 Subscription page config already exists!');
+    }
+}
+
 async function checkDatabaseConnection() {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -860,6 +889,7 @@ async function seedAll() {
             await seedSubscriptionSettings();
             await seedKeygen();
             await seedResponseRules();
+            await seedSubscriptionPageConfig();
             break;
         } else {
             consola.info('Failed to connect to database. Retrying in 5 seconds...');

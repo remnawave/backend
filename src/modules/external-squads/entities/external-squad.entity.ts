@@ -20,6 +20,7 @@ export class ExternalSquadEntity implements ExternalSquads {
 
     public hwidSettings: THwidSettings | null;
     public customRemarks: TCustomRemarks | null;
+    public subpageConfigUuid: string | null;
 
     public createdAt: Date;
     public updatedAt: Date;

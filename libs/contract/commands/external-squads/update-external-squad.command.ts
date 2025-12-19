@@ -45,6 +45,7 @@ export namespace UpdateExternalSquadCommand {
         responseHeaders: ExternalSquadResponseHeadersSchema.optional(),
         hwidSettings: z.optional(z.nullable(HwidSettingsSchema)),
         customRemarks: z.optional(z.nullable(CustomRemarksSchema)),
+        subpageConfigUuid: z.optional(z.nullable(z.string().uuid())),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

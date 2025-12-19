@@ -1,1 +1,1 @@
-export * from './nodes-usage-by-range.dto';
+export * from './get-stats-nodes-usage.dto';

@@ -52,6 +52,7 @@ export class TemplateEngine {
             TAG: user.tag || '',
             EXPIRE_UNIX: dayjs(user.expireAt).unix(),
             SHORT_UUID: user.shortUuid,
+            ID: user.tId.toString(),
         });
     }
 }

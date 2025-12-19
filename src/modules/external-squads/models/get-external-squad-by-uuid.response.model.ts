@@ -34,6 +34,7 @@ export class GetExternalSquadByUuidResponseModel {
 
     public readonly hwidSettings: THwidSettings | null;
     public readonly customRemarks: TCustomRemarks | null;
+    public readonly subpageConfigUuid: string | null;
 
     public readonly createdAt: Date;
     public readonly updatedAt: Date;
@@ -58,7 +59,7 @@ export class GetExternalSquadByUuidResponseModel {
 
         this.hwidSettings = entity.hwidSettings;
         this.customRemarks = entity.customRemarks;
-
+        this.subpageConfigUuid = entity.subpageConfigUuid;
         this.createdAt = entity.createdAt;
         this.updatedAt = entity.updatedAt;
     }

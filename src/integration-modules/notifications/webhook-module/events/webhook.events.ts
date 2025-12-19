@@ -187,7 +187,10 @@ export class WebhookEvents {
             const payload = {
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
-                data: instanceToPlain(event.data),
+                data: instanceToPlain({
+                    ...event.data,
+                    user: new GetFullUserResponseModel(event.data.user, this.subPublicDomain),
+                }),
             };
 
             const { json } = serialize(payload);

@@ -188,12 +188,16 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
     }
 
     private multiplyConsumption(consumptionMultiplier: string, totalBytes: number): bigint {
-        const consumptionMultiplierNumber = BigInt(consumptionMultiplier);
-        if (consumptionMultiplierNumber === BigInt(1000000000)) {
+        const multiplier = BigInt(consumptionMultiplier);
+        if (multiplier === 0n) {
+            return 0n;
+        }
+
+        if (multiplier === BigInt(1000000000)) {
             // skip if 1:1 ratio
             return BigInt(totalBytes);
         }
 
-        return BigInt(Math.floor(fromNanoToNumber(consumptionMultiplierNumber) * totalBytes));
+        return BigInt(Math.floor(fromNanoToNumber(multiplier) * totalBytes));
     }
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@remnawave/subscription-page-types",
+  "version": "0.2.4",
+  "public": true,
+  "license": "AGPL-3.0-only",
+  "description": "A types library for Remnawave Subscription Page.",
+  "author": "REMNAWAVE <github.com/remnawave>",
+  "homepage": "https://github.com/remnawave",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/remnawave/backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/remnawave/backend/issues"
+  },
+  "main": "build/backend/index.js",
+  "browser": "build/frontend/index.js",
+  "types": "build/backend/index.d.ts",
+  "files": [
+    "build/**/*"
+  ],
+  "scripts": {
+    "clean": "rm -rf build",
+    "build:backend": "tsc -p tsconfig.backend.json",
+    "build:frontend": "tsc -p tsconfig.frontend.json",
+    "build": "npm run clean && npm run build:backend && npm run build:frontend",
+    "prepublish": "npm run build"
+  },
+  "keywords": [],
+  "dependencies": {
+    "zod": "3.25.76"
+  }
+}

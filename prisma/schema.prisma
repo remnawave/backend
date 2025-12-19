@@ -215,6 +215,7 @@ model Nodes {
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
 
+  @@index([id])
   @@map("nodes")
 }
 
@@ -550,11 +551,14 @@ model ExternalSquads {
   hwidSettings  Json? @map("hwid_settings")
   customRemarks Json? @map("custom_remarks")
 
+  subpageConfigUuid String? @map("subpage_config_uuid") @db.Uuid
+
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
   externalSquadsTemplates ExternalSquadsTemplates[]
   users                   Users[]
+  subpageConfig           SubscriptionPageConfig?   @relation(fields: [subpageConfigUuid], references: [uuid], onDelete: SetNull)
 
   @@map("external_squads")
 }
@@ -569,4 +573,18 @@ model ExternalSquadsTemplates {
 
   @@id([externalSquadUuid, templateType])
   @@map("external_squads_templates")
+}
+
+model SubscriptionPageConfig {
+  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int    @default(autoincrement()) @map("view_position")
+  name         String @unique @map("name") @db.VarChar(30)
+  config       Json   @map("config")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  externalSquads ExternalSquads[]
+
+  @@map("subscription_page_config")
 }

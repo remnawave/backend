@@ -6,7 +6,7 @@ import { TResetPeriods, TUsersStatus, USERS_STATUS } from '@contract/constants';
 import { DB } from 'prisma/generated/types';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { TransactionHost } from '@nestjs-cls/transactional';
+import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
@@ -19,6 +19,7 @@ import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import {
     IGetUserAccessibleNodes,
     IGetUserAccessibleNodesResponse,
+    IUpdateUserDto,
     IUserOnlineStats,
     IUserStats,
 } from '../interfaces';
@@ -478,15 +479,24 @@ export class UsersRepository {
         return [usersResult, Number(total.count)];
     }
 
-    public async update({ uuid, ...data }: Partial<BaseUserEntity>): Promise<BaseUserEntity> {
-        const result = await this.prisma.tx.users.update({
-            where: {
-                uuid,
+    @Transactional()
+    public async update(dto: IUpdateUserDto): Promise<UserEntity | null> {
+        const { tId, activeInternalSquads, ...data } = dto;
+
+        await this.prisma.tx.users.update({
+            select: {
+                tId: true,
             },
+            where: { tId },
             data,
         });
 
-        return this.userConverter.fromPrismaModelToEntity(result);
+        if (activeInternalSquads) {
+            await this.removeUserFromInternalSquads(tId);
+            await this.addUserToInternalSquads(tId, activeInternalSquads);
+        }
+
+        return await this.findUniqueByCriteria({ tId }, { activeInternalSquads: true });
     }
 
     public async updateUserStatus(uuid: string, status: TUsersStatus): Promise<boolean> {
@@ -1086,7 +1096,14 @@ export class UsersRepository {
     public async revokeUserSubscription(
         dto: Pick<
             BaseUserEntity,
-            'uuid' | 'trojanPassword' | 'vlessUuid' | 'ssPassword' | 'subRevokedAt' | 'shortUuid'
+            | 'uuid'
+            | 'trojanPassword'
+            | 'vlessUuid'
+            | 'ssPassword'
+            | 'subRevokedAt'
+            | 'shortUuid'
+            | 'subLastOpenedAt'
+            | 'subLastUserAgent'
         >,
     ): Promise<boolean> {
         const result = await this.qb.kysely
@@ -1097,6 +1114,8 @@ export class UsersRepository {
                 vlessUuid: getKyselyUuid(dto.vlessUuid),
                 ssPassword: dto.ssPassword,
                 shortUuid: dto.shortUuid,
+                subLastOpenedAt: dto.subLastOpenedAt,
+                subLastUserAgent: dto.subLastUserAgent,
             })
             .where('uuid', '=', getKyselyUuid(dto.uuid))
             .executeTakeFirst();
@@ -1293,5 +1312,21 @@ export class UsersRepository {
             min: Number(result.minLength),
             max: Number(result.maxLength),
         };
+    }
+
+    public async getUserSubpageConfigUuid(shortUuid: string): Promise<string | null> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .where('shortUuid', '=', shortUuid)
+            .where('externalSquadUuid', 'is not', null)
+            .innerJoin('externalSquads', 'users.externalSquadUuid', 'externalSquads.uuid')
+            .select('externalSquads.subpageConfigUuid')
+            .executeTakeFirst();
+
+        if (!result || !result.subpageConfigUuid) {
+            return null;
+        }
+
+        return result.subpageConfigUuid;
     }
 }

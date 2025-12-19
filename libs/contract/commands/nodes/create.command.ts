@@ -48,7 +48,8 @@ export namespace CreateNodeCommand {
         consumptionMultiplier: z.optional(
             z
                 .number()
-                .min(0.1, 'Consumption multiplier must be greater than 0')
+                .min(0.0, 'Consumption multiplier must be greater than 0.0')
+                .max(100.0, 'Consumption multiplier must be less than 100.0')
                 .transform((n) => Number(n.toFixed(1))),
         ),
 

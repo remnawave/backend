@@ -23,12 +23,6 @@ export const NODES_ROUTES = {
         PROFILE_MODIFICATION: `${BULK_ACTIONS_ROUTE}/profile-modification`,
     },
 
-    STATS: {
-        USAGE_BY_RANGE: 'usage/range',
-        USAGE_BY_RANGE_USER: (uuid: string) => `usage/${uuid}/users/range`,
-        USAGE_REALTIME: 'usage/realtime',
-    },
-
     TAGS: {
         GET: 'tags',
     },

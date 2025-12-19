@@ -20,10 +20,6 @@ export const CONTROLLERS_INFO = {
         tag: 'Users Bulk Actions Controller',
         description: 'Bulk actions with users.',
     },
-    USERS_STATS: {
-        tag: 'Users Stats Controller',
-        description: '',
-    },
     HWID_USER_DEVICES: {
         tag: 'HWID User Devices Controller',
         description: '',
@@ -38,6 +34,14 @@ export const CONTROLLERS_INFO = {
         description:
             'Methods of this controller are protected with auth, most of them is returning the same informations as public Subscription Controller.',
     },
+    NODES: {
+        tag: 'Nodes Controller',
+        description: '',
+    },
+    BANDWIDTH_STATS: {
+        tag: 'Bandwidth Stats Controller',
+        description: '',
+    },
     CONFIG_PROFILES: {
         tag: 'Config Profiles Controller',
         description: 'Management of Config Profiles.',
@@ -49,10 +53,6 @@ export const CONTROLLERS_INFO = {
     EXTERNAL_SQUADS: {
         tag: 'External Squads Controller',
         description: 'Management of External Squads.',
-    },
-    NODES: {
-        tag: 'Nodes Controller',
-        description: '',
     },
     HOSTS: {
         tag: 'Hosts Controller',
@@ -78,10 +78,6 @@ export const CONTROLLERS_INFO = {
         tag: 'System Controller',
         description: '',
     },
-    BANDWIDTH_STATS: {
-        tag: 'Bandwidth Stats Controller',
-        description: '',
-    },
     KEYGEN: {
         tag: 'Keygen Controller',
         description: 'Generation of SSL_CERT for Remnawave Node.',
@@ -96,6 +92,10 @@ export const CONTROLLERS_INFO = {
     },
     REMNAAWAVE_SETTINGS: {
         tag: 'Remnawave Settings Controller',
+        description: '',
+    },
+    SUBSCRIPTION_PAGE_CONFIGS: {
+        tag: 'Subscription Page Configs Controller',
         description: '',
     },
 } as const;

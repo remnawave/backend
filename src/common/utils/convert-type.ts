@@ -15,3 +15,7 @@ export function wrapBigIntNullable(
 
     return BigInt(value);
 }
+
+export function mapDefined<T, R>(value: T | undefined, fn: (v: T) => R): R | undefined {
+    return value !== undefined ? fn(value) : undefined;
+}
