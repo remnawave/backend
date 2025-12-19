@@ -74,9 +74,10 @@ export class RemnawaveSettingsService {
         try {
             const oauth2Providers = [
                 settings.oauth2Settings.github,
-                settings.oauth2Settings.pocketid,
                 settings.oauth2Settings.yandex,
             ];
+
+            const genericOAuth2Providers = [settings.oauth2Settings.pocketid];
 
             // Test 1: At least one authentication method must be enabled
             if (
@@ -166,7 +167,21 @@ export class RemnawaveSettingsService {
                 }
             }
 
-            // Test 8: Telegram Admin IDs must be not empty
+            // Test 8: Other OAuth2 providers with empty allowed emails array
+            for (const provider of genericOAuth2Providers) {
+                if (provider.enabled && provider.allowedEmails.length > 0) {
+                    for (const email of provider.allowedEmails) {
+                        if (!isEmail(email)) {
+                            return {
+                                valid: false,
+                                error: `[OAuth2] Email ${email} is not a valid email address.`,
+                            };
+                        }
+                    }
+                }
+            }
+
+            // Test 9: Telegram Admin IDs must be not empty
             if (settings.tgAuthSettings.enabled && settings.tgAuthSettings.adminIds.length === 0) {
                 return {
                     valid: false,

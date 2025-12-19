@@ -50,6 +50,7 @@ import { GetStatusResponseModel } from './model/get-status.response.model';
 import { ILogin, IRegister } from './interfaces';
 
 const scryptAsync = promisify(scrypt);
+const REMNAWAVE_CUSTOM_CLAIM_KEY = 'remnawaveAccess';
 
 @Injectable()
 export class AuthService {
@@ -447,7 +448,7 @@ export class AuthService {
                     authorizationURL = pocketIdClient.createAuthorizationURL(
                         `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/authorize`,
                         state,
-                        ['email'],
+                        ['email', 'profile'],
                     );
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.POCKETID}`;
                     break;
@@ -727,10 +728,7 @@ export class AuthService {
                     userAgent,
                     'PocketID OAuth2 state mismatch.',
                 );
-                return {
-                    isAllowed: false,
-                    email: null,
-                };
+                return { isAllowed: false, email: null };
             }
 
             const remnawaveSettings = await this.queryBus.execute(
@@ -749,63 +747,43 @@ export class AuthService {
                 null,
             );
 
-            const accessToken = tokens.accessToken();
+            const claims = arctic.decodeIdToken(tokens.idToken());
 
-            const { data } = await firstValueFrom(
-                this.httpService
-                    .get<{
-                        email: string;
-                        email_verified: boolean;
-                        sub: string;
-                    }>(
-                        `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/api/oidc/userinfo`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${accessToken}`,
-                                'User-Agent': 'Remnawave',
-                            },
-                        },
-                    )
-                    .pipe(
-                        catchError((error: AxiosError) => {
-                            throw error.response?.data;
-                        }),
-                    ),
-            );
-
-            if (!data) {
-                this.logger.error('Failed to fetch PocketID user info');
-                return {
-                    isAllowed: false,
-                    email: null,
-                };
-            }
-
-            if (!remnawaveSettings.oauth2Settings.pocketid.allowedEmails.includes(data.email)) {
+            const email = 'email' in claims ? claims.email : undefined;
+            if (typeof email !== 'string' || !email) {
                 await this.emitFailedLoginAttempt(
-                    data.email,
+                    'Missing',
                     '–',
                     ip,
                     userAgent,
-                    'PocketID email is not in the allowed list.',
+                    'Invalid or missing email claim in PocketID ID token.',
                 );
-                return {
-                    isAllowed: false,
-                    email: null,
-                };
+                return { isAllowed: false, email: null };
             }
 
-            return {
-                isAllowed: true,
-                email: data.email,
-            };
+            if (
+                REMNAWAVE_CUSTOM_CLAIM_KEY in claims &&
+                claims[REMNAWAVE_CUSTOM_CLAIM_KEY] === true
+            ) {
+                return { isAllowed: true, email };
+            }
+
+            if (remnawaveSettings.oauth2Settings.pocketid.allowedEmails.includes(email)) {
+                return { isAllowed: true, email };
+            }
+
+            await this.emitFailedLoginAttempt(
+                email,
+                '–',
+                ip,
+                userAgent,
+                'PocketID email is not in the allowed list and remnawaveClaim is not present.',
+            );
+
+            return { isAllowed: false, email: null };
         } catch (error) {
             this.logger.error(`PocketID callback error: ${error}`);
-
-            return {
-                isAllowed: false,
-                email: null,
-            };
+            return { isAllowed: false, email: null };
         }
     }
 
