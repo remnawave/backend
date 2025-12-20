@@ -64,7 +64,7 @@ const BlockSchema = z.object({
 });
 
 const PlatformAppSchema = z.object({
-    name: z.string(),
+    name: z.string().min(2, 'Name must be at least 2 characters long'),
     svgIconKey: z.optional(z.string()),
     featured: z.boolean(),
     blocks: z.array(BlockSchema),
