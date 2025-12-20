@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/subscription-page-types",
-  "version": "0.2.7",
+  "version": "0.3.3",
   "public": true,
   "license": "AGPL-3.0-only",
   "description": "A types library for Remnawave Subscription Page.",

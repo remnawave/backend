@@ -4,20 +4,20 @@ import { nanoid } from 'nanoid';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { fail, ok, TResult } from '@common/types';
+import {
+    SUBPAGE_DEFAULT_CONFIG_NAME,
+    SUBPAGE_DEFAULT_CONFIG_UUID,
+} from '@libs/subscription-page/constants';
 import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config.validator';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
 import { ERRORS } from '@libs/contracts/constants';
 
-import {
-    DEFAULT_SUBPAGE_CONFIG_NAME,
-    DEFAULT_SUBPAGE_CONFIG,
-    DEFAULT_SUBPAGE_CONFIG_UUID,
-} from './constants';
 import { GetSubscriptionPageConfigsResponseModel } from './models/get-subscripion-page-configs.response.model';
 import { BaseSubscriptionPageConfigResponseModel } from './models/base-subpage-config.response.model';
 import { SubscriptionPageConfigRepository } from './repositories/subpage-configs.repository';
 import { SubscriptionPageConfigEntity } from './entities/sub-page-config.entity';
 import { DeleteSubscriptionPageConfigResponseModel } from './models';
+import { DEFAULT_SUBPAGE_CONFIG } from './constants';
 
 @Injectable()
 export class SubscriptionPageConfigService {
@@ -67,7 +67,7 @@ export class SubscriptionPageConfigService {
                 return fail(ERRORS.SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND);
             }
 
-            if (name && name === DEFAULT_SUBPAGE_CONFIG_NAME) {
+            if (name && name === SUBPAGE_DEFAULT_CONFIG_NAME) {
                 return fail(ERRORS.RESERVED_CONFIG_NAME);
             }
 
@@ -136,11 +136,11 @@ export class SubscriptionPageConfigService {
                 return fail(ERRORS.SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND);
             }
 
-            if (config.name === DEFAULT_SUBPAGE_CONFIG_NAME) {
+            if (config.name === SUBPAGE_DEFAULT_CONFIG_NAME) {
                 return fail(ERRORS.RESERVED_SUBPAGE_CONFIG_CANT_BE_DELETED);
             }
 
-            if (config.uuid === DEFAULT_SUBPAGE_CONFIG_UUID) {
+            if (config.uuid === SUBPAGE_DEFAULT_CONFIG_UUID) {
                 return fail(ERRORS.RESERVED_SUBPAGE_CONFIG_CANT_BE_DELETED);
             }
 

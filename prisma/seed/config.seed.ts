@@ -30,11 +30,11 @@ import {
     TTgAuthSettings,
 } from '@libs/contracts/models';
 import { getRedisConnectionOptions } from '@common/utils';
+import { DEFAULT_SUBPAGE_CONFIG } from '@modules/subscription-page-configs/constants';
 import {
-    DEFAULT_SUBPAGE_CONFIG_NAME,
-    DEFAULT_SUBPAGE_CONFIG,
-    DEFAULT_SUBPAGE_CONFIG_UUID,
-} from '@modules/subscription-page-configs/constants';
+    SUBPAGE_DEFAULT_CONFIG_NAME,
+    SUBPAGE_DEFAULT_CONFIG_UUID,
+} from '@libs/subscription-page/constants';
 
 const hash = hasher({
     trim: true,
@@ -808,15 +808,15 @@ async function seedRemnawaveSettings() {
 async function seedSubscriptionPageConfig() {
     const existingConfig = await prisma.subscriptionPageConfig.findUnique({
         where: {
-            uuid: DEFAULT_SUBPAGE_CONFIG_UUID,
+            uuid: SUBPAGE_DEFAULT_CONFIG_UUID,
         },
     });
 
     if (!existingConfig) {
         await prisma.subscriptionPageConfig.create({
             data: {
-                uuid: DEFAULT_SUBPAGE_CONFIG_UUID,
-                name: DEFAULT_SUBPAGE_CONFIG_NAME,
+                uuid: SUBPAGE_DEFAULT_CONFIG_UUID,
+                name: SUBPAGE_DEFAULT_CONFIG_NAME,
                 config: DEFAULT_SUBPAGE_CONFIG,
             },
         });

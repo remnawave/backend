@@ -22,6 +22,7 @@ export namespace GetStatsUserUsageCommand {
     export const RequestQuerySchema = z.object({
         start: z.string().date(),
         end: z.string().date(),
+        topNodesLimit: z.coerce.number().min(1).default(20),
     });
 
     export type RequestQuery = z.infer<typeof RequestQuerySchema>;

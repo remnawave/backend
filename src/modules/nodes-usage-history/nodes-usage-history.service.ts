@@ -17,6 +17,7 @@ export class NodesUsageHistoryService {
     async getStatsNodesUsage(
         start: string,
         end: string,
+        topNodesLimit: number,
     ): Promise<TResult<GetStatsNodesUsageResponseModel>> {
         try {
             const { startDate, endDate, dates } = getDateRangeArrayUtil(
@@ -33,6 +34,7 @@ export class NodesUsageHistoryService {
             const topNodes = await this.nodeUsageHistoryRepository.getTopNodesByTraffic(
                 startDate,
                 endDate,
+                topNodesLimit,
             );
 
             const nodesUsage = await this.nodeUsageHistoryRepository.getNodesUsageByRange(
