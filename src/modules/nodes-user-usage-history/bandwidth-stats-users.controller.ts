@@ -97,6 +97,12 @@ export class BandwidthStatsUsersController {
         description: 'Start date',
         required: true,
     })
+    @ApiQuery({
+        name: 'topNodesLimit',
+        type: Number,
+        description: 'Limit of top nodes to return',
+        required: true,
+    })
     @Endpoint({
         command: GetStatsUserUsageCommand,
         httpCode: HttpStatus.OK,
@@ -109,6 +115,7 @@ export class BandwidthStatsUsersController {
             paramData.uuid,
             query.start,
             query.end,
+            query.topNodesLimit,
         );
 
         const data = errorHandler(result);

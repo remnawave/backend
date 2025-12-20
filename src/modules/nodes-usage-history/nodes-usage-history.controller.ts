@@ -39,6 +39,12 @@ export class NodesUsageHistoryController {
         description: 'Start date',
         required: true,
     })
+    @ApiQuery({
+        name: 'topNodesLimit',
+        type: Number,
+        description: 'Limit of top nodes to return',
+        required: true,
+    })
     @Endpoint({
         command: GetStatsNodesUsageCommand,
         httpCode: HttpStatus.OK,
@@ -46,9 +52,13 @@ export class NodesUsageHistoryController {
     async getStatsNodesUsage(
         @Query() query: GetStatsNodesUsageRequestQueryDto,
     ): Promise<GetStatsNodesUsageResponseDto> {
-        const { start, end } = query;
+        const { start, end, topNodesLimit } = query;
 
-        const result = await this.nodesUsageHistoryService.getStatsNodesUsage(start, end);
+        const result = await this.nodesUsageHistoryService.getStatsNodesUsage(
+            start,
+            end,
+            topNodesLimit,
+        );
 
         const data = errorHandler(result);
         return {

@@ -91,6 +91,7 @@ export class NodesUserUsageHistoryService {
         uuid: string,
         start: string,
         end: string,
+        topNodesLimit: number,
     ): Promise<TResult<GetStatsUserUsageResponseModel>> {
         try {
             const user = await this.queryBus.execute(new GetUserByUniqueFieldQuery({ uuid }));
@@ -114,6 +115,7 @@ export class NodesUserUsageHistoryService {
                 user.response.tId,
                 startDate,
                 endDate,
+                topNodesLimit,
             );
 
             const nodesUsage = await this.nodeUserUsageHistoryRepository.getUserNodesUsageByRange(
