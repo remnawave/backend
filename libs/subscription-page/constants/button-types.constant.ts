@@ -1,6 +1,7 @@
 export const BUTTON_TYPES = {
     EXTERNAL: 'external',
     SUBSCRIPTION_LINK: 'subscriptionLink',
+    COPY_BUTTON: 'copyButton',
 } as const;
 
 export type TButtonType = (typeof BUTTON_TYPES)[keyof typeof BUTTON_TYPES];

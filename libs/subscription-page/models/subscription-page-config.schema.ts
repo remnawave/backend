@@ -109,12 +109,25 @@ const SubscriptionPageTranslateKeysSchema = z.object({
     indefinitely: LocalizedTextSchema,
 });
 
+const BaseSettingsSchema = z
+    .object({
+        metaTitle: z.string().default('Remnawave Subscription Page'),
+        metaDescription: z.string().default('Remnawave Subscription Page'),
+        showConnectionKeys: z.boolean().default(false),
+    })
+    .default({
+        metaTitle: 'Remnawave Subscription Page',
+        metaDescription: 'Remnawave Subscription Page',
+        showConnectionKeys: false,
+    });
+
 export const SubscriptionPageRawConfigSchema = z
     .object({
         version: z.nativeEnum(SUBSCRIPTION_PAGE_CONFIG_VERSION),
         locales: z.array(z.enum(LANGUAGE_CODES)).min(1, 'At least one locale must be specified'),
         brandingSettings: BrandingSettingsSchema,
         uiConfig: UiConfigSchema,
+        baseSettings: BaseSettingsSchema,
         baseTranslations: SubscriptionPageTranslateKeysSchema,
         svgLibrary: SvgLibrarySchema,
         platforms: z.record(z.nativeEnum(SUBSCRIPTION_PAGE_CONFIG_PLATFORM_TYPES), PlatformSchema),

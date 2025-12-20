@@ -1,6 +1,3 @@
-export const DEFAULT_SUBPAGE_CONFIG_NAME = 'Default';
-export const DEFAULT_SUBPAGE_CONFIG_UUID = '00000000-0000-0000-0000-000000000000';
-
 export const DEFAULT_SUBPAGE_CONFIG = {
     version: '1',
     locales: ['en', 'ru', 'zh', 'fa', 'fr'],
@@ -12,6 +9,11 @@ export const DEFAULT_SUBPAGE_CONFIG = {
     uiConfig: {
         subscriptionInfoBlockType: 'expanded',
         installationGuidesBlockType: 'cards',
+    },
+    baseSettings: {
+        metaTitle: 'Remnawave Subscription Page',
+        metaDescription: 'Remnawave Subscription Page',
+        showConnectionKeys: false,
     },
     baseTranslations: {
         installationGuideHeader: {
