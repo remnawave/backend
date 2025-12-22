@@ -4,12 +4,9 @@ import { nanoid } from 'nanoid';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { fail, ok, TResult } from '@common/types';
-import {
-    SUBPAGE_DEFAULT_CONFIG_NAME,
-    SUBPAGE_DEFAULT_CONFIG_UUID,
-} from '@libs/subscription-page/constants';
 import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config.validator';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
+import { SUBPAGE_DEFAULT_CONFIG_UUID } from '@libs/subscription-page/constants';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetSubscriptionPageConfigsResponseModel } from './models/get-subscripion-page-configs.response.model';
@@ -65,10 +62,6 @@ export class SubscriptionPageConfigService {
 
             if (!config) {
                 return fail(ERRORS.SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND);
-            }
-
-            if (name && name === SUBPAGE_DEFAULT_CONFIG_NAME) {
-                return fail(ERRORS.RESERVED_CONFIG_NAME);
             }
 
             if (inputConfig) {
@@ -134,10 +127,6 @@ export class SubscriptionPageConfigService {
 
             if (!config) {
                 return fail(ERRORS.SUBSCRIPTION_PAGE_CONFIG_NOT_FOUND);
-            }
-
-            if (config.name === SUBPAGE_DEFAULT_CONFIG_NAME) {
-                return fail(ERRORS.RESERVED_SUBPAGE_CONFIG_CANT_BE_DELETED);
             }
 
             if (config.uuid === SUBPAGE_DEFAULT_CONFIG_UUID) {
