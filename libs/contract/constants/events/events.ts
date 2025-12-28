@@ -89,3 +89,14 @@ export type TAllEvents =
     | TCRMEvents
     | TUserHwidDevicesEvents;
 export type TAllEventChannels = 'telegram' | 'webhook';
+
+export const EVENTS_SCOPES = {
+    USER: 'user',
+    USER_HWID_DEVICES: 'user_hwid_devices',
+    NODE: 'node',
+    SERVICE: 'service',
+    ERRORS: 'errors',
+    CRM: 'crm',
+} as const;
+
+export type TEventsScope = (typeof EVENTS_SCOPES)[keyof typeof EVENTS_SCOPES];

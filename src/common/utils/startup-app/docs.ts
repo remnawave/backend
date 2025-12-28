@@ -10,6 +10,15 @@ import { ConfigService } from '@nestjs/config';
 
 import { CONTROLLERS_INFO } from '@libs/contracts/api';
 
+import {
+    RemnawaveWebhookCrmEventsDto,
+    RemnawaveWebhookErrorsEventsDto,
+    RemnawaveWebhookNodeEventsDto,
+    RemnawaveWebhookServiceEventsDto,
+    RemnawaveWebhookUserEventsDto,
+    RemnawaveWebhookUserHwidDevicesEventsDto,
+} from './extra-models';
+
 const description = `
 Remnawave is a powerful proxy management tool, built on top of Xray-core, with a focus on simplicity and ease of use.
 
@@ -56,7 +65,17 @@ export async function getDocs(app: INestApplication<unknown>, config: ConfigServ
 
         const builtConfigSwagger = configSwagger.build();
 
-        const documentFactory = () => SwaggerModule.createDocument(app, builtConfigSwagger);
+        const documentFactory = () =>
+            SwaggerModule.createDocument(app, builtConfigSwagger, {
+                extraModels: [
+                    RemnawaveWebhookUserEventsDto,
+                    RemnawaveWebhookUserHwidDevicesEventsDto,
+                    RemnawaveWebhookNodeEventsDto,
+                    RemnawaveWebhookServiceEventsDto,
+                    RemnawaveWebhookErrorsEventsDto,
+                    RemnawaveWebhookCrmEventsDto,
+                ],
+            });
 
         const theme = new SwaggerTheme();
         const options = {
