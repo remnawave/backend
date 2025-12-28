@@ -1,3 +1,4 @@
+export * from './node-bulk-users.processor';
 export * from './node-health-check.processor';
 export * from './node-users.processor';
 export * from './record-node-usage.processor';

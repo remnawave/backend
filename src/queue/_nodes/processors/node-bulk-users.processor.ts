@@ -7,14 +7,14 @@ import { AxiosService } from '@common/axios';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
-import { IAddUserToNodePayload, IRemoveUserFromNodePayload } from '../interfaces';
+import { IAddUsersToNodePayload, IRemoveUsersFromNodePayload } from '../interfaces';
 import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 
-@Processor(QUEUES_NAMES.NODES.USERS, {
-    concurrency: 75,
+@Processor(QUEUES_NAMES.NODES.BULK_USERS, {
+    concurrency: 20,
 })
-export class NodeUsersQueueProcessor extends WorkerHost {
-    private readonly logger = new Logger(NodeUsersQueueProcessor.name);
+export class NodeBulkUsersQueueProcessor extends WorkerHost {
+    private readonly logger = new Logger(NodeBulkUsersQueueProcessor.name);
 
     constructor(private readonly axios: AxiosService) {
         super();
@@ -22,20 +22,20 @@ export class NodeUsersQueueProcessor extends WorkerHost {
 
     async process(job: Job) {
         switch (job.name) {
-            case NODES_JOB_NAMES.ADD_USER_TO_NODE:
-                return this.handleAddUserToNode(job);
-            case NODES_JOB_NAMES.REMOVE_USER_FROM_NODE:
-                return this.handleRemoveUserFromNode(job);
+            case NODES_JOB_NAMES.ADD_USERS_TO_NODE:
+                return this.handleAddUsersToNode(job);
+            case NODES_JOB_NAMES.REMOVE_USERS_FROM_NODE:
+                return this.handleRemoveUsersFromNode(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
         }
     }
 
-    private async handleAddUserToNode(job: Job<IAddUserToNodePayload>) {
+    private async handleAddUsersToNode(job: Job<IAddUsersToNodePayload>) {
         try {
             const { data, node } = job.data;
-            const result = await this.axios.addUser(data, node.address, node.port);
+            const result = await this.axios.addUsers(data, node.address, node.port);
 
             if (!result.isOk) {
                 this.logger.error(
@@ -45,27 +45,28 @@ export class NodeUsersQueueProcessor extends WorkerHost {
 
             return result;
         } catch (error) {
-            this.logger.error(`Error handling "${NODES_JOB_NAMES.ADD_USER_TO_NODE}" job: ${error}`);
+            this.logger.error(
+                `Error handling "${NODES_JOB_NAMES.ADD_USERS_TO_NODE}" job: ${error}`,
+            );
             return;
         }
     }
 
-    private async handleRemoveUserFromNode(job: Job<IRemoveUserFromNodePayload>) {
+    private async handleRemoveUsersFromNode(job: Job<IRemoveUsersFromNodePayload>) {
         try {
             const { data, node } = job.data;
-
-            const result = await this.axios.deleteUser(data, node.address, node.port);
+            const result = await this.axios.deleteUsers(data, node.address, node.port);
 
             if (!result.isOk) {
                 this.logger.error(
-                    `Failed to remove user from Node ${node.address}:${node.port}: ${result.message}`,
+                    `Failed to remove users from Node ${node.address}:${node.port}: ${result.message}`,
                 );
             }
 
             return result;
         } catch (error) {
             this.logger.error(
-                `Error handling "${NODES_JOB_NAMES.REMOVE_USER_FROM_NODE}" job: ${error}`,
+                `Error handling "${NODES_JOB_NAMES.REMOVE_USERS_FROM_NODE}" job: ${error}`,
             );
             return;
         }

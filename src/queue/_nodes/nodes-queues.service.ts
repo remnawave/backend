@@ -8,11 +8,13 @@ import { IGetEnabledNodesPartialResponse } from '@modules/nodes/queries/get-enab
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
 import {
+    IAddUsersToNodePayload,
     IAddUserToNodePayload,
     INodeHealthCheckPayload,
     IRecordNodeUsagePayload,
     IRecordUserUsagePayload,
     IRemoveUserFromNodePayload,
+    IRemoveUsersFromNodePayload,
 } from './interfaces';
 import { NODES_JOB_NAMES } from './constants/nodes-job-name.constant';
 
@@ -32,6 +34,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         private readonly recordUserUsageQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.RECORD_NODE_USAGE)
         private readonly recordNodeUsageQueue: Queue,
+        @InjectQueue(QUEUES_NAMES.NODES.BULK_USERS) private readonly nodeBulkUsersQueue: Queue,
     ) {}
 
     get queues() {
@@ -44,6 +47,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             startAllNodes: this.startAllNodesQueue,
             recordUserUsage: this.recordUserUsageQueue,
             recordNodeUsage: this.recordNodeUsageQueue,
+            nodeBulkUsers: this.nodeBulkUsersQueue,
         } as const;
     }
 
@@ -113,6 +117,14 @@ export class NodesQueuesService implements OnApplicationBootstrap {
                 data: p,
             })),
         );
+    }
+
+    public async addUsersToNode(payload: IAddUsersToNodePayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.ADD_USERS_TO_NODE, payload);
+    }
+
+    public async removeUsersFromNode(payload: IRemoveUsersFromNodePayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.REMOVE_USERS_FROM_NODE, payload);
     }
 
     public async startAllNodesByProfile(payload: {

@@ -19,7 +19,9 @@ import { GetAllUsersCommand } from '@libs/contracts/commands';
 import { UserEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetUserSubscriptionRequestHistoryQuery } from '@modules/user-subscription-request-history/queries/get-user-subscription-request-history';
+import { RemoveUsersFromNodeEvent } from '@modules/nodes/events/remove-users-from-node';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
+import { AddUsersToNodeEvent } from '@modules/nodes/events/add-users-to-node';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -537,11 +539,11 @@ export class UsersService {
                 return ok(new BulkOperationResponseModel(0));
             }
 
+            const usersIdsAndHashes = await this.userRepository.getIdsAndHashesByUserUuids(uuids);
+
             const result = await this.userRepository.deleteManyByUuid(uuids);
 
-            await this.nodesQueuesService.startAllNodesWithoutDeduplication({
-                emitter: 'bulkDeleteUsersByUuid',
-            });
+            await this.eventBus.publish(new RemoveUsersFromNodeEvent(usersIdsAndHashes));
 
             return ok(new BulkOperationResponseModel(result));
         } catch (error) {
@@ -607,31 +609,15 @@ export class UsersService {
         internalSquadsUuids: string[],
     ): Promise<TResult<BulkOperationResponseModel>> {
         try {
-            const usersLength = usersUuids.length;
-            const batchLength = 3_000;
+            const userIds = await this.userRepository.getUserIdsByUuids(usersUuids);
 
-            for (let i = 0; i < usersLength; i += batchLength) {
-                const batchUsersUuids = usersUuids.slice(i, i + batchLength);
-                const batchUsersIds = await this.userRepository.getUserIdsByUuids(batchUsersUuids);
+            await this.userRepository.removeUsersFromInternalSquads(userIds);
 
-                if (batchUsersIds.length === 0) {
-                    continue;
-                }
+            await this.userRepository.addUsersToInternalSquads(userIds, internalSquadsUuids);
 
-                await this.userRepository.removeUsersFromInternalSquads(batchUsersIds);
+            await this.eventBus.publish(new AddUsersToNodeEvent(userIds));
 
-                await this.userRepository.addUsersToInternalSquads(
-                    batchUsersIds,
-                    internalSquadsUuids,
-                );
-            }
-
-            // TODO: finish later
-            await this.nodesQueuesService.startAllNodes({
-                emitter: 'bulkUpdateUsersInternalSquads',
-            });
-
-            return ok(new BulkOperationResponseModel(usersLength));
+            return ok(new BulkOperationResponseModel(userIds.length));
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.BULK_ADD_INBOUNDS_TO_USERS_ERROR);
