@@ -1237,6 +1237,7 @@ export class UsersRepository {
                 'in',
                 tIds.map((tId) => tId),
             )
+            .where('users.status', '=', USERS_STATUS.ACTIVE)
             .execute();
 
         return result.map((user) => new UserWithResolvedInboundEntity(user));
