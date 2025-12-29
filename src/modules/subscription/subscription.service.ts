@@ -166,6 +166,26 @@ export class SubscriptionService {
                         ).toString('base64')}`;
                     }
 
+                    if (
+                        isAllowed.response.maxDeviceReached ||
+                        isAllowed.response.hwidNotSupported
+                    ) {
+                        const { subscription, contentType } =
+                            await this.renderTemplatesService.generateSubscription({
+                                srrContext,
+                                user: user.response,
+                                hosts: [],
+                                fallbackOptions: {
+                                    showHwidMaxDeviceRemarks: isAllowed.response.maxDeviceReached,
+                                    showHwidNotSupportedRemarks:
+                                        isAllowed.response.hwidNotSupported,
+                                },
+                            });
+
+                        response.body = subscription;
+                        response.contentType = contentType;
+                    }
+
                     response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     return response;
@@ -722,6 +742,8 @@ export class SubscriptionService {
     ): Promise<
         TResult<{
             isSubscriptionAllowed: boolean;
+            maxDeviceReached: boolean;
+            hwidNotSupported: boolean;
         }>
     > {
         try {
@@ -736,11 +758,19 @@ export class SubscriptionService {
                         userAgent: hwidHeaders.userAgent,
                     });
                 }
-                return ok({ isSubscriptionAllowed: true });
+                return ok({
+                    isSubscriptionAllowed: true,
+                    maxDeviceReached: false,
+                    hwidNotSupported: false,
+                });
             }
 
             if (hwidHeaders === null) {
-                return ok({ isSubscriptionAllowed: false });
+                return ok({
+                    isSubscriptionAllowed: false,
+                    maxDeviceReached: false,
+                    hwidNotSupported: true,
+                });
             }
 
             const isDeviceExists = await this.checkHwidDeviceExists({
@@ -759,7 +789,11 @@ export class SubscriptionService {
                         userAgent: hwidHeaders.userAgent,
                     });
 
-                    return ok({ isSubscriptionAllowed: true });
+                    return ok({
+                        isSubscriptionAllowed: true,
+                        maxDeviceReached: false,
+                        hwidNotSupported: false,
+                    });
                 }
             }
 
@@ -768,11 +802,19 @@ export class SubscriptionService {
             const deviceLimit = user.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
             if (!count.isOk) {
-                return ok({ isSubscriptionAllowed: false });
+                return ok({
+                    isSubscriptionAllowed: false,
+                    maxDeviceReached: true,
+                    hwidNotSupported: false,
+                });
             }
 
             if (count.response >= deviceLimit) {
-                return ok({ isSubscriptionAllowed: false });
+                return ok({
+                    isSubscriptionAllowed: false,
+                    maxDeviceReached: true,
+                    hwidNotSupported: false,
+                });
             }
 
             const result = await this.commandBus.execute(
@@ -791,7 +833,11 @@ export class SubscriptionService {
             if (!result.isOk) {
                 this.logger.error(`Error creating Hwid user device, access forbidden.`);
 
-                return ok({ isSubscriptionAllowed: false });
+                return ok({
+                    isSubscriptionAllowed: false,
+                    maxDeviceReached: true,
+                    hwidNotSupported: false,
+                });
             }
 
             this.eventEmitter.emit(
@@ -799,10 +845,18 @@ export class SubscriptionService {
                 new UserHwidDeviceEvent(user, result.response, EVENTS.USER_HWID_DEVICES.ADDED),
             );
 
-            return ok({ isSubscriptionAllowed: true });
+            return ok({
+                isSubscriptionAllowed: true,
+                maxDeviceReached: false,
+                hwidNotSupported: false,
+            });
         } catch (error) {
             this.logger.error(`Error checking hwid device limit: ${error}`);
-            return ok({ isSubscriptionAllowed: false });
+            return ok({
+                isSubscriptionAllowed: false,
+                maxDeviceReached: true,
+                hwidNotSupported: false,
+            });
         }
     }
 

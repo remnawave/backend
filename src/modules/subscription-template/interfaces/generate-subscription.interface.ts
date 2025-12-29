@@ -8,4 +8,8 @@ export interface IGenerateSubscription {
     user: UserEntity;
     hosts: HostWithRawInbound[];
     hostsOverrides?: ExternalSquadEntity['hostOverrides'];
+    fallbackOptions?: {
+        showHwidMaxDeviceRemarks?: boolean;
+        showHwidNotSupportedRemarks?: boolean;
+    };
 }

@@ -38,6 +38,10 @@ interface IGenerateFormattedHostsOptions {
     user: UserEntity;
     hostsOverrides?: ExternalSquadEntity['hostOverrides'];
     returnDbHost?: boolean;
+    fallbackOptions?: {
+        showHwidMaxDeviceRemarks?: boolean;
+        showHwidNotSupportedRemarks?: boolean;
+    };
 }
 
 @Injectable()
@@ -56,18 +60,42 @@ export class FormatHostsService {
         options: IGenerateFormattedHostsOptions,
     ): Promise<IFormattedHost[]> {
         let hosts = options.hosts;
-        const { user, hostsOverrides, returnDbHost = false, subscriptionSettings } = options;
+        const {
+            user,
+            hostsOverrides,
+            returnDbHost = false,
+            subscriptionSettings,
+            fallbackOptions,
+        } = options;
 
         const formattedHosts: IFormattedHost[] = [];
-
-        let specialRemarks: string[] = [];
 
         if (subscriptionSettings === null) {
             return formattedHosts;
         }
 
+        if (fallbackOptions && subscriptionSettings.isShowCustomRemarks) {
+            if (fallbackOptions.showHwidMaxDeviceRemarks) {
+                return this.createFallbackHosts(
+                    subscriptionSettings.customRemarks.HWIDMaxDevicesExceeded.map((remark) =>
+                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    ),
+                );
+            }
+
+            if (fallbackOptions.showHwidNotSupportedRemarks) {
+                return this.createFallbackHosts(
+                    subscriptionSettings.customRemarks.HWIDNotSupported.map((remark) =>
+                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    ),
+                );
+            }
+        }
+
         if (user.status !== USERS_STATUS.ACTIVE) {
             if (subscriptionSettings.isShowCustomRemarks) {
+                let specialRemarks: string[] = [];
+
                 switch (user.status) {
                     case USERS_STATUS.EXPIRED:
                         specialRemarks = subscriptionSettings.customRemarks.expiredUsers;
@@ -84,34 +112,24 @@ export class FormatHostsService {
                     TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
                 );
 
-                formattedHosts.push(...this.createFallbackHosts(templatedRemarks));
-
-                return formattedHosts;
+                return this.createFallbackHosts(templatedRemarks);
             }
         }
 
         if (hosts.length === 0 && user.activeInternalSquads.length !== 0) {
-            formattedHosts.push(
-                ...this.createFallbackHosts(
-                    subscriptionSettings.customRemarks.emptyHosts.map((remark) =>
-                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
-                    ),
+            return this.createFallbackHosts(
+                subscriptionSettings.customRemarks.emptyHosts.map((remark) =>
+                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
                 ),
             );
-
-            return formattedHosts;
         }
 
         if (hosts.length === 0 && user.activeInternalSquads.length === 0) {
-            formattedHosts.push(
-                ...this.createFallbackHosts(
-                    subscriptionSettings.customRemarks.emptyInternalSquads.map((remark) =>
-                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
-                    ),
+            return this.createFallbackHosts(
+                subscriptionSettings.customRemarks.emptyInternalSquads.map((remark) =>
+                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
                 ),
             );
-
-            return formattedHosts;
         }
 
         const publicKeyMap = await resolveInboundAndPublicKey(hosts.map((host) => host.rawInbound));
