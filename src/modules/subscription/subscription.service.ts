@@ -167,8 +167,9 @@ export class SubscriptionService {
                     }
 
                     if (
-                        isAllowed.response.maxDeviceReached ||
-                        isAllowed.response.hwidNotSupported
+                        (isAllowed.response.maxDeviceReached ||
+                            isAllowed.response.hwidNotSupported) &&
+                        subscriptionSettings.isShowCustomRemarks
                     ) {
                         const { subscription, contentType } =
                             await this.renderTemplatesService.generateSubscription({
