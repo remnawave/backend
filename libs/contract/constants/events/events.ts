@@ -100,3 +100,9 @@ export const EVENTS_SCOPES = {
 } as const;
 
 export type TEventsScope = (typeof EVENTS_SCOPES)[keyof typeof EVENTS_SCOPES];
+
+type ObjectValues<T> = T[keyof T];
+type NonEmptyArray<T> = [T, ...T[]];
+
+export const toZodEnum = <T extends Record<string, string>>(obj: T) =>
+    Object.values(obj) as NonEmptyArray<ObjectValues<T>>;

@@ -1,13 +1,13 @@
 import z from 'zod';
 
+import { EVENTS, EVENTS_SCOPES, toZodEnum } from '../../constants';
 import { HwidUserDeviceSchema } from '../hwid-user-device.schema';
 import { ExtendedUsersSchema } from '../extended-users.schema';
-import { EVENTS, EVENTS_SCOPES } from '../../constants';
 import { NodesSchema } from '../nodes.schema';
 
 export const RemnawaveWebhookUserEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.USER),
-    event: z.enum([EVENTS.USER.CREATED, ...Object.values(EVENTS.USER)]),
+    event: z.enum(toZodEnum(EVENTS.USER)),
     timestamp: z
         .string()
         .datetime()
@@ -22,7 +22,7 @@ export const RemnawaveWebhookUserEvents = z.object({
 
 export const RemnawaveWebhookUserHwidDevicesEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.USER_HWID_DEVICES),
-    event: z.enum([EVENTS.USER_HWID_DEVICES.ADDED, ...Object.values(EVENTS.USER_HWID_DEVICES)]),
+    event: z.enum(toZodEnum(EVENTS.USER_HWID_DEVICES)),
     timestamp: z
         .string()
         .datetime()
@@ -35,7 +35,7 @@ export const RemnawaveWebhookUserHwidDevicesEvents = z.object({
 
 export const RemnawaveWebhookNodeEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.NODE),
-    event: z.enum([EVENTS.NODE.CREATED, ...Object.values(EVENTS.NODE)]),
+    event: z.enum(toZodEnum(EVENTS.NODE)),
     timestamp: z
         .string()
         .datetime()
@@ -45,7 +45,7 @@ export const RemnawaveWebhookNodeEvents = z.object({
 
 export const RemnawaveWebhookServiceEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.SERVICE),
-    event: z.enum([EVENTS.SERVICE.PANEL_STARTED, ...Object.values(EVENTS.SERVICE)]),
+    event: z.enum(toZodEnum(EVENTS.SERVICE)),
     timestamp: z
         .string()
         .datetime()
@@ -66,10 +66,7 @@ export const RemnawaveWebhookServiceEvents = z.object({
 
 export const RemnawaveWebhookErrorsEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.ERRORS),
-    event: z.enum([
-        EVENTS.ERRORS.BANDWIDTH_USAGE_THRESHOLD_REACHED_MAX_NOTIFICATIONS,
-        ...Object.values(EVENTS.ERRORS),
-    ]),
+    event: z.enum(toZodEnum(EVENTS.ERRORS)),
     timestamp: z
         .string()
         .datetime()
@@ -81,7 +78,7 @@ export const RemnawaveWebhookErrorsEvents = z.object({
 
 export const RemnawaveWebhookCrmEvents = z.object({
     scope: z.literal(EVENTS_SCOPES.CRM),
-    event: z.enum([EVENTS.CRM.INFRA_BILLING_NODE_PAYMENT_IN_7_DAYS, ...Object.values(EVENTS.CRM)]),
+    event: z.enum(toZodEnum(EVENTS.CRM)),
     timestamp: z
         .string()
         .datetime()
