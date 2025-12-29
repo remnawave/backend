@@ -41,6 +41,7 @@ import {
     BulkDeleteUsersByStatusRequestDto,
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
+    RevokeUserSubscriptionBodyDto,
 } from './dtos';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IUpdateUserDto } from './interfaces';
 import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
@@ -311,19 +312,25 @@ export class UsersService {
 
     public async revokeUserSubscription(
         userUuid: string,
-        shortUuid?: string,
+        dto?: RevokeUserSubscriptionBodyDto,
     ): Promise<TResult<UserEntity>> {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
-                ['uuid', 'vlessUuid'],
+                ['uuid', 'vlessUuid', 'shortUuid'],
             );
 
             if (!user) return fail(ERRORS.USER_NOT_FOUND);
 
+            let shortUuid = user.shortUuid;
+
+            if (dto && !dto.revokeOnlyPasswords) {
+                shortUuid = dto.shortUuid ?? this.createNanoId();
+            }
+
             const updateResult = await this.userRepository.revokeUserSubscription({
                 uuid: user.uuid,
-                shortUuid: shortUuid ?? this.createNanoId(),
+                shortUuid,
                 trojanPassword: this.createPassword(),
                 vlessUuid: this.createUuid(),
                 ssPassword: this.createPassword(),

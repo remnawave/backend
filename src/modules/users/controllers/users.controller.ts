@@ -489,8 +489,7 @@ export class UsersController {
         @Param() paramData: RevokeUserSubscriptionRequestDto,
         @Body() bodyData: RevokeUserSubscriptionBodyDto,
     ): Promise<RevokeUserSubscriptionResponseDto> {
-        const shortUuid = bodyData.shortUuid ?? undefined;
-        const result = await this.usersService.revokeUserSubscription(paramData.uuid, shortUuid);
+        const result = await this.usersService.revokeUserSubscription(paramData.uuid, bodyData);
 
         const data = errorHandler(result);
         return {

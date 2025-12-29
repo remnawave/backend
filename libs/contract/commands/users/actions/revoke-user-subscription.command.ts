@@ -23,6 +23,15 @@ export namespace RevokeUserSubscriptionCommand {
     export const RequestBodySchema = z.preprocess(
         (val) => val || {},
         z.object({
+            revokeOnlyPasswords: z.optional(
+                z
+                    .boolean()
+                    .default(false)
+                    .describe(
+                        'Optional. If true, only passwords will be revoked, without changing the short UUID (Subscription URL).',
+                    ),
+            ),
+
             shortUuid: z.optional(
                 z
                     .string()
