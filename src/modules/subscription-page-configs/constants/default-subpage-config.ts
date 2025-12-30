@@ -11,9 +11,10 @@ export const DEFAULT_SUBPAGE_CONFIG = {
         installationGuidesBlockType: 'cards',
     },
     baseSettings: {
-        metaTitle: 'Remnawave Subscription Page',
-        metaDescription: 'Remnawave Subscription Page',
+        metaTitle: 'Subscription',
+        metaDescription: 'Subscription',
         showConnectionKeys: false,
+        hideGetLinkButton: false,
     },
     baseTranslations: {
         installationGuideHeader: {
