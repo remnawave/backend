@@ -1,4 +1,5 @@
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
+import { createHappCryptoLink } from '@kastov/cryptohapp';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
 import { Request, Response } from 'express';
@@ -22,7 +23,6 @@ import {
     getLastTwoWeeksRanges,
 } from '@common/utils/get-date-ranges.uti';
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { createHappCryptoLink } from '@common/utils/happ-crypto-link';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
 import { fail, ok, TResult } from '@common/types';
@@ -288,13 +288,13 @@ export class SystemService implements OnApplicationBootstrap {
     }
 
     public async encryptHappCryptoLink(linkToEncrypt: string): Promise<TResult<string>> {
-        try {
-            const encryptedLink = createHappCryptoLink(linkToEncrypt);
-            return ok(encryptedLink);
-        } catch (error) {
-            this.logger.error('Error encrypting happ crypto link:', error);
+        const encryptedLink = createHappCryptoLink(linkToEncrypt, 'v4', true);
+
+        if (!encryptedLink) {
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
+
+        return ok(encryptedLink);
     }
 
     public async debugSrrMatcher(
