@@ -28,6 +28,7 @@ import {
     EncryptHappCryptoLinkCommand,
     GenerateX25519Command,
     GetBandwidthStatsCommand,
+    GetMetadataCommand,
     GetNodesMetricsCommand,
     GetNodesStatisticsCommand,
     GetRemnawaveHealthCommand,
@@ -49,6 +50,7 @@ import {
     EncryptHappCryptoLinkRequestDto,
     DebugSrrMatcherRequestDto,
     DebugSrrMatcherResponseDto,
+    GetMetadataResponseDto,
 } from './dtos';
 import { EncryptHappCryptoLinkResponseModel } from './models';
 import { SystemService } from './system.service';
@@ -61,6 +63,24 @@ import { SystemService } from './system.service';
 @Controller(SYSTEM_CONTROLLER)
 export class SystemController {
     constructor(private readonly systemService: SystemService) {}
+
+    @ApiResponse({
+        status: 200,
+        description: 'Returns system metadata',
+        type: GetMetadataResponseDto,
+    })
+    @Endpoint({
+        command: GetMetadataCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getMetadata(): Promise<GetMetadataResponseDto> {
+        const result = await this.systemService.getMetadata();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
 
     @ApiResponse({
         status: 200,

@@ -12,6 +12,7 @@ export const SYSTEM_ROUTES = {
         ENCRYPT_HAPP_CRYPTO_LINK: 'tools/happ/encrypt',
     },
     HEALTH: 'health',
+    METADATA: 'metadata',
     TESTERS: {
         SRR_MATCHER: 'testers/srr-matcher',
     },

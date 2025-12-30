@@ -37,6 +37,7 @@ import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
 import {
     GenerateX25519ResponseModel,
     GetBandwidthStatsResponseModel,
+    GetMetadataResponseModel,
     GetNodesStatisticsResponseModel,
     GetNodesStatsResponseModel,
     GetRemnawaveHealthResponseModel,
@@ -59,6 +60,30 @@ export class SystemService {
         private readonly srrParser: ResponseRulesParserService,
         private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
+
+    public async getMetadata(): Promise<TResult<GetMetadataResponseModel>> {
+        try {
+            return ok(
+                new GetMetadataResponseModel({
+                    version: this.configService.getOrThrow<string>('__RW_METADATA_VERSION'),
+                    backendCommitSha: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_GIT_BACKEND_COMMIT',
+                    ),
+                    frontendCommitSha: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_GIT_FRONTEND_COMMIT',
+                    ),
+                    branch: this.configService.getOrThrow<string>('__RW_METADATA_GIT_BRANCH'),
+                    buildTime: this.configService.getOrThrow<string>('__RW_METADATA_BUILD_TIME'),
+                    buildNumber: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_BUILD_NUMBER',
+                    ),
+                }),
+            );
+        } catch (error) {
+            this.logger.error('Error getting system metadata:', error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     public async getStats(): Promise<TResult<GetStatsResponseModel>> {
         try {

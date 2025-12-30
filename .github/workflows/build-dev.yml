@@ -47,14 +47,16 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.TOKEN_GH_DEPLOY }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          build-args: |
-            FRONTEND_URL=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend.zip
-            FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend-loc.zip
-            BRANCH=dev
+      - name: Prepare build metadata
+        id: meta
+        run: |
+          echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
+          echo "build_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "frontend_commit=$(curl -s https://api.github.com/repos/remnawave/frontend/commits/${{ github.ref_name }} | jq -r '.sha')" >> $GITHUB_OUTPUT
 
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
           context: .
           file: Dockerfile
           platforms: linux/amd64
@@ -62,7 +64,16 @@ jobs:
           tags: |
             remnawave/backend:dev
             ghcr.io/remnawave/backend:dev
-
+          build-args: |
+            FRONTEND_URL=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend.zip
+            FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend-loc.zip
+            BRANCH=dev
+            __RW_METADATA_VERSION=${{ steps.meta.outputs.version }}
+            __RW_METADATA_GIT_BRANCH=${{ github.ref_name }}
+            __RW_METADATA_BUILD_TIME=${{ steps.meta.outputs.build_time }}
+            __RW_METADATA_BUILD_NUMBER=${{ github.run_number }}
+            __RW_METADATA_GIT_BACKEND_COMMIT=${{ github.sha }}
+            __RW_METADATA_GIT_FRONTEND_COMMIT=${{ steps.meta.outputs.frontend_commit }}
   send-finish-tg-msg:
     name: Send TG message
     needs: [build-docker-image]

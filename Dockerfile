@@ -5,6 +5,13 @@ ARG BRANCH=main
 ARG FRONTEND_URL=https://github.com/remnawave/frontend/releases/latest/download/remnawave-frontend.zip
 ARG FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/latest/download/remnawave-frontend.zip
 
+ARG __RW_METADATA_VERSION=1.1.1
+ARG __RW_METADATA_GIT_BACKEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
+ARG __RW_METADATA_GIT_FRONTEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
+ARG __RW_METADATA_GIT_BRANCH=dev
+ARG __RW_METADATA_BUILD_TIME=2011-11-11T11:11:11Z
+ARG __RW_METADATA_BUILD_NUMBER=0
+
 RUN apk add --no-cache curl unzip ca-certificates \
     && curl -L ${FRONTEND_URL} -o frontend.zip \
     && unzip frontend.zip -d frontend_temp \
@@ -68,6 +75,13 @@ ENV PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 
 ENV PM2_DISABLE_VERSION_CHECK=true
 ENV NODE_OPTIONS="--max-old-space-size=16384"
+
+ENV __RW_METADATA_VERSION=${__RW_METADATA_VERSION}
+ENV __RW_METADATA_GIT_BACKEND_COMMIT=${__RW_METADATA_GIT_BACKEND_COMMIT}
+ENV __RW_METADATA_GIT_FRONTEND_COMMIT=${__RW_METADATA_GIT_FRONTEND_COMMIT}
+ENV __RW_METADATA_GIT_BRANCH=${__RW_METADATA_GIT_BRANCH}
+ENV __RW_METADATA_BUILD_TIME=${__RW_METADATA_BUILD_TIME}
+ENV __RW_METADATA_BUILD_NUMBER=${__RW_METADATA_BUILD_NUMBER}
 
 COPY --from=backend-build /opt/app/dist ./dist
 COPY --from=frontend /opt/frontend/frontend_temp/dist ./frontend
