@@ -5,13 +5,6 @@ ARG BRANCH=main
 ARG FRONTEND_URL=https://github.com/remnawave/frontend/releases/latest/download/remnawave-frontend.zip
 ARG FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/latest/download/remnawave-frontend.zip
 
-ARG __RW_METADATA_VERSION=1.1.1
-ARG __RW_METADATA_GIT_BACKEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
-ARG __RW_METADATA_GIT_FRONTEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
-ARG __RW_METADATA_GIT_BRANCH=dev
-ARG __RW_METADATA_BUILD_TIME=2011-11-11T11:11:11Z
-ARG __RW_METADATA_BUILD_NUMBER=0
-
 RUN apk add --no-cache curl unzip ca-certificates \
     && curl -L ${FRONTEND_URL} -o frontend.zip \
     && unzip frontend.zip -d frontend_temp \
@@ -60,6 +53,13 @@ FROM node:22.21-alpine
 WORKDIR /opt/app
 
 ARG BRANCH=main
+
+ARG __RW_METADATA_VERSION=1.1.1
+ARG __RW_METADATA_GIT_BACKEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
+ARG __RW_METADATA_GIT_FRONTEND_COMMIT=0f344f388807f5323b49024a563b3f8146d66857
+ARG __RW_METADATA_GIT_BRANCH=dev
+ARG __RW_METADATA_BUILD_TIME=2011-11-11T11:11:11Z
+ARG __RW_METADATA_BUILD_NUMBER=0
 
 # Install jemalloc
 # RUN apk add --no-cache jemalloc
