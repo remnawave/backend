@@ -2,6 +2,7 @@ import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
 import { Request, Response } from 'express';
+import { readPackageJSON } from 'pkg-types';
 import axios, { AxiosError } from 'axios';
 import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
@@ -9,7 +10,7 @@ import pm2 from 'pm2';
 
 import { ERRORS } from '@contract/constants';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QueryBus } from '@nestjs/cqrs';
 
@@ -52,8 +53,10 @@ import { GetStatsRequestQueryDto } from './dtos/get-stats.dto';
 import { DebugSrrMatcherRequestDto } from './dtos';
 
 @Injectable()
-export class SystemService {
+export class SystemService implements OnApplicationBootstrap {
     private readonly logger = new Logger(SystemService.name);
+    private rwVersion: string;
+
     constructor(
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
@@ -61,11 +64,16 @@ export class SystemService {
         private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
 
+    public async onApplicationBootstrap(): Promise<void> {
+        const { version } = await readPackageJSON();
+        this.rwVersion = version || this.configService.getOrThrow<string>('__RW_METADATA_VERSION');
+    }
+
     public async getMetadata(): Promise<TResult<GetMetadataResponseModel>> {
         try {
             return ok(
                 new GetMetadataResponseModel({
-                    version: this.configService.getOrThrow<string>('__RW_METADATA_VERSION'),
+                    version: this.rwVersion,
                     backendCommitSha: this.configService.getOrThrow<string>(
                         '__RW_METADATA_GIT_BACKEND_COMMIT',
                     ),
