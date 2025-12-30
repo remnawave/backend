@@ -162,7 +162,11 @@ export class SubscriptionService {
 
                     if (subscriptionSettings.hwidSettings.maxDevicesAnnounce) {
                         response.headers.announce = `base64:${Buffer.from(
-                            subscriptionSettings.hwidSettings.maxDevicesAnnounce,
+                            TemplateEngine.formatWithUser(
+                                subscriptionSettings.hwidSettings.maxDevicesAnnounce,
+                                user.response,
+                                this.subPublicDomain,
+                            ),
                         ).toString('base64')}`;
                     }
 
