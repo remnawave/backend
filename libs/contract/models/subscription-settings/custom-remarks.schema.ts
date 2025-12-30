@@ -5,7 +5,6 @@ export const CustomRemarksSchema = z.object({
     limitedUsers: z.array(z.string()).min(1),
     disabledUsers: z.array(z.string()).min(1),
     emptyHosts: z.array(z.string()).min(1),
-    emptyInternalSquads: z.array(z.string()).min(1),
     HWIDMaxDevicesExceeded: z.array(z.string()).min(1),
     HWIDNotSupported: z.array(z.string()).min(1),
 });

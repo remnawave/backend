@@ -116,17 +116,9 @@ export class FormatHostsService {
             }
         }
 
-        if (hosts.length === 0 && user.activeInternalSquads.length !== 0) {
+        if (hosts.length === 0) {
             return this.createFallbackHosts(
                 subscriptionSettings.customRemarks.emptyHosts.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
-                ),
-            );
-        }
-
-        if (hosts.length === 0 && user.activeInternalSquads.length === 0) {
-            return this.createFallbackHosts(
-                subscriptionSettings.customRemarks.emptyInternalSquads.map((remark) =>
                     TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
                 ),
             );

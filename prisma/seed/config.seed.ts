@@ -297,15 +297,9 @@ async function seedSubscriptionSettings() {
         disabledUsers: ['🚫 Subscription disabled', 'Contact support'],
         emptyHosts: [
             '→ Remnawave',
-            'Did you forget to add hosts?',
             '→ No hosts found',
             '→ Check Hosts tab',
-        ],
-        emptyInternalSquads: [
-            '→ Remnawave',
-            'Did you forget to add internal squads?',
-            '→ No internal squads found',
-            'User has no internal squads',
+            '→ Check Internal Squads tab',
         ],
         HWIDMaxDevicesExceeded: ['🚫 Limit of devices reached'],
         HWIDNotSupported: ['🚫 HWID Error', 'App not supported'],
