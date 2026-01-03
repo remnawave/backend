@@ -53,6 +53,11 @@ export class TemplateEngine {
             EXPIRE_UNIX: dayjs(user.expireAt).unix(),
             SHORT_UUID: user.shortUuid,
             ID: user.tId.toString(),
+            TRAFFIC_USED_BYTES: user.userTraffic.usedTrafficBytes.toString(),
+            TRAFFIC_LEFT_BYTES: (
+                user.trafficLimitBytes - user.userTraffic.usedTrafficBytes
+            ).toString(),
+            TOTAL_TRAFFIC_BYTES: user.trafficLimitBytes.toString(),
         });
     }
 }
