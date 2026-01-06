@@ -1268,6 +1268,7 @@ export class UsersRepository {
                 'sq.name as squadName',
                 'cpi.tag as inboundTag',
             ])
+            .orderBy('n.viewPosition', 'asc')
             .execute();
 
         const nodesMap = new Map<string, IGetUserAccessibleNodes>();
