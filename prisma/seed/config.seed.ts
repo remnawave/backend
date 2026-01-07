@@ -301,8 +301,8 @@ async function seedSubscriptionSettings() {
             '→ Check Hosts tab',
             '→ Check Internal Squads tab',
         ],
-        HWIDMaxDevicesExceeded: ['🚫 Limit of devices reached'],
-        HWIDNotSupported: ['🚫 HWID Error', 'App not supported'],
+        HWIDMaxDevicesExceeded: ['Limit of devices reached'],
+        HWIDNotSupported: ['App not supported'],
     } satisfies TCustomRemarks;
 
     const existingConfig = await prisma.subscriptionSettings.findFirst();
