@@ -111,25 +111,12 @@ export class ExternalSquadService {
                 return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
-            if (
-                !name &&
-                !templates &&
-                !subscriptionSettings &&
-                !hostOverrides &&
-                !responseHeaders &&
-                hwidSettings === undefined &&
-                customRemarks === undefined &&
-                subpageConfigUuid === undefined
-            ) {
-                return fail(ERRORS.NAME_OR_TEMPLATES_REQUIRED);
-            }
-
             await this.externalSquadRepository.update({
                 uuid,
-                name: name || undefined,
-                subscriptionSettings: subscriptionSettings || undefined,
-                hostOverrides: hostOverrides || undefined,
-                responseHeaders: responseHeaders || undefined,
+                name: name,
+                subscriptionSettings: subscriptionSettings,
+                hostOverrides: hostOverrides,
+                responseHeaders: responseHeaders,
                 hwidSettings: hwidSettings,
                 customRemarks: customRemarks,
                 subpageConfigUuid: subpageConfigUuid,

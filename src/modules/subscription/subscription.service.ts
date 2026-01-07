@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
+import { hasContent } from '@common/utils/convert-type';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS, EVENTS, TSubscriptionTemplateType, USERS_STATUS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
@@ -669,12 +670,12 @@ export class SubscriptionService {
 
                 if (externalSquadSubscriptionSettings !== null) {
                     // Host overrides
-                    if (externalSquadSubscriptionSettings.hostOverrides !== null) {
+                    if (hasContent(externalSquadSubscriptionSettings.hostOverrides)) {
                         hostsOverrides = externalSquadSubscriptionSettings.hostOverrides;
                     }
 
                     // Subscription settings override
-                    if (externalSquadSubscriptionSettings.subscriptionSettings !== null) {
+                    if (hasContent(externalSquadSubscriptionSettings.subscriptionSettings)) {
                         patchedSubscriptionSettings = {
                             ...patchedSubscriptionSettings,
                             ...externalSquadSubscriptionSettings.subscriptionSettings,
@@ -682,22 +683,19 @@ export class SubscriptionService {
                     }
 
                     // Response headers override
-                    if (
-                        externalSquadSubscriptionSettings.responseHeaders !== null &&
-                        Object.keys(externalSquadSubscriptionSettings.responseHeaders).length > 0
-                    ) {
+                    if (hasContent(externalSquadSubscriptionSettings.responseHeaders)) {
                         patchedSubscriptionSettings.customResponseHeaders =
                             externalSquadSubscriptionSettings.responseHeaders;
                     }
 
                     // HWID settings override
-                    if (externalSquadSubscriptionSettings.hwidSettings !== null) {
+                    if (hasContent(externalSquadSubscriptionSettings.hwidSettings)) {
                         patchedSubscriptionSettings.hwidSettings =
                             externalSquadSubscriptionSettings.hwidSettings;
                     }
 
                     // Custom remarks override
-                    if (externalSquadSubscriptionSettings.customRemarks !== null) {
+                    if (hasContent(externalSquadSubscriptionSettings.customRemarks)) {
                         patchedSubscriptionSettings.customRemarks =
                             externalSquadSubscriptionSettings.customRemarks;
                     }
