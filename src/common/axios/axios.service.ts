@@ -9,11 +9,13 @@ import { CommandBus } from '@nestjs/cqrs';
 
 import {
     AddUserCommand,
+    AddUsersCommand,
     GetCombinedStatsCommand,
     GetNodeHealthCheckCommand,
     GetSystemStatsCommand,
     GetUsersStatsCommand,
     RemoveUserCommand,
+    RemoveUsersCommand,
     StartXrayCommand,
     StopXrayCommand,
 } from '@remnawave/node-contract';
@@ -94,7 +96,7 @@ export class AxiosService {
             const compressedData = await this.compressData(data);
 
             this.logger.log(
-                `[ZSTD] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
+                `[ZSTD] [START XRAY] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
             );
 
             const response = await this.axiosInstance.post<StartXrayCommand.Response>(
@@ -340,6 +342,88 @@ export class AxiosService {
                 data,
                 {
                     timeout: 20_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error('Error in deleteUser:', error.response?.data);
+            } else {
+                this.logger.error('Error in deleteUser:', error);
+            }
+
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async addUsers(
+        data: AddUsersCommand.Request,
+        url: string,
+        port: null | number,
+    ): Promise<TResult<AddUsersCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, AddUsersCommand.url, port);
+
+        try {
+            const startTime = getTime();
+            const compressedData = await this.compressData(data);
+
+            this.logger.log(
+                `[ZSTD] [ADD USERS] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
+            );
+
+            const response = await this.axiosInstance.post<AddUsersCommand.Response>(
+                nodeUrl,
+                compressedData,
+                {
+                    timeout: 20_000,
+                    headers: {
+                        'Content-Encoding': 'zstd',
+                    },
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in addUser:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async deleteUsers(
+        data: RemoveUsersCommand.Request,
+        url: string,
+        port: null | number,
+    ): Promise<TResult<RemoveUsersCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, RemoveUsersCommand.url, port);
+
+        try {
+            const startTime = getTime();
+            const compressedData = await this.compressData(data);
+
+            this.logger.log(
+                `[ZSTD] [DELETE USERS] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
+            );
+
+            const response = await this.axiosInstance.post<RemoveUsersCommand.Response>(
+                nodeUrl,
+                compressedData,
+                {
+                    timeout: 20_000,
+                    headers: {
+                        'Content-Encoding': 'zstd',
+                    },
                 },
             );
 

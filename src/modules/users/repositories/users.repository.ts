@@ -1029,6 +1029,19 @@ export class UsersRepository {
         return result.map((user) => user.tId);
     }
 
+    public async getIdsAndHashesByUserUuids(userUuids: string[]): Promise<
+        {
+            tId: bigint;
+            vlessUuid: string;
+        }[]
+    > {
+        return await this.qb.kysely
+            .selectFrom('users')
+            .select(['tId', 'vlessUuid'])
+            .where('uuid', 'in', userUuids.map(getKyselyUuid))
+            .execute();
+    }
+
     public async addUserToInternalSquads(
         userId: bigint,
         internalSquadUuids: string[],
@@ -1176,6 +1189,60 @@ export class UsersRepository {
         return new UserWithResolvedInboundEntity(result);
     }
 
+    public async getUsersWithResolvedInbounds(
+        tIds: bigint[],
+    ): Promise<UserWithResolvedInboundEntity[]> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select((eb) => [
+                'users.tId',
+                'users.trojanPassword',
+                'users.vlessUuid',
+                'users.ssPassword',
+                jsonArrayFrom(
+                    eb
+                        .selectFrom('internalSquadMembers')
+                        .innerJoin(
+                            'internalSquads',
+                            'internalSquadMembers.internalSquadUuid',
+                            'internalSquads.uuid',
+                        )
+                        .innerJoin(
+                            'internalSquadInbounds',
+                            'internalSquads.uuid',
+                            'internalSquadInbounds.internalSquadUuid',
+                        )
+                        .innerJoin(
+                            'configProfileInbounds',
+                            'internalSquadInbounds.inboundUuid',
+                            'configProfileInbounds.uuid',
+                        )
+                        .select([
+                            'configProfileInbounds.profileUuid',
+                            'configProfileInbounds.uuid',
+                            'configProfileInbounds.tag',
+                            'configProfileInbounds.type',
+                            'configProfileInbounds.network',
+                            'configProfileInbounds.security',
+                            'configProfileInbounds.port',
+                            'configProfileInbounds.rawInbound',
+                        ])
+                        .whereRef('internalSquadMembers.userId', '=', 'users.tId'),
+                )
+                    .$notNull()
+                    .as('inbounds'),
+            ])
+            .where(
+                'users.tId',
+                'in',
+                tIds.map((tId) => tId),
+            )
+            .where('users.status', '=', USERS_STATUS.ACTIVE)
+            .execute();
+
+        return result.map((user) => new UserWithResolvedInboundEntity(user));
+    }
+
     public async getUserAccessibleNodes(userId: bigint): Promise<IGetUserAccessibleNodesResponse> {
         const flatResults = await this.qb.kysely
             .selectFrom('nodes as n')
@@ -1201,6 +1268,7 @@ export class UsersRepository {
                 'sq.name as squadName',
                 'cpi.tag as inboundTag',
             ])
+            .orderBy('n.viewPosition', 'asc')
             .execute();
 
         const nodesMap = new Map<string, IGetUserAccessibleNodes>();

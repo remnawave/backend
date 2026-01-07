@@ -1,4 +1,5 @@
 import { Job } from 'bullmq';
+import semver from 'semver';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -127,6 +128,10 @@ export class StartNodeProcessor extends WorkerHost {
                     `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
                 );
                 return;
+            } else if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.5.0')) {
+                this.logger.warn(
+                    `Node ${node.uuid} running on outdated version of Remnawave Node. Please upgrade to the latest version. Some features may not work properly.`,
+                );
             }
 
             const startTime = getTime();

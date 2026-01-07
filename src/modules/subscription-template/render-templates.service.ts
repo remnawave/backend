@@ -35,13 +35,14 @@ export class RenderTemplatesService {
         contentType: string;
         subscription: string;
     }> {
-        const { srrContext, user, hosts, hostsOverrides } = params;
+        const { srrContext, user, hosts, hostsOverrides, fallbackOptions } = params;
 
         const formattedHosts = await this.formatHostsService.generateFormattedHosts({
             subscriptionSettings: srrContext.subscriptionSettings,
             hosts,
             user,
             hostsOverrides,
+            fallbackOptions,
         });
 
         switch (srrContext.matchedResponseType) {

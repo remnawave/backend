@@ -111,14 +111,16 @@ const SubscriptionPageTranslateKeysSchema = z.object({
 
 const BaseSettingsSchema = z
     .object({
-        metaTitle: z.string().default('Remnawave Subscription Page'),
-        metaDescription: z.string().default('Remnawave Subscription Page'),
+        metaTitle: z.string().default('Subscription'),
+        metaDescription: z.string().default('Subscription'),
         showConnectionKeys: z.boolean().default(false),
+        hideGetLinkButton: z.boolean().default(false),
     })
     .default({
-        metaTitle: 'Remnawave Subscription Page',
-        metaDescription: 'Remnawave Subscription Page',
+        metaTitle: 'Subscription',
+        metaDescription: 'Subscription',
         showConnectionKeys: false,
+        hideGetLinkButton: false,
     });
 
 export const SubscriptionPageRawConfigSchema = z

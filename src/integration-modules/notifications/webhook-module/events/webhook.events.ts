@@ -7,7 +7,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
 import { NotificationsConfigService } from '@common/config/common-config';
-import { EVENTS } from '@libs/contracts/constants';
+import { EVENTS, EVENTS_SCOPES } from '@libs/contracts/constants';
 
 import {
     UserEvent,
@@ -19,8 +19,10 @@ import {
 } from '@integration-modules/notifications/interfaces';
 
 import { GetFullUserResponseModel } from '@modules/users/models';
+import { GetOneNodeResponseModel } from '@modules/nodes/models';
 
 import { WebhookLoggerQueueService } from '@queue/notifications/webhook-logger/webhook-logger.service';
+
 @Injectable()
 export class WebhookEvents {
     private readonly logger = new Logger(WebhookEvents.name);
@@ -47,6 +49,7 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.USER,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain(
@@ -77,9 +80,10 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.NODE,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
-                data: instanceToPlain(event.node),
+                data: instanceToPlain(new GetOneNodeResponseModel(event.node)),
             };
 
             const { json } = serialize(payload);
@@ -104,6 +108,7 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.SERVICE,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain(event.data),
@@ -131,6 +136,7 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.ERRORS,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain(event.data),
@@ -158,6 +164,7 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.CRM,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain(event.data),
@@ -185,6 +192,7 @@ export class WebhookEvents {
             }
 
             const payload = {
+                scope: EVENTS_SCOPES.USER_HWID_DEVICES,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain({

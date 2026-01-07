@@ -3,6 +3,17 @@ import { z } from 'zod';
 
 export const configSchema = z
     .object({
+        __RW_METADATA_VERSION: z.string().default('1.1.1'),
+        __RW_METADATA_GIT_BACKEND_COMMIT: z
+            .string()
+            .default('0f344f388807f5323b49024a563b3f8146d66857'),
+        __RW_METADATA_GIT_FRONTEND_COMMIT: z
+            .string()
+            .default('0f344f388807f5323b49024a563b3f8146d66857'),
+        __RW_METADATA_GIT_BRANCH: z.string().default('dev'),
+        __RW_METADATA_BUILD_TIME: z.string().default('2011-11-11T11:11:11Z'),
+        __RW_METADATA_BUILD_NUMBER: z.string().default('0'),
+
         DATABASE_URL: z.string(),
         APP_PORT: z
             .string()

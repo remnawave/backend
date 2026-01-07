@@ -1,7 +1,9 @@
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
+import { createHappCryptoLink } from '@kastov/cryptohapp';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
 import { Request, Response } from 'express';
+import { readPackageJSON } from 'pkg-types';
 import axios, { AxiosError } from 'axios';
 import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
@@ -9,7 +11,7 @@ import pm2 from 'pm2';
 
 import { ERRORS } from '@contract/constants';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { QueryBus } from '@nestjs/cqrs';
 
@@ -21,7 +23,6 @@ import {
     getLastTwoWeeksRanges,
 } from '@common/utils/get-date-ranges.uti';
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { createHappCryptoLink } from '@common/utils/happ-crypto-link';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
 import { fail, ok, TResult } from '@common/types';
@@ -37,6 +38,7 @@ import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
 import {
     GenerateX25519ResponseModel,
     GetBandwidthStatsResponseModel,
+    GetMetadataResponseModel,
     GetNodesStatisticsResponseModel,
     GetNodesStatsResponseModel,
     GetRemnawaveHealthResponseModel,
@@ -51,14 +53,45 @@ import { GetStatsRequestQueryDto } from './dtos/get-stats.dto';
 import { DebugSrrMatcherRequestDto } from './dtos';
 
 @Injectable()
-export class SystemService {
+export class SystemService implements OnApplicationBootstrap {
     private readonly logger = new Logger(SystemService.name);
+    private rwVersion: string;
+
     constructor(
         private readonly queryBus: QueryBus,
         private readonly configService: ConfigService,
         private readonly srrParser: ResponseRulesParserService,
         private readonly srrMatcher: ResponseRulesMatcherService,
     ) {}
+
+    public async onApplicationBootstrap(): Promise<void> {
+        const { version } = await readPackageJSON();
+        this.rwVersion = version || this.configService.getOrThrow<string>('__RW_METADATA_VERSION');
+    }
+
+    public async getMetadata(): Promise<TResult<GetMetadataResponseModel>> {
+        try {
+            return ok(
+                new GetMetadataResponseModel({
+                    version: this.rwVersion,
+                    backendCommitSha: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_GIT_BACKEND_COMMIT',
+                    ),
+                    frontendCommitSha: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_GIT_FRONTEND_COMMIT',
+                    ),
+                    branch: this.configService.getOrThrow<string>('__RW_METADATA_GIT_BRANCH'),
+                    buildTime: this.configService.getOrThrow<string>('__RW_METADATA_BUILD_TIME'),
+                    buildNumber: this.configService.getOrThrow<string>(
+                        '__RW_METADATA_BUILD_NUMBER',
+                    ),
+                }),
+            );
+        } catch (error) {
+            this.logger.error('Error getting system metadata:', error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     public async getStats(): Promise<TResult<GetStatsResponseModel>> {
         try {
@@ -255,13 +288,13 @@ export class SystemService {
     }
 
     public async encryptHappCryptoLink(linkToEncrypt: string): Promise<TResult<string>> {
-        try {
-            const encryptedLink = createHappCryptoLink(linkToEncrypt);
-            return ok(encryptedLink);
-        } catch (error) {
-            this.logger.error('Error encrypting happ crypto link:', error);
+        const encryptedLink = createHappCryptoLink(linkToEncrypt, 'v4', true);
+
+        if (!encryptedLink) {
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
+
+        return ok(encryptedLink);
     }
 
     public async debugSrrMatcher(

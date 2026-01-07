@@ -5,6 +5,7 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 
 import {
     NodeHealthCheckQueueProcessor,
+    NodeBulkUsersQueueProcessor,
     NodeUsersQueueProcessor,
     StartAllNodesByProfileQueueProcessor,
     StartNodeProcessor,
@@ -24,6 +25,7 @@ const queues = [
         name: QUEUES_NAMES.NODES.START_ALL_BY_PROFILE,
         processor: StartAllNodesByProfileQueueProcessor,
     },
+    { name: QUEUES_NAMES.NODES.BULK_USERS, processor: NodeBulkUsersQueueProcessor },
     { name: QUEUES_NAMES.NODES.START_ALL_NODES, processor: StartAllNodesQueueProcessor },
     { name: QUEUES_NAMES.NODES.RECORD_USER_USAGE, processor: RecordUserUsageQueueProcessor },
     { name: QUEUES_NAMES.NODES.RECORD_NODE_USAGE, processor: RecordNodeUsageQueueProcessor },

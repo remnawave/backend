@@ -1,3 +1,4 @@
+import { GetUsersWithResolvedInboundsHandler } from './get-users-with-resolved-inbounds';
 import { GetUserWithResolvedInboundsHandler } from './get-user-with-resolved-inbounds';
 import { GetPreparedConfigWithUsersHandler } from './get-prepared-config-with-users';
 import { GetCachedShortUuidRangeHandler } from './get-cached-short-uuid-range';
@@ -18,4 +19,5 @@ export const QUERIES = [
     GetNotConnectedUsersHandler,
     GetCachedShortUuidRangeHandler,
     GetUserSubpageConfigHandler,
+    GetUsersWithResolvedInboundsHandler,
 ];

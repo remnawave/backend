@@ -23,7 +23,7 @@ export class NodeUsersQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case NODES_JOB_NAMES.ADD_USER_TO_NODE:
-                return this.handleAddUsersToNode(job);
+                return this.handleAddUserToNode(job);
             case NODES_JOB_NAMES.REMOVE_USER_FROM_NODE:
                 return this.handleRemoveUserFromNode(job);
             default:
@@ -32,7 +32,7 @@ export class NodeUsersQueueProcessor extends WorkerHost {
         }
     }
 
-    private async handleAddUsersToNode(job: Job<IAddUserToNodePayload>) {
+    private async handleAddUserToNode(job: Job<IAddUserToNodePayload>) {
         try {
             const { data, node } = job.data;
             const result = await this.axios.addUser(data, node.address, node.port);

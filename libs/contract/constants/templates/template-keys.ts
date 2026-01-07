@@ -12,5 +12,8 @@ export const TEMPLATE_KEYS = [
     'EXPIRE_UNIX',
     'SHORT_UUID',
     'ID',
+    'TRAFFIC_USED_BYTES',
+    'TRAFFIC_LEFT_BYTES',
+    'TOTAL_TRAFFIC_BYTES',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];

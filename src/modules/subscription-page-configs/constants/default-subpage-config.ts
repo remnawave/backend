@@ -11,9 +11,10 @@ export const DEFAULT_SUBPAGE_CONFIG = {
         installationGuidesBlockType: 'cards',
     },
     baseSettings: {
-        metaTitle: 'Remnawave Subscription Page',
-        metaDescription: 'Remnawave Subscription Page',
+        metaTitle: 'Subscription',
+        metaDescription: 'Subscription',
         showConnectionKeys: false,
+        hideGetLinkButton: false,
     },
     baseTranslations: {
         installationGuideHeader: {
@@ -31,7 +32,7 @@ export const DEFAULT_SUBPAGE_CONFIG = {
             zh: '连接密钥',
         },
         linkCopied: {
-            en: 'Likn copied',
+            en: 'Link copied',
             ru: 'Ссылка скопирована',
             fr: 'Lien copié',
             fa: 'لینک کپی شد',
