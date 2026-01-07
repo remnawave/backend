@@ -1,5 +1,4 @@
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
-import { Prisma } from '@prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -8,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { TxKyselyService } from '@common/database';
 import { ICrud } from '@common/types/crud-port';
 import { getKyselyUuid } from '@common/helpers';
+import { wrapDbNull } from '@common/utils';
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import { ExternalSquadEntity, ExternalSquadWithInfoEntity } from '../entities';
@@ -27,7 +27,12 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
         const result = await this.prisma.tx.externalSquads.create({
             data: {
                 ...model,
-                subscriptionSettings: model.subscriptionSettings as Prisma.InputJsonValue,
+                subscriptionSettings: wrapDbNull(model.subscriptionSettings),
+                hostOverrides: wrapDbNull(model.hostOverrides),
+                responseHeaders: wrapDbNull(model.responseHeaders),
+
+                hwidSettings: wrapDbNull(model.hwidSettings, true),
+                customRemarks: wrapDbNull(model.customRemarks, true),
             },
         });
 
@@ -54,7 +59,12 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             },
             data: {
                 ...data,
-                subscriptionSettings: data.subscriptionSettings as Prisma.InputJsonValue,
+                subscriptionSettings: wrapDbNull(data.subscriptionSettings),
+                hostOverrides: wrapDbNull(data.hostOverrides),
+                responseHeaders: wrapDbNull(data.responseHeaders),
+
+                hwidSettings: wrapDbNull(data.hwidSettings, true),
+                customRemarks: wrapDbNull(data.customRemarks, true),
             },
         });
 
