@@ -98,7 +98,7 @@ export class XrayJsonGeneratorService {
 
             return this.renderConfigs(preparedXrayJsonConfigs);
         } catch (error) {
-            this.logger.error('Error generating xray-json config:', error);
+            this.logger.error(`Error generating xray-json config: ${error}`);
             return '';
         }
     }
@@ -137,7 +137,7 @@ export class XrayJsonGeneratorService {
 
             return config;
         } catch (error) {
-            this.logger.error('Error creating config for host:', error);
+            this.logger.error(`Error creating config for host: ${error}`);
             return null;
         }
     }
@@ -286,6 +286,7 @@ export class XrayJsonGeneratorService {
                 settings.header.request.path = [host.path];
             }
 
+            settings.header.request.headers = settings.header.request.headers || {};
             settings.header.request.headers.Host = [host.host];
         }
 
