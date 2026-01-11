@@ -77,7 +77,10 @@ export class RemnawaveSettingsService {
                 settings.oauth2Settings.yandex,
             ];
 
-            const genericOAuth2Providers = [settings.oauth2Settings.pocketid];
+            const genericOAuth2Providers = [
+                settings.oauth2Settings.pocketid,
+                settings.oauth2Settings.keycloak,
+            ];
 
             // Test 1: At least one authentication method must be enabled
             if (
@@ -85,6 +88,7 @@ export class RemnawaveSettingsService {
                 !settings.oauth2Settings.github.enabled &&
                 !settings.oauth2Settings.pocketid.enabled &&
                 !settings.oauth2Settings.yandex.enabled &&
+                !settings.oauth2Settings.keycloak.enabled &&
                 !settings.tgAuthSettings.enabled &&
                 !settings.passwordSettings.enabled
             ) {
@@ -129,11 +133,14 @@ export class RemnawaveSettingsService {
 
             // Test 4.1: Check up required fields for Keycloak authentication
             if (settings.oauth2Settings.keycloak.enabled) {
-                const kc = settings.oauth2Settings.keycloak;
-                if (!kc.domain || !kc.realm || !kc.clientId || !kc.clientSecret) {
+                if (
+                    !settings.oauth2Settings.keycloak.frontendDomain ||
+                    !settings.oauth2Settings.keycloak.keycloakDomain ||
+                    !settings.oauth2Settings.keycloak.realm
+                ) {
                     return {
                         valid: false,
-                        error: '[Keycloak] Domain, realm, client ID and client secret must be set in order to use Keycloak authentication.',
+                        error: '[Keycloak] Frontend domain, Keycloak domain and Realm must be set in order to use Keycloak authentication.',
                     };
                 }
             }

@@ -20,6 +20,7 @@ import {
 import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
 import {
     CustomRemarksSchema,
+    Oauth2SettingsSchema,
     PasskeySettingsSchema,
     TBrandingSettings,
     TCustomRemarks,
@@ -806,11 +807,12 @@ async function seedRemnawaveSettings() {
         },
         keycloak: {
             enabled: false,
-            domain: null,
             realm: null,
             clientId: null,
             clientSecret: null,
-            seamlessAuth: false,
+            keycloakDomain: null,
+            frontendDomain: null,
+            allowedEmails: [],
         },
     };
 
@@ -845,6 +847,18 @@ async function seedRemnawaveSettings() {
                     data: { [key]: value },
                 });
             } else {
+                if (key === 'oauth2Settings') {
+                    const oauthSchemaParseResult = Oauth2SettingsSchema.safeParse(
+                        existingConfig.oauth2Settings,
+                    );
+                    if (oauthSchemaParseResult.success) {
+                        await prisma.remnawaveSettings.update({
+                            where: { id: existingConfig.id },
+                            data: { [key]: oauthSchemaParseResult.data },
+                        });
+                    }
+                }
+
                 if (key === 'passkeySettings') {
                     if (!PasskeySettingsSchema.safeParse(existingConfig.passkeySettings).success) {
                         consola.warn(`${key} is not valid! Falling back to default...`);
