@@ -28,6 +28,7 @@ export namespace GetStatusCommand {
                     }),
                     oauth2: z.object({
                         providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
+                        keycloakSeamlessAuth: z.boolean().optional(),
                     }),
                     password: z.object({
                         enabled: z.boolean(),

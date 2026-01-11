@@ -127,6 +127,17 @@ export class RemnawaveSettingsService {
                 };
             }
 
+            // Test 4.1: Check up required fields for Keycloak authentication
+            if (settings.oauth2Settings.keycloak.enabled) {
+                const kc = settings.oauth2Settings.keycloak;
+                if (!kc.domain || !kc.realm || !kc.clientId || !kc.clientSecret) {
+                    return {
+                        valid: false,
+                        error: '[Keycloak] Domain, realm, client ID and client secret must be set in order to use Keycloak authentication.',
+                    };
+                }
+            }
+
             // Test 5: Check up Telegram authentication
             if (settings.tgAuthSettings.enabled && !settings.tgAuthSettings.botToken) {
                 return {

@@ -10,6 +10,7 @@ interface IAuthentication {
     };
     oauth2: {
         providers: Record<TOAuth2ProvidersKeys, boolean>;
+        keycloakSeamlessAuth?: boolean;
     };
     password: {
         enabled: boolean;

@@ -35,6 +35,26 @@ export const Oauth2SettingsSchema = z.object({
         clientSecret: z.nullable(z.string()),
         allowedEmails: z.array(z.string()),
     }),
+    keycloak: z.object({
+        enabled: z.boolean(),
+        domain: z
+            .string()
+            .refine(
+                (val) => {
+                    const fqdnRegex =
+                        /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
+                    return fqdnRegex.test(val);
+                },
+                {
+                    message: 'Must be a valid fully qualified domain name (FQDN), e.g. "keycloak.example.com"',
+                },
+            )
+            .nullable(),
+        realm: z.nullable(z.string()),
+        clientId: z.nullable(z.string()),
+        clientSecret: z.nullable(z.string()),
+        seamlessAuth: z.boolean().default(false),
+    }),
 });
 
 export type TOauth2Settings = z.infer<typeof Oauth2SettingsSchema>;

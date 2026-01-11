@@ -804,6 +804,14 @@ async function seedRemnawaveSettings() {
             clientSecret: null,
             allowedEmails: [],
         },
+        keycloak: {
+            enabled: false,
+            domain: null,
+            realm: null,
+            clientId: null,
+            clientSecret: null,
+            seamlessAuth: false,
+        },
     };
 
     const DEFAULT_TG_AUTH_SETTINGS: TTgAuthSettings = {
