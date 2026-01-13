@@ -45,7 +45,7 @@ export class BandwidthStatsUsersController {
     })
     @ApiOkResponse({
         type: GetLegacyStatsUserUsageResponseDto,
-        description: 'User usage by range fetched successfully',
+        description: 'User usage by range (legacy) fetched successfully',
     })
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the user', required: true })
     @ApiQuery({
@@ -87,15 +87,19 @@ export class BandwidthStatsUsersController {
     @ApiParam({ name: 'uuid', type: String, description: 'UUID of the user', required: true })
     @ApiQuery({
         name: 'end',
-        type: Date,
-        description: 'End date',
+        type: String,
+        description: 'End date (YYYY-MM-DD)',
         required: true,
+        example: '2026-01-01',
+        format: 'date',
     })
     @ApiQuery({
         name: 'start',
-        type: Date,
-        description: 'Start date',
+        type: String,
+        description: 'Start date (YYYY-MM-DD)',
         required: true,
+        example: '2026-01-31',
+        format: 'date',
     })
     @ApiQuery({
         name: 'topNodesLimit',
