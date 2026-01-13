@@ -29,6 +29,7 @@ import {
     TOAuth2ProvidersKeys,
 } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
+import { AUTH_ROUTES } from '@libs/contracts/api';
 
 import { ServiceEvent } from '@integration-modules/notifications/interfaces';
 
@@ -269,6 +270,8 @@ export class AuthService {
                                     remnawaveSettings.oauth2Settings.pocketid.enabled,
                                 [OAUTH2_PROVIDERS.YANDEX]:
                                     remnawaveSettings.oauth2Settings.yandex.enabled,
+                                [OAUTH2_PROVIDERS.KEYCLOAK]:
+                                    remnawaveSettings.oauth2Settings.keycloak.enabled,
                             },
                         },
                         password: {
@@ -461,6 +464,25 @@ export class AuthService {
                     authorizationURL = yandexClient.createAuthorizationURL(state, ['login:email']);
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.YANDEX}`;
                     break;
+                case OAUTH2_PROVIDERS.KEYCLOAK:
+                    const codeVerifier = arctic.generateCodeVerifier();
+
+                    const keycloakClient = new arctic.KeyCloak(
+                        `https://${remnawaveSettings.oauth2Settings.keycloak.keycloakDomain!}/realms/${remnawaveSettings.oauth2Settings.keycloak.realm!}`,
+                        remnawaveSettings.oauth2Settings.keycloak.clientId!,
+                        remnawaveSettings.oauth2Settings.keycloak.clientSecret!,
+                        `https://${remnawaveSettings.oauth2Settings.keycloak.frontendDomain!}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.KEYCLOAK}`,
+                    );
+                    authorizationURL = keycloakClient.createAuthorizationURL(state, codeVerifier, [
+                        'openid',
+                        'email',
+                        'profile',
+                    ]);
+
+                    stateKey = `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`;
+                    await this.cacheManager.set(`${stateKey}:codeVerifier`, codeVerifier, 600_000);
+
+                    break;
                 default:
                     return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
             }
@@ -548,6 +570,9 @@ export class AuthService {
                     break;
                 case OAUTH2_PROVIDERS.YANDEX:
                     callbackResult = await this.yandexCallback(code, state, ip, userAgent);
+                    break;
+                case OAUTH2_PROVIDERS.KEYCLOAK:
+                    callbackResult = await this.keycloakCallback(code, state, ip, userAgent);
                     break;
                 default:
                     return fail(ERRORS.FORBIDDEN);
@@ -777,7 +802,7 @@ export class AuthService {
                 '–',
                 ip,
                 userAgent,
-                'PocketID email is not in the allowed list and remnawaveClaim is not present.',
+                'PocketID email is not in the allowed list and remnawaveAccess claim is not present.',
             );
 
             return { isAllowed: false, email: null };
@@ -898,6 +923,91 @@ export class AuthService {
                 isAllowed: false,
                 email: null,
             };
+        }
+    }
+
+    private async keycloakCallback(
+        code: string,
+        state: string,
+        ip: string,
+        userAgent: string,
+    ): Promise<{
+        isAllowed: boolean;
+        email: string | null;
+    }> {
+        try {
+            const stateFromCache = await this.cacheManager.get<string | undefined>(
+                `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`,
+            );
+            const codeVerifier = await this.cacheManager.get<string | undefined>(
+                `${`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`}:codeVerifier`,
+            );
+
+            await this.cacheManager.del(`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`);
+            await this.cacheManager.del(`${`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`}:codeVerifier`);
+
+            if (stateFromCache !== state || codeVerifier === undefined) {
+                this.logger.error('OAuth2 state mismatch');
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    `State: ${state}`,
+                    ip,
+                    userAgent,
+                    'Keycloak OAuth2 state or code verifier mismatch.',
+                );
+                return { isAllowed: false, email: null };
+            }
+
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            const keycloakClient = new arctic.KeyCloak(
+                `https://${remnawaveSettings.oauth2Settings.keycloak.keycloakDomain!}/realms/${remnawaveSettings.oauth2Settings.keycloak.realm!}`,
+                remnawaveSettings.oauth2Settings.keycloak.clientId!,
+                remnawaveSettings.oauth2Settings.keycloak.clientSecret!,
+                `https://${remnawaveSettings.oauth2Settings.keycloak.frontendDomain!}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.KEYCLOAK}`,
+            );
+
+            const tokens = await keycloakClient.validateAuthorizationCode(code, codeVerifier);
+
+            const claims = arctic.decodeIdToken(tokens.idToken());
+
+            const email = 'email' in claims ? claims.email : undefined;
+            if (typeof email !== 'string' || !email) {
+                await this.emitFailedLoginAttempt(
+                    'Missing',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Invalid or missing email claim in Keycloak ID token.',
+                );
+                return { isAllowed: false, email: null };
+            }
+
+            if (
+                REMNAWAVE_CUSTOM_CLAIM_KEY in claims &&
+                claims[REMNAWAVE_CUSTOM_CLAIM_KEY] === true
+            ) {
+                return { isAllowed: true, email };
+            }
+
+            if (remnawaveSettings.oauth2Settings.keycloak.allowedEmails.includes(email)) {
+                return { isAllowed: true, email };
+            }
+
+            await this.emitFailedLoginAttempt(
+                email,
+                '–',
+                ip,
+                userAgent,
+                'Keycloak email is not in the allowed list and remnawaveAccess claim is not present.',
+            );
+
+            return { isAllowed: false, email: null };
+        } catch (error) {
+            this.logger.error(`Keycloak callback error: ${error}`);
+            return { isAllowed: false, email: null };
         }
     }
 
