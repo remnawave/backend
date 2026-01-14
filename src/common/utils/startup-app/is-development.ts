@@ -73,3 +73,19 @@ export function isCrowdinEditorEnabled(): boolean {
 
     return process.env.IS_CROWDIN_EDITOR_ENABLED === 'true';
 }
+
+export function isDebugLogsEnabled(): boolean {
+    return process.env.ENABLE_DEBUG_LOGS === 'true';
+}
+
+export function isDevOrDebugLogsEnabled(): boolean {
+    if (isDevelopment()) {
+        return true;
+    }
+
+    if (isDebugLogsEnabled()) {
+        return true;
+    }
+
+    return false;
+}

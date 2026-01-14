@@ -21,7 +21,12 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
-import { getDocs, isCrowdinEditorEnabled, isDevelopment } from '@common/utils/startup-app';
+import {
+    getDocs,
+    isCrowdinEditorEnabled,
+    isDevelopment,
+    isDevOrDebugLogsEnabled,
+} from '@common/utils/startup-app';
 import { proxyCheckMiddleware, getRealIp, noRobotsMiddleware } from '@common/middlewares';
 import { getStartMessage } from '@common/utils/startup-app/get-start-message';
 import { customLogFilter } from '@common/utils/filter-logs';
@@ -63,7 +68,7 @@ const logger = createLogger({
             appName: true,
         }),
     ),
-    level: isDevelopment() ? 'debug' : 'http',
+    level: isDevOrDebugLogsEnabled() ? 'debug' : 'http',
 });
 
 async function bootstrap(): Promise<void> {
