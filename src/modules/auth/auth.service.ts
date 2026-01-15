@@ -447,8 +447,8 @@ export class AuthService {
                     );
                     const scopes = ['email', 'profile'];
                     if (
-                        pocketIdSettings.allowedGroups &&
-                        pocketIdSettings.allowedGroups.length > 0
+                        remnawaveSettings.oauth2Settings.pocketid.allowedGroups &&
+                        remnawaveSettings.oauth2Settings.pocketid.allowedGroups.length > 0
                     ) {
                         scopes.push('groups');
                     }
@@ -779,14 +779,17 @@ export class AuthService {
                 return { isAllowed: true, email };
             }
 
-            if (pocketIdSettings.allowedGroups && pocketIdSettings.allowedGroups.length > 0) {
+            if (
+                remnawaveSettings.oauth2Settings.pocketid.allowedGroups &&
+                remnawaveSettings.oauth2Settings.pocketid.allowedGroups.length > 0
+            ) {
                 const userGroups =
                     'groups' in claims && Array.isArray(claims.groups)
                         ? (claims.groups as string[])
                         : [];
 
                 const hasAllowedGroup = userGroups.some((group) =>
-                    pocketIdSettings.allowedGroups.includes(group),
+                    remnawaveSettings.oauth2Settings.pocketid.allowedGroups.includes(group),
                 );
 
                 if (hasAllowedGroup) {
