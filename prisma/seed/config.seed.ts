@@ -797,6 +797,7 @@ async function seedRemnawaveSettings() {
             clientSecret: null,
             plainDomain: null,
             allowedEmails: [],
+            allowedGroups: [],
         },
         yandex: {
             enabled: false,

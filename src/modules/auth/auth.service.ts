@@ -445,10 +445,17 @@ export class AuthService {
                         remnawaveSettings.oauth2Settings.pocketid.clientSecret!,
                         null,
                     );
+                    const scopes = ['email', 'profile'];
+                    if (
+                        pocketIdSettings.allowedGroups &&
+                        pocketIdSettings.allowedGroups.length > 0
+                    ) {
+                        scopes.push('groups');
+                    }
                     authorizationURL = pocketIdClient.createAuthorizationURL(
                         `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/authorize`,
                         state,
-                        ['email', 'profile'],
+                        scopes,
                     );
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.POCKETID}`;
                     break;
@@ -772,12 +779,27 @@ export class AuthService {
                 return { isAllowed: true, email };
             }
 
+            if (pocketIdSettings.allowedGroups && pocketIdSettings.allowedGroups.length > 0) {
+                const userGroups =
+                    'groups' in claims && Array.isArray(claims.groups)
+                        ? (claims.groups as string[])
+                        : [];
+
+                const hasAllowedGroup = userGroups.some((group) =>
+                    pocketIdSettings.allowedGroups.includes(group),
+                );
+
+                if (hasAllowedGroup) {
+                    return { isAllowed: true, email };
+                }
+            }
+
             await this.emitFailedLoginAttempt(
                 email,
                 '–',
                 ip,
                 userAgent,
-                'PocketID email is not in the allowed list and remnawaveClaim is not present.',
+                'PocketID email/group is not in the allowed list and remnawaveClaim is not present.',
             );
 
             return { isAllowed: false, email: null };
