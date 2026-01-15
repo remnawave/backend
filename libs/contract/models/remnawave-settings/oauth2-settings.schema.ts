@@ -28,6 +28,7 @@ export const Oauth2SettingsSchema = z.object({
             ),
         ),
         allowedEmails: z.array(z.string()),
+        allowedGroups: z.array(z.string()),
     }),
     yandex: z.object({
         enabled: z.boolean(),
