@@ -68,8 +68,6 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         nodeUuid: string,
         combinedStats: GetCombinedStatsCommand.Response['response'],
     ): Promise<void> {
-        this.logger.debug(`[CS] ${nodeUuid}, ${JSON.stringify(combinedStats)}`);
-
         const nodeOutboundsMetrics = new Map<
             string,
             {

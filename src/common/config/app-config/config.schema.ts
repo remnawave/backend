@@ -105,6 +105,11 @@ export const configSchema = z
             .default('false')
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
+        ENABLE_DEBUG_LOGS: z
+            .string()
+            .default('false')
+            .transform((val) => (val === '' ? 'false' : val))
+            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         IS_CROWDIN_EDITOR_ENABLED: z
             .string()
             .default('false')
