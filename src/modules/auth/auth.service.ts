@@ -940,11 +940,11 @@ export class AuthService {
                 `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`,
             );
             const codeVerifier = await this.cacheManager.get<string | undefined>(
-                `${`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`}:codeVerifier`,
+                `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}:codeVerifier`,
             );
 
             await this.cacheManager.del(`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`);
-            await this.cacheManager.del(`${`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`}:codeVerifier`);
+            await this.cacheManager.del(`oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}:codeVerifier`);
 
             if (stateFromCache !== state || codeVerifier === undefined) {
                 this.logger.error('OAuth2 state mismatch');
