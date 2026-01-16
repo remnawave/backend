@@ -15,7 +15,7 @@ import { NestFactory } from '@nestjs/core';
 import { NotFoundExceptionFilter } from '@common/exception/not-found-exception.filter';
 import { WorkerRoutesGuard } from '@common/guards/worker-routes/worker-routes.guard';
 import { customLogFilter } from '@common/utils/filter-logs/filter-logs';
-import { isDevelopment } from '@common/utils/startup-app';
+import { isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
 import { AxiosService } from '@common/axios';
 import { METRICS_ROOT } from '@libs/contracts/api';
 
@@ -53,7 +53,7 @@ const logger = createLogger({
             appName: true,
         }),
     ),
-    level: isDevelopment() ? 'debug' : 'http',
+    level: isDevOrDebugLogsEnabled() ? 'debug' : 'http',
 });
 
 async function bootstrap(): Promise<void> {

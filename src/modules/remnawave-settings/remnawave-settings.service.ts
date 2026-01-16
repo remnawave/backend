@@ -77,7 +77,10 @@ export class RemnawaveSettingsService {
                 settings.oauth2Settings.yandex,
             ];
 
-            const genericOAuth2Providers = [settings.oauth2Settings.pocketid];
+            const genericOAuth2Providers = [
+                settings.oauth2Settings.pocketid,
+                settings.oauth2Settings.keycloak,
+            ];
 
             // Test 1: At least one authentication method must be enabled
             if (
@@ -85,6 +88,7 @@ export class RemnawaveSettingsService {
                 !settings.oauth2Settings.github.enabled &&
                 !settings.oauth2Settings.pocketid.enabled &&
                 !settings.oauth2Settings.yandex.enabled &&
+                !settings.oauth2Settings.keycloak.enabled &&
                 !settings.tgAuthSettings.enabled &&
                 !settings.passwordSettings.enabled
             ) {
@@ -125,6 +129,20 @@ export class RemnawaveSettingsService {
                     valid: false,
                     error: '[PocketID] Plain domain must be set in order to use PocketID authentication.',
                 };
+            }
+
+            // Test 4.1: Check up required fields for Keycloak authentication
+            if (settings.oauth2Settings.keycloak.enabled) {
+                if (
+                    !settings.oauth2Settings.keycloak.frontendDomain ||
+                    !settings.oauth2Settings.keycloak.keycloakDomain ||
+                    !settings.oauth2Settings.keycloak.realm
+                ) {
+                    return {
+                        valid: false,
+                        error: '[Keycloak] Frontend domain, Keycloak domain and Realm must be set in order to use Keycloak authentication.',
+                    };
+                }
             }
 
             // Test 5: Check up Telegram authentication
