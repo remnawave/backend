@@ -324,7 +324,9 @@ export class UsersService {
 
             let shortUuid = user.shortUuid;
 
-            if (dto && !dto.revokeOnlyPasswords) {
+            if (!dto) {
+                shortUuid = this.createNanoId();
+            } else if (!dto.revokeOnlyPasswords) {
                 shortUuid = dto.shortUuid ?? this.createNanoId();
             }
 
