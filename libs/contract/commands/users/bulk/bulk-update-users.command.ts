@@ -67,6 +67,11 @@ export namespace BulkUpdateUsersCommand {
             externalSquadUuid: z
                 .optional(z.nullable(z.string().uuid()))
                 .describe('Optional. External squad UUID.'),
+            activeInternalSquads: z
+                .array(z.string().uuid(), {
+                    invalid_type_error: 'Enabled internal squads must be an array of UUIDs',
+                })
+                .optional(),
         }),
     });
 

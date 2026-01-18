@@ -122,6 +122,7 @@ export class UsersQueuesService implements OnApplicationBootstrap {
                                 : undefined,
                         email: dto.fields.email !== undefined ? dto.fields.email : undefined,
                         hwidDeviceLimit: dto.fields.hwidDeviceLimit,
+                        activeInternalSquads: dto.fields.activeInternalSquads,
                     },
                 },
             })),

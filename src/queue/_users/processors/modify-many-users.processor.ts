@@ -87,6 +87,7 @@ export class UsersModifyManyQueueProcessor extends WorkerHost {
                     description: fields.description !== undefined ? fields.description : undefined,
                     email: fields.email !== undefined ? fields.email : undefined,
                     hwidDeviceLimit: fields.hwidDeviceLimit,
+                    activeInternalSquads: fields.activeInternalSquads,
                 }),
             );
 
