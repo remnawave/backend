@@ -25,11 +25,11 @@ export class UsersModifyManyQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case USERS_JOB_NAMES.RESET_MANY_USERS_TRAFFIC:
-                return this.handleResetUsersTrafficJob(job);
+                return await this.handleResetUsersTrafficJob(job);
             case USERS_JOB_NAMES.REVOKE_MANY_USERS_SUBSCRIPTION:
-                return this.handleRevokeUsersSubscriptionJob(job);
+                return await this.handleRevokeUsersSubscriptionJob(job);
             case USERS_JOB_NAMES.UPDATE_MANY_USERS:
-                return this.handleUpdateUsersJob(job);
+                return await this.handleUpdateUsersJob(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

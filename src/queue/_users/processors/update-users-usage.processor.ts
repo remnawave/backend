@@ -30,7 +30,7 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case USERS_JOB_NAMES.UPDATE_USERS_USAGE:
-                return this.handleUpdateUsersUsage(job);
+                return await this.handleUpdateUsersUsage(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

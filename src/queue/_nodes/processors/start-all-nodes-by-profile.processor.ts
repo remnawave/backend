@@ -44,7 +44,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case NODES_JOB_NAMES.START_ALL_BY_PROFILE:
-                return this.handleStartAllNodesByProfile(job.data);
+                return await this.handleStartAllNodesByProfile(job.data);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

@@ -48,15 +48,15 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
         try {
             switch (job.name) {
                 case USERS_JOB_NAMES.RESET_DAILY_USER_TRAFFIC:
-                    return this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
+                    return await this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
                 case USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC:
-                    return this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
+                    return await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
                 case USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC:
-                    return this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
+                    return await this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
                 case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
-                    return this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
+                    return await this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
                 case USERS_JOB_NAMES.RESET_ALL_USER_TRAFFIC:
-                    return this.handleResetAllUserTraffic(job);
+                    return await this.handleResetAllUserTraffic(job);
                 default:
                     this.logger.warn(`Job "${job.name}" is not handled.`);
                     break;
