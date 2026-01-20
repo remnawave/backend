@@ -33,7 +33,7 @@ export class WebhookLoggerQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case WebhookLoggerJobNames.sendWebhook:
-                return this.handleSendWebhook(job);
+                return await this.handleSendWebhook(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

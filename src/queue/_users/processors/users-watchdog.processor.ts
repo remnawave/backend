@@ -39,13 +39,13 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case USERS_JOB_NAMES.FIND_EXPIRED_USERS:
-                return this.handleFindExpiredUsers(job);
+                return await this.handleFindExpiredUsers(job);
             case USERS_JOB_NAMES.FIND_EXCEEDED_TRAFFIC_USAGE_USERS:
-                return this.handleFindExceededUsers(job);
+                return await this.handleFindExceededUsers(job);
             case USERS_JOB_NAMES.FIND_USERS_FOR_THRESHOLD_NOTIFICATION:
-                return this.handleFindUsersForThresholdNotification(job);
+                return await this.handleFindUsersForThresholdNotification(job);
             case USERS_JOB_NAMES.FIND_NOT_CONNECTED_USERS_NOTIFICATION:
-                return this.handleFindNotConnectedUsersNotification(job);
+                return await this.handleFindNotConnectedUsersNotification(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

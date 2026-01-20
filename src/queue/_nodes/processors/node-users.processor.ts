@@ -23,9 +23,9 @@ export class NodeUsersQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case NODES_JOB_NAMES.ADD_USER_TO_NODE:
-                return this.handleAddUserToNode(job);
+                return await this.handleAddUserToNode(job);
             case NODES_JOB_NAMES.REMOVE_USER_FROM_NODE:
-                return this.handleRemoveUserFromNode(job);
+                return await this.handleRemoveUserFromNode(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

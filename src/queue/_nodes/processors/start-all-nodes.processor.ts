@@ -34,7 +34,7 @@ export class StartAllNodesQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case NODES_JOB_NAMES.START_ALL_NODES:
-                return this.handleStartAllNodes(job);
+                return await this.handleStartAllNodes(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

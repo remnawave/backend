@@ -655,35 +655,68 @@ export class UsersRepository {
         };
     }
 
-    public async resetUserTraffic(strategy: TResetPeriods): Promise<void> {
-        await this.qb.kysely
-            .with('targetUsers', (db) =>
-                db
-                    .selectFrom('users')
-                    .select('tId')
-                    .where('trafficLimitStrategy', '=', strategy)
-                    .where('status', '!=', USERS_STATUS.LIMITED)
-                    .orderBy('tId')
-                    .forUpdate(),
-            )
-            .with('updateUsers', (db) =>
-                db
-                    .updateTable('users')
-                    .from('targetUsers')
-                    .whereRef('users.tId', '=', 'targetUsers.tId')
-                    .set({
-                        lastTrafficResetAt: new Date(),
-                        lastTriggeredThreshold: 0,
-                    })
-                    .returning('users.tId'),
-            )
-            .updateTable('userTraffic')
-            .from('updateUsers')
-            .whereRef('userTraffic.tId', '=', 'updateUsers.tId')
-            .set({
-                usedTrafficBytes: 0n,
-            })
+    public async resetUserTraffic(
+        strategy: TResetPeriods,
+        batchSize: number = 50_000,
+    ): Promise<void> {
+        const targetIds = await this.qb.kysely
+            .selectFrom('users')
+            .select('tId')
+            .where('trafficLimitStrategy', '=', strategy)
+            .where('status', '!=', USERS_STATUS.LIMITED)
+            .orderBy('tId')
             .execute();
+
+        this.logger.log(`Found ${targetIds.length} users with strategy ${strategy} to reset`);
+
+        if (targetIds.length === 0) {
+            return;
+        }
+
+        const startTime = getTime();
+
+        const now = new Date();
+
+        for (let i = 0; i < targetIds.length; i += batchSize) {
+            const batchIds = targetIds.slice(i, i + batchSize);
+
+            const batchStartTime = getTime();
+
+            await this.qb.kysely
+                .with('lockedUsers', (db) =>
+                    db
+                        .selectFrom('users')
+                        .select('tId')
+                        .where(
+                            sql<boolean>`"users"."t_id" = ANY(string_to_array(${batchIds.map((r) => r.tId).join(',')}, ',')::bigint[])`,
+                        )
+                        .forUpdate(),
+                )
+                .with('updateUsers', (db) =>
+                    db
+                        .updateTable('users')
+                        .from('lockedUsers')
+                        .whereRef('users.tId', '=', 'lockedUsers.tId')
+                        .set({
+                            lastTrafficResetAt: now,
+                            lastTriggeredThreshold: 0,
+                        })
+                        .returning('users.tId'),
+                )
+                .updateTable('userTraffic')
+                .from('updateUsers')
+                .whereRef('userTraffic.tId', '=', 'updateUsers.tId')
+                .set({ usedTrafficBytes: 0n })
+                .execute();
+
+            this.logger.log(
+                `Reset batch ${i + batchSize} of ${targetIds.length} users in ${formatExecutionTime(batchStartTime)}`,
+            );
+        }
+
+        this.logger.log(
+            `Reset completed: ${targetIds.length} users in ${formatExecutionTime(startTime)} for strategy ${strategy}`,
+        );
     }
 
     public async resetLimitedUserTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {

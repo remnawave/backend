@@ -35,7 +35,7 @@ export class UserEventsQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case USERS_JOB_NAMES.FIRE_USER_EVENT:
-                return this.handleFireUserEvent(job);
+                return await this.handleFireUserEvent(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

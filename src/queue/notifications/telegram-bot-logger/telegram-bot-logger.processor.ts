@@ -45,7 +45,7 @@ export class TelegramBotLoggerQueueProcessor extends WorkerHost {
 
         switch (job.name) {
             case TelegramBotLoggerJobNames.sendTelegramMessage:
-                return this.handleSendTelegramMessage(job);
+                return await this.handleSendTelegramMessage(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

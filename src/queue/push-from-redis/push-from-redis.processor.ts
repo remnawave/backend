@@ -51,7 +51,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
     async process(job: Job) {
         switch (job.name) {
             case PushFromRedisJobNames.recordUserUsage:
-                return this.handleRecordUserUsageJob(job);
+                return await this.handleRecordUserUsageJob(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

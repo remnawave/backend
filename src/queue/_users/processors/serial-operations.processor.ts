@@ -41,13 +41,13 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case USERS_JOB_NAMES.EXPIRE_USER_NOTIFICATIONS:
-                return this.handleExpireUserNotifications();
+                return await this.handleExpireUserNotifications();
             case USERS_JOB_NAMES.DELETE_BY_STATUS:
-                return this.handleBulkDeleteByStatusJob(job);
+                return await this.handleBulkDeleteByStatusJob(job);
             case USERS_JOB_NAMES.BULK_UPDATE_ALL_USERS:
-                return this.handleBulkUpdateAllUsersJob(job);
+                return await this.handleBulkUpdateAllUsersJob(job);
             case USERS_JOB_NAMES.BULK_ALL_EXTEND_EXPIRATION_DATE:
-                return this.handleBulkAllExtendExpirationDateJob(job);
+                return await this.handleBulkAllExtendExpirationDateJob(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

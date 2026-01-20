@@ -28,9 +28,9 @@ export class ServiceQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case ServiceJobNames.CLEAN_OLD_USAGE_RECORDS:
-                return this.handleCleanOldUsageRecordsJob();
+                return await this.handleCleanOldUsageRecordsJob();
             case ServiceJobNames.VACUUM_TABLES:
-                return this.handleVacuumTablesJob();
+                return await this.handleVacuumTablesJob();
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;

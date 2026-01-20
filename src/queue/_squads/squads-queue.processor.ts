@@ -30,13 +30,13 @@ export class SquadsQueueProcessor extends WorkerHost {
     async process(job: Job) {
         switch (job.name) {
             case SQUADS_JOB_NAMES.ADD_USERS_TO_EXTERNAL_SQUAD:
-                return this.handleAddUsersToExternalSquad(job);
+                return await this.handleAddUsersToExternalSquad(job);
             case SQUADS_JOB_NAMES.REMOVE_USERS_FROM_EXTERNAL_SQUAD:
-                return this.handleRemoveUsersFromExternalSquad(job);
+                return await this.handleRemoveUsersFromExternalSquad(job);
             case SQUADS_JOB_NAMES.ADD_USERS_TO_INTERNAL_SQUAD:
-                return this.handleAddUsersToInternalSquad(job);
+                return await this.handleAddUsersToInternalSquad(job);
             case SQUADS_JOB_NAMES.REMOVE_USERS_FROM_INTERNAL_SQUAD:
-                return this.handleRemoveUsersFromInternalSquad(job);
+                return await this.handleRemoveUsersFromInternalSquad(job);
 
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
