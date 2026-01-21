@@ -814,6 +814,16 @@ async function seedRemnawaveSettings() {
             frontendDomain: null,
             allowedEmails: [],
         },
+        generic: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            withPkce: false,
+            authorizationUrl: null,
+            tokenUrl: null,
+            frontendDomain: null,
+            allowedEmails: [],
+        },
     };
 
     const DEFAULT_TG_AUTH_SETTINGS: TTgAuthSettings = {

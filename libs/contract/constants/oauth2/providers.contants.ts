@@ -3,6 +3,7 @@ export const OAUTH2_PROVIDERS = {
     POCKETID: 'pocketid',
     YANDEX: 'yandex',
     KEYCLOAK: 'keycloak',
+    GENERIC: 'generic',
 } as const;
 
 export type TOAuth2Providers = [keyof typeof OAUTH2_PROVIDERS][number];

@@ -52,6 +52,7 @@ import { ILogin, IRegister } from './interfaces';
 
 const scryptAsync = promisify(scrypt);
 const REMNAWAVE_CUSTOM_CLAIM_KEY = 'remnawaveAccess';
+const OAUTH2_SCOPES = ['email', 'profile', 'openid'];
 
 @Injectable()
 export class AuthService {
@@ -272,6 +273,8 @@ export class AuthService {
                                     remnawaveSettings.oauth2Settings.yandex.enabled,
                                 [OAUTH2_PROVIDERS.KEYCLOAK]:
                                     remnawaveSettings.oauth2Settings.keycloak.enabled,
+                                [OAUTH2_PROVIDERS.GENERIC]:
+                                    remnawaveSettings.oauth2Settings.generic.enabled,
                             },
                         },
                         password: {
@@ -451,7 +454,7 @@ export class AuthService {
                     authorizationURL = pocketIdClient.createAuthorizationURL(
                         `https://${remnawaveSettings.oauth2Settings.pocketid.plainDomain}/authorize`,
                         state,
-                        ['email', 'profile'],
+                        OAUTH2_SCOPES,
                     );
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.POCKETID}`;
                     break;
@@ -473,15 +476,53 @@ export class AuthService {
                         remnawaveSettings.oauth2Settings.keycloak.clientSecret!,
                         `https://${remnawaveSettings.oauth2Settings.keycloak.frontendDomain!}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.KEYCLOAK}`,
                     );
-                    authorizationURL = keycloakClient.createAuthorizationURL(state, codeVerifier, [
-                        'openid',
-                        'email',
-                        'profile',
-                    ]);
+                    authorizationURL = keycloakClient.createAuthorizationURL(
+                        state,
+                        codeVerifier,
+                        OAUTH2_SCOPES,
+                    );
 
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`;
                     await this.cacheManager.set(`${stateKey}:codeVerifier`, codeVerifier, 600_000);
 
+                    break;
+                case OAUTH2_PROVIDERS.GENERIC:
+                    const authorizationEndpoint =
+                        remnawaveSettings.oauth2Settings.generic.authorizationUrl!;
+                    const genericOAuth2Client = new arctic.OAuth2Client(
+                        remnawaveSettings.oauth2Settings.generic.clientId!,
+                        remnawaveSettings.oauth2Settings.generic.clientSecret!,
+                        `http://${remnawaveSettings.oauth2Settings.generic.frontendDomain!}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.GENERIC}`,
+                    );
+
+                    switch (remnawaveSettings.oauth2Settings.generic.withPkce) {
+                        case false:
+                            authorizationURL = genericOAuth2Client.createAuthorizationURL(
+                                authorizationEndpoint,
+                                state,
+                                OAUTH2_SCOPES,
+                            );
+                            stateKey = `oauth2:${OAUTH2_PROVIDERS.GENERIC}`;
+                            break;
+                        case true:
+                            const codeVerifier = arctic.generateCodeVerifier();
+
+                            authorizationURL = genericOAuth2Client.createAuthorizationURLWithPKCE(
+                                authorizationEndpoint,
+                                state,
+                                arctic.CodeChallengeMethod.S256,
+                                codeVerifier,
+                                OAUTH2_SCOPES,
+                            );
+                            stateKey = `oauth2:${OAUTH2_PROVIDERS.GENERIC}`;
+
+                            await this.cacheManager.set(
+                                `${stateKey}:codeVerifier`,
+                                codeVerifier,
+                                600_000,
+                            );
+                            break;
+                    }
                     break;
                 default:
                     return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
@@ -573,6 +614,9 @@ export class AuthService {
                     break;
                 case OAUTH2_PROVIDERS.KEYCLOAK:
                     callbackResult = await this.keycloakCallback(code, state, ip, userAgent);
+                    break;
+                case OAUTH2_PROVIDERS.GENERIC:
+                    callbackResult = await this.genericOAuth2Callback(code, state, ip, userAgent);
                     break;
                 default:
                     return fail(ERRORS.FORBIDDEN);
@@ -1007,6 +1051,106 @@ export class AuthService {
             return { isAllowed: false, email: null };
         } catch (error) {
             this.logger.error(`Keycloak callback error: ${error}`);
+            return { isAllowed: false, email: null };
+        }
+    }
+
+    private async genericOAuth2Callback(
+        code: string,
+        state: string,
+        ip: string,
+        userAgent: string,
+    ): Promise<{
+        isAllowed: boolean;
+        email: string | null;
+    }> {
+        try {
+            const stateFromCache = await this.cacheManager.get<string | undefined>(
+                `oauth2:${OAUTH2_PROVIDERS.GENERIC}`,
+            );
+            const codeVerifier = await this.cacheManager.get<string | undefined>(
+                `oauth2:${OAUTH2_PROVIDERS.GENERIC}:codeVerifier`,
+            );
+
+            await this.cacheManager.del(`oauth2:${OAUTH2_PROVIDERS.GENERIC}`);
+            await this.cacheManager.del(`oauth2:${OAUTH2_PROVIDERS.GENERIC}:codeVerifier`);
+
+            if (stateFromCache !== state) {
+                this.logger.error('OAuth2 state mismatch');
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    `State: ${state}`,
+                    ip,
+                    userAgent,
+                    'Generic OAuth2 state mismatch.',
+                );
+                return { isAllowed: false, email: null };
+            }
+
+            const remnawaveSettings = await this.queryBus.execute(
+                new GetCachedRemnawaveSettingsQuery(),
+            );
+
+            const genericOAuth2Client = new arctic.OAuth2Client(
+                remnawaveSettings.oauth2Settings.generic.clientId!,
+                remnawaveSettings.oauth2Settings.generic.clientSecret!,
+                `http://${remnawaveSettings.oauth2Settings.generic.frontendDomain!}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.GENERIC}`,
+            );
+
+            if (remnawaveSettings.oauth2Settings.generic.withPkce && codeVerifier === undefined) {
+                this.logger.error('Code verifier not found');
+                await this.emitFailedLoginAttempt(
+                    'Unknown',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Generic OAuth2 code verifier not found.',
+                );
+                return { isAllowed: false, email: null };
+            }
+
+            const tokens = await genericOAuth2Client.validateAuthorizationCode(
+                remnawaveSettings.oauth2Settings.generic.tokenUrl!,
+                code,
+                codeVerifier ?? null,
+            );
+
+            const claims = arctic.decodeIdToken(tokens.idToken());
+
+            const email = 'email' in claims ? claims.email : undefined;
+            if (typeof email !== 'string' || !email) {
+                await this.emitFailedLoginAttempt(
+                    'Missing',
+                    '–',
+                    ip,
+                    userAgent,
+                    'Invalid or missing email claim in Generic OAuth2 ID token.',
+                );
+                return { isAllowed: false, email: null };
+            }
+
+            if (
+                REMNAWAVE_CUSTOM_CLAIM_KEY in claims &&
+                claims[REMNAWAVE_CUSTOM_CLAIM_KEY] === true
+            ) {
+                return { isAllowed: true, email };
+            }
+
+            if (remnawaveSettings.oauth2Settings.generic.allowedEmails.includes(email)) {
+                return { isAllowed: true, email };
+            }
+
+            await this.emitFailedLoginAttempt(
+                email,
+                '–',
+                ip,
+                userAgent,
+                'Generic OAuth2 email is not in the allowed list and remnawaveAccess claim is not present.',
+            );
+
+            return { isAllowed: false, email: null };
+        } catch (error) {
+            this.logger.error(`Generic OAuth2 callback error: ${error}`);
             return { isAllowed: false, email: null };
         }
     }
