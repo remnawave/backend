@@ -21,6 +21,7 @@ export const NODES_ROUTES = {
     },
     BULK_ACTIONS: {
         PROFILE_MODIFICATION: `${BULK_ACTIONS_ROUTE}/profile-modification`,
+        ACTIONS: `${BULK_ACTIONS_ROUTE}`,
     },
 
     TAGS: {
