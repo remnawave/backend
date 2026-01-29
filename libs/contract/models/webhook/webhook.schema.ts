@@ -1,5 +1,7 @@
 import z from 'zod';
 
+import { CRUD_ACTIONS } from '@libs/contracts/constants/crud-actions/crud-actions.constant';
+
 import { EVENTS, EVENTS_SCOPES, toZodEnum } from '../../constants';
 import { HwidUserDeviceSchema } from '../hwid-user-device.schema';
 import { ExtendedUsersSchema } from '../extended-users.schema';
@@ -61,6 +63,13 @@ export const RemnawaveWebhookServiceEvents = z.object({
             })
             .optional(),
         panelVersion: z.string().optional(),
+        subpageConfig: z
+            .object({
+                action: z.enum(toZodEnum(CRUD_ACTIONS)),
+                uuid: z.string().uuid(),
+            })
+
+            .optional(),
     }),
 });
 

@@ -1,4 +1,4 @@
-import { TServiceEvents } from '@libs/contracts/constants';
+import { TServiceEvents, TCrudActions } from '@libs/contracts/constants';
 
 export interface IServiceEvent {
     loginAttempt?: {
@@ -9,6 +9,10 @@ export interface IServiceEvent {
         password?: string;
     };
     panelVersion?: string;
+    subpageConfig?: {
+        action: TCrudActions;
+        uuid: string;
+    };
 }
 
 export class ServiceEvent {
