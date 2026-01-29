@@ -1,8 +1,6 @@
 import z from 'zod';
 
-import { CRUD_ACTIONS } from '@libs/contracts/constants/crud-actions/crud-actions.constant';
-
-import { EVENTS, EVENTS_SCOPES, toZodEnum } from '../../constants';
+import { EVENTS, EVENTS_SCOPES, toZodEnum, CRUD_ACTIONS } from '../../constants';
 import { HwidUserDeviceSchema } from '../hwid-user-device.schema';
 import { ExtendedUsersSchema } from '../extended-users.schema';
 import { NodesSchema } from '../nodes.schema';
