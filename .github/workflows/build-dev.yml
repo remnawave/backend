@@ -66,7 +66,6 @@ jobs:
             ghcr.io/remnawave/backend:dev
           build-args: |
             FRONTEND_URL=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend.zip
-            FRONTEND_WITH_CROWDIN=https://github.com/remnawave/frontend/releases/download/dev-build/remnawave-frontend-loc.zip
             BRANCH=dev
             __RW_METADATA_VERSION=${{ steps.meta.outputs.version }}
             __RW_METADATA_GIT_BRANCH=${{ github.ref_name }}

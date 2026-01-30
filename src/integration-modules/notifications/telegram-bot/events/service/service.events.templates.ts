@@ -34,6 +34,12 @@ ${separator}
 <b>🌐 IP:</b> <code>${e.data.loginAttempt?.ip}</code>
 <b>💻 User agent:</b> <code>${e.data.loginAttempt?.userAgent}</code>
 <b>💬 Description:</b> <code>${e.data.loginAttempt?.description}</code>`,
+
+    [EVENTS.SERVICE.SUBPAGE_CONFIG_CHANGED]: (e) => `
+📝  <b>#subpage_config_changed</b>
+${separator}
+<b>Action:</b> <code>${e.data.subpageConfig!.action}</code>
+<b>UUID:</b> <code>${e.data.subpageConfig!.uuid}</code>`,
 };
 
 export const ERRORS_EVENTS_TEMPLATES: Record<TErrorsEvents, ErrorsEventsTemplate> = {

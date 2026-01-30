@@ -1,13 +1,16 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { nanoid } from 'nanoid';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { fail, ok, TResult } from '@common/types';
 import { cleanLocalizedTexts } from '@libs/subscription-page/models/subscription-page-config.validator';
+import { CRUD_ACTIONS, ERRORS, EVENTS, TCrudActions } from '@libs/contracts/constants';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
 import { SUBPAGE_DEFAULT_CONFIG_UUID } from '@libs/subscription-page/constants';
-import { ERRORS } from '@libs/contracts/constants';
+
+import { ServiceEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetSubscriptionPageConfigsResponseModel } from './models/get-subscripion-page-configs.response.model';
 import { BaseSubscriptionPageConfigResponseModel } from './models/base-subpage-config.response.model';
@@ -21,6 +24,7 @@ export class SubscriptionPageConfigService {
     private readonly logger = new Logger(SubscriptionPageConfigService.name);
 
     constructor(
+        private readonly eventEmitter: EventEmitter2,
         private readonly subscriptionPageConfigRepository: SubscriptionPageConfigRepository,
     ) {}
 
@@ -99,6 +103,8 @@ export class SubscriptionPageConfigService {
                 config: inputConfig ?? undefined,
             });
 
+            await this.emitSubpageConfigChangedEvent(CRUD_ACTIONS.UPDATED, updatedConfig.uuid);
+
             return ok(new BaseSubscriptionPageConfigResponseModel(updatedConfig));
         } catch (error) {
             this.logger.error(error);
@@ -135,6 +141,8 @@ export class SubscriptionPageConfigService {
 
             const deletedConfig = await this.subscriptionPageConfigRepository.deleteByUUID(uuid);
 
+            await this.emitSubpageConfigChangedEvent(CRUD_ACTIONS.DELETED, config.uuid);
+
             return ok(new DeleteSubscriptionPageConfigResponseModel(deletedConfig));
         } catch (error) {
             this.logger.error(error);
@@ -152,6 +160,8 @@ export class SubscriptionPageConfigService {
             });
 
             const config = await this.subscriptionPageConfigRepository.create(configEntity);
+
+            await this.emitSubpageConfigChangedEvent(CRUD_ACTIONS.CREATED, config.uuid);
 
             return ok(new BaseSubscriptionPageConfigResponseModel(config));
         } catch (error) {
@@ -211,5 +221,14 @@ export class SubscriptionPageConfigService {
             this.logger.error(error);
             return fail(ERRORS.CREATE_SUBSCRIPTION_PAGE_CONFIG_ERROR);
         }
+    }
+
+    private async emitSubpageConfigChangedEvent(action: TCrudActions, uuid: string): Promise<void> {
+        this.eventEmitter.emit(
+            EVENTS.SERVICE.SUBPAGE_CONFIG_CHANGED,
+            new ServiceEvent(EVENTS.SERVICE.SUBPAGE_CONFIG_CHANGED, {
+                subpageConfig: { action, uuid },
+            }),
+        );
     }
 }

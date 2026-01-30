@@ -5,6 +5,7 @@ export * from './enable-node.request.dto';
 export * from './get-all-nodes.dto';
 export * from './get-all-tags.dto';
 export * from './get-one-node.dto';
+export * from './node-bulk-actions.dto';
 export * from './profile-modification.dto';
 export * from './reorder.dto';
 export * from './reset-traffic.request.dto';

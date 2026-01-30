@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/backend",
-  "version": "2.5.7",
+  "version": "2.6.0",
   "description": "Remnawave Panel Backend",
   "private": false,
   "type": "commonjs",
@@ -9,7 +9,7 @@
   "homepage": "https://github.com/remnawave",
   "repository": {
     "type": "git",
-    "url": "https://github.com/remnawave/backend"
+    "url": "git+https://github.com/remnawave/backend.git"
   },
   "bugs": {
     "url": "https://github.com/remnawave/backend/issues"

@@ -205,6 +205,11 @@ events:
     telegram: true
     webhook: true
 
+  # Triggered when a subscription page config is changed
+  service.subpage_config_changed:
+    telegram: true
+    webhook: true
+
   # ════════════════════════════════════════════════════════════════════════════
   # ERROR EVENTS
   # ════════════════════════════════════════════════════════════════════════════

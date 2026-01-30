@@ -10,8 +10,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { CacheModule } from '@nestjs/cache-manager';
 
-import { disableFrontend, isCrowdinEditorEnabled } from '@common/utils/startup-app/is-development';
 import { CommonConfigModule } from '@common/config/common-config/common-config.module';
+import { disableFrontend } from '@common/utils/startup-app/is-development';
 import { PrismaService } from '@common/database/prisma.service';
 import { getRedisConnectionOptions } from '@common/utils';
 import { AxiosModule } from '@common/axios/axios.module';
@@ -53,12 +53,7 @@ import { QueueModule } from '@queue/queue.module';
                 inject: [ConfigService],
                 useFactory: (configService: ConfigService) => [
                     {
-                        rootPath: join(
-                            __dirname,
-                            '..',
-                            '..',
-                            isCrowdinEditorEnabled() ? 'frontend-crowdin' : 'frontend',
-                        ),
+                        rootPath: join(__dirname, '..', '..', 'frontend'),
                         renderPath: '*splat',
                         exclude: [
                             '/api/*splat',

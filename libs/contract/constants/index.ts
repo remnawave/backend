@@ -1,4 +1,5 @@
 export * from './cache-keys';
+export * from './crud-actions';
 export * from './endpoint-details';
 export * from './errors';
 export * from './events';

@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-import { ERRORS, EVENTS } from '@contract/constants';
+import { ERRORS, EVENTS, NODES_BULK_ACTIONS } from '@contract/constants';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
@@ -19,6 +19,7 @@ import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/ge
 import { NodesQueuesService } from '@queue/_nodes';
 
 import {
+    BulkNodesActionsRequestDto,
     CreateNodeRequestDto,
     ProfileModificationRequestDto,
     ReorderNodeRequestDto,
@@ -448,6 +449,36 @@ export class NodesService {
                 profileUuid: configProfile.activeConfigProfileUuid,
                 emitter: 'bulkProfileModification',
             }); // no need to restart all nodes
+
+            return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async bulkNodesActions(
+        body: BulkNodesActionsRequestDto,
+    ): Promise<TResult<BaseEventResponseModel>> {
+        try {
+            const { uuids, action } = body;
+
+            const actionMap: Record<string, (uuid: string) => Promise<unknown>> = {
+                [NODES_BULK_ACTIONS.ENABLE]: (uuid) => this.enableNode(uuid),
+                [NODES_BULK_ACTIONS.DISABLE]: (uuid) => this.disableNode(uuid),
+                [NODES_BULK_ACTIONS.RESTART]: (uuid) => this.restartNode(uuid),
+                [NODES_BULK_ACTIONS.RESET_TRAFFIC]: (uuid) => this.resetNodeTraffic(uuid),
+            };
+
+            const handler = actionMap[action];
+            if (!handler) {
+                this.logger.error(`Invalid action: ${action}`);
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+
+            for (const uuid of uuids) {
+                await handler(uuid);
+            }
 
             return ok(new BaseEventResponseModel(true));
         } catch (error) {

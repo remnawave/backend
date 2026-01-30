@@ -50,6 +50,7 @@ export const EVENTS = {
         PANEL_STARTED: 'service.panel_started',
         LOGIN_ATTEMPT_FAILED: 'service.login_attempt_failed',
         LOGIN_ATTEMPT_SUCCESS: 'service.login_attempt_success',
+        SUBPAGE_CONFIG_CHANGED: 'service.subpage_config_changed',
     },
     ERRORS: {
         BANDWIDTH_USAGE_THRESHOLD_REACHED_MAX_NOTIFICATIONS:
