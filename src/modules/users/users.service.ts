@@ -1,9 +1,10 @@
 import type { Cache } from 'cache-manager';
 
 import { randomUUID } from 'node:crypto';
-import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import dayjs from 'dayjs';
+
+import { Prisma } from '@generated/prisma/client';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';

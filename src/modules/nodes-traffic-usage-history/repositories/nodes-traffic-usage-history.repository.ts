@@ -1,3 +1,5 @@
+import { PrismaClient } from '@generated/prisma/client';
+
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +12,7 @@ import { NodesTrafficUsageHistoryConverter } from '../nodes-traffic-usage-histor
 @Injectable()
 export class NodesTrafficUsageHistoryRepository implements ICrudWithId<NodesTrafficUsageHistoryEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly converter: NodesTrafficUsageHistoryConverter,
     ) {}
 

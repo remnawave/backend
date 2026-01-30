@@ -1,4 +1,6 @@
-import { ConfigProfileSnippets, Prisma } from '@prisma/client';
+import type { ConfigProfileSnippetsModel as ConfigProfileSnippets } from '@generated/prisma/models';
+
+import { Prisma } from '@generated/prisma/client';
 
 export class SnippetEntity implements ConfigProfileSnippets {
     public name: string;

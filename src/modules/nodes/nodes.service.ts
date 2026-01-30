@@ -1,6 +1,5 @@
-import { Prisma } from '@prisma/client';
-
 import { ERRORS, EVENTS, NODES_BULK_ACTIONS } from '@contract/constants';
+import { Prisma } from '@generated/prisma/client';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';

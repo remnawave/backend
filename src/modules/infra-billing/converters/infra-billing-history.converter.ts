@@ -1,4 +1,4 @@
-import { InfraBillingHistory } from '@prisma/client';
+import type { InfraBillingHistoryModel as InfraBillingHistory } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

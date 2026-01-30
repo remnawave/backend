@@ -1,4 +1,4 @@
-import { Passkeys } from '@prisma/client';
+import type { PasskeysModel as Passkeys } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

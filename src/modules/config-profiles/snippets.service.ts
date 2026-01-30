@@ -1,4 +1,4 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Prisma } from '@generated/prisma/client';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -66,7 +66,7 @@ export class SnippetsService {
             return await this.getSnippets();
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'ConfigProfileSnippets' &&
                 Array.isArray(error.meta.target)
@@ -112,7 +112,7 @@ export class SnippetsService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'ConfigProfileSnippets' &&
                 Array.isArray(error.meta.target)

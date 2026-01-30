@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@generated/prisma/client';
 
 export class Get7DaysStatsBuilder {
     public query: Prisma.Sql;

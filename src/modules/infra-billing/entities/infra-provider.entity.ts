@@ -1,4 +1,4 @@
-import { InfraProviders } from '@prisma/client';
+import type { InfraProvidersModel as InfraProviders } from '@generated/prisma/models';
 
 export class InfraProviderEntity implements InfraProviders {
     public name: string;

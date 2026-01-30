@@ -1,4 +1,4 @@
-import { ConfigProfileSnippets } from '@prisma/client';
+import type { ConfigProfileSnippetsModel as ConfigProfileSnippets } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

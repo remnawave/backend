@@ -35,6 +35,7 @@ import { SchedulerModule } from '@scheduler/scheduler.module';
                     imports: [PrismaModule],
                     adapter: new TransactionalAdapterPrisma({
                         prismaInjectionToken: PrismaService,
+                        sqlFlavor: 'postgresql',
                         defaultTxOptions: {
                             timeout: 60_000,
                         },

@@ -1,4 +1,4 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Prisma } from '@generated/prisma/client';
 
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
@@ -73,7 +73,7 @@ export class InternalSquadService {
             return await this.getInternalSquadByUuid(internalSquad.uuid);
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'InternalSquads' &&
                 Array.isArray(error.meta.target)
@@ -176,7 +176,7 @@ export class InternalSquadService {
             return await this.getInternalSquadByUuid(internalSquad.uuid);
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'InternalSquads' &&
                 Array.isArray(error.meta.target)

@@ -1,4 +1,4 @@
-import { SubscriptionSettings } from '@prisma/client';
+import type { SubscriptionSettingsModel as SubscriptionSettings } from '@generated/prisma/models';
 
 import { TCustomRemarks, THwidSettings } from '@libs/contracts/models';
 

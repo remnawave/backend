@@ -1,4 +1,4 @@
-import { NodesTrafficUsageHistory } from '@prisma/client';
+import type { NodesTrafficUsageHistoryModel as NodesTrafficUsageHistory } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

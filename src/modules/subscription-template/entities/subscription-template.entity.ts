@@ -1,4 +1,4 @@
-import { SubscriptionTemplate } from '@prisma/client';
+import type { SubscriptionTemplateModel as SubscriptionTemplate } from '@generated/prisma/models';
 
 import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 

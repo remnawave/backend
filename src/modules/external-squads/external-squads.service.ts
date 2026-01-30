@@ -1,6 +1,6 @@
 import type { Cache } from 'cache-manager';
 
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Prisma } from '@generated/prisma/client';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
@@ -73,7 +73,7 @@ export class ExternalSquadService {
             return await this.getExternalSquadByUuid(externalSquad.uuid);
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'ExternalSquads' &&
                 Array.isArray(error.meta.target)
@@ -131,7 +131,7 @@ export class ExternalSquadService {
             return await this.getExternalSquadByUuid(externalSquad.uuid);
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'ExternalSquads' &&
                 Array.isArray(error.meta.target)

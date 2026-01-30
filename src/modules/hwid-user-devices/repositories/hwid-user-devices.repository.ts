@@ -1,6 +1,7 @@
 import { sql } from 'kysely';
 
-import { DB } from 'prisma/generated/types';
+import { PrismaClient } from '@generated/prisma/client';
+import { DB } from '@generated/types';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -19,7 +20,7 @@ export class HwidUserDevicesRepository implements Omit<
     'deleteById' | 'findById' | 'update'
 > {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly converter: HwidUserDevicesConverter,
     ) {}

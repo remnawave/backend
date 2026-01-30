@@ -1,5 +1,7 @@
-import { Prisma } from '@prisma/client';
 import { sql } from 'kysely';
+
+import { PrismaClient } from '@generated/prisma/client';
+import { Prisma } from '@generated/prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -38,7 +40,7 @@ const INCLUDE_RESOLVED_INBOUNDS = {
 @Injectable()
 export class NodesRepository implements ICrud<NodesEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly nodesConverter: NodesConverter,
     ) {}

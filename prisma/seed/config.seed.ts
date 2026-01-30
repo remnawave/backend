@@ -5,7 +5,7 @@ import {
     SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
 } from '@libs/contracts/constants';
 import { KeygenEntity } from '@modules/keygen/entities/keygen.entity';
-import { Prisma, PrismaClient, RemnawaveSettings } from '@prisma/client';
+import { Prisma, PrismaClient, RemnawaveSettings } from '@generated/prisma/client';
 import consola from 'consola';
 import _ from 'lodash';
 import { Redis } from 'ioredis';
@@ -37,6 +37,7 @@ import {
     SUBPAGE_DEFAULT_CONFIG_UUID,
 } from '@libs/subscription-page/constants';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const hash = hasher({
     trim: true,
@@ -179,11 +180,9 @@ export const PreviousResponseRulesConfigHash =
     '0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4';
 
 const prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DATABASE_URL,
-        },
-    },
+    adapter: new PrismaPg({
+        connectionString: process.env.DATABASE_URL,
+    }),
 });
 
 async function fixOldMigrations() {

@@ -1,4 +1,4 @@
-import { HwidUserDevices } from '@prisma/client';
+import type { HwidUserDevicesModel as HwidUserDevices } from '@generated/prisma/models';
 
 export class HwidUserDeviceEntity implements HwidUserDevices {
     public hwid: string;

@@ -1,5 +1,7 @@
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
+import { PrismaClient } from '@generated/prisma/client';
+
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
@@ -17,7 +19,7 @@ import {} from '../entities';
 @Injectable()
 export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly externalSquadConverter: ExternalSquadConverter,
     ) {}

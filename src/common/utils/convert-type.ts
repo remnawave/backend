@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@generated/prisma/client';
 
 export function wrapBigInt(value: number | bigint | string | undefined): bigint | undefined {
     if (value === undefined) {

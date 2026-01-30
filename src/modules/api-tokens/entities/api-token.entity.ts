@@ -1,4 +1,4 @@
-import { ApiTokens } from '@prisma/client';
+import type { ApiTokensModel as ApiTokens } from '@generated/prisma/models';
 
 export class ApiTokenEntity implements ApiTokens {
     public uuid: string;

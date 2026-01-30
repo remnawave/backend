@@ -1,4 +1,4 @@
-import { SubscriptionPageConfig } from '@prisma/client';
+import type { SubscriptionPageConfigModel as SubscriptionPageConfig } from '@generated/prisma/models';
 
 export class SubscriptionPageConfigEntity implements SubscriptionPageConfig {
     uuid: string;

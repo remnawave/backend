@@ -1,4 +1,4 @@
-import { NodesUserUsageHistory } from '@prisma/client';
+import type { NodesUserUsageHistoryModel as NodesUserUsageHistory } from '@generated/prisma/models';
 
 export class NodesUserUsageHistoryEntity implements NodesUserUsageHistory {
     nodeId: bigint;

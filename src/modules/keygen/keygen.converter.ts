@@ -1,4 +1,4 @@
-import { Keygen } from '@prisma/client';
+import type { KeygenModel as Keygen } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

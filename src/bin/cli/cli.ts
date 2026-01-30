@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
-import { Prisma, PrismaClient } from '@prisma/client';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { PrismaPg } from '@prisma/adapter-pg';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import consola from 'consola';
 import Redis from 'ioredis';
 import dayjs from 'dayjs';
+
+import { Prisma, PrismaClient } from '@generated/prisma/client';
 
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
 import { getRedisConnectionOptions } from '@common/utils';
@@ -18,11 +20,9 @@ dayjs.extend(relativeTime);
 dayjs.extend(timezone);
 
 const prisma = new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DATABASE_URL,
-        },
-    },
+    adapter: new PrismaPg({
+        connectionString: process.env.DATABASE_URL,
+    }),
 });
 
 const redisOptions = getRedisConnectionOptions(

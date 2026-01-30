@@ -1,4 +1,4 @@
-import { RemnawaveSettings } from '@prisma/client';
+import type { RemnawaveSettingsModel as RemnawaveSettings } from '@generated/prisma/models';
 
 import {
     TBrandingSettings,

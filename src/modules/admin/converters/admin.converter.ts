@@ -1,4 +1,4 @@
-import { Admin } from '@prisma/client';
+import type { AdminModel as Admin } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

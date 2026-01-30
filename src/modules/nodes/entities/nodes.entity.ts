@@ -1,4 +1,4 @@
-import { Nodes } from '@prisma/client';
+import type { NodesModel as Nodes } from '@generated/prisma/models';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { InfraProviderEntity } from '@modules/infra-billing/entities';

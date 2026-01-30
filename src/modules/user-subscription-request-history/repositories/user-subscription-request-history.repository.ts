@@ -1,5 +1,6 @@
 import { sql } from 'kysely';
 
+import { PrismaClient } from '@generated/prisma/client';
 import { DB } from 'prisma/generated/types';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
@@ -17,7 +18,7 @@ import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-re
 @Injectable()
 export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<UserSubscriptionRequestHistoryEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly converter: UserSubscriptionRequestHistoryConverter,
         private readonly qb: TxKyselyService,
     ) {}

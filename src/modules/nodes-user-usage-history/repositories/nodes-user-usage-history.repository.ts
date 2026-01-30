@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@generated/prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -27,7 +27,7 @@ import { NodesUserUsageHistoryConverter } from '../nodes-user-usage-history.conv
 @Injectable()
 export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<NodesUserUsageHistoryEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly converter: NodesUserUsageHistoryConverter,
     ) {}

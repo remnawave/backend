@@ -1,10 +1,10 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@generated/prisma/client';
 
 import { SnippetEntity } from '../entities';
 
 export class BaseSnippetResponseModel {
     public readonly name: string;
-    public readonly snippet: Prisma.JsonArray;
+    public readonly snippet: Prisma.InputJsonArray;
     public readonly createdAt: Date;
 
     constructor(entity: SnippetEntity) {

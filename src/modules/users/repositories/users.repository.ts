@@ -3,6 +3,7 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import dayjs from 'dayjs';
 
 import { TResetPeriods, TUsersStatus, USERS_STATUS } from '@contract/constants';
+import { PrismaClient } from '@generated/prisma/client';
 import { DB } from 'prisma/generated/types';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
@@ -39,7 +40,7 @@ export class UsersRepository {
     private readonly logger = new Logger(UsersRepository.name);
 
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly userConverter: UserConverter,
     ) {}

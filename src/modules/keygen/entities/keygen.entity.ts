@@ -1,4 +1,4 @@
-import { Keygen } from '@prisma/client';
+import type { KeygenModel as Keygen } from '@generated/prisma/models';
 
 export class KeygenEntity implements Keygen {
     public uuid: string;

@@ -1,4 +1,4 @@
-import { ConfigProfiles } from '@prisma/client';
+import type { ConfigProfilesModel as ConfigProfiles } from '@generated/prisma/models';
 
 export class ConfigProfileEntity implements ConfigProfiles {
     public uuid: string;

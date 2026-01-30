@@ -1,5 +1,6 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { nanoid } from 'nanoid';
+
+import { Prisma } from '@generated/prisma/client';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
@@ -110,7 +111,7 @@ export class SubscriptionPageConfigService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'SubscriptionPageConfig' &&
                 Array.isArray(error.meta.target)
@@ -168,7 +169,7 @@ export class SubscriptionPageConfigService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'SubscriptionPageConfig' &&
                 Array.isArray(error.meta.target)

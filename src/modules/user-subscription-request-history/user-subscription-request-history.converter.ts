@@ -1,4 +1,4 @@
-import { UserSubscriptionRequestHistory } from '@prisma/client';
+import type { UserSubscriptionRequestHistoryModel as UserSubscriptionRequestHistory } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

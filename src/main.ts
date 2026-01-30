@@ -21,12 +21,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 
-import {
-    getDocs,
-    isCrowdinEditorEnabled,
-    isDevelopment,
-    isDevOrDebugLogsEnabled,
-} from '@common/utils/startup-app';
+import { getDocs, isDevelopment, isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
 import { proxyCheckMiddleware, getRealIp, noRobotsMiddleware } from '@common/middlewares';
 import { getStartMessage } from '@common/utils/startup-app/get-start-message';
 import { customLogFilter } from '@common/utils/filter-logs';
@@ -84,29 +79,27 @@ async function bootstrap(): Promise<void> {
 
     const config = app.get(ConfigService);
 
-    if (!isCrowdinEditorEnabled()) {
-        app.use(
-            helmet({
-                contentSecurityPolicy: {
-                    directives: {
-                        defaultSrc: ["'self'", '*'],
-                        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", '*'],
-                        imgSrc: ["'self'", 'data:', '*'],
-                        connectSrc: ["'self'", '*'],
-                        workerSrc: ["'self'", 'blob:', '*'],
-                        frameSrc: ["'self'", 'oauth.telegram.org', '*'],
-                        frameAncestors: ["'self'", '*'],
-                    },
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                directives: {
+                    defaultSrc: ["'self'", '*'],
+                    scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", '*'],
+                    imgSrc: ["'self'", 'data:', '*'],
+                    connectSrc: ["'self'", '*'],
+                    workerSrc: ["'self'", 'blob:', '*'],
+                    frameSrc: ["'self'", 'oauth.telegram.org', '*'],
+                    frameAncestors: ["'self'", '*'],
                 },
+            },
 
-                crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
-                crossOriginResourcePolicy: { policy: 'same-site' },
-                referrerPolicy: {
-                    policy: 'strict-origin-when-cross-origin',
-                },
-            }),
-        );
-    }
+            crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+            crossOriginResourcePolicy: { policy: 'same-site' },
+            referrerPolicy: {
+                policy: 'strict-origin-when-cross-origin',
+            },
+        }),
+    );
 
     app.use(compression());
 

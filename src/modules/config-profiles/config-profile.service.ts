@@ -1,5 +1,6 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import _ from 'lodash';
+
+import { Prisma } from '@generated/prisma/client';
 
 import { Transactional } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
@@ -167,7 +168,7 @@ export class ConfigProfileService {
             return await this.getConfigProfileByUUID(uuid);
         } catch (error) {
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 (error.meta?.modelName === 'ConfigProfileInbounds' ||
                     error.meta?.modelName === 'ConfigProfiles') &&
@@ -220,7 +221,7 @@ export class ConfigProfileService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 (error.meta?.modelName === 'ConfigProfileInbounds' ||
                     error.meta?.modelName === 'ConfigProfiles') &&

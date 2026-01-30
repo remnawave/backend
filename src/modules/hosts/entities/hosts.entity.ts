@@ -1,4 +1,4 @@
-import { Hosts } from '@prisma/client';
+import type { HostsModel as Hosts } from '@generated/prisma/models';
 
 import { TSecurityLayers } from '@contract/constants';
 

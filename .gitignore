@@ -65,5 +65,6 @@ openapi.json
 
 
 prisma/generated/types.ts
+prisma/generated/prisma
 
 f.json

@@ -1,4 +1,4 @@
-import { ExternalSquads } from '@prisma/client';
+import type { ExternalSquadsModel as ExternalSquads } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

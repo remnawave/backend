@@ -37,6 +37,9 @@
       ],
       "@scheduler/*": [
         "./src/scheduler/*"
+      ],
+      "@generated/*": [
+        "./prisma/generated/*"
       ]
     },
     "incremental": true,

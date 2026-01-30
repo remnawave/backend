@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, PrismaClient } from '@generated/prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -13,7 +13,7 @@ import { SubscriptionTemplateConverter } from '../subscription-template.converte
 @Injectable()
 export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplateEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly converter: SubscriptionTemplateConverter,
     ) {}
 

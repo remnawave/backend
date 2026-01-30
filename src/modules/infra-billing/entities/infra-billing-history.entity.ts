@@ -1,4 +1,4 @@
-import { InfraBillingHistory } from '@prisma/client';
+import type { InfraBillingHistoryModel as InfraBillingHistory } from '@generated/prisma/models';
 
 export class InfraBillingHistoryEntity implements InfraBillingHistory {
     public uuid: string;

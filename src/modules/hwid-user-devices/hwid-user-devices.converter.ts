@@ -1,4 +1,4 @@
-import { HwidUserDevices } from '@prisma/client';
+import type { HwidUserDevicesModel as HwidUserDevices } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

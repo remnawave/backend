@@ -1,4 +1,4 @@
-import { InfraProviders } from '@prisma/client';
+import type { InfraProvidersModel as InfraProviders } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

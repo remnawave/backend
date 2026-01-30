@@ -1,4 +1,4 @@
-import { UserTraffic } from '@prisma/client';
+import type { UserTrafficModel as UserTraffic } from '@generated/prisma/models';
 
 export class UserTrafficEntity implements UserTraffic {
     public tId: bigint;

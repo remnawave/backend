@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@generated/prisma/client';
 import { Cache } from 'cache-manager';
 import { randomUUID } from 'crypto';
 

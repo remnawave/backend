@@ -1,3 +1,5 @@
+import { PrismaClient } from '@generated/prisma/client';
+
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +12,7 @@ import { PasskeyEntity } from '../entities';
 @Injectable()
 export class PasskeyRepository implements ICrud<PasskeyEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly passkeyConverter: PasskeyConverter,
     ) {}
 

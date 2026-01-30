@@ -1,6 +1,5 @@
-import { Prisma } from '@prisma/client';
-
-import { IReorderHost } from 'src/modules/hosts/interfaces/reorder-host.interface';
+import { PrismaClient } from '@generated/prisma/client';
+import { Prisma } from '@generated/prisma/client';
 
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
@@ -13,6 +12,7 @@ import { TSecurityLayers } from '@libs/contracts/constants';
 import { HostWithRawInbound } from '../entities/host-with-inbound-tag.entity';
 import { HostsEntity } from '../entities/hosts.entity';
 import { HostsConverter } from '../hosts.converter';
+import { IReorderHost } from '../interfaces';
 
 const INCLUDE_RELATED = {
     nodes: {
@@ -30,7 +30,7 @@ const INCLUDE_RELATED = {
 @Injectable()
 export class HostsRepository implements ICrud<HostsEntity> {
     constructor(
-        private readonly prisma: TransactionHost<TransactionalAdapterPrisma>,
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
         private readonly qb: TxKyselyService,
         private readonly hostsConverter: HostsConverter,
     ) {}

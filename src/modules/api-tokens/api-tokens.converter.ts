@@ -1,4 +1,4 @@
-import { ApiTokens } from '@prisma/client';
+import type { ApiTokensModel as ApiTokens } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

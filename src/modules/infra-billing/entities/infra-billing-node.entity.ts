@@ -1,4 +1,4 @@
-import { InfraBillingNodes } from '@prisma/client';
+import type { InfraBillingNodesModel as InfraBillingNodes } from '@generated/prisma/models';
 
 import { NodesEntity } from '@modules/nodes/entities';
 

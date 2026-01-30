@@ -1,5 +1,6 @@
 import { AuthenticatorTransportFuture } from '@simplewebauthn/server';
-import { Passkeys } from '@prisma/client';
+
+import type { PasskeysModel as Passkeys } from '@generated/prisma/models';
 
 type TTransports = AuthenticatorTransportFuture;
 

@@ -1,4 +1,4 @@
-import { InternalSquads } from '@prisma/client';
+import type { InternalSquadsModel as InternalSquads } from '@generated/prisma/models';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 

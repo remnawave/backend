@@ -1,4 +1,4 @@
-import { Nodes } from '@prisma/client';
+import type { NodesModel as Nodes } from '@generated/prisma/models';
 
 import { Injectable } from '@nestjs/common';
 

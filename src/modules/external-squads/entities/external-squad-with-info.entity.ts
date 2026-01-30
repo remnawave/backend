@@ -1,5 +1,6 @@
-import { ExternalSquads } from '@prisma/client';
 import z from 'zod';
+
+import type { ExternalSquadsModel as ExternalSquads } from '@generated/prisma/models';
 
 import {
     ExternalSquadHostOverridesSchema,

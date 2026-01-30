@@ -1,7 +1,8 @@
 import type { Cache } from 'cache-manager';
 
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import yaml from 'yaml';
+
+import { Prisma } from '@generated/prisma/client';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -113,7 +114,7 @@ export class SubscriptionTemplateService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'SubscriptionTemplates' &&
                 Array.isArray(error.meta.target)
@@ -200,7 +201,7 @@ export class SubscriptionTemplateService {
             this.logger.error(error);
 
             if (
-                error instanceof PrismaClientKnownRequestError &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
                 error.meta?.modelName === 'SubscriptionTemplates' &&
                 Array.isArray(error.meta.target)

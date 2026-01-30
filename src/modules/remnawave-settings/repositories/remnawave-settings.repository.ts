@@ -1,3 +1,5 @@
+import { PrismaClient } from '@generated/prisma/client';
+
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
@@ -8,7 +10,9 @@ const DEFAULT_REMNAAWAVE_SETTINGS_ID = 1;
 
 @Injectable()
 export class RemnawaveSettingsRepository {
-    constructor(private readonly prisma: TransactionHost<TransactionalAdapterPrisma>) {}
+    constructor(
+        private readonly prisma: TransactionHost<TransactionalAdapterPrisma<PrismaClient>>,
+    ) {}
 
     public async create(entity: RemnawaveSettingsEntity): Promise<RemnawaveSettingsEntity> {
         const result = await this.prisma.tx.remnawaveSettings.create({
