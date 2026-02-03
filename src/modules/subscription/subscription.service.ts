@@ -382,11 +382,13 @@ export class SubscriptionService {
 
             const user = userResult.response;
 
+            const settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
+
             const hosts = await this.queryBus.execute(
                 new GetHostsForUserQuery(user.tId, false, false),
             );
 
-            if (!hosts.isOk) {
+            if (!hosts.isOk || !settings) {
                 return new SubscriptionNotFoundResponse();
             }
 
@@ -397,7 +399,7 @@ export class SubscriptionService {
             });
 
             const subscription = await this.renderTemplatesService.generateOutlineSubscription(
-                null,
+                settings,
                 encodedTag,
                 user,
                 hosts.response,
