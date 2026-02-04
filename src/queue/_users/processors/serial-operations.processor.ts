@@ -81,8 +81,6 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 },
             } as const;
 
-            this.logger.debug(`Finding users for expire notifications: ${JSON.stringify(DATES)}`);
-
             let foundUsersCount = 0;
             await pMap(
                 Object.values(DATES),
@@ -91,8 +89,6 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                         const result = await this.queryBus.execute(
                             new GetUsersByExpireAtQuery(date.START, date.END),
                         );
-
-                        this.logger.debug(`Result: ${JSON.stringify(result)}`);
 
                         if (!result.isOk) {
                             return;
