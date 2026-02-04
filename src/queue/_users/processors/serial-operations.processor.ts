@@ -81,6 +81,9 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                 },
             } as const;
 
+            this.logger.debug(`Finding users for expire notifications: ${JSON.stringify(DATES)}`);
+
+            let foundUsersCount = 0;
             await pMap(
                 Object.values(DATES),
                 async (date) => {
@@ -89,13 +92,19 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
                             new GetUsersByExpireAtQuery(date.START, date.END),
                         );
 
+                        this.logger.debug(`Result: ${JSON.stringify(result)}`);
+
                         if (!result.isOk) {
                             return;
                         }
 
+                        foundUsersCount += result.response.length;
+
                         if (result.response.length === 0) {
                             return;
                         }
+
+                        this.logger.log(`Found ${result.response.length} users for ${date.NAME}`);
 
                         await this.usersQueuesService.fireUserEventBulk({
                             users: result.response,
@@ -108,10 +117,17 @@ export class SerialUsersOperationsQueueProcessor extends WorkerHost {
 
                 { concurrency: 4 },
             );
+
+            return ok({
+                foundUsersCount,
+            });
         } catch (error) {
             this.logger.error(
                 `Error handling "${USERS_JOB_NAMES.EXPIRE_USER_NOTIFICATIONS}" job: ${error}`,
             );
+            return {
+                isOk: false,
+            };
         }
     }
 
