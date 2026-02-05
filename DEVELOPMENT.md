@@ -25,7 +25,7 @@ npm run migrate:generate
 5. Seed the database:
 
 ```bash
-npm run seed:dev
+npm run migrate:seed:dev
 ```
 
 6. Running dev mode (if you run multiple instances, make sure to wait before starting the next instance):

@@ -1,23 +1,16 @@
-import { XRayConfig } from '@common/helpers/xray-config';
-import { generateJwtKeypair, generateMasterCerts } from '@common/utils/certs/generate-certs.util';
-import {
-    SUBSCRIPTION_TEMPLATE_TYPE,
-    SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
-} from '@libs/contracts/constants';
-import { KeygenEntity } from '@modules/keygen/entities/keygen.entity';
 import { Prisma, PrismaClient, RemnawaveSettings } from '@prisma/client';
-import consola from 'consola';
-import _ from 'lodash';
-import { Redis } from 'ioredis';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import timezone from 'dayjs/plugin/timezone';
 import { hasher } from 'node-object-hash';
-import {
-    DEFAULT_TEMPLATE_CLASH,
-    DEFAULT_TEMPLATE_MIHOMO,
-    DEFAULT_TEMPLATE_SINGBOX,
-    DEFAULT_TEMPLATE_STASH,
-    DEFAULT_TEMPLATE_XRAY_JSON,
-} from '@modules/subscription-template/constants';
-import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
+import utc from 'dayjs/plugin/utc';
+import { Redis } from 'ioredis';
+import consola from 'consola';
+import dayjs from 'dayjs';
+import _ from 'lodash';
+
+import { generateJwtKeypair, generateMasterCerts } from '@common/utils/certs/generate-certs.util';
+import { getRedisConnectionOptions } from '@common/utils';
+import { XRayConfig } from '@common/helpers/xray-config';
 import {
     CustomRemarksSchema,
     Oauth2SettingsSchema,
@@ -30,13 +23,30 @@ import {
     TRemnawavePasskeySettings,
     TTgAuthSettings,
 } from '@libs/contracts/models';
-import { getRedisConnectionOptions } from '@common/utils';
-import { DEFAULT_SUBPAGE_CONFIG } from '@modules/subscription-page-configs/constants';
 import {
     SUBPAGE_DEFAULT_CONFIG_NAME,
     SUBPAGE_DEFAULT_CONFIG_UUID,
 } from '@libs/subscription-page/constants';
+import {
+    SUBSCRIPTION_TEMPLATE_TYPE,
+    SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
+} from '@libs/contracts/constants';
 import { SubscriptionPageRawConfigSchema } from '@libs/subscription-page/models';
+
+import {
+    DEFAULT_TEMPLATE_CLASH,
+    DEFAULT_TEMPLATE_MIHOMO,
+    DEFAULT_TEMPLATE_SINGBOX,
+    DEFAULT_TEMPLATE_STASH,
+    DEFAULT_TEMPLATE_XRAY_JSON,
+} from '@modules/subscription-template/constants';
+import { RemnawaveSettingsEntity } from '@modules/remnawave-settings/entities/remnawave-settings.entity';
+import { DEFAULT_SUBPAGE_CONFIG } from '@modules/subscription-page-configs/constants';
+import { KeygenEntity } from '@modules/keygen/entities/keygen.entity';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
+dayjs.extend(timezone);
 
 const hash = hasher({
     trim: true,
@@ -693,7 +703,7 @@ async function syncInbounds() {
             const tagsToRemove = inboundsToRemove.map((inbound) => inbound.tag);
             consola.log(`Removing inbounds: ${tagsToRemove.join(', ')}`);
 
-            const result = await prisma.configProfileInbounds.deleteMany({
+            await prisma.configProfileInbounds.deleteMany({
                 where: { uuid: { in: inboundsToRemove.map((inbound) => inbound.uuid) } },
             });
         }
