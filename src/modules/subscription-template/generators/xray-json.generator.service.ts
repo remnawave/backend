@@ -63,6 +63,12 @@ export class XrayJsonGeneratorService {
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
+    private replaceUuidInTemplate(template: XrayJsonConfig, uuid: string): XrayJsonConfig {
+        const templateString = JSON.stringify(template);
+        const replacedString = templateString.replace(/\{\{UUID\}\}/g, uuid);
+        return JSON.parse(replacedString) as XrayJsonConfig;
+    }
+
     public async generateConfig(
         hosts: IFormattedHost[],
         isHapp: boolean,
@@ -83,12 +89,16 @@ export class XrayJsonGeneratorService {
                 const templatedOutbound = this.createConfigForHost(host, isHapp);
                 if (templatedOutbound) {
                     const baseTemplate = host.xrayJsonTemplate ?? templateContent;
+                    const finalTemplate = this.replaceUuidInTemplate(
+                        baseTemplate as XrayJsonConfig,
+                        host.password.vlessPassword,
+                    );
 
                     preparedXrayJsonConfigs.push({
-                        ...baseTemplate,
+                        ...finalTemplate,
                         outbounds: [
                             ...templatedOutbound.outbounds,
-                            ...(baseTemplate as XrayJsonConfig).outbounds,
+                            ...finalTemplate.outbounds,
                         ],
                         remarks: templatedOutbound.remarks,
                         meta: templatedOutbound.meta,
