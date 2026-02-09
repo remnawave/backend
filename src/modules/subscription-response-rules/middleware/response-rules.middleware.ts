@@ -35,7 +35,6 @@ export class ResponseRulesMiddleware implements NestMiddleware {
     ) {
         try {
             let overrideClientType: TRequestTemplateTypeKeys | undefined;
-            let overrideTemplateName: string | undefined;
 
             const userAgent = req.headers['user-agent'] as string;
 
@@ -69,21 +68,6 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 );
             }
 
-            if (result.matchedRule) {
-                if (result.matchedRule.responseModifications) {
-                    if (result.matchedRule.responseModifications.headers) {
-                        result.matchedRule.responseModifications.headers.forEach((header) => {
-                            res.setHeader(header.key, header.value);
-                        });
-                    }
-
-                    if (result.matchedRule.responseModifications.subscriptionTemplate) {
-                        overrideTemplateName =
-                            result.matchedRule.responseModifications.subscriptionTemplate;
-                    }
-                }
-            }
-
             const ssrContext: ISRRContext = {
                 userAgent,
                 hwidHeaders: extractHwidHeaders(req),
@@ -92,8 +76,24 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 matchedResponseType: result.responseType,
                 ip: req.clientIp,
                 subscriptionSettings: settingsEntity,
-                overrideTemplateName,
             };
+
+            if (result.matchedRule && result.matchedRule.responseModifications) {
+                const mods = result.matchedRule.responseModifications;
+
+                if (mods.headers) {
+                    mods.headers.forEach((header) => {
+                        res.setHeader(header.key, header.value);
+                    });
+                }
+
+                if (mods.subscriptionTemplate) {
+                    ssrContext.overrideTemplateName = mods.subscriptionTemplate;
+                }
+                if (mods.ignoreHostXrayJsonTemplate) {
+                    ssrContext.ignoreHostXrayJsonTemplate = true;
+                }
+            }
 
             switch (ssrContext.matchedResponseType) {
                 case RESPONSE_RULES_RESPONSE_TYPES.BLOCK:

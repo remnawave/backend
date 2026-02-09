@@ -50,11 +50,12 @@ export class RenderTemplatesService {
                 if (srrContext.subscriptionSettings.serveJsonAtBaseSubscription) {
                     if (isJsonSubscriptionFallbackSupported(srrContext.userAgent)) {
                         return {
-                            subscription: await this.xrayJsonGeneratorService.generateConfig(
-                                formattedHosts,
-                                srrContext.isXrayExtSupported,
-                                srrContext.overrideTemplateName,
-                            ),
+                            subscription: await this.xrayJsonGeneratorService.generateConfig({
+                                hosts: formattedHosts,
+                                isHapp: srrContext.isXrayExtSupported,
+                                overrideTemplateName: srrContext.overrideTemplateName,
+                                ignoreHostXrayJsonTemplate: srrContext.ignoreHostXrayJsonTemplate,
+                            }),
                             contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                         };
                     }
@@ -111,11 +112,12 @@ export class RenderTemplatesService {
 
             case 'XRAY_JSON':
                 return {
-                    subscription: await this.xrayJsonGeneratorService.generateConfig(
-                        formattedHosts,
-                        srrContext.isXrayExtSupported,
-                        srrContext.overrideTemplateName,
-                    ),
+                    subscription: await this.xrayJsonGeneratorService.generateConfig({
+                        hosts: formattedHosts,
+                        isHapp: srrContext.isXrayExtSupported,
+                        overrideTemplateName: srrContext.overrideTemplateName,
+                        ignoreHostXrayJsonTemplate: srrContext.ignoreHostXrayJsonTemplate,
+                    }),
                     contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
                 };
 
