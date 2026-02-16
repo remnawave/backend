@@ -15,7 +15,14 @@ const compat = new FlatCompat({
 
 export default [
     {
-        ignores: ['**/.eslintrc.js', 'prisma/**/*', '.hygen.js', '.hygen/**/*'],
+        ignores: [
+            '**/.eslintrc.js',
+            'prisma/generated/**/*',
+            'prisma/migrations/**/*',
+            'prisma/schema.prisma',
+            '.hygen.js',
+            '.hygen/**/*',
+        ],
     },
     ...compat.extends('plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'),
     perfectionist.configs['recommended-alphabetical'],

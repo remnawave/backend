@@ -57,17 +57,22 @@ interface XrayJsonConfig {
     };
 }
 
+interface IGenerateConfigParams {
+    hosts: IFormattedHost[];
+    isHapp: boolean;
+    overrideTemplateName?: string;
+    ignoreHostXrayJsonTemplate?: boolean;
+}
+
 @Injectable()
 export class XrayJsonGeneratorService {
     private readonly logger = new Logger(XrayJsonGeneratorService.name);
 
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
-    public async generateConfig(
-        hosts: IFormattedHost[],
-        isHapp: boolean,
-        overrideTemplateName?: string,
-    ): Promise<string> {
+    public async generateConfig(params: IGenerateConfigParams): Promise<string> {
+        const { hosts, isHapp, overrideTemplateName, ignoreHostXrayJsonTemplate = false } = params;
+
         try {
             const templateContentDb =
                 await this.subscriptionTemplateService.getCachedTemplateByType(
@@ -82,14 +87,16 @@ export class XrayJsonGeneratorService {
             for (const host of hosts) {
                 const templatedOutbound = this.createConfigForHost(host, isHapp);
                 if (templatedOutbound) {
-                    const baseTemplate = host.xrayJsonTemplate ?? templateContent;
+                    let baseTemplate: XrayJsonConfig;
+                    if (ignoreHostXrayJsonTemplate) {
+                        baseTemplate = templateContent;
+                    } else {
+                        baseTemplate = (host.xrayJsonTemplate as XrayJsonConfig) ?? templateContent;
+                    }
 
                     preparedXrayJsonConfigs.push({
                         ...baseTemplate,
-                        outbounds: [
-                            ...templatedOutbound.outbounds,
-                            ...(baseTemplate as XrayJsonConfig).outbounds,
-                        ],
+                        outbounds: [...templatedOutbound.outbounds, ...baseTemplate.outbounds],
                         remarks: templatedOutbound.remarks,
                         meta: templatedOutbound.meta,
                     });

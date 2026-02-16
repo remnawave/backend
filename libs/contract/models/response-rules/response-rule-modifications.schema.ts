@@ -62,8 +62,16 @@ export const ResponseRuleModificationsSchema = z
                         'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification have higher priority than settings from External Squads.**',
                 }),
             ),
+        ignoreHostXrayJsonTemplate: z
+            .boolean()
+            .optional()
+            .describe(
+                JSON.stringify({
+                    markdownDescription:
+                        "Each Host may have its own Xray Json Template. If you set this flag to **true**, the Xray Json Template defined by the SRR will be used. **The Host's Xray Json Template will be ignored.**",
+                }),
+            ),
     })
-
     .optional()
     .describe(
         JSON.stringify({

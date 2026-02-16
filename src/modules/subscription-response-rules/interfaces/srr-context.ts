@@ -12,4 +12,5 @@ export interface ISRRContext {
     ip: string;
     subscriptionSettings: SubscriptionSettingsEntity;
     overrideTemplateName?: string;
+    ignoreHostXrayJsonTemplate?: boolean;
 }
