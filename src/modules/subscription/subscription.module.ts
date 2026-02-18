@@ -29,22 +29,6 @@ export class SubscriptionModule implements NestModule {
                 }),
             )
             .forRoutes(SubscriptionController);
-
-        // consumer.apply(ValidateShortUuidMiddleware).forRoutes(
-        //     {
-        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid`,
-        //         method: RequestMethod.GET,
-        //     },
-        //     {
-        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/:clientType`,
-        //         method: RequestMethod.GET,
-        //     },
-        //     {
-        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/info`,
-        //         method: RequestMethod.GET,
-        //     },
-        // );
-
         consumer
             .apply(ResponseRulesMiddleware)
             .exclude({

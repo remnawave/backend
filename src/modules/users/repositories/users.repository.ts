@@ -1394,29 +1394,6 @@ export class UsersRepository {
         return result.map((value) => new UserEntity(value));
     }
 
-    public async getShortUuidRange(): Promise<{
-        min: number;
-        max: number;
-    }> {
-        const result = await this.qb.kysely
-            .selectFrom('users')
-            .select(sql.raw<number>('COALESCE(MIN(LENGTH(short_uuid)), 0)').as('minLength'))
-            .select(sql.raw<number>('COALESCE(MAX(LENGTH(short_uuid)), 0)').as('maxLength'))
-            .executeTakeFirst();
-
-        if (result === undefined) {
-            return {
-                min: 0,
-                max: 0,
-            };
-        }
-
-        return {
-            min: Number(result.minLength),
-            max: Number(result.maxLength),
-        };
-    }
-
     public async getUserSubpageConfigUuid(shortUuid: string): Promise<string | null> {
         const result = await this.qb.kysely
             .selectFrom('users')
