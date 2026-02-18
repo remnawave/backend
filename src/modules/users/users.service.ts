@@ -339,6 +339,7 @@ export class UsersService {
                 subRevokedAt: new Date(),
                 subLastOpenedAt: null,
                 subLastUserAgent: null,
+                updatedAt: new Date(),
             });
 
             if (!updateResult) return fail(ERRORS.REVOKE_USER_SUBSCRIPTION_ERROR);

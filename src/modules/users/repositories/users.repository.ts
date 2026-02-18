@@ -1150,6 +1150,7 @@ export class UsersRepository {
             | 'shortUuid'
             | 'subLastOpenedAt'
             | 'subLastUserAgent'
+            | 'updatedAt'
         >,
     ): Promise<boolean> {
         const result = await this.qb.kysely
@@ -1162,6 +1163,7 @@ export class UsersRepository {
                 shortUuid: dto.shortUuid,
                 subLastOpenedAt: dto.subLastOpenedAt,
                 subLastUserAgent: dto.subLastUserAgent,
+                updatedAt: dto.updatedAt,
             })
             .where('uuid', '=', getKyselyUuid(dto.uuid))
             .executeTakeFirst();
