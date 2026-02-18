@@ -277,6 +277,15 @@ export class UsersRepository {
                     continue;
                 }
 
+                if (filter.id === 'vlessUuid') {
+                    whereBuilder = whereBuilder.where(
+                        sql`"vless_uuid"::text`,
+                        'ilike',
+                        `%${filter.value}%`,
+                    );
+                    continue;
+                }
+
                 if (filter.id === 'externalSquadUuid') {
                     whereBuilder = whereBuilder.where(
                         'externalSquadUuid',
@@ -412,6 +421,15 @@ export class UsersRepository {
                     if (filter.id === 'uuid') {
                         countBuilder = countBuilder.where(
                             sql`"uuid"::text`,
+                            'ilike',
+                            `%${filter.value}%`,
+                        );
+                        continue;
+                    }
+
+                    if (filter.id === 'vlessUuid') {
+                        countBuilder = countBuilder.where(
+                            sql`"vless_uuid"::text`,
                             'ilike',
                             `%${filter.value}%`,
                         );
