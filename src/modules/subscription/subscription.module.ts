@@ -11,7 +11,6 @@ import { SubscriptionTemplateModule } from '@modules/subscription-template/subsc
 
 import { SubscriptionController, SubscriptionsController } from './controllers';
 import { SubscriptionService } from './subscription.service';
-import { ValidateShortUuidMiddleware } from './middleware';
 
 @Module({
     imports: [CqrsModule, SubscriptionTemplateModule, SubscriptionResponseRulesModule],
@@ -31,20 +30,20 @@ export class SubscriptionModule implements NestModule {
             )
             .forRoutes(SubscriptionController);
 
-        consumer.apply(ValidateShortUuidMiddleware).forRoutes(
-            {
-                path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid`,
-                method: RequestMethod.GET,
-            },
-            {
-                path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/:clientType`,
-                method: RequestMethod.GET,
-            },
-            {
-                path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/info`,
-                method: RequestMethod.GET,
-            },
-        );
+        // consumer.apply(ValidateShortUuidMiddleware).forRoutes(
+        //     {
+        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid`,
+        //         method: RequestMethod.GET,
+        //     },
+        //     {
+        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/:clientType`,
+        //         method: RequestMethod.GET,
+        //     },
+        //     {
+        //         path: `${SUBSCRIPTION_CONTROLLER}${SUBSCRIPTION_ROUTES.GET}/:shortUuid/info`,
+        //         method: RequestMethod.GET,
+        //     },
+        // );
 
         consumer
             .apply(ResponseRulesMiddleware)

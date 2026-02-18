@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
-import { ERRORS, USERS_STATUS, EVENTS, CACHE_KEYS } from '@libs/contracts/constants';
+import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { UserEvent } from '@integration-modules/notifications/interfaces';
@@ -44,7 +44,6 @@ import {
     RevokeUserSubscriptionBodyDto,
 } from './dtos';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IUpdateUserDto } from './interfaces';
-import { GetCachedShortUuidRangeQuery } from './queries/get-cached-short-uuid-range';
 import { UsersRepository } from './repositories/users.repository';
 import { BaseUserEntity, UserEntity } from './entities';
 
@@ -109,8 +108,6 @@ export class UsersService {
                     event: EVENTS.USER.CREATED,
                 }),
             );
-
-            await this.invalidateShortUuidRangeCache(user.shortUuid);
 
             return ok(user);
         } catch (error) {
@@ -249,8 +246,6 @@ export class UsersService {
                 }),
             );
 
-            await this.invalidateShortUuidRangeCache(updatedUser.shortUuid);
-
             return ok(updatedUser);
         } catch (error) {
             this.logger.error(error);
@@ -359,8 +354,6 @@ export class UsersService {
                     event: EVENTS.USER.REVOKED,
                 }),
             );
-
-            await this.invalidateShortUuidRangeCache(updatedUser.shortUuid);
 
             return ok(updatedUser);
         } catch (error) {
@@ -785,17 +778,5 @@ export class UsersService {
         const nanoid = customAlphabet(alphabet, length);
 
         return nanoid();
-    }
-
-    private async invalidateShortUuidRangeCache(shortUuid: string): Promise<void> {
-        try {
-            const { min, max } = await this.queryBus.execute(new GetCachedShortUuidRangeQuery());
-
-            if (shortUuid.length < min || shortUuid.length > max) {
-                await this.cacheManager.del(CACHE_KEYS.SHORT_UUID_RANGE);
-            }
-        } catch (error) {
-            this.logger.error(error);
-        }
     }
 }
