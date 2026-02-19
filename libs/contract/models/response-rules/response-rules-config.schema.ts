@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { ResponseRuleSettingsSchema } from './response-rule-settings.schema';
 import { EXAMPLES_SRR_BLANK_RULE } from './response-rules-examples';
 import { RESPONSE_RULES_CONFIG_VERSION } from '../../constants';
 import { ResponseRuleSchema } from './response-rule.schema';
@@ -12,6 +13,7 @@ export const ResponseRulesConfigSchema = z.object({
                 'Version of the **response rules** config. Currently supported version is **1**.',
         }),
     ),
+    settings: ResponseRuleSettingsSchema,
     rules: z.array(ResponseRuleSchema).describe(
         JSON.stringify({
             title: 'Response Rules',

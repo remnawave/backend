@@ -50,13 +50,23 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 );
             }
 
+            const headersToAppend: Record<string, string> = {
+                'x-remnawave-injected-short-uuid': req.params.shortUuid,
+            };
+
             if (req.params.clientType) {
                 overrideClientType = req.params.clientType as unknown as TRequestTemplateTypeKeys;
+                if (overrideClientType) {
+                    headersToAppend['x-remnawave-injected-client-type'] = overrideClientType;
+                }
             }
 
             const result = this.matcher.matchRules(
                 settingsEntity.responseRules,
-                req.headers,
+                {
+                    ...req.headers,
+                    ...headersToAppend,
+                },
                 overrideClientType,
             );
 
@@ -81,10 +91,16 @@ export class ResponseRulesMiddleware implements NestMiddleware {
             if (result.matchedRule && result.matchedRule.responseModifications) {
                 const mods = result.matchedRule.responseModifications;
 
-                if (mods.headers) {
+                if (mods.headers && !mods.applyHeadersToEnd) {
                     mods.headers.forEach((header) => {
                         res.setHeader(header.key, header.value);
                     });
+                }
+
+                if (mods.headers && mods.applyHeadersToEnd) {
+                    ssrContext.headersToApply = Object.fromEntries(
+                        mods.headers.map((header) => [header.key, header.value]),
+                    );
                 }
 
                 if (mods.subscriptionTemplate) {

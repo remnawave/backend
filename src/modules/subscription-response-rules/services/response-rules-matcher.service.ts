@@ -28,6 +28,13 @@ export class ResponseRulesMatcherService {
         this.logger.debug('Matching rules against context');
 
         if (overrideClientType) {
+            if (responseRules.settings && responseRules.settings.disableSubscriptionAccessByPath) {
+                return {
+                    matched: true,
+                    responseType: 'BLOCK',
+                };
+            }
+
             return this.handleOverrideClientType(overrideClientType);
         }
 
@@ -194,6 +201,7 @@ export class ResponseRulesMatcherService {
                 matchedResponse.responseType = 'BLOCK';
                 break;
         }
+
         return matchedResponse;
     }
 }

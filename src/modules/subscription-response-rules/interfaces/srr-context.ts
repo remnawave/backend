@@ -13,4 +13,5 @@ export interface ISRRContext {
     subscriptionSettings: SubscriptionSettingsEntity;
     overrideTemplateName?: string;
     ignoreHostXrayJsonTemplate?: boolean;
+    headersToApply?: Record<string, string>;
 }
