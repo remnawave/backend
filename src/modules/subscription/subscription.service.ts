@@ -41,6 +41,7 @@ import { GetFullUserResponseModel } from '@modules/users/models';
 import { UsersQueuesService } from '@queue/_users/users-queues.service';
 
 import {
+    ConnectionKeysResponseModel,
     RawSubscriptionWithHostsResponse,
     SubscriptionNotFoundResponse,
     SubscriptionRawResponse,
@@ -961,6 +962,88 @@ export class SubscriptionService {
                     webpageAllowed: false,
                 }),
             );
+        }
+    }
+
+    public async getConnectionKeysByUuid(
+        uuid: string,
+    ): Promise<TResult<ConnectionKeysResponseModel>> {
+        try {
+            const userResult = await this.queryBus.execute(
+                new GetUserByUniqueFieldQuery(
+                    {
+                        uuid,
+                    },
+                    {
+                        activeInternalSquads: false,
+                    },
+                ),
+            );
+
+            if (!userResult.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
+            }
+
+            const userEntity = userResult.response;
+
+            if (!userEntity) {
+                return fail(ERRORS.USER_NOT_FOUND);
+            }
+
+            let settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
+            let hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
+
+            if (!settings) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+
+            if (userEntity.externalSquadUuid) {
+                const {
+                    subscriptionSettings: patchedSubscriptionSettings,
+                    hostsOverrides: patchedHostsOverrides,
+                } = await this.applyMaybeExternalSquadOverrides(
+                    settings,
+                    userEntity.externalSquadUuid,
+                );
+
+                settings = patchedSubscriptionSettings;
+                hostsOverrides = patchedHostsOverrides;
+            }
+
+            const allHostsResult = await this.queryBus.execute(
+                new GetHostsForUserQuery(userEntity.tId, true, true),
+            );
+
+            const allHosts = allHostsResult.isOk ? allHostsResult.response : [];
+
+            const enabledHosts = allHosts.filter((h) => !h.isDisabled && !h.isHidden);
+            const disabledHosts = allHosts.filter((h) => h.isDisabled && !h.isHidden);
+            const hiddenHosts = allHosts.filter((h) => h.isHidden && !h.isDisabled);
+
+            const formatOrSkip = async (hosts: typeof allHosts, allowEmpty: boolean = false) => {
+                if (hosts.length === 0 && !allowEmpty) return [];
+                return this.formatHostsService.generateFormattedHosts({
+                    subscriptionSettings: settings,
+                    hosts,
+                    user: userEntity,
+                    hostsOverrides,
+                });
+            };
+
+            const formattedEnabled = await formatOrSkip(enabledHosts, true);
+            const formattedDisabled = await formatOrSkip(disabledHosts);
+            const formattedHidden = await formatOrSkip(hiddenHosts);
+
+            return ok(
+                new ConnectionKeysResponseModel({
+                    enabledKeys: this.xrayGeneratorService.generateLinks(formattedEnabled, false),
+                    disabledKeys: this.xrayGeneratorService.generateLinks(formattedDisabled, false),
+                    hiddenKeys: this.xrayGeneratorService.generateLinks(formattedHidden, false),
+                }),
+            );
+        } catch (error) {
+            this.logger.error(`Error getting subscription info: ${error}`);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 }

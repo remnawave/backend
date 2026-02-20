@@ -268,6 +268,10 @@ export const REST_API = {
                     shortUuid,
                 )}`,
         },
+        GET_CONNECTION_KEYS_BY_UUID: (uuid: string) =>
+            `${ROOT}/${CONTROLLERS.SUBSCRIPTIONS_CONTROLLER}/${CONTROLLERS.SUBSCRIPTIONS_ROUTES.GET_CONNECTION_KEYS_BY_UUID(
+                uuid,
+            )}`,
     },
     CONFIG_PROFILES: {
         GET: `${ROOT}/${CONTROLLERS.CONFIG_PROFILES_CONTROLLER}/${CONTROLLERS.CONFIG_PROFILES_ROUTES.GET}`,
