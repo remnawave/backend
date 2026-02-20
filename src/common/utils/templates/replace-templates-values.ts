@@ -59,6 +59,11 @@ export class TemplateEngine {
             TRAFFIC_USED_BYTES: () => user.userTraffic.usedTrafficBytes.toString(),
             TRAFFIC_LEFT_BYTES: () => trafficLeft().toString(),
             TOTAL_TRAFFIC_BYTES: () => user.trafficLimitBytes.toString(),
+            RESET_STRATEGY: () => user.trafficLimitStrategy,
+            LIFETIME_USED_BYTES: () => user.userTraffic.lifetimeUsedTrafficBytes.toString(),
+            CREATED_AT_UNIX: () => dayjs(user.createdAt).unix(),
+            LAST_TRAFFIC_RESET_AT_UNIX: () =>
+                user.lastTrafficResetAt ? dayjs(user.lastTrafficResetAt).unix() : 0,
         });
     }
 }

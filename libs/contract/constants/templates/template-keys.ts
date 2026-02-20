@@ -15,5 +15,9 @@ export const TEMPLATE_KEYS = [
     'TRAFFIC_USED_BYTES',
     'TRAFFIC_LEFT_BYTES',
     'TOTAL_TRAFFIC_BYTES',
+    'RESET_STRATEGY',
+    'LIFETIME_USED_BYTES',
+    'CREATED_AT_UNIX',
+    'LAST_TRAFFIC_RESET_AT_UNIX',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];
