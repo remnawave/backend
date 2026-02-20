@@ -297,22 +297,21 @@ export class XrayJsonGeneratorService {
         isHapp: boolean,
     ): XrayJsonConfig | null {
         const { remnawave: injector, ...template } = baseTemplate;
-        if (!injector?.injectHosts) return null;
+        if (!injector?.injectHosts?.length) return null;
 
         const injectedOutbounds: Outbound[] = [];
 
-        for (const [index, uuid] of injector.injectHosts.hostUuids.entries()) {
-            const hiddenHost = allHosts.find(
-                (h) => h.serviceInfo.uuid === uuid && h.serviceInfo.isHidden,
-            );
-            if (!hiddenHost) continue;
+        for (const entry of injector.injectHosts) {
+            for (const [index, uuid] of entry.hostUuids.entries()) {
+                const hiddenHost = allHosts.find(
+                    (h) => h.serviceInfo.uuid === uuid && h.serviceInfo.isHidden,
+                );
+                if (!hiddenHost) continue;
 
-            const tag =
-                index === 0
-                    ? injector.injectHosts.tagPrefix
-                    : `${injector.injectHosts.tagPrefix}-${index + 1}`;
+                const tag = index === 0 ? entry.tagPrefix : `${entry.tagPrefix}-${index + 1}`;
 
-            injectedOutbounds.push(this.buildOutbound(hiddenHost, tag));
+                injectedOutbounds.push(this.buildOutbound(hiddenHost, tag));
+            }
         }
 
         if (injectedOutbounds.length === 0) return null;

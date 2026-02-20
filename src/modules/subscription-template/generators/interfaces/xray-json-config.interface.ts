@@ -1,10 +1,12 @@
 import { IFormattedHost } from './formatted-hosts.interface';
 
+export interface IInjectHostsEntry {
+    hostUuids: string[];
+    tagPrefix: string;
+}
+
 export interface IRemnawaveInjector {
-    injectHosts?: {
-        hostUuids: string[];
-        tagPrefix: string;
-    };
+    injectHosts?: IInjectHostsEntry[];
 }
 
 export interface StreamSettings {
