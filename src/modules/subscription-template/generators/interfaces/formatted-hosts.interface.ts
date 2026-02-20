@@ -43,4 +43,8 @@ export interface IFormattedHost {
         headerType?: string;
         request?: object;
     };
+    serviceInfo: {
+        uuid: string;
+        isHidden: boolean;
+    };
 }

@@ -476,6 +476,10 @@ export class FormatHostsService {
                 encryption: encryptionMap.get(inputHost.inboundTag),
                 flow: getVlessFlow(inbound),
                 xrayJsonTemplate: inputHost.xrayJsonTemplate,
+                serviceInfo: {
+                    uuid: inputHost.uuid,
+                    isHidden: inputHost.isHidden,
+                },
             });
         }
 
@@ -502,6 +506,10 @@ export class FormatHostsService {
                 trojanPassword: '00000',
                 vlessPassword: randomUUID(),
                 ssPassword: '00000',
+            },
+            serviceInfo: {
+                uuid: '00000000-0000-0000-0000-000000000000',
+                isHidden: false,
             },
         }));
     }

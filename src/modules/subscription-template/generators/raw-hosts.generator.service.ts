@@ -17,8 +17,11 @@ export class RawHostsGeneratorService {
                     continue;
                 }
 
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { serviceInfo, ...hostData } = host;
+
                 const rawHost: IRawHost = {
-                    ...host,
+                    ...hostData,
                 };
 
                 if (host.protocol === 'shadowsocks') {

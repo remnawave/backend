@@ -1,67 +1,176 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import {
+    IGenerateConfigParams,
+    Outbound,
+    OutboundSettings,
+    StreamSettings,
+    XrayJsonConfig,
+} from './interfaces/xray-json-config.interface';
 import { SubscriptionTemplateService } from '../subscription-template.service';
 import { IFormattedHost } from './interfaces/formatted-hosts.interface';
 
-interface StreamSettings {
-    network: string;
-    security?: string;
-    wsSettings?: unknown;
-    tcpSettings?: unknown;
-    rawSettings?: unknown;
-    xhttpSettings?: unknown;
-    tlsSettings?: unknown;
-    httpupgradeSettings?: unknown;
-    realitySettings?: unknown;
-    grpcSettings?: unknown;
-    sockopt?: unknown;
-}
+type ProtocolBuilder = (host: IFormattedHost) => OutboundSettings;
+type TransportBuilder = (host: IFormattedHost) => Record<string, unknown>;
 
-interface OutboundSettings {
-    vnext?: Array<{
-        address: string;
-        port: number;
-        users: Array<{
-            id: string;
-            security?: string;
-            encryption?: string;
-            flow?: string | undefined;
-            alterId?: number;
-            email?: string;
-        }>;
-    }>;
-    servers?: Array<{
-        address: string;
-        port: number;
-        password?: string;
-        email?: string;
-        method?: string;
-        uot?: boolean;
-        ivCheck?: boolean;
-    }>;
-}
+const PROTOCOL_BUILDERS: Record<string, ProtocolBuilder> = {
+    vless: (host) => ({
+        vnext: [
+            {
+                address: host.address,
+                port: host.port,
+                users: [
+                    {
+                        id: host.password.vlessPassword,
+                        encryption: host.encryption || 'none',
+                        flow: host.flow,
+                    },
+                ],
+            },
+        ],
+    }),
 
-interface Outbound {
-    tag: string;
-    protocol: string;
-    settings: OutboundSettings;
-    streamSettings?: StreamSettings;
-    mux?: unknown;
-}
+    trojan: (host) => ({
+        servers: [
+            {
+                address: host.address,
+                port: host.port,
+                password: host.password.trojanPassword,
+            },
+        ],
+    }),
 
-interface XrayJsonConfig {
-    remarks: string;
-    outbounds: Outbound[];
-    meta?: {
-        serverDescription?: string;
+    shadowsocks: (host) => ({
+        servers: [
+            {
+                address: host.address,
+                port: host.port,
+                password: host.password.ssPassword,
+                method: 'chacha20-ietf-poly1305',
+                uot: false,
+                ivCheck: false,
+            },
+        ],
+    }),
+};
+
+const TRANSPORT_KEY_MAP: Record<string, keyof StreamSettings> = {
+    ws: 'wsSettings',
+    httpupgrade: 'httpupgradeSettings',
+    tcp: 'tcpSettings',
+    raw: 'tcpSettings',
+    xhttp: 'xhttpSettings',
+    grpc: 'grpcSettings',
+};
+
+const TRANSPORT_BUILDERS: Record<string, TransportBuilder> = {
+    ws: (host) => ({
+        path: host.path,
+        headers: { Host: host.host },
+        ...(host.additionalParams?.heartbeatPeriod != null && {
+            heartbeatPeriod: host.additionalParams.heartbeatPeriod,
+        }),
+    }),
+
+    httpupgrade: (host) => ({
+        path: host.path,
+        host: host.host,
+    }),
+
+    tcp: buildTcpSettings,
+    raw: buildTcpSettings,
+
+    xhttp: (host) => {
+        const settings: Record<string, unknown> = {
+            mode: host.additionalParams?.mode || 'auto',
+            host: host.host,
+        };
+
+        if (host.path !== '') {
+            settings.path = host.path;
+        }
+
+        if (isNonEmptyObject(host.xHttpExtraParams)) {
+            settings.extra = host.xHttpExtraParams;
+        }
+
+        return settings;
+    },
+
+    grpc: (host) => ({
+        serviceName: host.path,
+        authority: host.host,
+        mode: !!host.additionalParams?.grpcMultiMode,
+    }),
+};
+
+function buildTcpSettings(host: IFormattedHost): Record<string, unknown> {
+    if (host.rawSettings?.headerType !== 'http') {
+        return {};
+    }
+
+    const baseRequest = host.rawSettings.request
+        ? (structuredClone(host.rawSettings.request) as Record<string, any>)
+        : {
+              version: '1.1',
+              method: 'GET',
+              headers: {
+                  'Accept-Encoding': ['gzip', 'deflate'],
+                  Connection: ['keep-alive'],
+                  Pragma: 'no-cache',
+              },
+          };
+
+    if (host.path) {
+        baseRequest.path = [host.path];
+    }
+
+    baseRequest.headers = baseRequest.headers || {};
+    baseRequest.headers.Host = [host.host];
+
+    return {
+        header: {
+            type: 'http',
+            request: baseRequest,
+        },
     };
 }
 
-interface IGenerateConfigParams {
-    hosts: IFormattedHost[];
-    isHapp: boolean;
-    overrideTemplateName?: string;
-    ignoreHostXrayJsonTemplate?: boolean;
+function isNonEmptyObject(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === 'object' && Object.keys(value).length > 0;
+}
+
+function buildTlsSettings(host: IFormattedHost): Record<string, unknown> {
+    const settings: Record<string, unknown> = {
+        serverName: host.sni || '',
+        allowInsecure: host.allowInsecure || false,
+        show: false,
+    };
+
+    if (host.fingerprint !== '') {
+        settings.fingerprint = host.fingerprint;
+    }
+
+    if (host.alpn) {
+        settings.alpn = host.alpn.split(',');
+    }
+
+    return settings;
+}
+
+function buildRealitySettings(host: IFormattedHost): Record<string, unknown> {
+    const settings: Record<string, unknown> = {
+        serverName: host.sni,
+        show: false,
+    };
+
+    if (host.publicKey) settings.publicKey = host.publicKey;
+    if (host.mldsa65Verify) settings.mldsa65Verify = host.mldsa65Verify;
+    if (host.shortId) settings.shortId = host.shortId;
+    if (host.spiderX) settings.spiderX = host.spiderX;
+    if (host.fingerprint !== '') settings.fingerprint = host.fingerprint;
+
+    return settings;
 }
 
 @Injectable()
@@ -74,66 +183,55 @@ export class XrayJsonGeneratorService {
         const { hosts, isHapp, overrideTemplateName, ignoreHostXrayJsonTemplate = false } = params;
 
         try {
-            const templateContentDb =
-                await this.subscriptionTemplateService.getCachedTemplateByType(
-                    'XRAY_JSON',
-                    overrideTemplateName,
-                );
+            const templateContent = (await this.subscriptionTemplateService.getCachedTemplateByType(
+                'XRAY_JSON',
+                overrideTemplateName,
+            )) as unknown as XrayJsonConfig;
 
-            const templateContent = templateContentDb as unknown as XrayJsonConfig;
-
-            const preparedXrayJsonConfigs: XrayJsonConfig[] = [];
+            const configs: XrayJsonConfig[] = [];
 
             for (const host of hosts) {
-                const templatedOutbound = this.createConfigForHost(host, isHapp);
-                if (templatedOutbound) {
-                    let baseTemplate: XrayJsonConfig;
-                    if (ignoreHostXrayJsonTemplate) {
-                        baseTemplate = templateContent;
-                    } else {
-                        baseTemplate = (host.xrayJsonTemplate as XrayJsonConfig) ?? templateContent;
-                    }
+                if (host.serviceInfo.isHidden) continue;
 
-                    preparedXrayJsonConfigs.push({
-                        ...baseTemplate,
-                        outbounds: [...templatedOutbound.outbounds, ...baseTemplate.outbounds],
-                        remarks: templatedOutbound.remarks,
-                        meta: templatedOutbound.meta,
-                    });
+                const baseTemplate = ignoreHostXrayJsonTemplate
+                    ? templateContent
+                    : ((host.xrayJsonTemplate as XrayJsonConfig) ?? templateContent);
+
+                if (baseTemplate.remnawave) {
+                    const injected = this.applyRemnawaveInjector(baseTemplate, host, hosts, isHapp);
+                    if (injected) configs.push(injected);
+                    continue;
                 }
+
+                const outboundConfig = this.buildOutboundConfig(host, isHapp);
+                if (!outboundConfig) continue;
+
+                configs.push({
+                    ...baseTemplate,
+                    outbounds: [...outboundConfig.outbounds, ...baseTemplate.outbounds],
+                    remarks: outboundConfig.remarks,
+                    meta: outboundConfig.meta,
+                });
             }
 
-            return this.renderConfigs(preparedXrayJsonConfigs);
+            return JSON.stringify(configs, null, 0);
         } catch (error) {
             this.logger.error(`Error generating xray-json config: ${error}`);
             return '';
         }
     }
 
-    private createConfigForHost(host: IFormattedHost, isHapp: boolean): XrayJsonConfig | null {
+    private buildOutboundConfig(
+        host: IFormattedHost,
+        isHapp: boolean,
+        tag = 'proxy',
+    ): XrayJsonConfig | null {
         try {
-            const outbounds: Outbound[] = [];
-
-            const mainOutbound: Outbound = {
-                tag: 'proxy',
-                protocol: host.protocol,
-                settings: this.createOutboundSettings(host),
-                streamSettings: this.createStreamSettings(host),
-            };
-
-            if (
-                host.muxParams !== null &&
-                host.muxParams !== undefined &&
-                Object.keys(host.muxParams).length > 0
-            ) {
-                mainOutbound.mux = host.muxParams;
-            }
-
-            outbounds.push(mainOutbound);
+            const outbound = this.buildOutbound(host, tag);
 
             const config: XrayJsonConfig = {
                 remarks: host.remark,
-                outbounds: outbounds,
+                outbounds: [outbound],
             };
 
             if (isHapp && host.serverDescription) {
@@ -149,241 +247,88 @@ export class XrayJsonGeneratorService {
         }
     }
 
-    private createOutboundSettings(host: IFormattedHost): OutboundSettings {
-        switch (host.protocol) {
-            case 'vless':
-                return {
-                    vnext: [
-                        {
-                            address: host.address,
-                            port: host.port,
-                            users: [
-                                {
-                                    id: host.password.vlessPassword,
-                                    encryption: host.encryption || 'none',
-                                    flow: host.flow,
-                                },
-                            ],
-                        },
-                    ],
-                };
+    private buildOutbound(host: IFormattedHost, tag: string): Outbound {
+        const protocolBuilder = PROTOCOL_BUILDERS[host.protocol];
 
-            case 'trojan':
-                return {
-                    servers: [
-                        {
-                            address: host.address,
-                            port: host.port,
-                            password: host.password.trojanPassword,
-                        },
-                    ],
-                };
-
-            case 'shadowsocks':
-                return {
-                    servers: [
-                        {
-                            address: host.address,
-                            port: host.port,
-                            password: host.password.ssPassword,
-                            method: 'chacha20-ietf-poly1305',
-                            uot: false,
-                            ivCheck: false,
-                        },
-                    ],
-                };
-
-            default:
-                return { vnext: [] };
-        }
-    }
-
-    private createStreamSettings(host: IFormattedHost): StreamSettings {
-        const streamSettings: StreamSettings = {
-            network: host.network || 'tcp',
+        const outbound: Outbound = {
+            tag,
+            protocol: host.protocol,
+            settings: protocolBuilder(host) ?? { vnext: [] },
+            streamSettings: this.buildStreamSettings(host),
         };
 
-        switch (host.network) {
-            case 'ws':
-                streamSettings.wsSettings = this.createWsSettings(host);
-                break;
-
-            case 'httpupgrade':
-                streamSettings.httpupgradeSettings = this.createHttpUpgradeSettings(host);
-                break;
-
-            case 'tcp':
-            case 'raw':
-                streamSettings.tcpSettings = this.createTcpSettings(host);
-                break;
-
-            case 'xhttp':
-                streamSettings.xhttpSettings = this.createXHttpSettings(host);
-
-                break;
-
-            case 'grpc':
-                streamSettings.grpcSettings = this.createGrpcSettings(host);
-                break;
+        if (isNonEmptyObject(host.muxParams)) {
+            outbound.mux = host.muxParams;
         }
+
+        return outbound;
+    }
+
+    private buildStreamSettings(host: IFormattedHost): StreamSettings {
+        const network = host.network || 'tcp';
+        const transportKey = TRANSPORT_KEY_MAP[network];
+
+        const streamSettings: StreamSettings = {
+            network,
+            ...(network in TRANSPORT_BUILDERS && transportKey
+                ? { [transportKey]: TRANSPORT_BUILDERS[network](host) }
+                : {}),
+        };
 
         if (host.tls === 'tls') {
             streamSettings.security = 'tls';
-            streamSettings.tlsSettings = this.createTlsSettings(host);
+            streamSettings.tlsSettings = buildTlsSettings(host);
         } else if (host.tls === 'reality') {
             streamSettings.security = 'reality';
-            streamSettings.realitySettings = this.createRealitySettings(host);
+            streamSettings.realitySettings = buildRealitySettings(host);
         }
 
-        if (
-            host.sockoptParams !== null &&
-            host.sockoptParams !== undefined &&
-            Object.keys(host.sockoptParams).length > 0
-        ) {
+        if (isNonEmptyObject(host.sockoptParams)) {
             streamSettings.sockopt = host.sockoptParams;
         }
 
         return streamSettings;
     }
 
-    private createWsSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, any> = {
-            path: host.path,
-            headers: {},
+    private applyRemnawaveInjector(
+        baseTemplate: XrayJsonConfig,
+        host: IFormattedHost,
+        allHosts: IFormattedHost[],
+        isHapp: boolean,
+    ): XrayJsonConfig | null {
+        const { remnawave: injector, ...template } = baseTemplate;
+        if (!injector?.injectHosts) return null;
+
+        const injectedOutbounds: Outbound[] = [];
+
+        for (const [index, uuid] of injector.injectHosts.hostUuids.entries()) {
+            const hiddenHost = allHosts.find(
+                (h) => h.serviceInfo.uuid === uuid && h.serviceInfo.isHidden,
+            );
+            if (!hiddenHost) continue;
+
+            const tag =
+                index === 0
+                    ? injector.injectHosts.tagPrefix
+                    : `${injector.injectHosts.tagPrefix}-${index + 1}`;
+
+            injectedOutbounds.push(this.buildOutbound(hiddenHost, tag));
+        }
+
+        if (injectedOutbounds.length === 0) return null;
+
+        const config: XrayJsonConfig = {
+            ...template,
+            outbounds: [...injectedOutbounds, ...template.outbounds],
+            remarks: host.remark,
         };
 
-        settings.headers.Host = host.host;
-
-        if (host.additionalParams?.heartbeatPeriod) {
-            settings.heartbeatPeriod = host.additionalParams.heartbeatPeriod;
+        if (isHapp && host.serverDescription) {
+            config.meta = {
+                serverDescription: Buffer.from(host.serverDescription, 'base64').toString(),
+            };
         }
 
-        return settings;
-    }
-
-    private createHttpUpgradeSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, any> = {
-            path: host.path,
-            host: host.host,
-        };
-
-        return settings;
-    }
-
-    private createTcpSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, any> = {};
-
-        if (host.rawSettings && host.rawSettings.headerType === 'http') {
-            settings.header = { type: 'http' };
-            if (host.rawSettings.request) {
-                settings.header.request = host.rawSettings.request;
-            } else {
-                settings.header.request = {
-                    version: '1.1',
-                    method: 'GET',
-                    headers: {
-                        'Accept-Encoding': ['gzip', 'deflate'],
-                        Connection: ['keep-alive'],
-                        Pragma: 'no-cache',
-                    },
-                };
-            }
-
-            if (host.path) {
-                settings.header.request.path = [host.path];
-            }
-
-            settings.header.request.headers = settings.header.request.headers || {};
-            settings.header.request.headers.Host = [host.host];
-        }
-
-        return settings;
-    }
-
-    private createXHttpSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, any> = {
-            mode: host.additionalParams?.mode || 'auto',
-        };
-
-        settings.host = host.host;
-
-        if (host.path !== '') {
-            settings.path = host.path;
-        }
-
-        if (
-            host.xHttpExtraParams !== null &&
-            host.xHttpExtraParams !== undefined &&
-            Object.keys(host.xHttpExtraParams).length > 0
-        ) {
-            settings.extra = host.xHttpExtraParams;
-        }
-
-        return settings;
-    }
-
-    private createTlsSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, unknown> = {
-            serverName: host.sni || '',
-            allowInsecure: false,
-            show: false,
-        };
-
-        if (host.fingerprint !== '') {
-            settings.fingerprint = host.fingerprint;
-        }
-
-        if (host.alpn) {
-            settings.alpn = host.alpn.split(',');
-        }
-
-        if (host.allowInsecure) {
-            settings.allowInsecure = host.allowInsecure;
-        }
-
-        return settings;
-    }
-
-    private createRealitySettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, unknown> = {
-            serverName: host.sni,
-            show: false,
-        };
-
-        if (host.publicKey) {
-            settings.publicKey = host.publicKey;
-        }
-
-        if (host.mldsa65Verify) {
-            settings.mldsa65Verify = host.mldsa65Verify;
-        }
-
-        if (host.shortId) {
-            settings.shortId = host.shortId;
-        }
-
-        if (host.spiderX) {
-            settings.spiderX = host.spiderX;
-        }
-
-        if (host.fingerprint !== '') {
-            settings.fingerprint = host.fingerprint;
-        }
-
-        return settings;
-    }
-
-    private createGrpcSettings(host: IFormattedHost): Record<string, unknown> {
-        const settings: Record<string, unknown> = {
-            serviceName: host.path,
-            authority: host.host,
-            mode: host.additionalParams?.grpcMultiMode ? true : false,
-        };
-
-        return settings;
-    }
-
-    private renderConfigs(templateContent: XrayJsonConfig[]): string {
-        return JSON.stringify(templateContent, null, 0);
+        return config;
     }
 }

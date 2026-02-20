@@ -202,7 +202,11 @@ export class SubscriptionService {
             }
 
             const hosts = await this.queryBus.execute(
-                new GetHostsForUserQuery(user.response.tId, false, false),
+                new GetHostsForUserQuery(
+                    user.response.tId,
+                    false,
+                    srrContext.matchedResponseType === 'XRAY_JSON',
+                ),
             );
 
             if (!hosts.isOk) {
