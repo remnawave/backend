@@ -19,5 +19,8 @@ export const TEMPLATE_KEYS = [
     'LIFETIME_USED_BYTES',
     'CREATED_AT_UNIX',
     'LAST_TRAFFIC_RESET_AT_UNIX',
+    'SS_SUPPORT_LINK',
+    'SS_PROFILE_UPDATE_INTERVAL',
+    'SS_HWID_LIMIT',
 ] as const;
 export type TemplateKeys = (typeof TEMPLATE_KEYS)[number];

@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import { TemplateKeys } from '@libs/contracts/constants/templates/template-keys';
 import { USER_STATUSES_TEMPLATE } from '@libs/contracts/constants';
 
+import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { prettyBytesUtil } from '../bytes';
@@ -34,6 +35,7 @@ export class TemplateEngine {
     static formatWithUser(
         template: string,
         user: UserEntity,
+        subscriptionSettings: SubscriptionSettingsEntity,
         subPublicDomain: string,
         forHeader: boolean = false,
     ): string {
@@ -64,6 +66,13 @@ export class TemplateEngine {
             CREATED_AT_UNIX: () => dayjs(user.createdAt).unix(),
             LAST_TRAFFIC_RESET_AT_UNIX: () =>
                 user.lastTrafficResetAt ? dayjs(user.lastTrafficResetAt).unix() : 0,
+            SS_SUPPORT_LINK: () => subscriptionSettings.supportLink,
+            SS_PROFILE_UPDATE_INTERVAL: () => subscriptionSettings.profileUpdateInterval.toString(),
+            SS_HWID_LIMIT: () =>
+                (user.hwidDeviceLimit !== null
+                    ? user.hwidDeviceLimit
+                    : (subscriptionSettings.hwidSettings.fallbackDeviceLimit ?? 0)
+                ).toString(),
         });
     }
 }

@@ -167,6 +167,7 @@ export class SubscriptionService {
                             TemplateEngine.formatWithUser(
                                 subscriptionSettings.hwidSettings.maxDevicesAnnounce,
                                 user.response,
+                                subscriptionSettings,
                                 this.subPublicDomain,
                             ),
                         ).toString('base64')}`;
@@ -617,7 +618,12 @@ export class SubscriptionService {
             'content-disposition': `attachment; filename=${user.username}`,
             'support-url': settings.supportLink,
             'profile-title': `base64:${Buffer.from(
-                TemplateEngine.formatWithUser(settings.profileTitle, user, this.subPublicDomain),
+                TemplateEngine.formatWithUser(
+                    settings.profileTitle,
+                    user,
+                    settings,
+                    this.subPublicDomain,
+                ),
             ).toString('base64')}`,
             'profile-update-interval': settings.profileUpdateInterval.toString(),
             'subscription-userinfo': Object.entries(getSubscriptionUserInfo(user))
@@ -627,7 +633,12 @@ export class SubscriptionService {
 
         if (settings.happAnnounce) {
             headers.announce = `base64:${Buffer.from(
-                TemplateEngine.formatWithUser(settings.happAnnounce, user, this.subPublicDomain),
+                TemplateEngine.formatWithUser(
+                    settings.happAnnounce,
+                    user,
+                    settings,
+                    this.subPublicDomain,
+                ),
             ).toString('base64')}`;
         }
 
@@ -649,6 +660,7 @@ export class SubscriptionService {
                 headers[key] = TemplateEngine.formatWithUser(
                     value,
                     user,
+                    settings,
                     this.subPublicDomain,
                     true,
                 );

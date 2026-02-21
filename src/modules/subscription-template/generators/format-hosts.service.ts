@@ -78,7 +78,12 @@ export class FormatHostsService {
             if (fallbackOptions.showHwidMaxDeviceRemarks) {
                 return this.createFallbackHosts(
                     subscriptionSettings.customRemarks.HWIDMaxDevicesExceeded.map((remark) =>
-                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                        TemplateEngine.formatWithUser(
+                            remark,
+                            user,
+                            subscriptionSettings,
+                            this.subPublicDomain,
+                        ),
                     ),
                 );
             }
@@ -86,7 +91,12 @@ export class FormatHostsService {
             if (fallbackOptions.showHwidNotSupportedRemarks) {
                 return this.createFallbackHosts(
                     subscriptionSettings.customRemarks.HWIDNotSupported.map((remark) =>
-                        TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                        TemplateEngine.formatWithUser(
+                            remark,
+                            user,
+                            subscriptionSettings,
+                            this.subPublicDomain,
+                        ),
                     ),
                 );
             }
@@ -109,7 +119,12 @@ export class FormatHostsService {
                 }
 
                 const templatedRemarks = specialRemarks.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    TemplateEngine.formatWithUser(
+                        remark,
+                        user,
+                        subscriptionSettings,
+                        this.subPublicDomain,
+                    ),
                 );
 
                 return this.createFallbackHosts(templatedRemarks);
@@ -119,7 +134,12 @@ export class FormatHostsService {
         if (hosts.length === 0) {
             return this.createFallbackHosts(
                 subscriptionSettings.customRemarks.emptyHosts.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
+                    TemplateEngine.formatWithUser(
+                        remark,
+                        user,
+                        subscriptionSettings,
+                        this.subPublicDomain,
+                    ),
                 ),
             );
         }
@@ -154,6 +174,7 @@ export class FormatHostsService {
             const remark = TemplateEngine.formatWithUser(
                 inputHost.remark,
                 user,
+                subscriptionSettings,
                 this.subPublicDomain,
             );
 
