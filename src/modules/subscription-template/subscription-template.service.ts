@@ -8,6 +8,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS, TSubscriptionTemplateType } from '@libs/contracts/constants';
+import { RemnawaveInjectorSchema } from '@libs/contracts/models';
 
 import {
     DEFAULT_TEMPLATE_CLASH,
@@ -95,6 +96,21 @@ export class SubscriptionTemplateService {
 
             if (encodedTemplateYaml !== undefined && templateJson !== undefined) {
                 return fail(ERRORS.TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY);
+            }
+
+            if (isJsonTemplate) {
+                if (
+                    templateJson &&
+                    typeof templateJson === 'object' &&
+                    'remnawave' in templateJson
+                ) {
+                    const remnawaveInjector = await RemnawaveInjectorSchema.safeParseAsync(
+                        templateJson.remnawave,
+                    );
+                    if (!remnawaveInjector.success) {
+                        return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
+                    }
+                }
             }
 
             const updatedTemplate = await this.subscriptionTemplateRepository.update({

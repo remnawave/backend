@@ -1,3 +1,5 @@
+import type { TRemnawaveInjectorSelector } from '@libs/contracts/models';
+
 import { Injectable, Logger } from '@nestjs/common';
 
 import {
@@ -290,6 +292,56 @@ export class XrayJsonGeneratorService {
         return streamSettings;
     }
 
+    private buildTaggedOutbounds(hosts: IFormattedHost[], tagPrefix: string): Outbound[] {
+        return hosts.map((h, i) =>
+            this.buildOutbound(h, i === 0 ? tagPrefix : `${tagPrefix}-${i + 1}`),
+        );
+    }
+
+    private parseRegex(pattern: string): RegExp | null {
+        try {
+            return new RegExp(pattern);
+        } catch {
+            this.logger.error(`Invalid regex pattern for injectHosts entry: ${pattern}`);
+            return null;
+        }
+    }
+
+    private resolveHosts(
+        selector: TRemnawaveInjectorSelector,
+        host: IFormattedHost,
+        allHosts: IFormattedHost[],
+    ): IFormattedHost[] {
+        const hidden = allHosts.filter((h) => h.serviceInfo.isHidden);
+
+        switch (selector.type) {
+            case 'uuids':
+                return selector.values
+                    .map((uuid) => hidden.find((h) => h.serviceInfo.uuid === uuid))
+                    .filter(Boolean) as IFormattedHost[];
+
+            case 'remarkRegex': {
+                const regex = this.parseRegex(selector.pattern);
+                if (!regex) return [];
+                return hidden.filter((h) => regex.test(h.remark));
+            }
+
+            case 'sameTagAsRecipient':
+                return hidden.filter(
+                    (h) =>
+                        h.serviceInfo.tag &&
+                        host.serviceInfo.tag &&
+                        h.serviceInfo.tag === host.serviceInfo.tag,
+                );
+
+            case 'tagRegex': {
+                const regex = this.parseRegex(selector.pattern);
+                if (!regex) return [];
+                return hidden.filter((h) => h.serviceInfo.tag && regex.test(h.serviceInfo.tag));
+            }
+        }
+    }
+
     private applyRemnawaveInjector(
         baseTemplate: XrayJsonConfig,
         host: IFormattedHost,
@@ -299,20 +351,10 @@ export class XrayJsonGeneratorService {
         const { remnawave: injector, ...template } = baseTemplate;
         if (!injector?.injectHosts?.length) return null;
 
-        const injectedOutbounds: Outbound[] = [];
-
-        for (const entry of injector.injectHosts) {
-            for (const [index, uuid] of entry.hostUuids.entries()) {
-                const hiddenHost = allHosts.find(
-                    (h) => h.serviceInfo.uuid === uuid && h.serviceInfo.isHidden,
-                );
-                if (!hiddenHost) continue;
-
-                const tag = index === 0 ? entry.tagPrefix : `${entry.tagPrefix}-${index + 1}`;
-
-                injectedOutbounds.push(this.buildOutbound(hiddenHost, tag));
-            }
-        }
+        const injectedOutbounds = injector.injectHosts.flatMap((entry) => {
+            const hosts = this.resolveHosts(entry.selector, host, allHosts);
+            return this.buildTaggedOutbounds(hosts, entry.tagPrefix);
+        });
 
         if (injectedOutbounds.length === 0) return null;
 

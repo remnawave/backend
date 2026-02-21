@@ -28,3 +28,4 @@ export * from './subscription-template.schema';
 export * from './tanstack-query';
 export * from './users.schema';
 export * from './webhook';
+export * from './xray-json-advanced';

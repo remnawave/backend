@@ -1084,4 +1084,9 @@ export const ERRORS = {
         message: 'Invalid subscription page config',
         httpCode: 400,
     },
+    INVALID_REMNAWAVE_INJECTOR: {
+        code: 'A216',
+        message: 'Invalid Remnawave injector',
+        httpCode: 400,
+    },
 } as const;

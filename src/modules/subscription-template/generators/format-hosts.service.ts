@@ -479,6 +479,7 @@ export class FormatHostsService {
                 serviceInfo: {
                     uuid: inputHost.uuid,
                     isHidden: inputHost.isHidden,
+                    tag: inputHost.tag,
                 },
             });
         }
@@ -510,6 +511,7 @@ export class FormatHostsService {
             serviceInfo: {
                 uuid: '00000000-0000-0000-0000-000000000000',
                 isHidden: false,
+                tag: null,
             },
         }));
     }

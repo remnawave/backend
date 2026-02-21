@@ -46,5 +46,6 @@ export interface IFormattedHost {
     serviceInfo: {
         uuid: string;
         isHidden: boolean;
+        tag: string | null;
     };
 }
