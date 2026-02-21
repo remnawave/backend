@@ -98,17 +98,29 @@ export class SubscriptionTemplateService {
                 return fail(ERRORS.TEMPLATE_JSON_AND_YAML_CANNOT_BE_UPDATED_SIMULTANEOUSLY);
             }
 
-            if (isJsonTemplate) {
-                if (
-                    templateJson &&
-                    typeof templateJson === 'object' &&
-                    'remnawave' in templateJson
-                ) {
-                    const remnawaveInjector = await RemnawaveInjectorSchema.safeParseAsync(
-                        templateJson.remnawave,
-                    );
-                    if (!remnawaveInjector.success) {
-                        return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
+            if (
+                isJsonTemplate &&
+                templateJson &&
+                typeof templateJson === 'object' &&
+                'remnawave' in templateJson
+            ) {
+                const result = await RemnawaveInjectorSchema.safeParseAsync(templateJson.remnawave);
+                if (!result.success) {
+                    return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
+                }
+                for (const { selector } of result.data?.injectHosts ?? []) {
+                    if (
+                        (selector.type === 'remarkRegex' || selector.type === 'tagRegex') &&
+                        typeof selector.pattern === 'string'
+                    ) {
+                        try {
+                            new RegExp(selector.pattern);
+                        } catch (error: unknown) {
+                            this.logger.error(
+                                `Invalid regex pattern for injectHosts entry: ${selector.pattern}, ${(error as Error).message}`,
+                            );
+                            return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
+                        }
                     }
                 }
             }
