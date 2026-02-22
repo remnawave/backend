@@ -10,11 +10,17 @@ import { ERRORS } from '@libs/contracts/constants';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 
+import { NodesQueuesService } from '@queue/_nodes';
+
 import {
     IGetLegacyStatsNodesUsersUsage,
     IGetLegacyStatsUserUsage,
     IGetNodesRealtimeUsage,
 } from './interfaces';
+import {
+    CreateUserIpsJobResponseModel,
+    GetUserIpsResultResponseModel,
+} from './models/get-user-ips.response.model';
 import { NodesUserUsageHistoryRepository } from './repositories/nodes-user-usage-history.repository';
 import { GetStatsNodesUsersUsageResponseModel, GetStatsUserUsageResponseModel } from './models';
 
@@ -24,6 +30,7 @@ export class NodesUserUsageHistoryService {
     constructor(
         private readonly nodeUserUsageHistoryRepository: NodesUserUsageHistoryRepository,
         private readonly queryBus: QueryBus,
+        private readonly nodesQueuesService: NodesQueuesService,
     ) {}
 
     /**
@@ -180,6 +187,47 @@ export class NodesUserUsageHistoryService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GET_USER_USAGE_BY_RANGE_ERROR);
+        }
+    }
+
+    public async createUserIpsJob(
+        userUuid: string,
+    ): Promise<TResult<CreateUserIpsJobResponseModel>> {
+        try {
+            const user = await this.queryBus.execute(
+                new GetUserByUniqueFieldQuery({ uuid: userUuid }),
+            );
+            if (!user.isOk) {
+                return fail(ERRORS.USER_NOT_FOUND);
+            }
+
+            const result = await this.nodesQueuesService.queryNodes({
+                userId: user.response.tId.toString(),
+                userUuid: userUuid,
+            });
+
+            if (!result) {
+                return fail(ERRORS.JOB_CREATION_FAILED);
+            }
+
+            return ok(new CreateUserIpsJobResponseModel({ jobId: result.jobId }));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.JOB_CREATION_FAILED);
+        }
+    }
+
+    public async getUserIpsResult(jobId: string): Promise<TResult<GetUserIpsResultResponseModel>> {
+        try {
+            const result = await this.nodesQueuesService.getIpsListResult(jobId);
+            if (!result) {
+                return fail(ERRORS.JOB_RESULT_FETCH_FAILED);
+            }
+
+            return ok(new GetUserIpsResultResponseModel(result));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.JOB_RESULT_FETCH_FAILED);
         }
     }
 }

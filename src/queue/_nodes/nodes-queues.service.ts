@@ -10,6 +10,8 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 import {
     IAddUsersToNodePayload,
     IAddUserToNodePayload,
+    IGetIpsListProgress,
+    IGetIpsListResult,
     INodeHealthCheckPayload,
     IRecordNodeUsagePayload,
     IRecordUserUsagePayload,
@@ -35,6 +37,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         @InjectQueue(QUEUES_NAMES.NODES.RECORD_NODE_USAGE)
         private readonly recordNodeUsageQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.BULK_USERS) private readonly nodeBulkUsersQueue: Queue,
+        @InjectQueue(QUEUES_NAMES.NODES.QUERY_NODES) private readonly queryNodesQueue: Queue,
     ) {}
 
     get queues() {
@@ -48,6 +51,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             recordUserUsage: this.recordUserUsageQueue,
             recordNodeUsage: this.recordNodeUsageQueue,
             nodeBulkUsers: this.nodeBulkUsersQueue,
+            queryNodes: this.queryNodesQueue,
         } as const;
     }
 
@@ -199,5 +203,55 @@ export class NodesQueuesService implements OnApplicationBootstrap {
                 };
             }),
         );
+    }
+
+    public async queryNodes(payload: {
+        userId: string;
+        userUuid: string;
+    }): Promise<{ jobId: string } | null> {
+        const result = await this.queryNodesQueue.add(NODES_JOB_NAMES.FETCH_IPS_LIST, payload, {
+            removeOnComplete: {
+                age: 24 * 3_600,
+            },
+            removeOnFail: {
+                age: 24 * 3_600,
+            },
+        });
+
+        if (!result || !result.id) {
+            return null;
+        }
+
+        return { jobId: result.id };
+    }
+
+    public async getIpsListResult(jobId: string): Promise<IGetIpsListResult | null> {
+        const job = await this.queryNodesQueue.getJob(jobId);
+        if (!job) {
+            return null;
+        }
+
+        const state = await job.getState();
+        const isCompleted = state === 'completed';
+        const isFailed = state === 'failed';
+
+        let progress: IGetIpsListProgress = {
+            total: 0,
+            completed: 0,
+            percent: 0,
+        };
+
+        if (typeof job.progress === 'number' && job.progress === 0) {
+            progress.percent = job.progress;
+        } else {
+            progress = job.progress as IGetIpsListProgress;
+        }
+
+        return {
+            isCompleted,
+            isFailed,
+            progress,
+            result: isCompleted ? job.returnvalue : null,
+        };
     }
 }

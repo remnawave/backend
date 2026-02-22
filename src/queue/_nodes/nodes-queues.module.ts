@@ -13,6 +13,7 @@ import {
     StartAllNodesQueueProcessor,
     RecordUserUsageQueueProcessor,
     RecordNodeUsageQueueProcessor,
+    QueryNodesQueueProcessor,
 } from './processors';
 import { NodesQueuesService } from './nodes-queues.service';
 
@@ -29,6 +30,7 @@ const queues = [
     { name: QUEUES_NAMES.NODES.START_ALL_NODES, processor: StartAllNodesQueueProcessor },
     { name: QUEUES_NAMES.NODES.RECORD_USER_USAGE, processor: RecordUserUsageQueueProcessor },
     { name: QUEUES_NAMES.NODES.RECORD_NODE_USAGE, processor: RecordNodeUsageQueueProcessor },
+    { name: QUEUES_NAMES.NODES.QUERY_NODES, processor: QueryNodesQueueProcessor },
 ];
 
 export const NodesQueuesModule = createDomainQueueModule({

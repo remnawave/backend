@@ -1089,4 +1089,14 @@ export const ERRORS = {
         message: 'Invalid Remnawave injector',
         httpCode: 400,
     },
+    JOB_CREATION_FAILED: {
+        code: 'A217',
+        message: 'Job creation failed',
+        httpCode: 500,
+    },
+    JOB_RESULT_FETCH_FAILED: {
+        code: 'A218',
+        message: 'Job result fetch failed or job not found',
+        httpCode: 404,
+    },
 } as const;
