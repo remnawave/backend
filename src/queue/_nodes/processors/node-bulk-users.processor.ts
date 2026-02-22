@@ -7,7 +7,12 @@ import { AxiosService } from '@common/axios';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
-import { IAddUsersToNodePayload, IRemoveUsersFromNodePayload } from '../interfaces';
+import {
+    IAddUsersToNodePayload,
+    IDropIpsConnectionsPayload,
+    IDropUsersConnectionsPayload,
+    IRemoveUsersFromNodePayload,
+} from '../interfaces';
 import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 
 @Processor(QUEUES_NAMES.NODES.BULK_USERS, {
@@ -26,6 +31,10 @@ export class NodeBulkUsersQueueProcessor extends WorkerHost {
                 return await this.handleAddUsersToNode(job);
             case NODES_JOB_NAMES.REMOVE_USERS_FROM_NODE:
                 return await this.handleRemoveUsersFromNode(job);
+            case NODES_JOB_NAMES.DROP_USERS_CONNECTIONS:
+                return await this.handleDropUsersConnections(job);
+            case NODES_JOB_NAMES.DROP_IPS_CONNECTIONS:
+                return await this.handleDropIpsConnections(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -69,6 +78,44 @@ export class NodeBulkUsersQueueProcessor extends WorkerHost {
                 `Error handling "${NODES_JOB_NAMES.REMOVE_USERS_FROM_NODE}" job: ${error}`,
             );
             return;
+        }
+    }
+
+    private async handleDropUsersConnections(job: Job<IDropUsersConnectionsPayload>) {
+        try {
+            const { data, node } = job.data;
+            const result = await this.axios.dropUsersConnections(data, node.address, node.port);
+
+            if (!result.isOk) {
+                this.logger.error(
+                    `Failed to drop users connections from Node ${node.address}:${node.port}: ${result.message}`,
+                );
+            }
+
+            return result;
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${NODES_JOB_NAMES.DROP_USERS_CONNECTIONS}" job: ${error}`,
+            );
+        }
+    }
+
+    private async handleDropIpsConnections(job: Job<IDropIpsConnectionsPayload>) {
+        try {
+            const { data, node } = job.data;
+            const result = await this.axios.dropIpsConnections(data, node.address, node.port);
+
+            if (!result.isOk) {
+                this.logger.error(
+                    `Failed to drop ips connections from Node ${node.address}:${node.port}: ${result.message}`,
+                );
+            }
+
+            return result;
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${NODES_JOB_NAMES.DROP_IPS_CONNECTIONS}" job: ${error}`,
+            );
         }
     }
 }

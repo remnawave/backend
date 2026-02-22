@@ -20,6 +20,7 @@ import { InternalSquadModule } from './internal-squads/internal-squad.module';
 import { InfraBillingModule } from './infra-billing/infra-billing.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { ApiTokensModule } from './api-tokens/api-tokens.module';
+import { IpControlModule } from './ip-control/ip-control.module';
 import { KeygenModule } from './keygen/keygen.module';
 import { SystemModule } from './system/system.module';
 import { HostsModule } from './hosts/hosts.module';
@@ -54,6 +55,7 @@ import { AuthModule } from './auth/auth.module';
         ConditionalModule.registerWhen(SubscriptionTemplateModule, () => isRestApi()),
         ConditionalModule.registerWhen(SubscriptionSettingsModule, () => isRestApi()),
         ConditionalModule.registerWhen(RemnawaveServiceModule, () => isScheduler()),
+        ConditionalModule.registerWhen(IpControlModule, () => isRestApi()),
     ],
 })
 export class RemnawaveModules {}

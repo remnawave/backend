@@ -2,14 +2,11 @@ export const BANDWIDTH_STATS_CONTROLLER = 'bandwidth-stats' as const;
 
 export const BANDWIDTH_STATS_NODES_ROUTE = 'nodes' as const;
 export const BANDWIDTH_STATS_USERS_ROUTE = 'users' as const;
-export const BANDWIDTH_STATS_USER_IPS_ROUTE = 'user-ips' as const;
 
 export const BANDWIDTH_STATS_NODES_CONTROLLER =
     `${BANDWIDTH_STATS_CONTROLLER}/${BANDWIDTH_STATS_NODES_ROUTE}` as const;
 export const BANDWIDTH_STATS_USERS_CONTROLLER =
     `${BANDWIDTH_STATS_CONTROLLER}/${BANDWIDTH_STATS_USERS_ROUTE}` as const;
-export const BANDWIDTH_STATS_USER_IPS_CONTROLLER =
-    `${BANDWIDTH_STATS_CONTROLLER}/${BANDWIDTH_STATS_USER_IPS_ROUTE}` as const;
 
 // Variants:
 // 1. Nodes -> Metrics
@@ -28,12 +25,6 @@ export const BANDWIDTH_STATS_ROUTES = {
     USERS: {
         // GET /bandwidth-stats/users/:userUuid –– Users -> User -> Show Usage
         GET_BY_UUID: (uuid: string) => `${uuid}`,
-    },
-    USER_IPS: {
-        // POST /bandwidth-stats/user-ips/:userUuid — create job
-        CREATE: (uuid: string) => `${uuid}`,
-        // GET /bandwidth-stats/user-ips/result/:jobId — get job result
-        GET_RESULT: (jobId: string) => `result/${jobId}`,
     },
     LEGACY: {
         NODES: {

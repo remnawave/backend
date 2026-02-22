@@ -4,7 +4,7 @@ import {
     IGetIpsListResult,
 } from '@queue/_nodes/interfaces';
 
-export class CreateUserIpsJobResponseModel {
+export class FetchIpsResponseModel {
     public readonly jobId: string;
 
     constructor(data: { jobId: string }) {
@@ -12,7 +12,7 @@ export class CreateUserIpsJobResponseModel {
     }
 }
 
-export class GetUserIpsResultResponseModel {
+export class FetchIpsResultResponseModel {
     public readonly isCompleted: boolean;
     public readonly isFailed: boolean;
     public readonly progress: IGetIpsListProgress;

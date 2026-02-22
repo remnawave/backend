@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
-import { BANDWIDTH_STATS_ROUTES, REST_API } from '../../../api';
-import { getEndpointDetails } from '../../../constants';
+import { IP_CONTROL_ROUTES, REST_API } from '../../api';
+import { getEndpointDetails } from '../../constants';
 
-export namespace CreateUserIpsJobCommand {
-    export const url = REST_API.BANDWIDTH_STATS.USER_IPS.CREATE;
+export namespace FetchIpsCommand {
+    export const url = REST_API.IP_CONTROL.FETCH_IPS;
     export const TSQ_url = url(':uuid');
 
     export const endpointDetails = getEndpointDetails(
-        BANDWIDTH_STATS_ROUTES.USER_IPS.CREATE(':uuid'),
+        IP_CONTROL_ROUTES.FETCH_IPS(':uuid'),
         'post',
-        'Request User IP List',
+        'Request IP List for User',
     );
 
     export const RequestSchema = z.object({

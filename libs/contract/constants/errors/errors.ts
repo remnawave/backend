@@ -1099,4 +1099,9 @@ export const ERRORS = {
         message: 'Job result fetch failed or job not found',
         httpCode: 404,
     },
+    CONNECTED_NODES_NOT_FOUND: {
+        code: 'A219',
+        message: 'Connected nodes not found',
+        httpCode: 404,
+    },
 } as const;

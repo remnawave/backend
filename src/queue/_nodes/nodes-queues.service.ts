@@ -10,6 +10,8 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 import {
     IAddUsersToNodePayload,
     IAddUserToNodePayload,
+    IDropIpsConnectionsPayload,
+    IDropUsersConnectionsPayload,
     IGetIpsListProgress,
     IGetIpsListResult,
     INodeHealthCheckPayload,
@@ -253,5 +255,13 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             progress,
             result: isCompleted ? job.returnvalue : null,
         };
+    }
+
+    public async dropUsersConnections(payload: IDropUsersConnectionsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_USERS_CONNECTIONS, payload);
+    }
+
+    public async dropIpsConnections(payload: IDropIpsConnectionsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_IPS_CONNECTIONS, payload);
     }
 }
