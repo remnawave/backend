@@ -207,7 +207,7 @@ export class SystemService implements OnApplicationBootstrap {
                 if (process.pm2_env) {
                     if ('INSTANCE_ID' in process.pm2_env) {
                         stats.set(`${process.name}-${process.pm2_env.INSTANCE_ID}`, {
-                            memory: prettyBytesUtil(process.monit?.memory || 0),
+                            memory: process.monit?.memory?.toString() || '0',
                             cpu: process.monit?.cpu?.toString() || '0',
                             name: `${instanceType[process.name || 'unknown'] || process.name}-${process.pm2_env.INSTANCE_ID || '0'}`,
                         });
