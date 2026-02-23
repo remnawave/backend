@@ -1,4 +1,7 @@
-import type { TRemnawaveInjectorSelector } from '@libs/contracts/models';
+import type {
+    TRemnawaveInjectorSelectFrom,
+    TRemnawaveInjectorSelector,
+} from '@libs/contracts/models';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -309,25 +312,38 @@ export class XrayJsonGeneratorService {
 
     private resolveHosts(
         selector: TRemnawaveInjectorSelector,
+        selectFrom: TRemnawaveInjectorSelectFrom,
         host: IFormattedHost,
         allHosts: IFormattedHost[],
     ): IFormattedHost[] {
-        const hidden = allHosts.filter((h) => h.serviceInfo.isHidden);
+        const source = selectFrom ?? 'HIDDEN';
+        let candidates: IFormattedHost[] = [];
+        switch (source) {
+            case 'ALL':
+                candidates = allHosts;
+                break;
+            case 'HIDDEN':
+                candidates = allHosts.filter((h) => h.serviceInfo.isHidden);
+                break;
+            case 'NOT_HIDDEN':
+                candidates = allHosts.filter((h) => !h.serviceInfo.isHidden);
+                break;
+        }
 
         switch (selector.type) {
             case 'uuids':
                 return selector.values
-                    .map((uuid) => hidden.find((h) => h.serviceInfo.uuid === uuid))
+                    .map((uuid) => candidates.find((h) => h.serviceInfo.uuid === uuid))
                     .filter(Boolean) as IFormattedHost[];
 
             case 'remarkRegex': {
                 const regex = this.parseRegex(selector.pattern);
                 if (!regex) return [];
-                return hidden.filter((h) => regex.test(h.remark));
+                return candidates.filter((h) => regex.test(h.remark));
             }
 
             case 'sameTagAsRecipient':
-                return hidden.filter(
+                return candidates.filter(
                     (h) =>
                         h.serviceInfo.tag &&
                         host.serviceInfo.tag &&
@@ -337,7 +353,7 @@ export class XrayJsonGeneratorService {
             case 'tagRegex': {
                 const regex = this.parseRegex(selector.pattern);
                 if (!regex) return [];
-                return hidden.filter((h) => h.serviceInfo.tag && regex.test(h.serviceInfo.tag));
+                return candidates.filter((h) => h.serviceInfo.tag && regex.test(h.serviceInfo.tag));
             }
         }
     }
@@ -352,7 +368,7 @@ export class XrayJsonGeneratorService {
         if (!injector?.injectHosts?.length) return null;
 
         const injectedOutbounds = injector.injectHosts.flatMap((entry) => {
-            const hosts = this.resolveHosts(entry.selector, host, allHosts);
+            const hosts = this.resolveHosts(entry.selector, entry.selectFrom, host, allHosts);
             return this.buildTaggedOutbounds(hosts, entry.tagPrefix);
         });
 
