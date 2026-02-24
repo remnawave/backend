@@ -1,6 +1,7 @@
 export * from './node-bulk-users.processor';
 export * from './node-health-check.processor';
 export * from './node-users.processor';
+export * from './query-nodes.processor';
 export * from './record-node-usage.processor';
 export * from './record-user-usage.processor';
 export * from './start-all-nodes-by-profile.processor';

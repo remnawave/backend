@@ -42,6 +42,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Bandwidth Stats Controller',
         description: '',
     },
+    IP_CONTROL: {
+        tag: 'IP Management Controller',
+        description: 'Management of IP addresses and connections.',
+    },
     CONFIG_PROFILES: {
         tag: 'Config Profiles Controller',
         description: 'Management of Config Profiles.',

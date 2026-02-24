@@ -11,4 +11,5 @@ export const SUBSCRIPTIONS_ROUTES = {
     SUBPAGE: {
         GET_CONFIG: (shortUuid: string) => `subpage-config/${shortUuid}`,
     },
+    GET_CONNECTION_KEYS_BY_UUID: (uuid: string) => `connection-keys/${uuid}`,
 } as const;

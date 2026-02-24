@@ -10,9 +10,12 @@ import { CommandBus } from '@nestjs/cqrs';
 import {
     AddUserCommand,
     AddUsersCommand,
+    DropIpsCommand,
+    DropUsersConnectionsCommand,
     GetCombinedStatsCommand,
     GetNodeHealthCheckCommand,
     GetSystemStatsCommand,
+    GetUserIpListCommand,
     GetUsersStatsCommand,
     RemoveUserCommand,
     RemoveUsersCommand,
@@ -215,6 +218,38 @@ export class AxiosService {
                 return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in getUsersStats:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async getIpsList(
+        data: GetUserIpListCommand.Request,
+        url: string,
+        port: null | number,
+    ): Promise<TResult<GetUserIpListCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, GetUserIpListCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<GetUserIpListCommand.Response>(
+                nodeUrl,
+                data,
+                {
+                    timeout: 5_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in getIpsList:', error);
 
                 return fail(
                     ERRORS.NODE_ERROR_WITH_MSG.withMessage(
@@ -436,6 +471,70 @@ export class AxiosService {
             }
 
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async dropUsersConnections(
+        data: DropUsersConnectionsCommand.Request,
+        address: string,
+        port: null | number,
+    ): Promise<TResult<DropUsersConnectionsCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(address, DropUsersConnectionsCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<DropUsersConnectionsCommand.Response>(
+                nodeUrl,
+                data,
+                {
+                    timeout: 10_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios dropUsersConnections request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in dropUsersConnections:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async dropIpsConnections(
+        data: DropIpsCommand.Request,
+        address: string,
+        port: null | number,
+    ): Promise<TResult<DropIpsCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(address, DropIpsCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<DropIpsCommand.Response>(nodeUrl, data, {
+                timeout: 10_000,
+            });
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios dropIpsConnections request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in dropIpsConnections:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
         }
     }
 

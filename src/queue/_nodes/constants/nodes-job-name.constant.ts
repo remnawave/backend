@@ -10,4 +10,7 @@ export const NODES_JOB_NAMES = {
     START_ALL_NODES: 'startAllNodes',
     RECORD_USER_USAGE: 'recordUserUsage',
     RECORD_NODE_USAGE: 'recordNodeUsage',
+    FETCH_IPS_LIST: 'fetchIpsList',
+    DROP_USERS_CONNECTIONS: 'dropUsersConnections',
+    DROP_IPS_CONNECTIONS: 'dropIpsConnections',
 } as const;

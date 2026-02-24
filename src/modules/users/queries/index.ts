@@ -1,8 +1,8 @@
 import { GetUsersWithResolvedInboundsHandler } from './get-users-with-resolved-inbounds';
 import { GetUserWithResolvedInboundsHandler } from './get-user-with-resolved-inbounds';
 import { GetPreparedConfigWithUsersHandler } from './get-prepared-config-with-users';
-import { GetCachedShortUuidRangeHandler } from './get-cached-short-uuid-range';
 import { GetUsersWithPaginationHandler } from './get-users-with-pagination';
+import { GetUserIdsByUserUuidsHandler } from './get-user-ids-by-user-uuids';
 import { GetUserByUniqueFieldHandler } from './get-user-by-unique-field';
 import { GetNotConnectedUsersHandler } from './get-not-connected-users';
 import { GetUserSubpageConfigHandler } from './get-user-subpage-config';
@@ -17,7 +17,7 @@ export const QUERIES = [
     GetUsersByExpireAtHandler,
     GetUsersWithPaginationHandler,
     GetNotConnectedUsersHandler,
-    GetCachedShortUuidRangeHandler,
     GetUserSubpageConfigHandler,
     GetUsersWithResolvedInboundsHandler,
+    GetUserIdsByUserUuidsHandler,
 ];

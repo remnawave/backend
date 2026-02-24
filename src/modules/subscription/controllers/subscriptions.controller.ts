@@ -29,6 +29,7 @@ import { IpAddress } from '@common/decorators/get-ip';
 import { RolesGuard } from '@common/guards/roles';
 import {
     GetAllSubscriptionsCommand,
+    GetConnectionKeysByUuidCommand,
     GetRawSubscriptionByShortUuidCommand,
     GetSubscriptionByShortUuidProtectedCommand,
     GetSubscriptionByUsernameCommand,
@@ -41,6 +42,8 @@ import { ROLE } from '@libs/contracts/constants';
 import {
     GetAllSubscriptionsQueryDto,
     GetAllSubscriptionsResponseDto,
+    GetConnectionKeysByUuidRequestDto,
+    GetConnectionKeysByUuidResponseDto,
     GetRawSubscriptionByShortUuidRequestDto,
     GetRawSubscriptionByShortUuidRequestQueryDto,
     GetRawSubscriptionByShortUuidResponseDto,
@@ -308,6 +311,31 @@ export class SubscriptionsController {
             shortUuid,
             body.requestHeaders,
         );
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetConnectionKeysByUuidResponseDto,
+        description: 'Connection keys fetched successfully',
+    })
+    @ApiParam({
+        name: 'uuid',
+        type: String,
+        description: 'UUID of the user',
+        required: true,
+    })
+    @Endpoint({
+        command: GetConnectionKeysByUuidCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getConnectionKeysByUuid(
+        @Param() paramData: GetConnectionKeysByUuidRequestDto,
+    ): Promise<GetConnectionKeysByUuidResponseDto> {
+        const { uuid } = paramData;
+        const result = await this.subscriptionService.getConnectionKeysByUuid(uuid);
         const data = errorHandler(result);
         return {
             response: data,

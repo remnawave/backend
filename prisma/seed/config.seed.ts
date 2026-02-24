@@ -185,7 +185,7 @@ export const ResponseRulesDefaultConfig = {
     ],
 };
 
-export const PreviousResponseRulesConfigHash =
+export const PREVIOUS_RESPONSE_RULES_CONFIG_HASH =
     '0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4';
 
 const prisma = new PrismaClient({
@@ -458,11 +458,11 @@ async function seedResponseRules() {
 
     consola.info('Existing SRR hash:', hash(existingConfig.responseRules));
     consola.info('Default SRR hash:', hash(ResponseRulesDefaultConfig));
-    consola.info('Previous SRR hash:', PreviousResponseRulesConfigHash);
+    consola.info('Previous SRR hash:', PREVIOUS_RESPONSE_RULES_CONFIG_HASH);
 
-    if (PreviousResponseRulesConfigHash === hash(existingConfig.responseRules)) {
+    if (PREVIOUS_RESPONSE_RULES_CONFIG_HASH === hash(existingConfig.responseRules)) {
         consola.info('User have old default response rules... is default one is newer?');
-        if (PreviousResponseRulesConfigHash !== hash(ResponseRulesDefaultConfig)) {
+        if (PREVIOUS_RESPONSE_RULES_CONFIG_HASH !== hash(ResponseRulesDefaultConfig)) {
             consola.info(
                 'Default response rules have been changed... updating to new default response rules...',
             );

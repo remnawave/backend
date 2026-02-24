@@ -91,7 +91,12 @@ export class SubscriptionController {
             return response.status(200).send(result);
         }
 
-        return response.set(result.headers).type(result.contentType).send(result.body);
+        response.set({
+            ...result.headers,
+            ...srrContext.headersToApply,
+        });
+
+        return response.type(result.contentType).send(result.body);
     }
 
     @ApiParam({
@@ -127,7 +132,12 @@ export class SubscriptionController {
             return response.status(200).send(result);
         }
 
-        return response.set(result.headers).type(result.contentType).send(result.body);
+        response.set({
+            ...result.headers,
+            ...srrContext.headersToApply,
+        });
+
+        return response.type(result.contentType).send(result.body);
     }
 
     @ApiParam({

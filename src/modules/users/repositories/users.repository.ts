@@ -277,6 +277,15 @@ export class UsersRepository {
                     continue;
                 }
 
+                if (filter.id === 'vlessUuid') {
+                    whereBuilder = whereBuilder.where(
+                        sql`"vless_uuid"::text`,
+                        'ilike',
+                        `%${filter.value}%`,
+                    );
+                    continue;
+                }
+
                 if (filter.id === 'externalSquadUuid') {
                     whereBuilder = whereBuilder.where(
                         'externalSquadUuid',
@@ -412,6 +421,15 @@ export class UsersRepository {
                     if (filter.id === 'uuid') {
                         countBuilder = countBuilder.where(
                             sql`"uuid"::text`,
+                            'ilike',
+                            `%${filter.value}%`,
+                        );
+                        continue;
+                    }
+
+                    if (filter.id === 'vlessUuid') {
+                        countBuilder = countBuilder.where(
+                            sql`"vless_uuid"::text`,
                             'ilike',
                             `%${filter.value}%`,
                         );
@@ -1150,6 +1168,7 @@ export class UsersRepository {
             | 'shortUuid'
             | 'subLastOpenedAt'
             | 'subLastUserAgent'
+            | 'updatedAt'
         >,
     ): Promise<boolean> {
         const result = await this.qb.kysely
@@ -1162,6 +1181,7 @@ export class UsersRepository {
                 shortUuid: dto.shortUuid,
                 subLastOpenedAt: dto.subLastOpenedAt,
                 subLastUserAgent: dto.subLastUserAgent,
+                updatedAt: dto.updatedAt,
             })
             .where('uuid', '=', getKyselyUuid(dto.uuid))
             .executeTakeFirst();
@@ -1390,29 +1410,6 @@ export class UsersRepository {
             .execute();
 
         return result.map((value) => new UserEntity(value));
-    }
-
-    public async getShortUuidRange(): Promise<{
-        min: number;
-        max: number;
-    }> {
-        const result = await this.qb.kysely
-            .selectFrom('users')
-            .select(sql.raw<number>('COALESCE(MIN(LENGTH(short_uuid)), 0)').as('minLength'))
-            .select(sql.raw<number>('COALESCE(MAX(LENGTH(short_uuid)), 0)').as('maxLength'))
-            .executeTakeFirst();
-
-        if (result === undefined) {
-            return {
-                min: 0,
-                max: 0,
-            };
-        }
-
-        return {
-            min: Number(result.minLength),
-            max: Number(result.maxLength),
-        };
     }
 
     public async getUserSubpageConfigUuid(shortUuid: string): Promise<string | null> {
