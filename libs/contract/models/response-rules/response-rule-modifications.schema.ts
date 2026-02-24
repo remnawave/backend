@@ -81,6 +81,15 @@ export const ResponseRuleModificationsSchema = z
                         "Each Host may have its own Xray Json Template. If you set this flag to **true**, the Xray Json Template defined by the SRR will be used. **The Host's Xray Json Template will be ignored.**",
                 }),
             ),
+        ignoreServeJsonAtBaseSubscription: z
+            .boolean()
+            .optional()
+            .describe(
+                JSON.stringify({
+                    markdownDescription:
+                        'If you set this flag to **true**, the **Serve JSON at Base Subscription** setting will be ignored (set to **false**).',
+                }),
+            ),
     })
     .optional()
     .describe(
