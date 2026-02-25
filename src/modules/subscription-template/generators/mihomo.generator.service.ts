@@ -72,7 +72,7 @@ export class MihomoGeneratorService {
             const yamlConfig = yamlConfigDb as unknown as any;
 
             const { remnawave, ...cleanConfig } = yamlConfig ?? {};
-            const includeHidden = remnawave?.includeHiddenHosts ?? true;
+            const includeHidden = remnawave?.includeHiddenHosts ?? false;
 
             const data: ClashData = {
                 proxies: [],
