@@ -263,28 +263,29 @@ model NodesUsageHistory {
 }
 
 model Hosts {
-  uuid                 String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition         Int     @default(autoincrement()) @map("view_position")
-  remark               String  @map("remark") @db.VarChar(50)
-  address              String  @map("address")
-  port                 Int     @map("port")
-  path                 String? @map("path")
-  sni                  String? @map("sni")
-  host                 String? @map("host")
-  alpn                 String? @map("alpn") // ENUM: h2, http/1.1, h2,http/1.1 
-  fingerprint          String? @map("fingerprint") // ENUM: chrome, firefox, safari, ios, android, edge, 360, qq, random, randomized
-  securityLayer        String  @default("DEFAULT") @map("security_layer") // ENUM: DEFAULT, TLS, NONE
-  xHttpExtraParams     Json?   @map("xhttp_extra_params")
-  muxParams            Json?   @map("mux_params")
-  sockoptParams        Json?   @map("sockopt_params")
-  isDisabled           Boolean @default(false) @map("is_disabled")
-  serverDescription    String? @map("server_description") @db.VarChar(30)
-  vlessRouteId         Int?    @map("vless_route_id")
-  allowInsecure        Boolean @default(false) @map("allow_insecure")
-  shuffleHost          Boolean @default(false) @map("shuffle_host")
-  mihomoX25519         Boolean @default(false) @map("mihomo_x25519")
-  xrayJsonTemplateUuid String? @map("xray_json_template_uuid") @db.Uuid
-  keepSniBlank         Boolean @default(false) @map("keep_sni_blank")
+  uuid                         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition                 Int      @default(autoincrement()) @map("view_position")
+  remark                       String   @map("remark") @db.VarChar(50)
+  address                      String   @map("address")
+  port                         Int      @map("port")
+  path                         String?  @map("path")
+  sni                          String?  @map("sni")
+  host                         String?  @map("host")
+  alpn                         String?  @map("alpn") // ENUM: h2, http/1.1, h2,http/1.1 
+  fingerprint                  String?  @map("fingerprint") // ENUM: chrome, firefox, safari, ios, android, edge, 360, qq, random, randomized
+  securityLayer                String   @default("DEFAULT") @map("security_layer") // ENUM: DEFAULT, TLS, NONE
+  xHttpExtraParams             Json?    @map("xhttp_extra_params")
+  muxParams                    Json?    @map("mux_params")
+  sockoptParams                Json?    @map("sockopt_params")
+  isDisabled                   Boolean  @default(false) @map("is_disabled")
+  serverDescription            String?  @map("server_description") @db.VarChar(30)
+  vlessRouteId                 Int?     @map("vless_route_id")
+  allowInsecure                Boolean  @default(false) @map("allow_insecure")
+  shuffleHost                  Boolean  @default(false) @map("shuffle_host")
+  mihomoX25519                 Boolean  @default(false) @map("mihomo_x25519")
+  xrayJsonTemplateUuid         String?  @map("xray_json_template_uuid") @db.Uuid
+  keepSniBlank                 Boolean  @default(false) @map("keep_sni_blank")
+  excludeFromSubscriptionTypes String[] @default([]) @map("exclude_from_subscription_types")
 
   tag      String? @map("tag")
   isHidden Boolean @default(false) @map("is_hidden")

@@ -1,4 +1,4 @@
-import { TSecurityLayers } from '@libs/contracts/constants';
+import { TSecurityLayers, TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import { HostsEntity } from '../entities/hosts.entity';
 
@@ -43,6 +43,7 @@ export class HostResponseModel {
     public xrayJsonTemplateUuid: string | null;
 
     public excludedInternalSquads: string[];
+    public excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
 
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
@@ -82,6 +83,8 @@ export class HostResponseModel {
         this.excludedInternalSquads = data.excludedInternalSquads.map(
             (exclusion) => exclusion.squadUuid,
         );
+
         this.xrayJsonTemplateUuid = data.xrayJsonTemplateUuid;
+        this.excludeFromSubscriptionTypes = data.excludeFromSubscriptionTypes;
     }
 }

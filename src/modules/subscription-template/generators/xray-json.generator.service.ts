@@ -197,6 +197,7 @@ export class XrayJsonGeneratorService {
 
             for (const host of hosts) {
                 if (host.serviceInfo.isHidden) continue;
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('XRAY_JSON')) continue;
 
                 const baseTemplate = ignoreHostXrayJsonTemplate
                     ? templateContent

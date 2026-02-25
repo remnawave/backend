@@ -1,6 +1,10 @@
 import { Hosts } from '@prisma/client';
 
-import { TSecurityLayers } from '@contract/constants';
+import {
+    SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
+    TSecurityLayers,
+    TSubscriptionTemplateType,
+} from '@contract/constants';
 
 export class HostsEntity implements Hosts {
     uuid: string;
@@ -34,6 +38,7 @@ export class HostsEntity implements Hosts {
     configProfileInboundUuid: string | null;
 
     xrayJsonTemplateUuid: string | null;
+    excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
 
     nodes: {
         nodeUuid: string;
@@ -45,5 +50,12 @@ export class HostsEntity implements Hosts {
 
     constructor(data: Partial<Hosts>) {
         Object.assign(this, data);
+
+        if (data.excludeFromSubscriptionTypes) {
+            this.excludeFromSubscriptionTypes = data.excludeFromSubscriptionTypes.filter(
+                (v): v is TSubscriptionTemplateType =>
+                    SUBSCRIPTION_TEMPLATE_TYPE_VALUES.includes(v as TSubscriptionTemplateType),
+            );
+        }
     }
 }

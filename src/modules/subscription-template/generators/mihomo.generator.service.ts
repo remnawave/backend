@@ -80,11 +80,13 @@ export class MihomoGeneratorService {
             };
             const proxyRemarks: string[] = [];
 
-            const visibleHosts = includeHidden
-                ? hosts
-                : hosts.filter((h) => !h.serviceInfo.isHidden);
+            for (const host of hosts) {
+                if (!includeHidden && host.serviceInfo.isHidden) continue;
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('MIHOMO') && !isStash)
+                    continue;
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('STASH') && isStash)
+                    continue;
 
-            for (const host of visibleHosts) {
                 this.addProxy(host, data, proxyRemarks, isFlClashX);
             }
 

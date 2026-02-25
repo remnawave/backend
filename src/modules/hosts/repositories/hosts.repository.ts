@@ -84,7 +84,12 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async findByCriteria(
         dto: Omit<
             Partial<HostsEntity>,
-            'xHttpExtraParams' | 'muxParams' | 'sockoptParams' | 'nodes' | 'excludedInternalSquads'
+            | 'xHttpExtraParams'
+            | 'muxParams'
+            | 'sockoptParams'
+            | 'nodes'
+            | 'excludedInternalSquads'
+            | 'excludeFromSubscriptionTypes'
         >,
     ): Promise<HostsEntity[]> {
         const list = await this.prisma.tx.hosts.findMany({

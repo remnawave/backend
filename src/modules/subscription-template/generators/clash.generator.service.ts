@@ -66,9 +66,7 @@ export class ClashGeneratorService {
             const proxyRemarks: string[] = [];
 
             for (const host of hosts) {
-                if (!host) {
-                    continue;
-                }
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('CLASH')) continue;
                 this.addProxy(host, data, proxyRemarks);
             }
 

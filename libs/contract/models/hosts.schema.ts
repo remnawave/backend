@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 import { SECURITY_LAYERS } from '../constants/hosts';
 
 export const HostsSchema = z.object({
@@ -37,4 +38,5 @@ export const HostsSchema = z.object({
     nodes: z.array(z.string().uuid()),
     xrayJsonTemplateUuid: z.string().uuid().nullable(),
     excludedInternalSquads: z.array(z.string().uuid()),
+    excludeFromSubscriptionTypes: z.array(z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE)).optional(),
 });
