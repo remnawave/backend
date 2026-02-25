@@ -197,6 +197,7 @@ export class XrayJsonGeneratorService {
 
             for (const host of hosts) {
                 if (host.serviceInfo.isHidden) continue;
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('XRAY_JSON')) continue;
 
                 const baseTemplate = ignoreHostXrayJsonTemplate
                     ? templateContent
@@ -295,9 +296,25 @@ export class XrayJsonGeneratorService {
         return streamSettings;
     }
 
-    private buildTaggedOutbounds(hosts: IFormattedHost[], tagPrefix: string): Outbound[] {
+    private buildTaggedOutbounds(
+        hosts: IFormattedHost[],
+        {
+            tagPrefix,
+            useHostRemarkAsTag,
+            useHostTagAsTag,
+        }: { tagPrefix?: string; useHostRemarkAsTag?: boolean; useHostTagAsTag?: boolean },
+    ): Outbound[] {
+        if (useHostRemarkAsTag) {
+            return hosts.map((h) => this.buildOutbound(h, h.remark));
+        }
+
+        if (useHostTagAsTag) {
+            return hosts.map((h) => this.buildOutbound(h, h.serviceInfo.tag || h.remark));
+        }
+
+        const proxyTag = tagPrefix ?? 'proxy';
         return hosts.map((h, i) =>
-            this.buildOutbound(h, i === 0 ? tagPrefix : `${tagPrefix}-${i + 1}`),
+            this.buildOutbound(h, i === 0 ? proxyTag : `${proxyTag}-${i + 1}`),
         );
     }
 
@@ -369,7 +386,11 @@ export class XrayJsonGeneratorService {
 
         const injectedOutbounds = injector.injectHosts.flatMap((entry) => {
             const hosts = this.resolveHosts(entry.selector, entry.selectFrom, host, allHosts);
-            return this.buildTaggedOutbounds(hosts, entry.tagPrefix);
+            return this.buildTaggedOutbounds(hosts, {
+                tagPrefix: entry.tagPrefix,
+                useHostRemarkAsTag: entry.useHostRemarkAsTag,
+                useHostTagAsTag: entry.useHostTagAsTag,
+            });
         });
 
         if (injectedOutbounds.length === 0) return null;

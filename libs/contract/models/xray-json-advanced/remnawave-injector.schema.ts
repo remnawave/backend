@@ -21,7 +21,9 @@ const HostSelectorSchema = z.discriminatedUnion('type', [
 const InjectHostsEntrySchema = z.object({
     selector: HostSelectorSchema,
     selectFrom: z.enum(['ALL', 'HIDDEN', 'NOT_HIDDEN']).optional(),
-    tagPrefix: z.string().min(1),
+    tagPrefix: z.string().min(1).optional(),
+    useHostRemarkAsTag: z.boolean().optional(),
+    useHostTagAsTag: z.boolean().optional(),
 });
 
 export const RemnawaveInjectorSchema = z.object({

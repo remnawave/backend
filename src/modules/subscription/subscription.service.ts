@@ -29,6 +29,7 @@ import { RenderTemplatesService } from '@modules/subscription-template/render-te
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
 import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
+import { isJsonSubscriptionFallbackSupported } from '@modules/subscription-template/constants';
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
@@ -202,11 +203,22 @@ export class SubscriptionService {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
             }
 
+            if (
+                srrContext.subscriptionSettings.serveJsonAtBaseSubscription &&
+                srrContext.matchedResponseType === 'XRAY_BASE64' &&
+                !srrContext.ignoreServeJsonAtBaseSubscription
+            ) {
+                if (isJsonSubscriptionFallbackSupported(srrContext.userAgent)) {
+                    srrContext.matchedResponseType = 'XRAY_JSON';
+                }
+            }
+
             const hosts = await this.queryBus.execute(
                 new GetHostsForUserQuery(
                     user.response.tId,
                     false,
-                    srrContext.matchedResponseType === 'XRAY_JSON',
+                    srrContext.matchedResponseType === 'XRAY_JSON' ||
+                        srrContext.matchedResponseType === 'MIHOMO',
                 ),
             );
 

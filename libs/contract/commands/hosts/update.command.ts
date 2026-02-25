@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { getEndpointDetails, FINGERPRINTS, SECURITY_LAYERS, ALPN } from '../../constants';
+import {
+    getEndpointDetails,
+    FINGERPRINTS,
+    SECURITY_LAYERS,
+    ALPN,
+    SUBSCRIPTION_TEMPLATE_TYPE,
+} from '../../constants';
 import { HOSTS_ROUTES, REST_API } from '../../api';
 import { HostsSchema } from '../../models';
 
@@ -86,6 +92,9 @@ export namespace UpdateHostCommand {
         excludedInternalSquads: z
             .optional(z.array(z.string().uuid()))
             .describe('Optional. Internal squads from which the host will be excluded.'),
+        excludeFromSubscriptionTypes: z
+            .optional(z.array(z.nativeEnum(SUBSCRIPTION_TEMPLATE_TYPE)))
+            .describe('Optional. Subscription types from which the host will be excluded from.'),
     });
     export type Request = z.infer<typeof RequestSchema>;
 

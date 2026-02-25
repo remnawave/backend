@@ -1,4 +1,5 @@
 import { StreamSettingsObject } from '@common/helpers/xray-config/interfaces/transport.config';
+import { TSubscriptionTemplateType } from '@libs/contracts/constants';
 
 import { IDbHostData } from './raw-host.interface';
 
@@ -47,5 +48,6 @@ export interface IFormattedHost {
         uuid: string;
         isHidden: boolean;
         tag: string | null;
+        excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
     };
 }

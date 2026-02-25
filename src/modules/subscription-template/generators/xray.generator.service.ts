@@ -72,9 +72,7 @@ export class XrayGeneratorService {
         const links: string[] = [];
 
         for (const host of hosts) {
-            if (!host) {
-                continue;
-            }
+            if (host.serviceInfo.excludeFromSubscriptionTypes.includes('XRAY_BASE64')) continue;
 
             const link = this.generateLink(host);
 

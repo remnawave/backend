@@ -64,6 +64,16 @@ export class MihomoGeneratorService {
         overrideTemplateName?: string,
     ): Promise<string> {
         try {
+            const yamlConfigDb = await this.subscriptionTemplateService.getCachedTemplateByType(
+                isStash ? 'STASH' : 'MIHOMO',
+                overrideTemplateName,
+            );
+
+            const yamlConfig = yamlConfigDb as unknown as any;
+
+            const { remnawave, ...cleanConfig } = yamlConfig ?? {};
+            const includeHidden = remnawave?.includeHiddenHosts ?? true;
+
             const data: ClashData = {
                 proxies: [],
                 rules: [],
@@ -71,13 +81,16 @@ export class MihomoGeneratorService {
             const proxyRemarks: string[] = [];
 
             for (const host of hosts) {
-                if (!host) {
+                if (!includeHidden && host.serviceInfo.isHidden) continue;
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('MIHOMO') && !isStash)
                     continue;
-                }
+                if (host.serviceInfo.excludeFromSubscriptionTypes.includes('STASH') && isStash)
+                    continue;
+
                 this.addProxy(host, data, proxyRemarks, isFlClashX);
             }
 
-            return await this.renderConfig(data, proxyRemarks, isStash, overrideTemplateName);
+            return await this.renderConfig(data, proxyRemarks, cleanConfig);
         } catch (error) {
             this.logger.error('Error generating clash config:', error);
             return '';
@@ -87,17 +100,9 @@ export class MihomoGeneratorService {
     private async renderConfig(
         data: ClashData,
         proxyRemarks: string[],
-        isStash: boolean,
-        overrideTemplateName?: string,
+        yamlConfig: any,
     ): Promise<string> {
-        const yamlConfigDb = await this.subscriptionTemplateService.getCachedTemplateByType(
-            isStash ? 'STASH' : 'MIHOMO',
-            overrideTemplateName,
-        );
-
         try {
-            const yamlConfig = yamlConfigDb as unknown as any;
-
             if (!Array.isArray(yamlConfig.proxies)) {
                 yamlConfig.proxies = [];
             }

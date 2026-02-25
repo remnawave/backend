@@ -108,19 +108,31 @@ export class SubscriptionTemplateService {
                 if (!result.success) {
                     return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
                 }
-                for (const { selector } of result.data?.injectHosts ?? []) {
+                for (const injector of result.data?.injectHosts ?? []) {
                     if (
-                        (selector.type === 'remarkRegex' || selector.type === 'tagRegex') &&
-                        typeof selector.pattern === 'string'
+                        (injector.selector.type === 'remarkRegex' ||
+                            injector.selector.type === 'tagRegex') &&
+                        typeof injector.selector.pattern === 'string'
                     ) {
                         try {
-                            new RegExp(selector.pattern);
+                            new RegExp(injector.selector.pattern);
                         } catch (error: unknown) {
                             this.logger.error(
-                                `Invalid regex pattern for injectHosts entry: ${selector.pattern}, ${(error as Error).message}`,
+                                `Invalid regex pattern for injectHosts entry: ${injector.selector.pattern}, ${(error as Error).message}`,
                             );
                             return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
                         }
+                    }
+
+                    if (
+                        !injector.tagPrefix &&
+                        !injector.useHostRemarkAsTag &&
+                        !injector.useHostTagAsTag
+                    ) {
+                        this.logger.error(
+                            `At least one of tagPrefix, useHostRemarkAsTag, or useHostTagAsTag must be provided for injectHosts entry: ${JSON.stringify(injector)}`,
+                        );
+                        return fail(ERRORS.INVALID_REMNAWAVE_INJECTOR);
                     }
                 }
             }

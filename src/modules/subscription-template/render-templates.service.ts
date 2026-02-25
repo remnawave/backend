@@ -14,7 +14,6 @@ import { ClashGeneratorService } from './generators/clash.generator.service';
 import { XrayGeneratorService } from './generators/xray.generator.service';
 import { FormatHostsService } from './generators/format-hosts.service';
 import { SUBSCRIPTION_CONFIG_TYPES } from './constants/config-types';
-import { isJsonSubscriptionFallbackSupported } from './constants';
 import { IGenerateSubscription } from './interfaces';
 import { IRawHost } from './generators/interfaces';
 
@@ -47,20 +46,6 @@ export class RenderTemplatesService {
 
         switch (srrContext.matchedResponseType) {
             case 'XRAY_BASE64':
-                if (srrContext.subscriptionSettings.serveJsonAtBaseSubscription) {
-                    if (isJsonSubscriptionFallbackSupported(srrContext.userAgent)) {
-                        return {
-                            subscription: await this.xrayJsonGeneratorService.generateConfig({
-                                hosts: formattedHosts,
-                                isHapp: srrContext.isXrayExtSupported,
-                                overrideTemplateName: srrContext.overrideTemplateName,
-                                ignoreHostXrayJsonTemplate: srrContext.ignoreHostXrayJsonTemplate,
-                            }),
-                            contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_JSON'].CONTENT_TYPE,
-                        };
-                    }
-                }
-
                 return {
                     subscription: await this.xrayGeneratorService.generateConfig(
                         formattedHosts,
