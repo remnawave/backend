@@ -28,6 +28,7 @@ const InjectHostsEntrySchema = z.object({
 
 export const RemnawaveInjectorSchema = z.object({
     injectHosts: z.array(InjectHostsEntrySchema).optional(),
+    addVirtualHostAsOutbound: z.boolean().optional(),
 });
 
 export type TRemnawaveInjector = z.infer<typeof RemnawaveInjectorSchema>;
