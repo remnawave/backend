@@ -321,7 +321,7 @@ export class NodesRepository implements ICrud<NodesEntity> {
         const result = await this.qb.kysely
             .selectFrom('nodes')
             .select('uuid')
-            .where('activePluginUuid', '=', pluginUuid)
+            .where('activePluginUuid', '=', getKyselyUuid(pluginUuid))
             .execute();
 
         return result.map((value) => value.uuid);
