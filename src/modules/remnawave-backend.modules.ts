@@ -27,6 +27,7 @@ import { HostsModule } from './hosts/hosts.module';
 import { NodesModule } from './nodes/nodes.module';
 import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
+import { NodePluginModule } from './node-plugins';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -44,6 +45,7 @@ import { AuthModule } from './auth/auth.module';
         ExternalSquadModule,
         KeygenModule,
         NodesModule,
+        NodePluginModule,
         NodesTrafficUsageHistoryModule,
         HostsModule,
         NodesUserUsageHistoryModule,

@@ -1104,4 +1104,39 @@ export const ERRORS = {
         message: 'Connected nodes not found',
         httpCode: 404,
     },
+    GET_ALL_NODE_PLUGINS_ERROR: {
+        code: 'A219',
+        message: 'Get all node plugins error',
+        httpCode: 500,
+    },
+    NODE_PLUGIN_NOT_FOUND: {
+        code: 'A220',
+        message: 'Node plugin not found',
+        httpCode: 404,
+    },
+    GET_NODE_PLUGIN_BY_UUID_ERROR: {
+        code: 'A221',
+        message: 'Get node plugin by UUID error',
+        httpCode: 500,
+    },
+    INVALID_NODE_PLUGIN_CONFIG: {
+        code: 'A222',
+        message: 'Invalid node plugin config',
+        httpCode: 400,
+    },
+    NODE_PLUGIN_NAME_ALREADY_EXISTS: {
+        code: 'A223',
+        message: 'Node plugin name already exists',
+        httpCode: 400,
+    },
+    UPDATE_NODE_PLUGIN_ERROR: {
+        code: 'A224',
+        message: 'Update node plugin error',
+        httpCode: 500,
+    },
+    CREATE_NODE_PLUGIN_ERROR: {
+        code: 'A225',
+        message: 'Create node plugin error',
+        httpCode: 500,
+    },
 } as const;

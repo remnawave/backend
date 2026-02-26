@@ -43,6 +43,7 @@ const entityToModel = (entity: NodesEntity): Nodes => {
 
         activeConfigProfileUuid: entity.activeConfigProfileUuid,
         providerUuid: entity.providerUuid,
+        activePluginUuid: entity.activePluginUuid,
     };
 };
 

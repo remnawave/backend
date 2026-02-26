@@ -43,6 +43,7 @@ export class CreateNodeResponseModel {
         activeConfigProfileUuid: string | null;
         activeInbounds: ConfigProfileInboundEntity[];
     };
+    public activePluginUuid: string | null;
 
     constructor(data: NodesEntity) {
         this.uuid = data.uuid;
@@ -80,5 +81,6 @@ export class CreateNodeResponseModel {
             activeConfigProfileUuid: data.activeConfigProfileUuid,
             activeInbounds: data.activeInbounds,
         };
+        this.activePluginUuid = data.activePluginUuid;
     }
 }

@@ -171,6 +171,7 @@ model Nodes {
   port    Int?   @map("port")
 
   activeConfigProfileUuid String? @map("active_config_profile_uuid") @db.Uuid
+  activePluginUuid        String? @map("active_plugin_uuid") @db.Uuid
 
   isConnected  Boolean @default(false) @map("is_connected")
   isConnecting Boolean @default(false) @map("is_connecting")
@@ -214,6 +215,7 @@ model Nodes {
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
+  activePlugin        NodePlugin?     @relation(fields: [activePluginUuid], references: [uuid], onDelete: SetNull)
 
   @@index([id])
   @@map("nodes")
@@ -588,4 +590,18 @@ model SubscriptionPageConfig {
   externalSquads ExternalSquads[]
 
   @@map("subscription_page_config")
+}
+
+model NodePlugin {
+  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int    @default(autoincrement()) @map("view_position")
+  name         String @map("name") @db.VarChar(255)
+  pluginConfig Json   @map("plugin_config")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+  updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
+
+  nodes Nodes[]
+
+  @@map("node_plugin")
 }

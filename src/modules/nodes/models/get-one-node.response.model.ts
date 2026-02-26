@@ -43,6 +43,7 @@ export class GetOneNodeResponseModel {
     };
     public providerUuid: string | null;
     public provider: InfraProviderEntity | null;
+    public activePluginUuid: string | null;
 
     constructor(data: NodesEntity) {
         this.uuid = data.uuid;
@@ -83,5 +84,6 @@ export class GetOneNodeResponseModel {
 
         this.providerUuid = data.providerUuid;
         this.provider = data.provider;
+        this.activePluginUuid = data.activePluginUuid;
     }
 }
