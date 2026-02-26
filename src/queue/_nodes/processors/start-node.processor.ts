@@ -13,6 +13,7 @@ import { EVENTS } from '@libs/contracts/constants';
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users';
+import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 
@@ -132,6 +133,44 @@ export class StartNodeProcessor extends WorkerHost {
                 this.logger.warn(
                     `Node ${node.uuid} running on outdated version of Remnawave Node. Please upgrade to the latest version. Some features may not work properly.`,
                 );
+            }
+
+            let plugin: {
+                uuid: string;
+                config: Record<string, unknown>;
+                name: string;
+            } | null = null;
+
+            if (node.activePluginUuid) {
+                const getNodePluginResult = await this.queryBus.execute(
+                    new GetPluginByUuidQuery(node.activePluginUuid),
+                );
+
+                if (!getNodePluginResult.isOk) {
+                    this.logger.error(`Failed to get node plugin: ${getNodePluginResult.message}`);
+                    return;
+                }
+                const { response: nodePlugin } = getNodePluginResult;
+                plugin = {
+                    uuid: nodePlugin.uuid,
+                    config: nodePlugin.pluginConfig as Record<string, unknown>,
+                    name: nodePlugin.name,
+                };
+            }
+
+            const syncNodePluginsResponse = await this.axios.syncNodePlugins(
+                {
+                    plugin,
+                },
+                node.address,
+                node.port,
+            );
+
+            if (!syncNodePluginsResponse.isOk) {
+                this.logger.error(
+                    `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                );
+                return;
             }
 
             const startTime = getTime();

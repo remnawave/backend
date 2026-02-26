@@ -9,6 +9,7 @@ import { AxiosService } from '@common/axios/axios.service';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users/get-prepared-config-with-users.query';
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
+import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 import { NodesEntity } from '@modules/nodes';
@@ -193,6 +194,46 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
 
                     this.logger.error(
                         `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
+                    );
+                    return;
+                }
+
+                let plugin: {
+                    uuid: string;
+                    config: Record<string, unknown>;
+                    name: string;
+                } | null = null;
+
+                if (node.activePluginUuid) {
+                    const getNodePluginResult = await this.queryBus.execute(
+                        new GetPluginByUuidQuery(node.activePluginUuid),
+                    );
+
+                    if (!getNodePluginResult.isOk) {
+                        this.logger.error(
+                            `Failed to get node plugin: ${getNodePluginResult.message}`,
+                        );
+                        return;
+                    }
+                    const { response: nodePlugin } = getNodePluginResult;
+                    plugin = {
+                        uuid: nodePlugin.uuid,
+                        config: nodePlugin.pluginConfig as Record<string, unknown>,
+                        name: nodePlugin.name,
+                    };
+                }
+
+                const syncNodePluginsResponse = await this.axios.syncNodePlugins(
+                    {
+                        plugin,
+                    },
+                    node.address,
+                    node.port,
+                );
+
+                if (!syncNodePluginsResponse.isOk) {
+                    this.logger.error(
+                        `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
                     );
                     return;
                 }
