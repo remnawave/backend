@@ -10,6 +10,7 @@ import { CommandBus } from '@nestjs/cqrs';
 import {
     AddUserCommand,
     AddUsersCommand,
+    BlockIpsCommand,
     CollectReportsCommand,
     DropIpsCommand,
     DropUsersConnectionsCommand,
@@ -18,11 +19,13 @@ import {
     GetSystemStatsCommand,
     GetUserIpListCommand,
     GetUsersStatsCommand,
+    RecreateTablesCommand,
     RemoveUserCommand,
     RemoveUsersCommand,
     StartXrayCommand,
     StopXrayCommand,
     SyncCommand,
+    UnblockIpsCommand,
 } from '@remnawave/node-contract';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
@@ -601,6 +604,107 @@ export class AxiosService {
                 this.logger.error('Error in Axios CollectTorrentBlockerReports Request:', error);
 
                 return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error)));
+            }
+        }
+    }
+
+    public async blockIps(
+        data: BlockIpsCommand.Request,
+        address: string,
+        port: null | number,
+    ): Promise<TResult<BlockIpsCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(address, BlockIpsCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<BlockIpsCommand.Response>(
+                nodeUrl,
+                data,
+                {
+                    timeout: 10_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios blockIps request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in blockIps:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async unblockIps(
+        data: UnblockIpsCommand.Request,
+        address: string,
+        port: null | number,
+    ): Promise<TResult<UnblockIpsCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(address, UnblockIpsCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<UnblockIpsCommand.Response>(
+                nodeUrl,
+                data,
+                {
+                    timeout: 10_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios unblockIps request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in unblockIps:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async recreateTables(
+        address: string,
+        port: null | number,
+    ): Promise<TResult<RecreateTablesCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(address, RecreateTablesCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<RecreateTablesCommand.Response>(
+                nodeUrl,
+                {},
+                {
+                    timeout: 10_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(`Error in axios recreateTables request: ${error.message}`);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in recreateTables:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
             }
         }
     }

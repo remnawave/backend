@@ -8,6 +8,7 @@ import {
     CreateNodePluginCommand,
     ReorderNodePluginCommand,
     CloneNodePluginCommand,
+    PluginExecutorCommand,
 } from '@libs/contracts/commands';
 
 export class GetNodePluginsResponseDto extends createZodDto(GetNodePluginsCommand.ResponseSchema) {} // GET_ALL
@@ -51,3 +52,6 @@ export class CloneNodePluginRequestDto extends createZodDto(CloneNodePluginComma
 export class CloneNodePluginResponseDto extends createZodDto(
     CloneNodePluginCommand.ResponseSchema,
 ) {} // CLONE
+
+export class PluginExecutorRequestDto extends createZodDto(PluginExecutorCommand.RequestSchema) {} // EXECUTOR
+export class PluginExecutorResponseDto extends createZodDto(PluginExecutorCommand.ResponseSchema) {} // EXECUTOR

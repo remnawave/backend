@@ -20,6 +20,11 @@ import {
     IRemoveUserFromNodePayload,
     IRemoveUsersFromNodePayload,
 } from './interfaces';
+import {
+    IBlockIpsPayload,
+    IUnblockIpsPayload,
+    IRecreateTablesPayload,
+} from './interfaces/executor.payload.interface';
 import { NODES_JOB_NAMES } from './constants/nodes-job-name.constant';
 
 @Injectable()
@@ -265,6 +270,18 @@ export class NodesQueuesService implements OnApplicationBootstrap {
 
     public async dropIpsConnections(payload: IDropIpsConnectionsPayload) {
         return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_IPS_CONNECTIONS, payload);
+    }
+
+    public async blockIps(payload: IBlockIpsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.BLOCK_IPS, payload);
+    }
+
+    public async unblockIps(payload: IUnblockIpsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.UNBLOCK_IPS, payload);
+    }
+
+    public async recreateTables(payload: IRecreateTablesPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.RECREATE_TABLES, payload);
     }
 
     public async collectReports(payload: {

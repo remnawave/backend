@@ -10,6 +10,8 @@ import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesByPluginUuidQuery } from '@modules/nodes/queries/get-nodes-by-plugin-uuid';
+import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
+import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
 import { NodesQueuesService } from '@queue/_nodes';
 
@@ -17,11 +19,13 @@ import {
     DeleteNodePluginResponseModel,
     BaseNodePluginResponseModel,
     GetNodePluginsResponseModel,
+    BaseEventResponseModel,
 } from './models';
 import { NodePluginRepository } from './repositories/node-plugins.repository';
 import { NodePluginEntity } from './entities/node-plugin.entity';
 import {} from './models/base-node-plugin.response.model';
 import { EXAMPLE_NODE_PLUGIN_CONFIG } from './constants';
+import { PluginExecutorRequestDto } from './dtos';
 
 @Injectable()
 export class NodePluginService {
@@ -223,5 +227,83 @@ export class NodePluginService {
         }
 
         return;
+    }
+
+    public async executePluginCommand(
+        data: PluginExecutorRequestDto,
+    ): Promise<TResult<BaseEventResponseModel>> {
+        try {
+            const findResult = await this.queryBus.execute(
+                new FindNodesByCriteriaQuery({
+                    isDisabled: false,
+                    isConnected: true,
+                    isConnecting: false,
+                }),
+            );
+
+            if (!findResult.isOk || findResult.response.length === 0) {
+                return fail(ERRORS.CONNECTED_NODES_NOT_FOUND);
+            }
+
+            let nodes: NodesEntity[] = [];
+
+            if (data.targetNodes.target === 'allNodes') {
+                nodes = findResult.response;
+            } else {
+                const { nodeUuids } = data.targetNodes;
+                nodes = findResult.response.filter((node) => nodeUuids.includes(node.uuid));
+            }
+
+            if (nodes.length === 0) {
+                return fail(ERRORS.CONNECTED_NODES_NOT_FOUND);
+            }
+
+            switch (data.command.command) {
+                case 'blockIps':
+                    for (const node of nodes) {
+                        await this.nodeQueuesService.blockIps({
+                            data: {
+                                ips: data.command.ips,
+                            },
+                            node: {
+                                address: node.address,
+                                port: node.port,
+                            },
+                        });
+                    }
+                    break;
+                case 'unblockIps':
+                    for (const node of nodes) {
+                        await this.nodeQueuesService.unblockIps({
+                            data: {
+                                ips: data.command.ips,
+                            },
+                            node: {
+                                address: node.address,
+                                port: node.port,
+                            },
+                        });
+                    }
+                    break;
+                case 'recreateTables':
+                    for (const node of nodes) {
+                        await this.nodeQueuesService.recreateTables({
+                            node: {
+                                address: node.address,
+                                port: node.port,
+                            },
+                        });
+                    }
+                    break;
+                default:
+                    this.logger.error(`Invalid command: ${data.command}`);
+                    return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+
+            return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
     }
 }

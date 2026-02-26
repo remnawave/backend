@@ -16,6 +16,7 @@ import {
     DeleteNodePluginCommand,
     GetNodePluginCommand,
     GetNodePluginsCommand,
+    PluginExecutorCommand,
     ReorderNodePluginCommand,
     UpdateNodePluginCommand,
 } from '@libs/contracts/commands';
@@ -34,6 +35,8 @@ import {
     GetNodePluginRequestDto,
     CloneNodePluginResponseDto,
     CloneNodePluginRequestDto,
+    PluginExecutorResponseDto,
+    PluginExecutorRequestDto,
 } from './dtos/node-plugins.dtos';
 import { NodePluginService } from './node-plugins.service';
 
@@ -186,6 +189,26 @@ export class NodePluginController {
         @Body() body: CloneNodePluginRequestDto,
     ): Promise<CloneNodePluginResponseDto> {
         const result = await this.nodePluginService.cloneNodePlugin(body.cloneFromUuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: PluginExecutorResponseDto,
+        description: 'Node plugin cloned successfully',
+    })
+    @Endpoint({
+        command: PluginExecutorCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: PluginExecutorRequestDto,
+    })
+    async pluginExecutor(
+        @Body() body: PluginExecutorRequestDto,
+    ): Promise<PluginExecutorResponseDto> {
+        const result = await this.nodePluginService.executePluginCommand(body);
 
         const data = errorHandler(result);
         return {

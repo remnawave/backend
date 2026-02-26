@@ -13,4 +13,6 @@ export const NODE_PLUGINS_ROUTES = {
         REORDER: `${ACTIONS_ROUTE}/reorder`,
         CLONE: `${ACTIONS_ROUTE}/clone`,
     },
+
+    EXECUTOR: 'executor',
 } as const;
