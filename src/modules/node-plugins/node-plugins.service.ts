@@ -4,9 +4,14 @@ import { nanoid } from 'nanoid';
 import { NodePluginSchema } from 'libs/node-plugins';
 
 import { Injectable, Logger } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
+
+import { GetNodesByPluginUuidQuery } from '@modules/nodes/queries/get-nodes-by-plugin-uuid';
+
+import { NodesQueuesService } from '@queue/_nodes';
 
 import {
     DeleteNodePluginResponseModel,
@@ -22,7 +27,11 @@ import { EXAMPLE_NODE_PLUGIN_CONFIG } from './constants';
 export class NodePluginService {
     private readonly logger = new Logger(NodePluginService.name);
 
-    constructor(private readonly nodePluginRepository: NodePluginRepository) {}
+    constructor(
+        private readonly nodePluginRepository: NodePluginRepository,
+        private readonly nodeQueuesService: NodesQueuesService,
+        private readonly queryBus: QueryBus,
+    ) {}
 
     public async getAllConfigs(): Promise<TResult<GetNodePluginsResponseModel>> {
         try {
@@ -86,7 +95,7 @@ export class NodePluginService {
                 pluginConfig: inputConfig ?? undefined,
             });
 
-            // TODO: Sync to nodes
+            await this.syncNodePlugins(nodePlugin.uuid);
 
             return ok(new BaseNodePluginResponseModel(updatedConfig));
         } catch (error) {
@@ -116,9 +125,17 @@ export class NodePluginService {
                 return fail(ERRORS.NODE_PLUGIN_NOT_FOUND);
             }
 
+            const nodeUuids = await this.queryBus.execute(
+                new GetNodesByPluginUuidQuery(nodePlugin.uuid),
+            );
+
             const deletedConfig = await this.nodePluginRepository.deleteByUUID(uuid);
 
-            // TODO: Sync to nodes
+            if (nodeUuids.isOk && nodeUuids.response.length > 0) {
+                await this.nodeQueuesService.syncNodePluginsBulk(
+                    nodeUuids.response.map((nodeUuid) => ({ nodeUuid })),
+                );
+            }
 
             return ok(new DeleteNodePluginResponseModel(deletedConfig));
         } catch (error) {
@@ -194,5 +211,17 @@ export class NodePluginService {
             this.logger.error(error);
             return fail(ERRORS.CREATE_NODE_PLUGIN_ERROR);
         }
+    }
+
+    private async syncNodePlugins(pluginUuid: string): Promise<void> {
+        const nodeUuids = await this.queryBus.execute(new GetNodesByPluginUuidQuery(pluginUuid));
+
+        if (nodeUuids.isOk && nodeUuids.response.length > 0) {
+            await this.nodeQueuesService.syncNodePluginsBulk(
+                nodeUuids.response.map((nodeUuid) => ({ nodeUuid })),
+            );
+        }
+
+        return;
     }
 }

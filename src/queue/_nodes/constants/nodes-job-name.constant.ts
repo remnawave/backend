@@ -13,4 +13,6 @@ export const NODES_JOB_NAMES = {
     FETCH_IPS_LIST: 'fetchIpsList',
     DROP_USERS_CONNECTIONS: 'dropUsersConnections',
     DROP_IPS_CONNECTIONS: 'dropIpsConnections',
+    SYNC_NODE_PLUGINS: 'syncNodePlugins',
+    COLLECT_REPORTS: 'collectReports',
 } as const;

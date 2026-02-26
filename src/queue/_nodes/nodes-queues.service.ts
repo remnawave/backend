@@ -40,6 +40,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         private readonly recordNodeUsageQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.BULK_USERS) private readonly nodeBulkUsersQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.QUERY_NODES) private readonly queryNodesQueue: Queue,
+        @InjectQueue(QUEUES_NAMES.NODES.PLUGINS) private readonly nodePluginsQueue: Queue,
     ) {}
 
     get queues() {
@@ -54,6 +55,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             recordNodeUsage: this.recordNodeUsageQueue,
             nodeBulkUsers: this.nodeBulkUsersQueue,
             queryNodes: this.queryNodesQueue,
+            nodePlugins: this.nodePluginsQueue,
         } as const;
     }
 
@@ -263,5 +265,26 @@ export class NodesQueuesService implements OnApplicationBootstrap {
 
     public async dropIpsConnections(payload: IDropIpsConnectionsPayload) {
         return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_IPS_CONNECTIONS, payload);
+    }
+
+    public async collectReports(payload: {
+        nodeUuid: string;
+        address: string;
+        port: number | null;
+    }) {
+        return this.nodePluginsQueue.add(NODES_JOB_NAMES.COLLECT_REPORTS, payload);
+    }
+
+    public async syncNodePlugins(payload: { nodeUuid: string }) {
+        return this.nodePluginsQueue.add(NODES_JOB_NAMES.SYNC_NODE_PLUGINS, payload);
+    }
+
+    public async syncNodePluginsBulk(payload: { nodeUuid: string }[]) {
+        return this.nodePluginsQueue.addBulk(
+            payload.map((node) => ({
+                name: NODES_JOB_NAMES.SYNC_NODE_PLUGINS,
+                data: node,
+            })),
+        );
     }
 }

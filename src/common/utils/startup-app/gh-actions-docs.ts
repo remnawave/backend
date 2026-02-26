@@ -14,6 +14,7 @@ import {
     RemnawaveWebhookServiceEventsDto,
     RemnawaveWebhookUserEventsDto,
     RemnawaveWebhookUserHwidDevicesEventsDto,
+    RemnawaveWebhookTorrentBlockerEventsDto,
 } from './extra-models';
 
 const description = `
@@ -68,6 +69,7 @@ export async function ghActionsDocs(app: INestApplication<unknown>) {
                 RemnawaveWebhookServiceEventsDto,
                 RemnawaveWebhookErrorsEventsDto,
                 RemnawaveWebhookCrmEventsDto,
+                RemnawaveWebhookTorrentBlockerEventsDto,
             ],
         });
 

@@ -50,6 +50,8 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
                     case true:
                         return await this.handleConnectedNode(
                             nodeUuid,
+                            nodeAddress,
+                            nodePort,
                             isConnected,
                             response.response,
                         );
@@ -84,6 +86,8 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
 
     private async handleConnectedNode(
         nodeUuid: string,
+        nodeAddress: string,
+        nodePort: number | null,
         isConnected: boolean,
         response: GetSystemStatsCommand.Response,
     ) {
@@ -104,6 +108,17 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
 
         if (!nodeUpdatedResponse.isOk) {
             return;
+        }
+
+        const reports = response.response.reportsCount;
+        if (reports !== undefined && reports > 0) {
+            await this.nodesQueuesService.collectReports({
+                nodeUuid,
+                address: nodeAddress,
+                port: nodePort,
+            });
+
+            this.logger.log(`Node ${nodeUuid} has ${reports} reports, collecting reports...`);
         }
 
         if (!isConnected) {

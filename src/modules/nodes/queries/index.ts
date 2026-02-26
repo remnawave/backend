@@ -1,4 +1,5 @@
 import { GetEnabledNodesPartialHandler } from './get-enabled-nodes-partial/get-enabled-nodes-partial.handler';
+import { GetNodesByPluginUuidHandler } from './get-nodes-by-plugin-uuid';
 import { FindNodesByCriteriaHandler } from './find-nodes-by-criteria';
 import { GetNodesByCriteriaHandler } from './get-nodes-by-criteria';
 import { CountOnlineUsersHandler } from './count-online-users';
@@ -16,4 +17,5 @@ export const QUERIES = [
     GetNodeByUuidHandler,
     FindNodesByCriteriaHandler,
     GetEnabledNodesPartialHandler,
+    GetNodesByPluginUuidHandler,
 ];

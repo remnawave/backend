@@ -14,6 +14,7 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 import {
     IAddUserSubscriptionRequestHistoryPayload,
     ICheckAndUpsertHwidDevicePayload,
+    IFireTorrentBlockerEventJobData,
     IFireUserEventJobData,
     IFireUserEventPayload,
     IUpdateUserSubPayload,
@@ -268,6 +269,10 @@ export class UsersQueuesService implements OnApplicationBootstrap {
                 })),
             );
         }
+    }
+
+    public async fireTorrentBlockerEvent(payload: IFireTorrentBlockerEventJobData) {
+        return this.userEventsQueue.add(USERS_JOB_NAMES.FIRE_TORRENT_BLOCKER_EVENT, payload);
     }
 
     public async bulkUpdateAllUsers(payload: BulkAllUpdateUsersRequestDto) {

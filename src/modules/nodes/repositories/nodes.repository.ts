@@ -316,4 +316,14 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
         return result.map((value) => value.tag);
     }
+
+    public async getNodeUuidsByPluginUuid(pluginUuid: string): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('uuid')
+            .where('activePluginUuid', '=', pluginUuid)
+            .execute();
+
+        return result.map((value) => value.uuid);
+    }
 }

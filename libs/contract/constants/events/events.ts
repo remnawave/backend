@@ -66,12 +66,16 @@ export const EVENTS = {
         INFRA_BILLING_NODE_PAYMENT_OVERDUE_48HRS: 'crm.infra_billing_node_payment_overdue_48hrs',
         INFRA_BILLING_NODE_PAYMENT_OVERDUE_7_DAYS: 'crm.infra_billing_node_payment_overdue_7_days',
     },
+    TORRENT_BLOCKER: {
+        REPORT: 'torrent_blocker.report',
+    },
     CATCH_ALL_USER_EVENTS: 'user.*',
     CATCH_ALL_USER_HWID_DEVICES_EVENTS: 'user_hwid_devices.*',
     CATCH_ALL_NODE_EVENTS: 'node.*',
     CATCH_ALL_SERVICE_EVENTS: 'service.*',
     CATCH_ALL_ERRORS_EVENTS: 'errors.*',
     CATCH_ALL_CRM_EVENTS: 'crm.*',
+    CATCH_ALL_TORRENT_BLOCKER_EVENTS: 'torrent_blocker.*',
 } as const;
 
 export type TNodeEvents = (typeof EVENTS.NODE)[keyof typeof EVENTS.NODE];
@@ -82,13 +86,17 @@ export type TCRMEvents = (typeof EVENTS.CRM)[keyof typeof EVENTS.CRM];
 export type TUserHwidDevicesEvents =
     (typeof EVENTS.USER_HWID_DEVICES)[keyof typeof EVENTS.USER_HWID_DEVICES];
 
+export type TTorrentBlockerEvents =
+    (typeof EVENTS.TORRENT_BLOCKER)[keyof typeof EVENTS.TORRENT_BLOCKER];
+
 export type TAllEvents =
     | TUserEvents
     | TNodeEvents
     | TServiceEvents
     | TErrorsEvents
     | TCRMEvents
-    | TUserHwidDevicesEvents;
+    | TUserHwidDevicesEvents
+    | TTorrentBlockerEvents;
 export type TAllEventChannels = 'telegram' | 'webhook';
 
 export const EVENTS_SCOPES = {
@@ -98,6 +106,7 @@ export const EVENTS_SCOPES = {
     SERVICE: 'service',
     ERRORS: 'errors',
     CRM: 'crm',
+    TORRENT_BLOCKER: 'torrent_blocker',
 } as const;
 
 export type TEventsScope = (typeof EVENTS_SCOPES)[keyof typeof EVENTS_SCOPES];
