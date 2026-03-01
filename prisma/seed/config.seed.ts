@@ -21,7 +21,6 @@ import {
     TOauth2Settings,
     TPasswordAuthSettings,
     TRemnawavePasskeySettings,
-    TTgAuthSettings,
 } from '@libs/contracts/models';
 import {
     SUBPAGE_DEFAULT_CONFIG_NAME,
@@ -834,12 +833,13 @@ async function seedRemnawaveSettings() {
             frontendDomain: null,
             allowedEmails: [],
         },
-    };
-
-    const DEFAULT_TG_AUTH_SETTINGS: TTgAuthSettings = {
-        enabled: false,
-        botToken: null,
-        adminIds: [],
+        telegram: {
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedIds: [],
+            frontendDomain: null,
+        },
     };
 
     const DEFAULT_PASSWORD_AUTH_SETTINGS: TPasswordAuthSettings = {
@@ -849,7 +849,6 @@ async function seedRemnawaveSettings() {
     const settingsMapping = {
         passkeySettings: DEFAULT_PASSKEY_SETTINGS,
         oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
-        tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
         passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
     };
 
@@ -904,7 +903,6 @@ async function seedRemnawaveSettings() {
         const defaultRemnawaveSettings = new RemnawaveSettingsEntity({
             passkeySettings: DEFAULT_PASSKEY_SETTINGS,
             oauth2Settings: DEFAULT_OAUTH2_SETTINGS,
-            tgAuthSettings: DEFAULT_TG_AUTH_SETTINGS,
             passwordSettings: DEFAULT_PASSWORD_AUTH_SETTINGS,
             brandingSettings: DEFAULT_BRANDING_SETTINGS,
         });

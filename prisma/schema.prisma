@@ -36,8 +36,6 @@ model RemnawaveSettings {
   passkeySettings  Json? @map("passkey_settings")
   /// [Oauth2Settings]
   oauth2Settings   Json? @map("oauth2_settings")
-  /// [TgAuthSettings]
-  tgAuthSettings   Json? @map("tg_auth_settings")
   /// [PasswordAuthSettings]
   passwordSettings Json? @map("password_settings")
   /// [BrandingSettings]

@@ -5,7 +5,6 @@ import {
     verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
-import { TelegramOAuth2 } from '@exact-team/telegram-oauth2';
 import { catchError, firstValueFrom } from 'rxjs';
 import { promisify } from 'node:util';
 import { Cache } from 'cache-manager';
@@ -44,10 +43,12 @@ import { GetFirstAdminQuery } from '@modules/admin/queries/get-first-admin';
 import { CreateAdminCommand } from '@modules/admin/commands/create-admin';
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 
-import { TelegramCallbackRequestDto, VerifyPasskeyAuthenticationRequestDto } from './dtos';
-import { OAuth2AuthorizeResponseModel } from './model/oauth2-authorize.response.model';
-import { OAuth2CallbackResponseModel } from './model/oauth2-callback.response.model';
-import { GetStatusResponseModel } from './model/get-status.response.model';
+import {
+    OAuth2AuthorizeResponseModel,
+    OAuth2CallbackResponseModel,
+    GetStatusResponseModel,
+} from './model';
+import { VerifyPasskeyAuthenticationRequestDto } from './dtos';
 import { ILogin, IRegister } from './interfaces';
 
 const scryptAsync = promisify(scrypt);
@@ -257,12 +258,6 @@ export class AuthService {
                         passkey: {
                             enabled: remnawaveSettings.passkeySettings.enabled,
                         },
-                        tgAuth: {
-                            enabled: remnawaveSettings.tgAuthSettings.enabled,
-                            botId: remnawaveSettings.tgAuthSettings.botToken
-                                ? Number(remnawaveSettings.tgAuthSettings.botToken.split(':')[0])
-                                : null,
-                        },
                         oauth2: {
                             providers: {
                                 [OAUTH2_PROVIDERS.GITHUB]:
@@ -275,6 +270,8 @@ export class AuthService {
                                     remnawaveSettings.oauth2Settings.keycloak.enabled,
                                 [OAUTH2_PROVIDERS.GENERIC]:
                                     remnawaveSettings.oauth2Settings.generic.enabled,
+                                [OAUTH2_PROVIDERS.TELEGRAM]:
+                                    remnawaveSettings.oauth2Settings.telegram.enabled,
                             },
                         },
                         password: {
@@ -287,120 +284,6 @@ export class AuthService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GET_AUTH_STATUS_ERROR);
-        }
-    }
-
-    public async telegramCallback(
-        dto: TelegramCallbackRequestDto,
-        ip: string,
-        userAgent: string,
-    ): Promise<
-        TResult<{
-            accessToken: string;
-        }>
-    > {
-        try {
-            const { id, username, first_name } = dto;
-
-            const statusResponse = await this.getStatus();
-
-            if (!statusResponse.isOk) {
-                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
-            }
-
-            if (!statusResponse.response.isLoginAllowed) {
-                await this.emitFailedLoginAttempt(
-                    username ? `@${username}` : first_name,
-                    `Telegram ID: ${id}`,
-                    ip,
-                    userAgent,
-                    'Login is not allowed.',
-                );
-                return fail(ERRORS.FORBIDDEN);
-            }
-
-            const remnawaveSettings = await this.queryBus.execute(
-                new GetCachedRemnawaveSettingsQuery(),
-            );
-
-            if (!remnawaveSettings.tgAuthSettings.enabled) {
-                await this.emitFailedLoginAttempt(
-                    username ? `@${username}` : first_name,
-                    `Telegram ID: ${id}`,
-                    ip,
-                    userAgent,
-                    'Telegram authentication is not enabled.',
-                );
-                return fail(ERRORS.FORBIDDEN);
-            }
-
-            if (!remnawaveSettings.tgAuthSettings.adminIds.includes(id.toString())) {
-                await this.emitFailedLoginAttempt(
-                    username ? `@${username}` : first_name,
-                    `Telegram ID: ${id}`,
-                    ip,
-                    userAgent,
-                    'UserID is not in the allowed list.',
-                );
-                return fail(ERRORS.FORBIDDEN);
-            }
-
-            const isHashValid = new TelegramOAuth2({
-                botToken: remnawaveSettings.tgAuthSettings.botToken!,
-                validUntil: 15,
-            }).handleTelegramOAuthCallback({
-                auth_date: dto.auth_date,
-                first_name: dto.first_name,
-                hash: dto.hash,
-                id: id,
-                last_name: dto.last_name,
-                username: dto.username,
-                photo_url: dto.photo_url,
-            });
-
-            if (!isHashValid.isSuccess) {
-                await this.emitFailedLoginAttempt(
-                    username ? `@${username}` : first_name,
-                    `Telegram ID: ${id}`,
-                    ip,
-                    userAgent,
-                );
-                return fail(ERRORS.FORBIDDEN);
-            }
-
-            const firstAdmin = await this.getFirstAdmin();
-
-            if (!firstAdmin.isOk) {
-                await this.emitFailedLoginAttempt(
-                    username ? `@${username}` : first_name,
-                    `Telegram ID: ${id}`,
-                    ip,
-                    userAgent,
-                    'Superadmin is not found.',
-                );
-                return fail(ERRORS.FORBIDDEN);
-            }
-
-            const accessToken = this.jwtService.sign(
-                {
-                    username: firstAdmin.response.username,
-                    uuid: firstAdmin.response.uuid,
-                    role: ROLE.ADMIN,
-                },
-                { expiresIn: `${this.jwtLifetime}h` },
-            );
-
-            await this.emitLoginSuccess(
-                `${username ? `@${username}` : first_name}, ID: ${id}`,
-                ip,
-                userAgent,
-                'Logged via Telegram OAuth.',
-            );
-
-            return ok({ accessToken });
-        } catch (error) {
-            this.logger.error(error);
-            return fail(ERRORS.LOGIN_ERROR);
         }
     }
 
@@ -512,6 +395,26 @@ export class AuthService {
                             break;
                     }
                     break;
+                case OAUTH2_PROVIDERS.TELEGRAM: {
+                    const tgCodeVerifier = arctic.generateCodeVerifier();
+                    const tgClient = this.getTelegramOAuth2Client(remnawaveSettings);
+
+                    authorizationURL = tgClient.createAuthorizationURLWithPKCE(
+                        'https://oauth.telegram.org/auth',
+                        state,
+                        arctic.CodeChallengeMethod.S256,
+                        tgCodeVerifier,
+                        ['openid', 'profile', 'telegram:bot_access'],
+                    );
+
+                    stateKey = `oauth2:${OAUTH2_PROVIDERS.TELEGRAM}`;
+                    await this.cacheManager.set(
+                        `${stateKey}:codeVerifier`,
+                        tgCodeVerifier,
+                        600_000,
+                    );
+                    break;
+                }
                 default:
                     return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
             }
@@ -651,7 +554,8 @@ export class AuthService {
             ((provider === OAUTH2_PROVIDERS.GENERIC &&
                 settings.oauth2Settings.generic.withPkce &&
                 settings.oauth2Settings.generic.enabled) ||
-                provider === OAUTH2_PROVIDERS.KEYCLOAK) &&
+                provider === OAUTH2_PROVIDERS.KEYCLOAK ||
+                provider === OAUTH2_PROVIDERS.TELEGRAM) &&
             !codeVerifier
         ) {
             await this.emitFailedLoginAttempt(
@@ -687,7 +591,7 @@ export class AuthService {
                 '–',
                 ip,
                 userAgent,
-                `${provider} email not in allowed list and no remnawaveAccess claim}.`,
+                `${provider} email not in allowed list and no remnawaveAccess claim.`,
             );
             return FAIL;
         }
@@ -713,7 +617,8 @@ export class AuthService {
                     return await this.fetchKeycloakEmail(code, codeVerifier!, settings);
                 case OAUTH2_PROVIDERS.GENERIC:
                     return await this.fetchGenericEmail(code, codeVerifier, settings);
-
+                case OAUTH2_PROVIDERS.TELEGRAM:
+                    return await this.fetchTelegramId(code, codeVerifier!, settings);
                 default:
                     return { email: null, error: 'Unknown provider' };
             }
@@ -733,6 +638,7 @@ export class AuthService {
             [OAUTH2_PROVIDERS.POCKETID]: settings.oauth2Settings.pocketid.allowedEmails,
             [OAUTH2_PROVIDERS.KEYCLOAK]: settings.oauth2Settings.keycloak.allowedEmails,
             [OAUTH2_PROVIDERS.GENERIC]: settings.oauth2Settings.generic.allowedEmails,
+            [OAUTH2_PROVIDERS.TELEGRAM]: settings.oauth2Settings.telegram.allowedIds,
         };
         return map[provider] ?? [];
     }
@@ -1176,5 +1082,54 @@ export class AuthService {
             const redirectUrl = `https://${frontendDomain}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.GENERIC}`;
             return new arctic.OAuth2Client(clientId, clientSecret, redirectUrl);
         }
+    }
+
+    private getTelegramOAuth2Client(settings: RemnawaveSettingsEntity): arctic.OAuth2Client {
+        const { clientId, clientSecret, frontendDomain } = settings.oauth2Settings.telegram;
+        if (!clientId || !clientSecret || !frontendDomain) {
+            throw new Error(
+                'Telegram OAuth2 config is incomplete (clientId, clientSecret, frontendDomain).',
+            );
+        }
+        const redirectUrl = `https://${frontendDomain}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.TELEGRAM}`;
+        return new arctic.OAuth2Client(clientId, clientSecret, redirectUrl);
+    }
+
+    private async fetchTelegramId(
+        code: string,
+        codeVerifier: string,
+        settings: RemnawaveSettingsEntity,
+    ): Promise<{ email: string | null; hasCustomClaim?: boolean; error?: string }> {
+        const client = this.getTelegramOAuth2Client(settings);
+
+        const tokens = await client.validateAuthorizationCode(
+            'https://oauth.telegram.org/token',
+            code,
+            codeVerifier,
+        );
+
+        const tokenData = arctic.decodeIdToken(tokens.idToken());
+
+        if (!('id' in tokenData) || typeof tokenData.id !== 'string') {
+            return {
+                email: null,
+                hasCustomClaim: false,
+                error: 'Telegram ID is missing in the ID token',
+            };
+        }
+
+        if (!settings.oauth2Settings.telegram.allowedIds.includes(tokenData.id)) {
+            return {
+                email: null,
+                hasCustomClaim: false,
+                error: `Telegram ID ${tokenData.id} is not in the allowed list`,
+            };
+        }
+
+        return {
+            email: tokenData.id,
+            hasCustomClaim: false,
+            error: undefined,
+        };
     }
 }

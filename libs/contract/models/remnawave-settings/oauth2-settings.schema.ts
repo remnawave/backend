@@ -128,6 +128,37 @@ export const Oauth2SettingsSchema = z.object({
             authorizationUrl: null,
             allowedEmails: [],
         }),
+    telegram: z
+        .object({
+            enabled: z.boolean(),
+            clientId: z.nullable(z.string()),
+            clientSecret: z.nullable(z.string()),
+            allowedIds: z.array(z.string()),
+            frontendDomain: z.nullable(
+                z.string().refine(
+                    (val) => {
+                        const fqdnRegex =
+                            /(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{0,62}[a-zA-Z0-9]\.)+[a-zA-Z]{2,63}$)/;
+                        if (fqdnRegex.test(val)) {
+                            return true;
+                        }
+
+                        return false;
+                    },
+                    {
+                        message:
+                            'Must be a valid fully qualified domain name (FQDN), e.g. "docs.rw"',
+                    },
+                ),
+            ),
+        })
+        .default({
+            enabled: false,
+            clientId: null,
+            clientSecret: null,
+            allowedIds: [],
+            frontendDomain: null,
+        }),
 });
 
 export type TOauth2Settings = z.infer<typeof Oauth2SettingsSchema>;

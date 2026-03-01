@@ -48,7 +48,6 @@
     "@bull-board/api": "^6.18.2",
     "@bull-board/express": "^6.18.2",
     "@bull-board/nestjs": "^6.18.2",
-    "@exact-team/telegram-oauth2": "0.0.9",
     "@grammyjs/parse-mode": "1.11.1",
     "@kastov/cryptohapp": "^1.1.2",
     "@kastov/grammy-nestjs": "0.4.2",

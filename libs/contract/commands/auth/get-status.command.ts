@@ -22,10 +22,6 @@ export namespace GetStatusCommand {
                     passkey: z.object({
                         enabled: z.boolean(),
                     }),
-                    tgAuth: z.object({
-                        enabled: z.boolean(),
-                        botId: z.number().nullable(),
-                    }),
                     oauth2: z.object({
                         providers: z.record(z.nativeEnum(OAUTH2_PROVIDERS), z.boolean()),
                     }),
