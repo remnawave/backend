@@ -14,6 +14,8 @@ export interface StreamSettings {
     realitySettings?: unknown;
     grpcSettings?: unknown;
     sockopt?: unknown;
+    kcpSettings?: unknown;
+    finalmask?: unknown;
 }
 
 export interface OutboundSettings {

@@ -8,6 +8,7 @@ import { Injectable } from '@nestjs/common';
 import {
     GrpcObject,
     HttpUpgradeObject,
+    KcpObject,
     StreamSettingsObject,
     TcpObject,
     WebSocketObject,
@@ -211,6 +212,7 @@ export class FormatHostsService {
                 | RawObject
                 | TcpObject
                 | GrpcObject
+                | KcpObject
                 | undefined;
 
             let pathFromConfig: string | undefined;
@@ -218,9 +220,11 @@ export class FormatHostsService {
             let additionalParams: IFormattedHost['additionalParams'] | undefined;
             let rawSettings: IFormattedHost['rawSettings'] | undefined;
             let xHttpExtraParams: null | object | undefined;
+            let finalmaskParams: null | object | undefined;
             let muxParams: null | object | undefined;
             let sockoptParams: null | object | undefined;
             let serverDescription: string | undefined;
+            let mtu: number | undefined;
 
             switch (network) {
                 case 'xhttp': {
@@ -296,6 +300,24 @@ export class FormatHostsService {
                         headerType: settings?.header?.type,
                         request: settings?.header?.request,
                     };
+
+                    break;
+                }
+                case 'kcp': {
+                    if (inbound.streamSettings?.finalmask) {
+                        finalmaskParams = inbound.streamSettings.finalmask;
+                    }
+
+                    const kcpSettings = inbound.streamSettings?.kcpSettings;
+                    if (kcpSettings) {
+                        if (typeof kcpSettings.clientMtu === 'number') {
+                            mtu = kcpSettings.clientMtu;
+                        } else if (typeof kcpSettings.mtu === 'number') {
+                            mtu = kcpSettings.mtu;
+                        } else {
+                            mtu = 1350;
+                        }
+                    }
 
                     break;
                 }
@@ -497,6 +519,10 @@ export class FormatHostsService {
                 encryption: encryptionMap.get(inputHost.inboundTag),
                 flow: getVlessFlow(inbound),
                 xrayJsonTemplate: inputHost.xrayJsonTemplate,
+                finalmask: finalmaskParams,
+                rwCustomParams: {
+                    clientMtu: mtu,
+                },
                 serviceInfo: {
                     uuid: inputHost.uuid,
                     isHidden: inputHost.isHidden,

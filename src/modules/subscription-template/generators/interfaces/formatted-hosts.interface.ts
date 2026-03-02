@@ -28,6 +28,7 @@ export interface IFormattedHost {
         heartbeatPeriod?: number;
         grpcMultiMode?: boolean;
     };
+    finalmask?: null | object;
     xHttpExtraParams?: null | object;
     muxParams?: null | object;
     sockoptParams?: null | object;
@@ -43,6 +44,9 @@ export interface IFormattedHost {
     rawSettings?: {
         headerType?: string;
         request?: object;
+    };
+    rwCustomParams?: {
+        clientMtu?: number; // kcpSettings.clientMtu >> kcpSettings.mtu
     };
     serviceInfo: {
         uuid: string;

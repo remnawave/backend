@@ -66,6 +66,7 @@ const TRANSPORT_KEY_MAP: Record<string, keyof StreamSettings> = {
     raw: 'tcpSettings',
     xhttp: 'xhttpSettings',
     grpc: 'grpcSettings',
+    kcp: 'kcpSettings',
 };
 
 const TRANSPORT_BUILDERS: Record<string, TransportBuilder> = {
@@ -106,6 +107,9 @@ const TRANSPORT_BUILDERS: Record<string, TransportBuilder> = {
         serviceName: host.path,
         authority: host.host,
         mode: !!host.additionalParams?.grpcMultiMode,
+    }),
+    kcp: (host) => ({
+        mtu: host.rwCustomParams?.clientMtu ?? 1350,
     }),
 };
 
@@ -291,6 +295,10 @@ export class XrayJsonGeneratorService {
 
         if (isNonEmptyObject(host.sockoptParams)) {
             streamSettings.sockopt = host.sockoptParams;
+        }
+
+        if (isNonEmptyObject(host.finalmask)) {
+            streamSettings.finalmask = host.finalmask;
         }
 
         return streamSettings;

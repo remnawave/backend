@@ -200,7 +200,7 @@ export class MihomoGeneratorService {
         proxyRemarks: string[],
         isFlClashX: boolean,
     ): void {
-        if (host.network === 'xhttp') {
+        if (host.network === 'xhttp' || host.network === 'kcp') {
             return;
         }
 

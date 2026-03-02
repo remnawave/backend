@@ -302,7 +302,7 @@ export class SingBoxGeneratorService {
         proxy_remarks: string[],
     ): void {
         try {
-            if (host.network === 'xhttp') {
+            if (host.network === 'xhttp' || host.network === 'kcp') {
                 return;
             }
 

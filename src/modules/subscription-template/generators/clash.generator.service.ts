@@ -157,7 +157,7 @@ export class ClashGeneratorService {
     }
 
     private addProxy(host: IFormattedHost, data: ClashData, proxyRemarks: string[]): void {
-        if (host.network === 'xhttp') {
+        if (host.network === 'xhttp' || host.network === 'kcp') {
             return;
         }
 

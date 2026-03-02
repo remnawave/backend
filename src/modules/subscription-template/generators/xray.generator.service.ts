@@ -40,6 +40,7 @@ const NETWORK_CONFIGS: Record<
         authority: params.host,
         serviceName: params.path,
     }),
+    kcp: () => ({}),
 };
 
 @Injectable()
@@ -182,7 +183,7 @@ export class XrayGeneratorService {
         const payload: Record<string, unknown> = {
             security: params.tls,
             type: params.network,
-            headerType: params.rawSettings?.headerType || '',
+            headerType: params.rawSettings?.headerType || undefined,
         };
 
         const network = params.network;
@@ -225,6 +226,14 @@ export class XrayGeneratorService {
             Object.assign(payload, {
                 mode: params.additionalParams?.grpcMultiMode ? 'multi' : 'gun',
             });
+        }
+
+        if (params.network === 'kcp') {
+            if (params.finalmask !== null && params.finalmask !== undefined) {
+                Object.assign(payload, {
+                    fm: JSON.stringify(params.finalmask),
+                });
+            }
         }
 
         const tlsParams: Record<string, unknown> = {};

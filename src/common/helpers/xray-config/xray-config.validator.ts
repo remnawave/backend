@@ -85,10 +85,10 @@ export class XRayConfig {
 
             if (
                 network &&
-                !['grpc', 'httpupgrade', 'raw', 'tcp', 'ws', 'xhttp'].includes(network)
+                !['grpc', 'httpupgrade', 'kcp', 'raw', 'tcp', 'ws', 'xhttp'].includes(network)
             ) {
                 throw new Error(
-                    `Invalid network type "${network}" in inbound "${inbound.tag}". Allowed values are: raw (or tcp), ws, httpupgrade, xhttp and grpc`,
+                    `Invalid network type "${network}" in inbound "${inbound.tag}". Allowed values are: raw (or tcp), ws, httpupgrade, xhttp, grpc and kcp.`,
                 );
             }
 

@@ -95,16 +95,13 @@ export interface xHttpObject {
 }
 
 export interface KcpObject {
-    congestion?: boolean;
-    downlinkCapacity?: number;
-    header?: {
-        type?: string;
-    };
+    clientMtu?: number; // remnawave custom field
     mtu?: number;
-    readBufferSize?: number;
-    seed?: string;
     tti?: number;
     uplinkCapacity?: number;
+    downlinkCapacity?: number;
+    congestion?: boolean;
+    readBufferSize?: number;
     writeBufferSize?: number;
 }
 
@@ -115,7 +112,7 @@ export interface DomainSocketObject {
 }
 
 export interface StreamSettingsObject {
-    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | 'httpupgrade' | 'grpc';
+    network: 'raw' | 'xhttp' | 'ws' | 'tcp' | 'httpupgrade' | 'grpc' | 'kcp';
     security?: 'none' | 'reality' | 'tls';
     tlsSettings?: TLSObject;
     realitySettings?: RealityObject;
@@ -124,8 +121,10 @@ export interface StreamSettingsObject {
     xhttpSettings?: xHttpObject;
     wsSettings?: WebSocketObject;
     httpupgradeSettings?: HttpUpgradeObject;
+    kcpSettings?: KcpObject;
     grpcSettings?: GrpcObject;
     sockopt?: unknown;
+    finalmask?: unknown;
 }
 
 export interface WebSocketObject {
@@ -159,4 +158,5 @@ export type OneOfStreamSettingsObject =
     | xHttpObject
     | WebSocketObject
     | HttpUpgradeObject
-    | GrpcObject;
+    | GrpcObject
+    | KcpObject;
