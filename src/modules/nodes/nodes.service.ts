@@ -20,6 +20,7 @@ import { NodesQueuesService } from '@queue/_nodes';
 
 import {
     BulkNodesActionsRequestDto,
+    BulkNodesUpdateRequestDto,
     CreateNodeRequestDto,
     ProfileModificationRequestDto,
     ReorderNodeRequestDto,
@@ -478,6 +479,35 @@ export class NodesService {
 
             for (const uuid of uuids) {
                 await handler(uuid);
+            }
+
+            return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async bulkNodesUpdate(
+        body: BulkNodesUpdateRequestDto,
+    ): Promise<TResult<BaseEventResponseModel>> {
+        try {
+            const { uuids, fields } = body;
+
+            const fieldsToUpdate: Partial<NodesEntity> = {
+                countryCode: fields.countryCode,
+                consumptionMultiplier: mapDefined(fields.consumptionMultiplier, toNano),
+                providerUuid: fields.providerUuid,
+                tags: fields.tags,
+                activePluginUuid: fields.activePluginUuid,
+            };
+
+            await this.nodesRepository.updateMany(uuids, fieldsToUpdate);
+
+            if (fieldsToUpdate.activePluginUuid !== undefined) {
+                await this.nodesQueuesService.syncNodePluginsBulk(
+                    uuids.map((uuid) => ({ nodeUuid: uuid })),
+                );
             }
 
             return ok(new BaseEventResponseModel(true));

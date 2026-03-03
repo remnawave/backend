@@ -31,11 +31,14 @@ import {
     RestartNodeCommand,
     UpdateNodeCommand,
     BulkNodesActionsCommand,
+    BulkNodesUpdateCommand,
 } from '@libs/contracts/commands';
 
 import {
     BulkNodesActionsRequestDto,
     BulkNodesActionsResponseDto,
+    BulkNodesUpdateRequestDto,
+    BulkNodesUpdateResponseDto,
     CreateNodeRequestDto,
     CreateNodeResponseDto,
     DeleteNodeRequestParamDto,
@@ -318,6 +321,26 @@ export class NodesController {
         @Body() body: BulkNodesActionsRequestDto,
     ): Promise<BulkNodesActionsResponseDto> {
         const result = await this.nodesService.bulkNodesActions(body);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: BulkNodesUpdateResponseDto,
+        description: 'Event sent successfully',
+    })
+    @Endpoint({
+        command: BulkNodesUpdateCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: BulkNodesUpdateRequestDto,
+    })
+    async bulkNodesUpdate(
+        @Body() body: BulkNodesUpdateRequestDto,
+    ): Promise<BulkNodesUpdateResponseDto> {
+        const result = await this.nodesService.bulkNodesUpdate(body);
 
         const data = errorHandler(result);
         return {

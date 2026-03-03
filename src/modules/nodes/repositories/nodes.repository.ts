@@ -326,4 +326,17 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
         return result.map((value) => value.uuid);
     }
+
+    public async updateMany(uuids: string[], fields: Partial<NodesEntity>): Promise<boolean> {
+        const result = await this.prisma.tx.nodes.updateMany({
+            where: {
+                uuid: {
+                    in: uuids,
+                },
+            },
+            data: fields,
+        });
+
+        return !!result;
+    }
 }
