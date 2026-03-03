@@ -10,9 +10,10 @@ import { AxiosService } from '@common/axios/axios.service';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users/get-prepared-config-with-users.query';
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
-import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
+import { GetAllPluginsQuery } from '@modules/node-plugins/queries/get-all-plugins';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
+import { NodePluginEntity } from '@modules/node-plugins/entities';
 import { NodesEntity } from '@modules/nodes';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -134,6 +135,17 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                 return;
             }
 
+            const pluginsResult = await this.queryBus.execute(new GetAllPluginsQuery(true));
+
+            if (!pluginsResult.isOk) {
+                this.logger.error(`Failed to get all plugins: ${pluginsResult.message}`);
+                return;
+            }
+
+            const pluginsMap = new Map<string, NodePluginEntity>(
+                pluginsResult.response.map((plugin) => [plugin.uuid, plugin]),
+            );
+
             const startTime = Date.now();
 
             const config = await this.queryBus.execute(
@@ -214,17 +226,13 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     } | null = null;
 
                     if (node.activePluginUuid) {
-                        const getNodePluginResult = await this.queryBus.execute(
-                            new GetPluginByUuidQuery(node.activePluginUuid),
-                        );
+                        const nodePlugin = pluginsMap.get(node.activePluginUuid);
 
-                        if (!getNodePluginResult.isOk) {
-                            this.logger.error(
-                                `Failed to get node plugin: ${getNodePluginResult.message}`,
-                            );
+                        if (!nodePlugin) {
+                            this.logger.error(`Node plugin not found: ${node.activePluginUuid}`);
                             return;
                         }
-                        const { response: nodePlugin } = getNodePluginResult;
+
                         plugin = {
                             uuid: nodePlugin.uuid,
                             config: nodePlugin.pluginConfig as Record<string, unknown>,
