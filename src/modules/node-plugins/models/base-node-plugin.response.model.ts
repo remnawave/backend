@@ -1,6 +1,7 @@
 import { TNodePlugin } from 'libs/node-plugins';
 
 import { NodePluginEntity } from '../entities/node-plugin.entity';
+import { orderNodePluginsConfig } from '../utils';
 
 export class BaseNodePluginResponseModel {
     public uuid: string;
@@ -13,7 +14,9 @@ export class BaseNodePluginResponseModel {
         this.viewPosition = entity.viewPosition;
         this.name = entity.name;
         if (entity.pluginConfig) {
-            this.pluginConfig = entity.pluginConfig as unknown as TNodePlugin;
+            this.pluginConfig = orderNodePluginsConfig(
+                entity.pluginConfig as unknown as TNodePlugin,
+            );
         } else {
             this.pluginConfig = null;
         }
