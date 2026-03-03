@@ -26,8 +26,10 @@ export class TorrentBlockerEvents implements OnApplicationBootstrap {
         private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.chatId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_CHAT_ID');
-        this.threadId = this.configService.get<string>('TELEGRAM_NOTIFY_NODES_THREAD_ID');
+        const chatId = this.configService.get<string>('TELEGRAM_NOTIFY_TBLOCKER');
+        if (chatId) {
+            [this.chatId, this.threadId] = chatId.split(':');
+        }
     }
 
     onApplicationBootstrap(): void {
