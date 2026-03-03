@@ -27,7 +27,6 @@ export const TorrentBlockerPluginSchema = z.object({
             ip: z
                 .array(z.union([z.string().ip(), z.string().startsWith('ext:')]))
                 .optional()
-                .default([])
                 .describe(
                     JSON.stringify({
                         markdownDescription: `List of IP addresses to ignore from the block. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. \n\n You can also specify user IDs to ignore from the block.${DOCS_LINK}`,
@@ -36,7 +35,6 @@ export const TorrentBlockerPluginSchema = z.object({
             userId: z
                 .array(z.number().int())
                 .optional()
-                .default([])
                 .describe(
                     JSON.stringify({
                         markdownDescription: `List of user IDs to ignore from the block. \n\n You can also specify user IDs to ignore from the block.${DOCS_LINK}`,
