@@ -163,7 +163,10 @@ export class SubscriptionService {
                         contentType: 'text/plain',
                     });
 
-                    if (subscriptionSettings.hwidSettings.maxDevicesAnnounce) {
+                    if (
+                        isAllowed.response.maxDeviceReached &&
+                        subscriptionSettings.hwidSettings.maxDevicesAnnounce
+                    ) {
                         response.headers.announce = `base64:${Buffer.from(
                             TemplateEngine.formatWithUser(
                                 subscriptionSettings.hwidSettings.maxDevicesAnnounce,
@@ -193,6 +196,18 @@ export class SubscriptionService {
 
                         response.body = subscription;
                         response.contentType = contentType;
+                    }
+
+                    if (isAllowed.response.hwidNotSupported) {
+                        response.headers['x-hwid-not-supported'] = 'true';
+                    }
+
+                    if (isAllowed.response.maxDeviceReached) {
+                        response.headers['x-hwid-max-devices-reached'] = 'true';
+                    }
+
+                    if (!isAllowed.response.limitBypassed) {
+                        response.headers['x-hwid-active'] = 'true';
                     }
 
                     response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
@@ -279,7 +294,6 @@ export class SubscriptionService {
             if (!userResult.isOk) {
                 return fail(ERRORS.USER_NOT_FOUND);
             }
-
             const user = userResult.response;
 
             const settingEntity = await this.queryBus.execute(
@@ -317,10 +331,22 @@ export class SubscriptionService {
                         ).toString('base64')}`;
                     }
 
-                    headers['x-hwid-limit'] = 'true'; // v2rayTUN
+                    if (isAllowed.response.hwidNotSupported) {
+                        headers['x-hwid-not-supported'] = 'true';
+                    }
+
+                    if (isAllowed.response.maxDeviceReached) {
+                        headers['x-hwid-max-devices-reached'] = 'true';
+                    }
+
+                    if (!isAllowed.response.limitBypassed) {
+                        headers['x-hwid-active'] = 'true';
+                    }
 
                     isHwidLimited = true;
                 }
+
+                headers['x-hwid-limit'] = 'true'; // v2rayTUN
             } else {
                 await this.checkAndUpsertHwidUserDevice(user, hwidHeaders);
 
@@ -778,6 +804,7 @@ export class SubscriptionService {
             isSubscriptionAllowed: boolean;
             maxDeviceReached: boolean;
             hwidNotSupported: boolean;
+            limitBypassed?: boolean;
         }>
     > {
         try {
@@ -796,6 +823,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: true,
                     maxDeviceReached: false,
                     hwidNotSupported: false,
+                    limitBypassed: true,
                 });
             }
 
