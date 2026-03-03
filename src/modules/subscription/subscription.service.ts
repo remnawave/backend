@@ -145,6 +145,8 @@ export class SubscriptionService {
 
             const subscriptionSettings = srrContext.subscriptionSettings;
 
+            let hwidLimitHeader: string | undefined;
+
             if (subscriptionSettings.hwidSettings.enabled) {
                 const isAllowed = await this.checkHwidDeviceLimit(
                     user.response,
@@ -199,6 +201,10 @@ export class SubscriptionService {
 
                     return response;
                 }
+
+                if (isAllowed.isOk && isAllowed.response.isNewDevice) {
+                    hwidLimitHeader = 'false'; // v2rayTUN
+                }
             } else {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
             }
@@ -243,12 +249,18 @@ export class SubscriptionService {
                 hostsOverrides,
             });
 
+            const headers = await this.getUserProfileHeadersInfo(
+                user.response,
+                isXrayExtSupported,
+                subscriptionSettings,
+            );
+
+            if (hwidLimitHeader !== undefined) {
+                headers['x-hwid-limit'] = hwidLimitHeader;
+            }
+
             return new SubscriptionWithConfigResponse({
-                headers: await this.getUserProfileHeadersInfo(
-                    user.response,
-                    isXrayExtSupported,
-                    subscriptionSettings,
-                ),
+                headers,
                 body: subscription.subscription,
                 contentType: subscription.contentType,
             });
@@ -320,6 +332,10 @@ export class SubscriptionService {
                     headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     isHwidLimited = true;
+                }
+
+                if (isAllowed.isOk && isAllowed.response.isNewDevice) {
+                    headers['x-hwid-limit'] = 'false'; // v2rayTUN
                 }
             } else {
                 await this.checkAndUpsertHwidUserDevice(user, hwidHeaders);
@@ -778,6 +794,7 @@ export class SubscriptionService {
             isSubscriptionAllowed: boolean;
             maxDeviceReached: boolean;
             hwidNotSupported: boolean;
+            isNewDevice: boolean;
         }>
     > {
         try {
@@ -796,6 +813,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: true,
                     maxDeviceReached: false,
                     hwidNotSupported: false,
+                    isNewDevice: false,
                 });
             }
 
@@ -804,6 +822,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: false,
                     maxDeviceReached: false,
                     hwidNotSupported: true,
+                    isNewDevice: false,
                 });
             }
 
@@ -827,6 +846,7 @@ export class SubscriptionService {
                         isSubscriptionAllowed: true,
                         maxDeviceReached: false,
                         hwidNotSupported: false,
+                        isNewDevice: false,
                     });
                 }
             }
@@ -840,6 +860,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: false,
                     maxDeviceReached: true,
                     hwidNotSupported: false,
+                    isNewDevice: false,
                 });
             }
 
@@ -848,6 +869,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: false,
                     maxDeviceReached: true,
                     hwidNotSupported: false,
+                    isNewDevice: false,
                 });
             }
 
@@ -871,6 +893,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: false,
                     maxDeviceReached: true,
                     hwidNotSupported: false,
+                    isNewDevice: false,
                 });
             }
 
@@ -883,6 +906,7 @@ export class SubscriptionService {
                 isSubscriptionAllowed: true,
                 maxDeviceReached: false,
                 hwidNotSupported: false,
+                isNewDevice: true,
             });
         } catch (error) {
             this.logger.error(`Error checking hwid device limit: ${error}`);
@@ -890,6 +914,7 @@ export class SubscriptionService {
                 isSubscriptionAllowed: false,
                 maxDeviceReached: true,
                 hwidNotSupported: false,
+                isNewDevice: false,
             });
         }
     }
