@@ -1,4 +1,5 @@
 import { Job } from 'bullmq';
+import semver from 'semver';
 import pMap from 'p-map';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -155,6 +156,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     throw new Error('Failed to get active node inbounds tags');
                 }
 
+                let pluginsSupported = true;
                 const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
 
                 if (!xrayStatusResponse.isOk) {
@@ -196,46 +198,54 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                         `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
                     );
                     return;
+                } else if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.7.0')) {
+                    pluginsSupported = false;
+
+                    this.logger.warn(
+                        `Node ${node.uuid} running on outdated version of Remnawave Node. Please upgrade to the latest version. Some features may not work properly.`,
+                    );
                 }
 
-                let plugin: {
-                    uuid: string;
-                    config: Record<string, unknown>;
-                    name: string;
-                } | null = null;
+                if (pluginsSupported) {
+                    let plugin: {
+                        uuid: string;
+                        config: Record<string, unknown>;
+                        name: string;
+                    } | null = null;
 
-                if (node.activePluginUuid) {
-                    const getNodePluginResult = await this.queryBus.execute(
-                        new GetPluginByUuidQuery(node.activePluginUuid),
+                    if (node.activePluginUuid) {
+                        const getNodePluginResult = await this.queryBus.execute(
+                            new GetPluginByUuidQuery(node.activePluginUuid),
+                        );
+
+                        if (!getNodePluginResult.isOk) {
+                            this.logger.error(
+                                `Failed to get node plugin: ${getNodePluginResult.message}`,
+                            );
+                            return;
+                        }
+                        const { response: nodePlugin } = getNodePluginResult;
+                        plugin = {
+                            uuid: nodePlugin.uuid,
+                            config: nodePlugin.pluginConfig as Record<string, unknown>,
+                            name: nodePlugin.name,
+                        };
+                    }
+
+                    const syncNodePluginsResponse = await this.axios.syncNodePlugins(
+                        {
+                            plugin,
+                        },
+                        node.address,
+                        node.port,
                     );
 
-                    if (!getNodePluginResult.isOk) {
+                    if (!syncNodePluginsResponse.isOk) {
                         this.logger.error(
-                            `Failed to get node plugin: ${getNodePluginResult.message}`,
+                            `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
                         );
                         return;
                     }
-                    const { response: nodePlugin } = getNodePluginResult;
-                    plugin = {
-                        uuid: nodePlugin.uuid,
-                        config: nodePlugin.pluginConfig as Record<string, unknown>,
-                        name: nodePlugin.name,
-                    };
-                }
-
-                const syncNodePluginsResponse = await this.axios.syncNodePlugins(
-                    {
-                        plugin,
-                    },
-                    node.address,
-                    node.port,
-                );
-
-                if (!syncNodePluginsResponse.isOk) {
-                    this.logger.error(
-                        `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
-                    );
-                    return;
                 }
 
                 const filteredInboundsHashes = config.response.hashesPayload.inbounds.filter(
