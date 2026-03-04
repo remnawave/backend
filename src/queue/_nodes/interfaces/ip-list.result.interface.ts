@@ -8,7 +8,7 @@ export interface IGetIpsListNodeResult {
     nodeUuid: string;
     nodeName: string;
     countryCode: string;
-    ips: string[];
+    ips: { ip: string; lastSeen: Date }[];
 }
 
 export interface IGetIpsListResult {

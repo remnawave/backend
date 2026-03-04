@@ -88,11 +88,23 @@ export class QueryNodesQueueProcessor extends WorkerHost {
                         return;
                     }
 
+                    const ips = ipsListResponse.response.response.ips;
+                    let formattedIps: { ip: string; lastSeen: Date }[] = [];
+
+                    if (ips.length > 0 && typeof ips[0] === 'string') {
+                        formattedIps = (ips as unknown as string[]).map((ip) => ({
+                            ip,
+                            lastSeen: new Date(0),
+                        }));
+                    } else {
+                        formattedIps = ips.map((ip) => ({ ip: ip.ip, lastSeen: ip.lastSeen }));
+                    }
+
                     return {
                         nodeUuid: node.uuid,
                         nodeName: node.name,
                         countryCode: node.countryCode,
-                        ips: ipsListResponse.response.response.ips,
+                        ips: formattedIps,
                     };
                 } catch (error) {
                     this.logger.warn(`Failed to fetch IPs from node ${node.uuid}: ${error}`);
