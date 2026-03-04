@@ -361,7 +361,7 @@ export class SubscriptionService {
                 return fail(ERRORS.GET_ALL_HOSTS_ERROR);
             }
 
-            if (settingEntity.randomizeHosts) {
+            if (patchedSettingEntity.randomizeHosts) {
                 hosts.response = _.shuffle(hosts.response);
             }
 

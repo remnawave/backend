@@ -442,6 +442,10 @@ export class NodesService {
                 return fail(ERRORS.CONFIG_PROFILE_INBOUND_NOT_FOUND_IN_SPECIFIED_PROFILE);
             }
 
+            await this.nodesRepository.updateMany(uuids, {
+                activeConfigProfileUuid: configProfile.activeConfigProfileUuid,
+            });
+
             await this.nodesRepository.removeInboundsFromNodes(uuids);
 
             await this.nodesRepository.addInboundsToNodes(uuids, configProfile.activeInbounds);
