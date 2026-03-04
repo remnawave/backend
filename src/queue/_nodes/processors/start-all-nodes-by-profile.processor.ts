@@ -249,6 +249,18 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     );
 
                     if (!syncNodePluginsResponse.isOk) {
+                        await this.commandBus.execute(
+                            new UpdateNodeCommand({
+                                uuid: node.uuid,
+                                isDisabled: false,
+                                isConnecting: false,
+                                isConnected: false,
+                                lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                                lastStatusChange: new Date(),
+                                usersOnline: 0,
+                            }),
+                        );
+
                         this.logger.error(
                             `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
                         );
