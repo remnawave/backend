@@ -19,6 +19,7 @@ export class TorrentBlockerEvents implements OnApplicationBootstrap {
     private readonly logger = new Logger(TorrentBlockerEvents.name);
     private readonly chatId: string | undefined;
     private readonly threadId: string | undefined;
+    private readonly panelDomain: string | undefined;
 
     constructor(
         private readonly eventEmitter: EventEmitter2,
@@ -26,6 +27,8 @@ export class TorrentBlockerEvents implements OnApplicationBootstrap {
         private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
+        this.panelDomain = this.configService.get<string>('PANEL_DOMAIN');
+
         const chatId = this.configService.get<string>('TELEGRAM_NOTIFY_TBLOCKER');
         if (chatId) {
             [this.chatId, this.threadId] = chatId.split(':');
@@ -57,14 +60,15 @@ export class TorrentBlockerEvents implements OnApplicationBootstrap {
         event: TorrentBlockerEvent,
         template: TorrentBlockerEventsTemplate,
     ): Promise<void> {
-        const message = template(event);
+        const message = template(event, this.panelDomain);
 
         if (!message) return;
 
         await this.telegramQueue.addJobToSendTelegramMessage({
-            message,
+            message: message.message,
             chatId: this.chatId!,
             threadId: this.threadId,
+            keyboard: message.keyboard,
         });
     }
 }

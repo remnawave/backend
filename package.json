@@ -103,7 +103,7 @@
     "dotenv": "^17.3.1",
     "enhanced-ms": "^4.2.0",
     "gradient-string": "^3.0.0",
-    "grammy": "^1.38.4",
+    "grammy": "^1.41.1",
     "helmet": "^8.1.0",
     "husky": "9.1.7",
     "hygen": "^6.2.11",

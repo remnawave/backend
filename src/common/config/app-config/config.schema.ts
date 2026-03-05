@@ -50,6 +50,7 @@ export const configSchema = z
         TELEGRAM_NOTIFY_TBLOCKER: z.string().optional(),
 
         FRONT_END_DOMAIN: z.string(),
+        PANEL_DOMAIN: z.string().optional(),
         IS_DOCS_ENABLED: z
             .string()
             .default('false')

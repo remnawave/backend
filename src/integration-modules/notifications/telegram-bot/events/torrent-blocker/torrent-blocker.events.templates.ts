@@ -4,13 +4,22 @@ import { EVENTS, TTorrentBlockerEvents } from '@libs/contracts/constants';
 
 import { TorrentBlockerEvent } from '@integration-modules/notifications/interfaces';
 
-export type TorrentBlockerEventsTemplate = (event: TorrentBlockerEvent) => string | null;
+import { IInlineKeyboard } from '@queue/notifications/telegram-bot-logger/interfaces/inline-keyboard.interface';
+import { PANEL_URLS } from '@queue/notifications/telegram-bot-logger/enums';
+
+export type TorrentBlockerEventsTemplate = (
+    event: TorrentBlockerEvent,
+    panelDomain: string | undefined,
+) => {
+    message: string;
+    keyboard?: IInlineKeyboard[];
+};
 
 export const TORRENT_BLOCKER_EVENTS_TEMPLATES: Record<
     TTorrentBlockerEvents,
     TorrentBlockerEventsTemplate
 > = {
-    [EVENTS.TORRENT_BLOCKER.REPORT]: (e) => {
+    [EVENTS.TORRENT_BLOCKER.REPORT]: (e, panelDomain) => {
         const { actionReport, xrayReport } = e.data.report;
 
         const lines = [
@@ -31,6 +40,24 @@ export const TORRENT_BLOCKER_EVENTS_TEMPLATES: Record<
             '</blockquote>',
         ];
 
-        return lines.join('\n');
+        return {
+            message: lines.join('\n'),
+            keyboard: buildUserKeyboard(e.data.user.uuid, panelDomain),
+        };
     },
 };
+
+function buildUserKeyboard(
+    userUuid: string,
+    panelDomain: string | undefined,
+): IInlineKeyboard[] | undefined {
+    if (!panelDomain) return undefined;
+    return [
+        {
+            url: PANEL_URLS.USER(panelDomain, userUuid),
+            text: 'View user',
+            customEmoji: '5282843764451195532',
+            style: 'primary' as const,
+        },
+    ];
+}
