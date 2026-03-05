@@ -15,7 +15,7 @@ export const TORRENT_BLOCKER_EVENTS_TEMPLATES: Record<
 
         const lines = [
             `<tg-emoji emoji-id='5469913852462242978'>🧨️</tg-emoji> #torrentBlocked #${e.data.user.username}`,
-            `<tg-emoji emoji-id="5282843764451195532">🖥</tg-emoji> <code>${e.data.node.name}</code> (<code>${e.data.node.address}</code>)`,
+            `<tg-emoji emoji-id='5215186239853964761'>🖥</tg-emoji> <code>${e.data.node.name}</code> (<code>${e.data.node.address}</code>)`,
             `<tg-emoji emoji-id='5372981976804366741'>🤖</tg-emoji> <code>${e.data.user.username}</code> (<code>${e.data.user.tId}</code>)`,
             '',
             '<blockquote expandable>',
