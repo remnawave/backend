@@ -1139,4 +1139,9 @@ export const ERRORS = {
         message: 'Create node plugin error',
         httpCode: 500,
     },
+    METADATA_NOT_FOUND: {
+        code: 'A226',
+        message: 'Metadata not found',
+        httpCode: 404,
+    },
 } as const;

@@ -3,6 +3,7 @@ import { GetNodesByPluginUuidHandler } from './get-nodes-by-plugin-uuid';
 import { FindNodesByCriteriaHandler } from './find-nodes-by-criteria';
 import { GetNodesByCriteriaHandler } from './get-nodes-by-criteria';
 import { CountOnlineUsersHandler } from './count-online-users';
+import { GetNodeIdByUuidHandler } from './get-node-id-by-uuid';
 import { GetEnabledNodesHandler } from './get-enabled-nodes';
 import { GetOnlineNodesHandler } from './get-online-nodes';
 import { GetNodeByUuidHandler } from './get-node-by-uuid';
@@ -18,4 +19,5 @@ export const QUERIES = [
     FindNodesByCriteriaHandler,
     GetEnabledNodesPartialHandler,
     GetNodesByPluginUuidHandler,
+    GetNodeIdByUuidHandler,
 ];

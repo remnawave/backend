@@ -106,4 +106,8 @@ export const CONTROLLERS_INFO = {
         tag: 'Subscription Page Configs Controller',
         description: '',
     },
+    METADATA: {
+        tag: 'Metadata Controller',
+        description: 'Manage arbitrary metadata for Users and Nodes.',
+    },
 } as const;

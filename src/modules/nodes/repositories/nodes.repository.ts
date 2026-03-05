@@ -339,4 +339,18 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
         return !!result;
     }
+
+    public async getNodeIdByUuid(uuid: string): Promise<bigint | null> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('id')
+            .where('uuid', '=', getKyselyUuid(uuid))
+            .executeTakeFirst();
+
+        if (!result) {
+            return null;
+        }
+
+        return result.id;
+    }
 }

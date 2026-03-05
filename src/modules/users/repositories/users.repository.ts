@@ -1080,6 +1080,20 @@ export class UsersRepository {
         return result.map((user) => user.tId);
     }
 
+    public async getUserIdByUuid(uuid: string): Promise<bigint | null> {
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select('tId')
+            .where('uuid', '=', getKyselyUuid(uuid))
+            .executeTakeFirst();
+
+        if (!result) {
+            return null;
+        }
+
+        return result.tId;
+    }
+
     public async getIdsAndHashesByUserUuids(userUuids: string[]): Promise<
         {
             tId: bigint;

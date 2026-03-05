@@ -21,6 +21,7 @@ import { InfraBillingModule } from './infra-billing/infra-billing.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { ApiTokensModule } from './api-tokens/api-tokens.module';
 import { IpControlModule } from './ip-control/ip-control.module';
+import { MetadataModule } from './metadata/metadata.module';
 import { KeygenModule } from './keygen/keygen.module';
 import { SystemModule } from './system/system.module';
 import { HostsModule } from './hosts/hosts.module';
@@ -58,6 +59,7 @@ import { AuthModule } from './auth/auth.module';
         ConditionalModule.registerWhen(SubscriptionSettingsModule, () => isRestApi()),
         ConditionalModule.registerWhen(RemnawaveServiceModule, () => isScheduler()),
         ConditionalModule.registerWhen(IpControlModule, () => isRestApi()),
+        ConditionalModule.registerWhen(MetadataModule, () => isRestApi()),
     ],
 })
 export class RemnawaveModules {}

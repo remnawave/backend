@@ -437,4 +437,18 @@ export const REST_API = {
             `${ROOT}/${CONTROLLERS.IP_CONTROL_CONTROLLER}/${CONTROLLERS.IP_CONTROL_ROUTES.GET_FETCH_IPS_RESULT(jobId)}`,
         DROP_CONNECTIONS: `${ROOT}/${CONTROLLERS.IP_CONTROL_CONTROLLER}/${CONTROLLERS.IP_CONTROL_ROUTES.DROP_CONNECTIONS}`,
     },
+    METADATA: {
+        NODE: {
+            GET: (uuid: string) =>
+                `${ROOT}/${CONTROLLERS.METADATA_CONTROLLER}/${CONTROLLERS.METADATA_ROUTES.NODE.GET(uuid)}`,
+            UPSERT: (uuid: string) =>
+                `${ROOT}/${CONTROLLERS.METADATA_CONTROLLER}/${CONTROLLERS.METADATA_ROUTES.NODE.UPSERT(uuid)}`,
+        },
+        USER: {
+            GET: (uuid: string) =>
+                `${ROOT}/${CONTROLLERS.METADATA_CONTROLLER}/${CONTROLLERS.METADATA_ROUTES.USER.GET(uuid)}`,
+            UPSERT: (uuid: string) =>
+                `${ROOT}/${CONTROLLERS.METADATA_CONTROLLER}/${CONTROLLERS.METADATA_ROUTES.USER.UPSERT(uuid)}`,
+        },
+    },
 } as const;
