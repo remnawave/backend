@@ -84,11 +84,12 @@ export class XRayConfig {
             const network = inbound.streamSettings?.network;
 
             if (
-                network &&
-                !['grpc', 'httpupgrade', 'raw', 'tcp', 'ws', 'xhttp'].includes(network)
+                network !== undefined &&
+                network !== null &&
+                typeof network !== 'string'
             ) {
                 throw new Error(
-                    `Invalid network type "${network}" in inbound "${inbound.tag}". Allowed values are: raw (or tcp), ws, httpupgrade, xhttp and grpc`,
+                    `Invalid network type "${network}" in inbound "${inbound.tag}". Expected a string value.`,
                 );
             }
 
