@@ -18,6 +18,7 @@ import {
     TrojanSettings,
     VLessSettings,
 } from './interfaces';
+import { getSsPassword, isSS2022MethodFromMethod, SHADOWSOCKS_METHODS } from './ss-cipher';
 
 interface InboundsWithTagsAndType {
     tag: string;
@@ -121,6 +122,43 @@ export class XRayConfig {
                     `Duplicate inbound tag "${inbound.tag}" found. All inbound tags must be unique.`,
                 );
             }
+
+            if (inbound.protocol === 'shadowsocks') {
+                if (
+                    !('settings' in inbound) ||
+                    !inbound.settings ||
+                    !('method' in inbound.settings)
+                ) {
+                    continue;
+                    // throw new Error('Shadowsocks method is required.');
+                }
+
+                const method = inbound.settings.method;
+
+                if (typeof method !== 'string' || !SHADOWSOCKS_METHODS.some((m) => m === method)) {
+                    throw new Error(
+                        `Unsupported Shadowsocks method "${method}". Allowed methods are: ${SHADOWSOCKS_METHODS.join(', ')}.`,
+                    );
+                }
+
+                if (isSS2022MethodFromMethod(method)) {
+                    if (!('password' in inbound.settings)) {
+                        throw new Error(
+                            'Shadowsocks password is required for 2022-blake3-* methods. (inbound → settings → password – generate with: openssl rand -base64 32)',
+                        );
+                    } else {
+                        if (
+                            typeof inbound.settings.password === 'string' &&
+                            inbound.settings.password.length < 32
+                        ) {
+                            throw new Error(
+                                'Shadowsocks password must be at least 32 characters long for 2022-blake3-* methods. (inbound → settings → password – generate with: openssl rand -base64 32)',
+                            );
+                        }
+                    }
+                }
+            }
+
             seenTags.add(inbound.tag);
         }
     }
@@ -360,17 +398,22 @@ export class XRayConfig {
                     });
                 }
                 break;
-            case 'shadowsocks':
-                (inbound.settings as ShadowsocksSettings).clients ??= [];
+            case 'shadowsocks': {
+                const settings = inbound.settings as ShadowsocksSettings;
+                settings.clients ??= [];
+
+                const isSS2022 = isSS2022MethodFromMethod(settings.method);
+
                 for (const user of users) {
-                    (inbound.settings as ShadowsocksSettings).clients.push({
-                        password: user.ssPassword,
-                        method: 'chacha20-ietf-poly1305',
+                    settings.clients.push({
+                        password: getSsPassword(user.ssPassword, isSS2022),
+                        ...(!isSS2022 && { method: settings.method }),
                         email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
                 }
                 break;
+            }
             default:
                 throw new Error(`Protocol ${inbound.protocol} is not supported.`);
         }

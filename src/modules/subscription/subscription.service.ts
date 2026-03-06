@@ -400,65 +400,6 @@ export class SubscriptionService {
         }
     }
 
-    /** @deprecated Will be removed soon */
-    public async getOutlineSubscriptionByShortUuid(
-        shortUuid: string,
-        userAgent: string,
-        encodedTag: string,
-    ): Promise<
-        SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
-    > {
-        try {
-            const userResult = await this.queryBus.execute(
-                new GetUserByUniqueFieldQuery(
-                    {
-                        shortUuid,
-                    },
-                    {
-                        activeInternalSquads: false,
-                    },
-                ),
-            );
-
-            if (!userResult.isOk) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            const user = userResult.response;
-
-            const settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
-
-            const hosts = await this.queryBus.execute(
-                new GetHostsForUserQuery(user.tId, false, false),
-            );
-
-            if (!hosts.isOk || !settings) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            await this.usersQueuesService.updateUserSub({
-                userUuid: user.uuid,
-                subLastOpenedAt: new Date(),
-                subLastUserAgent: userAgent,
-            });
-
-            const subscription = await this.renderTemplatesService.generateOutlineSubscription(
-                settings,
-                encodedTag,
-                user,
-                hosts.response,
-            );
-
-            return new SubscriptionWithConfigResponse({
-                headers: {},
-                body: subscription.subscription,
-                contentType: subscription.contentType,
-            });
-        } catch {
-            return new SubscriptionNotFoundResponse();
-        }
-    }
-
     public async getSubscriptionInfo(
         params: IGetSubscriptionInfo,
     ): Promise<TResult<SubscriptionRawResponse>> {
@@ -521,7 +462,7 @@ export class SubscriptionService {
 
             let formattedHosts: IFormattedHost[] = [];
             let xrayLinks: string[] = [];
-            let ssConfLinks: Record<string, string> = {};
+            const ssConfLinks: Record<string, string> = {};
 
             if (!settings.hwidSettings.enabled || authenticated) {
                 const hostsResponse = await this.queryBus.execute(
@@ -536,8 +477,6 @@ export class SubscriptionService {
                 });
 
                 xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
-
-                ssConfLinks = await this.generateSsConfLinks(userEntity.shortUuid, formattedHosts);
             }
 
             return ok(await this.getUserInfo(userEntity, xrayLinks, ssConfLinks));
@@ -624,27 +563,6 @@ export class SubscriptionService {
             this.logger.error(`Error getting all subscriptions: ${error}`);
             return fail(ERRORS.GETTING_ALL_SUBSCRIPTIONS_ERROR);
         }
-    }
-
-    private async generateSsConfLinks(
-        subscriptionShortUuid: string,
-        formattedHosts: IFormattedHost[],
-    ): Promise<Record<string, string>> {
-        const publicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
-        const links: Record<string, string> = {};
-
-        for (const host of formattedHosts) {
-            if (host.protocol !== 'shadowsocks' || host.port === 0 || host.port === 1) {
-                continue;
-            }
-
-            links[host.remark] =
-                `ssconf://${publicDomain}/${subscriptionShortUuid}/ss/${Buffer.from(
-                    host.remark,
-                ).toString('base64url')}#${host.remark}`;
-        }
-
-        return links;
     }
 
     private async getUserProfileHeadersInfo(

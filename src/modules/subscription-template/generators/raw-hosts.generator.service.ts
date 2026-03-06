@@ -24,10 +24,10 @@ export class RawHostsGeneratorService {
                     ...hostData,
                 };
 
-                if (host.protocol === 'shadowsocks') {
+                if (host.protocol === 'shadowsocks' && host.shadowsocksOptions) {
                     rawHost.protocolOptions = {
                         ss: {
-                            method: 'chacha20-ietf-poly1305',
+                            method: host.shadowsocksOptions.method,
                         },
                     };
                 }

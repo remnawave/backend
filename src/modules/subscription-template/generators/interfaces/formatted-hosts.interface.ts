@@ -45,6 +45,12 @@ export interface IFormattedHost {
         headerType?: string;
         request?: object;
     };
+    shadowsocksOptions?: {
+        method: string;
+        clientPassword: string;
+        uot: boolean;
+        uotVersion: number;
+    };
     rwCustomParams?: {
         clientMtu?: number; // kcpSettings.clientMtu >> kcpSettings.mtu
     };

@@ -22,6 +22,10 @@ interface OutboundConfig {
     path?: string;
     max_early_data?: number;
     early_data_header_name?: string;
+    udp_over_tcp?: {
+        enabled: boolean;
+        version: number;
+    };
 }
 
 interface TlsConfig {
@@ -319,8 +323,14 @@ export class SingBoxGeneratorService {
                     outbound.password = host.password.trojanPassword;
                     break;
                 case 'shadowsocks':
-                    outbound.password = host.password.ssPassword;
-                    outbound.method = 'chacha20-ietf-poly1305';
+                    if (host.shadowsocksOptions) {
+                        outbound.password = host.shadowsocksOptions.clientPassword;
+                        outbound.method = host.shadowsocksOptions.method;
+                        outbound.udp_over_tcp = {
+                            enabled: host.shadowsocksOptions.uot,
+                            version: host.shadowsocksOptions.uotVersion,
+                        };
+                    }
                     break;
             }
 

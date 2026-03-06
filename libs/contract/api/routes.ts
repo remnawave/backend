@@ -163,8 +163,6 @@ export const REST_API = {
     SUBSCRIPTION: {
         GET: (shortUuid: string) =>
             `${ROOT}/${CONTROLLERS.SUBSCRIPTION_CONTROLLER}/${CONTROLLERS.SUBSCRIPTION_ROUTES.GET}${shortUuid}`,
-        GET_OUTLINE: (shortUuid: string) =>
-            `${ROOT}/${CONTROLLERS.SUBSCRIPTION_CONTROLLER}/${CONTROLLERS.SUBSCRIPTION_ROUTES.GET_OUTLINE}/${shortUuid}`,
         GET_INFO: (shortUuid: string) =>
             `${ROOT}/${CONTROLLERS.SUBSCRIPTION_CONTROLLER}/${CONTROLLERS.SUBSCRIPTION_ROUTES.GET_INFO(
                 shortUuid,

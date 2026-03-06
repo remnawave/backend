@@ -7,7 +7,6 @@ import { UserEntity } from '@modules/users/entities';
 
 import { XrayJsonGeneratorService } from './generators/xray-json.generator.service';
 import { RawHostsGeneratorService } from './generators/raw-hosts.generator.service';
-import { OutlineGeneratorService } from './generators/outline.generator.service';
 import { SingBoxGeneratorService } from './generators/singbox.generator.service';
 import { MihomoGeneratorService } from './generators/mihomo.generator.service';
 import { ClashGeneratorService } from './generators/clash.generator.service';
@@ -23,7 +22,6 @@ export class RenderTemplatesService {
         private readonly formatHostsService: FormatHostsService,
         private readonly mihomoGeneratorService: MihomoGeneratorService,
         private readonly clashGeneratorService: ClashGeneratorService,
-        private readonly outlineGeneratorService: OutlineGeneratorService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly singBoxGeneratorService: SingBoxGeneratorService,
         private readonly xrayJsonGeneratorService: XrayJsonGeneratorService,
@@ -133,27 +131,6 @@ export class RenderTemplatesService {
 
         return {
             rawHosts,
-        };
-    }
-
-    public async generateOutlineSubscription(
-        subscriptionSettings: SubscriptionSettingsEntity | null,
-        encodedTag: string,
-        user: UserEntity,
-        hosts: HostWithRawInbound[],
-    ): Promise<{
-        contentType: string;
-        subscription: string;
-    }> {
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
-            subscriptionSettings,
-            hosts,
-            user,
-        });
-
-        return {
-            subscription: this.outlineGeneratorService.generateConfig(formattedHosts, encodedTag),
-            contentType: 'application/json',
         };
     }
 }

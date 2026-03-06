@@ -1,10 +1,14 @@
 // Shadowsocks Protocol Settings
 export interface ShadowsocksSettings {
     clients: ShadowsocksUser[];
+    method: string;
+    password?: string;
+    uot?: boolean;
+    UoTVersion?: number;
 }
 
 export interface ShadowsocksUser extends UserObject {
-    method: string;
+    method?: string;
     password: string;
     id: string; // !!! This field is not exist in XTLS config!
 }

@@ -19,9 +19,9 @@ import {
     resolveInboundAndMlDsa65PublicKey,
     resolveInboundAndPublicKey,
 } from '@common/helpers/xray-config';
+import { InboundObject, ShadowsocksSettings } from '@common/helpers/xray-config/interfaces';
 import { RawObject } from '@common/helpers/xray-config/interfaces/transport.config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
-import { InboundObject } from '@common/helpers/xray-config/interfaces';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
 import { getVlessFlow } from '@common/utils/flow';
 import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
@@ -225,6 +225,22 @@ export class FormatHostsService {
             let sockoptParams: null | object | undefined;
             let serverDescription: string | undefined;
             let mtu: number | undefined;
+            let shadowsocksOptions: IFormattedHost['shadowsocksOptions'] | undefined;
+
+            if (inbound.protocol === 'shadowsocks') {
+                const shadowsocksSettings = inbound.settings as ShadowsocksSettings;
+                shadowsocksOptions = {
+                    method: shadowsocksSettings.method,
+                    clientPassword: user.ssPassword,
+                    uot: shadowsocksSettings.uot || false,
+                    uotVersion: shadowsocksSettings.UoTVersion || 1,
+                };
+                if (shadowsocksSettings.method.startsWith('2022-blake3-')) {
+                    if ('password' in shadowsocksSettings) {
+                        shadowsocksOptions.clientPassword = `${shadowsocksSettings.password}:${Buffer.from(user.ssPassword).toString('base64')}`;
+                    }
+                }
+            }
 
             switch (network) {
                 case 'xhttp': {
@@ -289,10 +305,6 @@ export class FormatHostsService {
                     break;
                 }
                 case 'tcp': {
-                    if (inbound.protocol === 'shadowsocks') {
-                        break;
-                    }
-
                     const settings = inbound.streamSettings?.tcpSettings as TcpObject;
                     // eslint-disable-next-line
                     streamSettings = settings;
@@ -529,6 +541,7 @@ export class FormatHostsService {
                     tag: inputHost.tag,
                     excludeFromSubscriptionTypes: inputHost.excludeFromSubscriptionTypes,
                 },
+                shadowsocksOptions,
             });
         }
 
