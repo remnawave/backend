@@ -1,11 +1,15 @@
 import { CipherType } from '@remnawave/node-contract';
 
 export enum ShadowsocksMethod {
+    AES_128_GCM = 'aes-128-gcm',
+    AES_256_GCM = 'aes-256-gcm',
     CHACHA20_IETF_POLY1305 = 'chacha20-ietf-poly1305',
     SS2022_BLAKE3_AES_256_GCM = '2022-blake3-aes-256-gcm',
 }
 
 export const SHADOWSOCKS_METHODS = [
+    ShadowsocksMethod.AES_128_GCM,
+    ShadowsocksMethod.AES_256_GCM,
     ShadowsocksMethod.CHACHA20_IETF_POLY1305,
     ShadowsocksMethod.SS2022_BLAKE3_AES_256_GCM,
 ];
@@ -27,6 +31,10 @@ export function getCipherTypeFromString(rawInbound: RawInbound): CipherType {
     switch (method) {
         case ShadowsocksMethod.CHACHA20_IETF_POLY1305:
             return CipherType.CHACHA20_POLY1305;
+        case ShadowsocksMethod.AES_128_GCM:
+            return CipherType.AES_128_GCM;
+        case ShadowsocksMethod.AES_256_GCM:
+            return CipherType.AES_256_GCM;
         default:
             return CipherType.UNRECOGNIZED;
     }
