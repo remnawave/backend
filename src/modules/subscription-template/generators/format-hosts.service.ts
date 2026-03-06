@@ -19,6 +19,7 @@ import {
     resolveInboundAndMlDsa65PublicKey,
     resolveInboundAndPublicKey,
 } from '@common/helpers/xray-config';
+import { getSsPassword, isSS2022MethodFromMethod } from '@common/helpers/xray-config/ss-cipher';
 import { InboundObject, ShadowsocksSettings } from '@common/helpers/xray-config/interfaces';
 import { RawObject } from '@common/helpers/xray-config/interfaces/transport.config';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
@@ -235,9 +236,9 @@ export class FormatHostsService {
                     uot: shadowsocksSettings.uot || false,
                     uotVersion: shadowsocksSettings.UoTVersion || 1,
                 };
-                if (shadowsocksSettings.method.startsWith('2022-blake3-')) {
+                if (isSS2022MethodFromMethod(shadowsocksSettings.method)) {
                     if ('password' in shadowsocksSettings) {
-                        shadowsocksOptions.clientPassword = `${shadowsocksSettings.password}:${Buffer.from(user.ssPassword).toString('base64')}`;
+                        shadowsocksOptions.clientPassword = `${shadowsocksSettings.password}:${getSsPassword(user.ssPassword, true)}`;
                     }
                 }
             }
