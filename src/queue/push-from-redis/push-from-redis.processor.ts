@@ -9,7 +9,7 @@ import { CommandBus } from '@nestjs/cqrs';
 
 import { INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
-import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry/bulk-upsert-user-history-entry.command';
+import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
 import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
 
 import { IRecordUserUsageFromRedisPayload } from './interfaces';

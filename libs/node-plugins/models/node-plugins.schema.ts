@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const DOCS_LINK = `\n\n[📖 Documentation](https://docs.rw)`;
+const DOCS_LINK = `\n\n[📖 Documentation](https://docs.rw/docs/learn/node-plugins)`;
 
 export const SharedListSchema = z.object({
     name: z.string().startsWith('ext:'),

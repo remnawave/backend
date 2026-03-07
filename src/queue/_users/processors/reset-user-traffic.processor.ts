@@ -5,13 +5,14 @@ import { Logger, Scope } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
-import { throttleQueue } from '@common/utils/throttle-queue.util';
+import { throttleQueues } from '@common/utils/throttle-queue.util';
 import { RESET_PERIODS, TResetPeriods } from '@libs/contracts/constants';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
 import { BatchResetLimitedUsersTrafficCommand } from '@modules/users/commands/batch-reset-limited-users-traffic';
 import { BatchResetUserTrafficCommand } from '@modules/users/commands/batch-reset-user-traffic';
 
+import { PushFromRedisQueueService } from '@queue/push-from-redis/push-from-redis.service';
 import { NodesQueuesService } from '@queue/_nodes';
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
@@ -35,13 +36,14 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
 
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly usersQueuesService: UsersQueuesService,
+        private readonly pushFromRedisQueueService: PushFromRedisQueueService,
     ) {
         super();
     }
 
     async process(job: Job) {
-        const activateQueue = await throttleQueue(
-            this.usersQueuesService.queues.updateUsersUsage,
+        const activateQueues = await throttleQueues(
+            [this.usersQueuesService.queues.updateUsersUsage, this.pushFromRedisQueueService.queue],
             this.logger,
         );
 
@@ -64,7 +66,7 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
         } catch (error) {
             this.logger.error(`Error handling "${job.name}" job: ${error}`);
         } finally {
-            await activateQueue();
+            await activateQueues();
         }
     }
 
