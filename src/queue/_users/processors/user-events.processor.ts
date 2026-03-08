@@ -1,16 +1,18 @@
 import { Job } from 'bullmq';
 
+import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { EventBus, QueryBus } from '@nestjs/cqrs';
 import { Logger } from '@nestjs/common';
 
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
 import { TorrentBlockerEvent, UserEvent } from '@integration-modules/notifications/interfaces';
 
+import { CreateTorrentReportCommand } from '@modules/node-plugins/commands/create-torrent-report';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { RemoveUserFromNodeEvent } from '@modules/nodes/events/remove-user-from-node';
+import { BaseTorrentBlockerReportEntity } from '@modules/node-plugins/entities';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 import { AddUserToNodeEvent } from '@modules/nodes/events/add-user-to-node';
 
@@ -27,6 +29,7 @@ export class UserEventsQueueProcessor extends WorkerHost {
 
     constructor(
         private readonly queryBus: QueryBus,
+        private readonly commandBus: CommandBus,
         private readonly eventBus: EventBus,
         private readonly eventEmitter: EventEmitter2,
     ) {
@@ -182,6 +185,16 @@ export class UserEventsQueueProcessor extends WorkerHost {
                                 report,
                             },
                             event,
+                        ),
+                    );
+
+                    await this.commandBus.execute(
+                        new CreateTorrentReportCommand(
+                            new BaseTorrentBlockerReportEntity({
+                                userId: user.tId,
+                                nodeId: node.id,
+                                report,
+                            }),
                         ),
                     );
 

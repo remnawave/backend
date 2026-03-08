@@ -7,6 +7,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { fail, ok, TResult } from '@common/types';
+import { GetTorrentBlockerReportsCommand } from '@libs/contracts/commands';
 import { ERRORS } from '@libs/contracts/constants';
 
 import { GetNodesByPluginUuidQuery } from '@modules/nodes/queries/get-nodes-by-plugin-uuid';
@@ -20,9 +21,12 @@ import {
     BaseNodePluginResponseModel,
     GetNodePluginsResponseModel,
     BaseEventResponseModel,
+    TorrentBlockerReportsStatsResponseModel,
 } from './models';
+import { TorrentBlockerReportsRepository } from './repositories/torrent-blocker-report.repository';
 import { NodePluginRepository } from './repositories/node-plugins.repository';
 import { NodePluginEntity } from './entities/node-plugin.entity';
+import { ExtendedTorrentBlockerReportEntity } from './entities';
 import {} from './models/base-node-plugin.response.model';
 import { EXAMPLE_NODE_PLUGIN_CONFIG } from './constants';
 import { PluginExecutorRequestDto } from './dtos';
@@ -34,6 +38,7 @@ export class NodePluginService {
     constructor(
         private readonly nodePluginRepository: NodePluginRepository,
         private readonly nodeQueuesService: NodesQueuesService,
+        private readonly torrentBlockerReportsRepository: TorrentBlockerReportsRepository,
         private readonly queryBus: QueryBus,
     ) {}
 
@@ -301,6 +306,57 @@ export class NodePluginService {
             }
 
             return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getTorrentBlockerReports(
+        dto: GetTorrentBlockerReportsCommand.RequestQuery,
+    ): Promise<
+        TResult<{
+            total: number;
+            records: ExtendedTorrentBlockerReportEntity[];
+        }>
+    > {
+        try {
+            const [records, total] = await this.torrentBlockerReportsRepository.getAllReports(dto);
+
+            return ok({
+                records,
+                total,
+            });
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_TORRENT_BLOCKER_REPORTS_ERROR);
+        }
+    }
+
+    public async truncateTorrentBlockerReports(): Promise<
+        TResult<{
+            total: number;
+            records: ExtendedTorrentBlockerReportEntity[];
+        }>
+    > {
+        try {
+            await this.torrentBlockerReportsRepository.truncateReports();
+            return ok({
+                total: 0,
+                records: [],
+            });
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getTorrentBlockerReportsStats(): Promise<
+        TResult<TorrentBlockerReportsStatsResponseModel>
+    > {
+        try {
+            const stats = await this.torrentBlockerReportsRepository.getStats();
+            return ok(new TorrentBlockerReportsStatsResponseModel({ stats }));
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);

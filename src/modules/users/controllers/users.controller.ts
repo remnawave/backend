@@ -180,6 +180,7 @@ export class UsersController {
     })
     async getAllUsers(@Query() query: GetAllUsersQueryDto): Promise<GetAllUsersResponseDto> {
         const { start, size, filters, filterModes, globalFilterMode, sorting } = query;
+
         const result = await this.usersService.getAllUsers({
             start,
             size,

@@ -1,6 +1,7 @@
 export const NODE_PLUGINS_CONTROLLER = 'node-plugins' as const;
 
 const ACTIONS_ROUTE = 'actions' as const;
+const TORRENT_BLOCKER_ROUTE = 'torrent-blocker' as const;
 
 export const NODE_PLUGINS_ROUTES = {
     GET_ALL: '', // get
@@ -15,4 +16,10 @@ export const NODE_PLUGINS_ROUTES = {
     },
 
     EXECUTOR: 'executor',
+
+    TORRENT_BLOCKER: {
+        GET_REPORTS: `${TORRENT_BLOCKER_ROUTE}`,
+        GET_REPORTS_STATS: `${TORRENT_BLOCKER_ROUTE}/stats`,
+        TRUNCATE_REPORTS: `${TORRENT_BLOCKER_ROUTE}/truncate`,
+    },
 } as const;

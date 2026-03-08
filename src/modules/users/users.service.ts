@@ -261,7 +261,7 @@ export class UsersService {
         }>
     > {
         try {
-            const [users, total] = await this.userRepository.getAllUsersV2(dto);
+            const [users, total] = await this.userRepository.getAllUsers(dto);
 
             return ok({ users, total });
         } catch (error) {

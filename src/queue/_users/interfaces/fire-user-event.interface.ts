@@ -1,7 +1,8 @@
 import { TTorrentBlockerEvents, TUserEvents } from '@libs/contracts/constants';
 
 import { IMetaInfo } from '@integration-modules/notifications/interfaces/meta-info.interface';
-import { ITorrentBlockerReport } from '@integration-modules/notifications/interfaces';
+
+import { ITorrentBlockerReport } from '@modules/node-plugins/interfaces';
 
 export interface IFireUserEventPayload {
     users: { tId: bigint }[];

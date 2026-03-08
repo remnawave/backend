@@ -10,8 +10,8 @@ import { Transactional, TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
+import { getKyselyUuid, paginateQuery } from '@common/helpers/kysely';
 import { TxKyselyService } from '@common/database/tx-kysely.service';
-import { getKyselyUuid } from '@common/helpers/kysely';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
@@ -33,6 +33,36 @@ import { TriggerThresholdNotificationsBuilder } from '../builders/trigger-thresh
 import { BulkDeleteByStatusBuilder, BulkUpdateUserUsedTrafficBuilder } from '../builders';
 import { UserTrafficEntity } from '../entities/user-traffic.entity';
 import { UserConverter } from '../users.converter';
+
+const USERS_FILTER_COLUMN_MAP = {
+    id: sql.ref('users.t_id'),
+    createdAt: sql.ref('users.created_at'),
+    expireAt: sql.ref('users.expire_at'),
+    lastTrafficResetAt: sql.ref('users.last_traffic_reset_at'),
+    subLastOpenedAt: sql.ref('users.sub_last_opened_at'),
+    subRevokedAt: sql.ref('users.sub_revoked_at'),
+    subLastUserAgent: sql.ref('users.sub_last_user_agent'),
+    telegramId: sql.ref('users.telegram_id'),
+    uuid: sql.ref('users.uuid'),
+    vlessUuid: sql.ref('users.vless_uuid'),
+    trojanPassword: sql.ref('users.trojan_password'),
+    externalSquadUuid: sql.ref('users.external_squad_uuid'),
+    username: sql.ref('users.username'),
+    status: sql.ref('users.status'),
+    shortUuid: sql.ref('users.short_uuid'),
+    description: sql.ref('users.description'),
+    email: sql.ref('users.email'),
+    tag: sql.ref('users.tag'),
+    'userTraffic.onlineAt': sql.ref('user_traffic.online_at'),
+    'userTraffic.firstConnectedAt': sql.ref('user_traffic.first_connected_at'),
+    'userTraffic.lifetimeUsedTrafficBytes': sql.ref('user_traffic.lifetime_used_traffic_bytes'),
+    usedTrafficBytes: sql.ref('user_traffic.used_traffic_bytes'),
+
+    activeInternalSquads: null,
+    nodeName: null,
+} as const;
+
+type AllowedUsersFilterId = keyof typeof USERS_FILTER_COLUMN_MAP;
 
 @Injectable()
 export class UsersRepository {
@@ -176,300 +206,141 @@ export class UsersRepository {
         return result;
     }
 
-    public async getAllUsersV2({
+    private get baseUsersQb() {
+        return this.qb.kysely
+            .selectFrom('users')
+            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId');
+    }
+
+    public async getAllUsers({
         start,
         size,
         filters,
         filterModes,
         sorting,
     }: GetAllUsersCommand.RequestQuery): Promise<[UserEntity[], number]> {
-        const qb = this.qb.kysely
-            .selectFrom('users')
-            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId');
-
-        let isFiltersEmpty = true;
-
-        let whereBuilder = qb;
+        let qb = this.baseUsersQb.selectAll().select((eb) => this.includeActiveInternalSquads(eb));
 
         if (filters?.length) {
-            isFiltersEmpty = false;
-            for (const filter of filters) {
-                const mode = filterModes?.[filter.id] || 'contains';
-
-                if (
-                    [
-                        'createdAt',
-                        'expireAt',
-                        'lastTrafficResetAt',
-                        'subLastOpenedAt',
-                        'userTraffic.onlineAt',
-                    ].includes(filter.id)
-                ) {
-                    whereBuilder = whereBuilder.where(
-                        filter.id as any,
-                        '=',
-                        new Date(filter.value as string),
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'id') {
-                    try {
-                        const searchValue = filter.value as string;
-                        BigInt(searchValue);
-
-                        whereBuilder = whereBuilder.where(
-                            sql`CAST(users.t_id AS TEXT)`,
-                            'like',
-                            `%${searchValue}%`,
-                        );
-                    } catch {
-                        continue;
-                    }
-                    continue;
-                }
-
-                if (filter.id === 'telegramId') {
-                    try {
-                        const searchValue = filter.value as string;
-                        BigInt(searchValue);
-
-                        whereBuilder = whereBuilder.where(
-                            sql`CAST(telegram_id AS TEXT)`,
-                            'like',
-                            `%${searchValue}%`,
-                        );
-                    } catch {
-                        whereBuilder = whereBuilder.where('telegramId', 'is', null);
-                    }
-                    continue;
-                }
-
-                if (filter.id === 'activeInternalSquads') {
-                    whereBuilder = whereBuilder.where('users.tId', 'in', (eb) =>
-                        eb
-                            .selectFrom('internalSquadMembers')
-                            .select('internalSquadMembers.userId')
-                            .where(
-                                'internalSquadMembers.internalSquadUuid',
-                                '=',
-                                getKyselyUuid(filter.value as string),
-                            ),
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'nodeName') {
-                    whereBuilder = whereBuilder.where(
-                        'userTraffic.lastConnectedNodeUuid',
-                        '=',
-                        getKyselyUuid(filter.value as string),
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'uuid') {
-                    whereBuilder = whereBuilder.where(
-                        sql`"uuid"::text`,
-                        'ilike',
-                        `%${filter.value}%`,
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'vlessUuid') {
-                    whereBuilder = whereBuilder.where(
-                        sql`"vless_uuid"::text`,
-                        'ilike',
-                        `%${filter.value}%`,
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'externalSquadUuid') {
-                    whereBuilder = whereBuilder.where(
-                        'externalSquadUuid',
-                        '=',
-                        getKyselyUuid(filter.value as string),
-                    );
-                    continue;
-                }
-
-                const field = filter.id as keyof DB['users'];
-
-                switch (mode) {
-                    case 'startsWith':
-                        whereBuilder = whereBuilder.where(field, 'like', `${filter.value}%`);
-                        break;
-                    case 'endsWith':
-                        whereBuilder = whereBuilder.where(field, 'like', `%${filter.value}`);
-                        break;
-                    case 'equals':
-                        whereBuilder = whereBuilder.where(field, '=', filter.value as string);
-                        break;
-                    default: // 'contains'
-                        whereBuilder = whereBuilder.where(field, 'ilike', `%${filter.value}%`);
-                        break;
-                }
-            }
+            qb = this.applyUsersFilters(qb, filters, filterModes);
         }
-
-        let sortBuilder = whereBuilder;
 
         if (sorting?.length) {
             for (const sort of sorting) {
-                let sorId = sort.id;
-                if (sort.id === 'id') {
-                    sorId = 'users.tId';
-                }
-                sortBuilder = sortBuilder.orderBy(sql.ref(sorId), (ob) => {
-                    const orderBy = sort.desc ? ob.desc() : ob.asc();
-                    return orderBy.nullsLast();
-                });
+                const sortId = sort.id === 'id' ? 'users.tId' : sort.id;
+                qb = qb.orderBy(sql.ref(sortId), (ob) =>
+                    (sort.desc ? ob.desc() : ob.asc()).nullsLast(),
+                );
             }
         } else {
-            sortBuilder = sortBuilder.orderBy('users.tId', 'desc');
+            qb = qb.orderBy('users.tId', 'desc');
         }
 
-        const query = sortBuilder
-            .selectAll()
-            .offset(start)
-            .limit(size)
-            .select((eb) => this.includeActiveInternalSquads(eb));
+        const { rows, count } = await paginateQuery(qb, { offset: start, limit: size });
 
-        const { count } = await this.qb.kysely
-            .selectFrom('users')
-            .innerJoin('userTraffic', 'userTraffic.tId', 'users.tId')
-            .select((eb) => eb.fn.countAll().as('count'))
-            .$if(!isFiltersEmpty, (qb) => {
-                let countBuilder = qb;
-                for (const filter of filters!) {
-                    const mode = filterModes?.[filter.id] || 'contains';
+        return [rows.map((u) => new UserEntity(u)), count];
+    }
 
-                    if (
-                        [
-                            'createdAt',
-                            'expireAt',
-                            'lastTrafficResetAt',
-                            'subLastOpenedAt',
-                            'userTraffic.onlineAt',
-                        ].includes(filter.id)
-                    ) {
-                        countBuilder = countBuilder.where(
-                            filter.id as keyof DB['users'],
-                            '=',
-                            new Date(filter.value as string),
-                        );
-                        continue;
-                    }
+    private applyUsersFilters(
+        qb: any,
+        filters: GetAllUsersCommand.RequestQuery['filters'],
+        filterModes?: GetAllUsersCommand.RequestQuery['filterModes'],
+    ) {
+        for (const filter of filters ?? []) {
+            if (!(filter.id in USERS_FILTER_COLUMN_MAP)) continue;
 
-                    if (filter.id === 'id') {
-                        try {
-                            const searchValue = filter.value as string;
-                            BigInt(searchValue);
+            const mode = filterModes?.[filter.id] ?? 'contains';
 
-                            countBuilder = countBuilder.where(
-                                sql`CAST(users.t_id AS TEXT)`,
-                                'like',
-                                `%${searchValue}%`,
-                            );
-                        } catch {
-                            continue;
-                        }
-                        continue;
-                    }
+            if (
+                [
+                    'createdAt',
+                    'expireAt',
+                    'lastTrafficResetAt',
+                    'subLastOpenedAt',
+                    'userTraffic.onlineAt',
+                ].includes(filter.id)
+            ) {
+                qb = qb.where(
+                    USERS_FILTER_COLUMN_MAP[filter.id as AllowedUsersFilterId],
+                    '=',
+                    new Date(filter.value as string),
+                );
+                continue;
+            }
 
-                    if (filter.id === 'telegramId') {
-                        try {
-                            const searchValue = filter.value as string;
-                            BigInt(searchValue);
+            if (filter.id === 'id') {
+                try {
+                    BigInt(filter.value as string);
+                    qb = qb.where(sql`CAST(users.t_id AS TEXT)`, 'like', `%${filter.value}%`);
+                } catch {}
+                continue;
+            }
 
-                            countBuilder = countBuilder.where(
-                                sql`CAST(telegram_id AS TEXT)`,
-                                'like',
-                                `%${searchValue}%`,
-                            );
-                        } catch {
-                            countBuilder = countBuilder.where('telegramId', 'is', null);
-                        }
-                        continue;
-                    }
-
-                    if (filter.id === 'activeInternalSquads') {
-                        countBuilder = countBuilder.where('users.tId', 'in', (eb) =>
-                            eb
-                                .selectFrom('internalSquadMembers')
-                                .select('internalSquadMembers.userId')
-                                .where(
-                                    'internalSquadMembers.internalSquadUuid',
-                                    '=',
-                                    getKyselyUuid(filter.value as string),
-                                ),
-                        );
-                        continue;
-                    }
-
-                    if (filter.id === 'nodeName') {
-                        countBuilder = countBuilder.where(
-                            'userTraffic.lastConnectedNodeUuid',
-                            '=',
-                            getKyselyUuid(filter.value as string),
-                        );
-                        continue;
-                    }
-
-                    if (filter.id === 'uuid') {
-                        countBuilder = countBuilder.where(
-                            sql`"uuid"::text`,
-                            'ilike',
-                            `%${filter.value}%`,
-                        );
-                        continue;
-                    }
-
-                    if (filter.id === 'vlessUuid') {
-                        countBuilder = countBuilder.where(
-                            sql`"vless_uuid"::text`,
-                            'ilike',
-                            `%${filter.value}%`,
-                        );
-                        continue;
-                    }
-
-                    if (filter.id === 'externalSquadUuid') {
-                        countBuilder = countBuilder.where(
-                            'externalSquadUuid',
-                            '=',
-                            getKyselyUuid(filter.value as string),
-                        );
-                        continue;
-                    }
-
-                    const field = filter.id as keyof DB['users'];
-
-                    switch (mode) {
-                        case 'startsWith':
-                            countBuilder = countBuilder.where(field, 'like', `${filter.value}%`);
-                            break;
-                        case 'endsWith':
-                            countBuilder = countBuilder.where(field, 'like', `%${filter.value}`);
-                            break;
-                        case 'equals':
-                            countBuilder = countBuilder.where(field, '=', filter.value as string);
-                            break;
-                        default:
-                            countBuilder = countBuilder.where(field, 'ilike', `%${filter.value}%`);
-                            break;
-                    }
+            if (filter.id === 'telegramId') {
+                try {
+                    BigInt(filter.value as string);
+                    qb = qb.where(sql`CAST(telegram_id AS TEXT)`, 'like', `%${filter.value}%`);
+                } catch {
+                    qb = qb.where('telegramId', 'is', null);
                 }
-                return countBuilder;
-            })
-            .executeTakeFirstOrThrow();
+                continue;
+            }
 
-        const users = await query.execute();
+            if (filter.id === 'uuid') {
+                qb = qb.where(sql`"uuid"::text`, 'ilike', `%${filter.value}%`);
+                continue;
+            }
 
-        const result = users.map((u) => new UserEntity(u));
-        return [result, Number(count)];
+            if (filter.id === 'vlessUuid') {
+                qb = qb.where(sql`"vless_uuid"::text`, 'ilike', `%${filter.value}%`);
+                continue;
+            }
+
+            if (filter.id === 'externalSquadUuid') {
+                qb = qb.where('externalSquadUuid', '=', getKyselyUuid(filter.value as string));
+                continue;
+            }
+
+            if (filter.id === 'activeInternalSquads') {
+                qb = qb.where('users.tId', 'in', (eb: any) =>
+                    eb
+                        .selectFrom('internalSquadMembers')
+                        .select('internalSquadMembers.userId')
+                        .where(
+                            'internalSquadMembers.internalSquadUuid',
+                            '=',
+                            getKyselyUuid(filter.value as string),
+                        ),
+                );
+                continue;
+            }
+
+            if (filter.id === 'nodeName') {
+                qb = qb.where(
+                    'userTraffic.lastConnectedNodeUuid',
+                    '=',
+                    getKyselyUuid(filter.value as string),
+                );
+                continue;
+            }
+
+            const col = USERS_FILTER_COLUMN_MAP[filter.id as AllowedUsersFilterId];
+            switch (mode) {
+                case 'equals':
+                    qb = qb.where(col, '=', filter.value);
+                    break;
+                case 'startsWith':
+                    qb = qb.where(col, 'like', `${filter.value}%`);
+                    break;
+                case 'endsWith':
+                    qb = qb.where(col, 'like', `%${filter.value}`);
+                    break;
+                default:
+                    qb = qb.where(col, 'ilike', `%${filter.value}%`);
+            }
+        }
+
+        return qb;
     }
 
     public async getUsersWithPagination({

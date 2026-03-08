@@ -27,6 +27,7 @@ export * from './subscription-settings';
 export * from './subscription-settings.schema';
 export * from './subscription-template.schema';
 export * from './tanstack-query';
+export * from './torrent-blocker-report.schema';
 export * from './users.schema';
 export * from './webhook';
 export * from './xray-json-advanced';

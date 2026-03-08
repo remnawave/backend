@@ -78,6 +78,7 @@ model Users {
   activeInternalSquads           InternalSquadMembers[]
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
   userMetas                      UserMeta[]
+  torrentBlockerReports          TorrentBlockerReports[]
   traffic                        UserTraffic?
 
   externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
@@ -212,6 +213,7 @@ model Nodes {
   hosts                        HostsToNodes[]
   connectedUsers               UserTraffic[]
   nodeMetas                    NodeMeta[]
+  torrentBlockerReports        TorrentBlockerReports[]
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
@@ -624,4 +626,18 @@ model NodeMeta {
 
   @@id([nodeId])
   @@map("node_meta")
+}
+
+model TorrentBlockerReports {
+  id     BigInt @id @default(autoincrement())
+  userId BigInt @map("user_id")
+  nodeId BigInt @map("node_id")
+  report Json   @map("report")
+
+  createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
+
+  user Users @relation(fields: [userId], references: [tId], onDelete: Cascade)
+  node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("torrent_blocker_reports")
 }

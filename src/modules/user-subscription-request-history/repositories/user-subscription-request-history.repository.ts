@@ -1,18 +1,26 @@
 import { sql } from 'kysely';
 
-import { DB } from 'prisma/generated/types';
-
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 
+import { getKyselyUuid, paginateQuery } from '@common/helpers';
 import { ICrudWithId } from '@common/types/crud-port';
 import { TxKyselyService } from '@common/database';
-import { getKyselyUuid } from '@common/helpers';
 import { GetSubscriptionRequestHistoryCommand } from '@libs/contracts/commands';
 
 import { UserSubscriptionRequestHistoryEntity } from '../entities/user-subscription-request-history.entity';
 import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-request-history.converter';
+
+const SUB_HISTORY_FILTER_COLUMN_MAP = {
+    id: sql`CAST(id AS TEXT)`,
+    requestAt: sql.ref('user_subscription_request_history.request_at'),
+    requestIp: sql.ref('user_subscription_request_history.request_ip'),
+    userUuid: sql`"user_uuid"::text`,
+    userAgent: sql.ref('user_subscription_request_history.user_agent'),
+} as const;
+
+type AllowedSubHistoryFilterId = keyof typeof SUB_HISTORY_FILTER_COLUMN_MAP;
 
 @Injectable()
 export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<UserSubscriptionRequestHistoryEntity> {
@@ -107,137 +115,69 @@ export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<Use
     }: GetSubscriptionRequestHistoryCommand.RequestQuery): Promise<
         [UserSubscriptionRequestHistoryEntity[], number]
     > {
-        const qb = this.qb.kysely.selectFrom('userSubscriptionRequestHistory');
-
-        let isFiltersEmpty = true;
-
-        let whereBuilder = qb;
+        let qb = this.qb.kysely.selectFrom('userSubscriptionRequestHistory').selectAll();
 
         if (filters?.length) {
-            isFiltersEmpty = false;
-            for (const filter of filters) {
-                const mode = filterModes?.[filter.id] || 'contains';
-
-                if (['requestAt'].includes(filter.id)) {
-                    whereBuilder = whereBuilder.where(
-                        filter.id as any,
-                        '=',
-                        new Date(filter.value as string),
-                    );
-                    continue;
-                }
-
-                if (filter.id === 'id') {
-                    try {
-                        const searchValue = filter.value as string;
-                        BigInt(searchValue);
-
-                        whereBuilder = whereBuilder.where(
-                            sql`CAST(id AS TEXT)`,
-                            'like',
-                            `%${searchValue}%`,
-                        );
-                    } catch {
-                        whereBuilder = whereBuilder.where('id', 'is', null);
-                    }
-                    continue;
-                }
-
-                const field = filter.id as keyof DB['userSubscriptionRequestHistory'];
-
-                switch (mode) {
-                    default: // 'contains'
-                        if (field === 'userUuid') {
-                            whereBuilder = whereBuilder.where(
-                                sql`"user_uuid"::text`,
-                                'ilike',
-                                `%${filter.value}%`,
-                            );
-                        } else {
-                            whereBuilder = whereBuilder.where(field, 'ilike', `%${filter.value}%`);
-                        }
-
-                        break;
-                }
-            }
+            qb = this.applySubHistoryFilters(qb, filters, filterModes);
         }
-
-        let sortBuilder = whereBuilder;
 
         if (sorting?.length) {
             for (const sort of sorting) {
-                sortBuilder = sortBuilder.orderBy(sql.ref(sort.id), (ob) => {
-                    const orderBy = sort.desc ? ob.desc() : ob.asc();
-                    return orderBy.nullsLast();
-                });
+                qb = qb.orderBy(sql.ref(sort.id), (ob) =>
+                    (sort.desc ? ob.desc() : ob.asc()).nullsLast(),
+                ) as typeof qb;
             }
         } else {
-            sortBuilder = sortBuilder.orderBy('requestAt', 'desc');
+            qb = qb.orderBy('requestAt', 'desc');
         }
 
-        const query = sortBuilder.selectAll().offset(start).limit(size);
+        const { rows, count } = await paginateQuery(qb, { offset: start, limit: size });
 
-        const { count } = await this.qb.kysely
-            .selectFrom('userSubscriptionRequestHistory')
-            .select((eb) => eb.fn.countAll().as('count'))
-            .$if(!isFiltersEmpty, (qb) => {
-                let countBuilder = qb;
-                for (const filter of filters!) {
-                    const mode = filterModes?.[filter.id] || 'contains';
+        return [rows.map((u) => new UserSubscriptionRequestHistoryEntity(u)), count];
+    }
 
-                    if (['requestAt'].includes(filter.id)) {
-                        countBuilder = countBuilder.where(
-                            filter.id as keyof DB['userSubscriptionRequestHistory'],
-                            '=',
-                            new Date(filter.value as string),
-                        );
-                        continue;
-                    }
+    private applySubHistoryFilters(
+        qb: any,
+        filters: GetSubscriptionRequestHistoryCommand.RequestQuery['filters'],
+        filterModes?: GetSubscriptionRequestHistoryCommand.RequestQuery['filterModes'],
+    ) {
+        for (const filter of filters ?? []) {
+            if (!(filter.id in SUB_HISTORY_FILTER_COLUMN_MAP)) continue;
 
-                    if (filter.id === 'id') {
-                        try {
-                            const searchValue = filter.value as string;
-                            BigInt(searchValue);
+            const column = SUB_HISTORY_FILTER_COLUMN_MAP[filter.id as AllowedSubHistoryFilterId];
+            const mode = filterModes?.[filter.id] ?? 'contains';
 
-                            countBuilder = countBuilder.where(
-                                sql`CAST(id AS TEXT)`,
-                                'like',
-                                `%${searchValue}%`,
-                            );
-                        } catch {
-                            countBuilder = countBuilder.where('id', 'is', null);
-                        }
-                        continue;
-                    }
+            if (filter.id === 'requestAt') {
+                qb = qb.where(column, '=', new Date(filter.value as string));
+                continue;
+            }
 
-                    const field = filter.id as keyof DB['userSubscriptionRequestHistory'];
-
-                    switch (mode) {
-                        default:
-                            if (field === 'userUuid') {
-                                countBuilder = countBuilder.where(
-                                    sql`"user_uuid"::text`,
-                                    'ilike',
-                                    `%${filter.value}%`,
-                                );
-                            } else {
-                                countBuilder = countBuilder.where(
-                                    field,
-                                    'ilike',
-                                    `%${filter.value}%`,
-                                );
-                            }
-                            break;
-                    }
+            if (filter.id === 'id') {
+                try {
+                    BigInt(filter.value as string);
+                    qb = qb.where(column, 'like', `%${filter.value}%`);
+                } catch {
+                    qb = qb.where('id', 'is', null);
                 }
-                return countBuilder;
-            })
-            .executeTakeFirstOrThrow();
+                continue;
+            }
 
-        const users = await query.execute();
+            switch (mode) {
+                case 'equals':
+                    qb = qb.where(column, '=', filter.value);
+                    break;
+                case 'startsWith':
+                    qb = qb.where(column, 'ilike', `${filter.value}%`);
+                    break;
+                case 'endsWith':
+                    qb = qb.where(column, 'ilike', `%${filter.value}`);
+                    break;
+                default:
+                    qb = qb.where(column, 'ilike', `%${filter.value}%`);
+            }
+        }
 
-        const result = users.map((u) => new UserSubscriptionRequestHistoryEntity(u));
-        return [result, Number(count)];
+        return qb;
     }
 
     public async getSubscriptionRequestHistoryStats(): Promise<{
