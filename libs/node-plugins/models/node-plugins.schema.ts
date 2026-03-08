@@ -46,6 +46,11 @@ export const TorrentBlockerPluginSchema = z.object({
                 markdownDescription: `List of IP addresses to ignore from the block. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. \n\n You can also specify user IDs to ignore from the block.${DOCS_LINK}`,
             }),
         ),
+    includeRuleTags: z.optional(z.array(z.string()).min(1)).describe(
+        JSON.stringify({
+            markdownDescription: `By default, Torrent Blocker creates a dedicated rule and injects it as **routing.rules[0]**. Specify an array of **ruleTag** values here if you want to block IPs matched by other routing rules as well.${DOCS_LINK}`,
+        }),
+    ),
 });
 
 export const BlacklistPluginSchema = z.object({
