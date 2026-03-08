@@ -36,7 +36,7 @@ export function getCipherTypeFromString(rawInbound: RawInbound): CipherType {
         case ShadowsocksMethod.AES_256_GCM:
             return CipherType.AES_256_GCM;
         default:
-            return CipherType.UNRECOGNIZED;
+            return CipherType.CHACHA20_POLY1305;
     }
 }
 

@@ -407,7 +407,7 @@ export class XRayConfig {
                 for (const user of users) {
                     settings.clients.push({
                         password: getSsPassword(user.ssPassword, isSS2022),
-                        ...(!isSS2022 && { method: settings.method }),
+                        ...(!isSS2022 && { method: settings.method || 'chacha20-ietf-poly1305' }),
                         email: user.tId.toString(),
                         id: user.vlessUuid,
                     });
