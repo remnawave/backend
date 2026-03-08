@@ -232,11 +232,26 @@ export class AuthService {
             const adminCount = await this.getAdminCount();
 
             if (!adminCount.isOk) {
-                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
+                this.logger.error('Failed to fetch admin list.');
+                return ok(
+                    new GetStatusResponseModel({
+                        isLoginAllowed: false,
+                        isRegisterAllowed: false,
+                        authentication: null,
+                        branding: remnawaveSettings.brandingSettings,
+                    }),
+                );
             }
 
             if (adminCount.response === undefined) {
-                return fail(ERRORS.GET_AUTH_STATUS_ERROR);
+                return ok(
+                    new GetStatusResponseModel({
+                        isLoginAllowed: false,
+                        isRegisterAllowed: false,
+                        authentication: null,
+                        branding: remnawaveSettings.brandingSettings,
+                    }),
+                );
             }
 
             if (adminCount.response === 0) {
@@ -244,6 +259,20 @@ export class AuthService {
                     new GetStatusResponseModel({
                         isLoginAllowed: false,
                         isRegisterAllowed: true,
+                        authentication: null,
+                        branding: remnawaveSettings.brandingSettings,
+                    }),
+                );
+            }
+
+            if (adminCount.response > 1) {
+                this.logger.warn(
+                    'Multiple admins found. This should not be possible. Restart Remnawave to clear unknown admins.',
+                );
+                return ok(
+                    new GetStatusResponseModel({
+                        isLoginAllowed: false,
+                        isRegisterAllowed: false,
                         authentication: null,
                         branding: remnawaveSettings.brandingSettings,
                     }),

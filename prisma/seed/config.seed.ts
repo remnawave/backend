@@ -72,6 +72,7 @@ export const XTLSDefaultConfig = {
             protocol: 'shadowsocks',
             settings: {
                 clients: [],
+                method: 'chacha20-ietf-poly1305',
                 network: 'tcp,udp',
             },
             sniffing: {
@@ -982,6 +983,37 @@ async function seedSubscriptionPageConfig() {
     }
 }
 
+async function verifyAdminUser() {
+    const adminsCount = await prisma.admin.count();
+    if (adminsCount === 0 || adminsCount === 1) {
+        // first start
+        return;
+    } else {
+        consola.warn(
+            'Seems like there was direct database modification. Retaining oldest admin and removing all others...',
+        );
+
+        const oldestAdmin = await prisma.admin.findFirst({
+            orderBy: { createdAt: 'asc' },
+        });
+
+        if (oldestAdmin) {
+            await prisma.admin.deleteMany({
+                where: {
+                    uuid: {
+                        not: oldestAdmin.uuid,
+                    },
+                },
+            });
+            consola.success(
+                `Retained oldest admin: ${oldestAdmin.username} and removed all others.`,
+            );
+        }
+
+        return;
+    }
+}
+
 async function checkDatabaseConnection() {
     try {
         await prisma.$queryRaw`SELECT 1`;
@@ -1044,6 +1076,7 @@ async function seedAll() {
             await seedKeygen();
             await seedResponseRules();
             await seedSubscriptionPageConfig();
+            await verifyAdminUser();
             break;
         } else {
             consola.info('Failed to connect to database. Retrying in 5 seconds...');
