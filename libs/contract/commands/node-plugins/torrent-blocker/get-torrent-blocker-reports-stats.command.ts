@@ -21,6 +21,23 @@ export namespace GetTorrentBlockerReportsStatsCommand {
                 totalReports: z.number(),
                 reportsLast24Hours: z.number(),
             }),
+            topUsers: z.array(
+                z.object({
+                    uuid: z.string().uuid(),
+                    color: z.string(),
+                    username: z.string(),
+                    total: z.number(),
+                }),
+            ),
+            topNodes: z.array(
+                z.object({
+                    uuid: z.string().uuid(),
+                    countryCode: z.string(),
+                    color: z.string(),
+                    name: z.string(),
+                    total: z.number(),
+                }),
+            ),
         }),
     });
 

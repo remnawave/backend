@@ -8,6 +8,10 @@ import { TxKyselyService } from '@common/database';
 import { paginateQuery } from '@common/helpers';
 import { GetTorrentBlockerReportsCommand } from '@libs/contracts/commands/node-plugins/torrent-blocker';
 
+import {
+    IGetTopTorrentBlockerNode,
+    IGetTopTorrentBlockerUser,
+} from '../interfaces/tb-stats.interface';
 import { BaseTorrentBlockerReportEntity, ExtendedTorrentBlockerReportEntity } from '../entities';
 import { TorrentBlockerReportConverter } from '../torrent-blocker-report.converter';
 import { ITorrentBlockerReportsStats } from '../models';
@@ -212,5 +216,32 @@ export class TorrentBlockerReportsRepository {
             totalReports: Number(stats.totalReports),
             reportsLast24Hours: Number(stats.reportsLast24Hours),
         };
+    }
+
+    public async getTopTorrentBlockerUsers(): Promise<IGetTopTorrentBlockerUser[]> {
+        return await this.qb.kysely
+            .selectFrom('torrentBlockerReports')
+            .innerJoin('users', 'users.tId', 'torrentBlockerReports.userId')
+            .select(['users.uuid', 'users.username', sql<bigint>`COUNT(*)`.as('total')])
+            .groupBy(['users.uuid', 'users.username'])
+            .orderBy('total', 'desc')
+            .limit(150)
+            .execute();
+    }
+
+    public async getTopTorrentBlockerNodes(): Promise<IGetTopTorrentBlockerNode[]> {
+        return await this.qb.kysely
+            .selectFrom('torrentBlockerReports')
+            .innerJoin('nodes', 'nodes.id', 'torrentBlockerReports.nodeId')
+            .select([
+                'nodes.uuid',
+                'nodes.name',
+                'nodes.countryCode',
+                sql<bigint>`COUNT(*)`.as('total'),
+            ])
+            .groupBy(['nodes.uuid', 'nodes.name', 'nodes.countryCode'])
+            .orderBy('total', 'desc')
+            .limit(150)
+            .execute();
     }
 }

@@ -356,7 +356,9 @@ export class NodePluginService {
     > {
         try {
             const stats = await this.torrentBlockerReportsRepository.getStats();
-            return ok(new TorrentBlockerReportsStatsResponseModel({ stats }));
+            const topUsers = await this.torrentBlockerReportsRepository.getTopTorrentBlockerUsers();
+            const topNodes = await this.torrentBlockerReportsRepository.getTopTorrentBlockerNodes();
+            return ok(new TorrentBlockerReportsStatsResponseModel({ stats, topUsers, topNodes }));
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
