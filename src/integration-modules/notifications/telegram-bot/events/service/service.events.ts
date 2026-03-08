@@ -73,7 +73,8 @@ export class ServiceEvents implements OnApplicationBootstrap {
         if (!message) return;
 
         await this.telegramQueue.addJobToSendTelegramMessage({
-            message,
+            message: message.message,
+            keyboard: message.keyboard,
             chatId: this.chatId!,
             threadId: this.threadId,
         });
