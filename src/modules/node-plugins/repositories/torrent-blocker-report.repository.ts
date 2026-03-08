@@ -27,6 +27,8 @@ const FILTER_COLUMN_MAP = {
     'node.name': sql.ref('nodes.name'),
     'report.actionReport.ip': sql`report->'actionReport'->>'ip'`,
     'report.xrayReport.inboundTag': sql`report->'xrayReport'->>'inboundTag'`,
+    'report.xrayReport.outboundTag': sql`report->'xrayReport'->>'outboundTag'`,
+    'report.xrayReport.protocol': sql`report->'xrayReport'->>'protocol'`,
 } as const;
 
 const SORT_COLUMN_MAP: Record<string, string> = {
