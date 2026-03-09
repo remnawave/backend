@@ -97,7 +97,12 @@ export class QueryNodesQueueProcessor extends WorkerHost {
                             lastSeen: new Date(0),
                         }));
                     } else {
-                        formattedIps = ips.map((ip) => ({ ip: ip.ip, lastSeen: ip.lastSeen }));
+                        formattedIps = ips
+                            .map((ip) => ({ ip: ip.ip, lastSeen: ip.lastSeen }))
+                            .sort(
+                                (a, b) =>
+                                    new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime(),
+                            );
                     }
 
                     return {
