@@ -22,3 +22,18 @@ export interface IGetIpsListResult {
         nodes: IGetIpsListNodeResult[];
     } | null;
 }
+
+export interface IGetUserIpListItem {
+    userId: string;
+    ips: { ip: string; lastSeen: Date }[];
+}
+
+export interface IGetUsersIpsListResult {
+    isCompleted: boolean;
+    isFailed: boolean;
+    result: {
+        success: boolean;
+        nodeUuid: string;
+        users: IGetUserIpListItem[];
+    } | null;
+}

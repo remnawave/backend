@@ -11,6 +11,7 @@ export const NODES_JOB_NAMES = {
     RECORD_USER_USAGE: 'recordUserUsage',
     RECORD_NODE_USAGE: 'recordNodeUsage',
     FETCH_IPS_LIST: 'fetchIpsList',
+    FETCH_USERS_IPS_LIST: 'fetchUsersIpsList',
     DROP_USERS_CONNECTIONS: 'dropUsersConnections',
     DROP_IPS_CONNECTIONS: 'dropIpsConnections',
     SYNC_NODE_PLUGINS: 'syncNodePlugins',

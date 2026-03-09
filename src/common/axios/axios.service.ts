@@ -18,6 +18,7 @@ import {
     GetNodeHealthCheckCommand,
     GetSystemStatsCommand,
     GetUserIpListCommand,
+    GetUsersIpListCommand,
     GetUsersStatsCommand,
     RecreateTablesCommand,
     RemoveUserCommand,
@@ -255,6 +256,37 @@ export class AxiosService {
                 return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
             } else {
                 this.logger.error('Error in getIpsList:', error);
+
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async getUsersIpsList(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<GetUsersIpListCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, GetUsersIpListCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.get<GetUsersIpListCommand.Response>(
+                nodeUrl,
+
+                {
+                    timeout: 10_000,
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                this.logger.error('Error in getUsersIpsList:', error);
 
                 return fail(
                     ERRORS.NODE_ERROR_WITH_MSG.withMessage(

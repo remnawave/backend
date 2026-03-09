@@ -14,6 +14,7 @@ import {
     IDropUsersConnectionsPayload,
     IGetIpsListProgress,
     IGetIpsListResult,
+    IGetUsersIpsListResult,
     INodeHealthCheckPayload,
     IRecordNodeUsagePayload,
     IRecordUserUsagePayload,
@@ -260,6 +261,47 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             isCompleted,
             isFailed,
             progress,
+            result: isCompleted ? job.returnvalue : null,
+        };
+    }
+
+    public async queryUsersIpsList(payload: {
+        nodeUuid: string;
+    }): Promise<{ jobId: string } | null> {
+        const result = await this.queryNodesQueue.add(
+            NODES_JOB_NAMES.FETCH_USERS_IPS_LIST,
+            payload,
+            {
+                removeOnComplete: {
+                    age: 24 * 3_600,
+                },
+                removeOnFail: {
+                    age: 24 * 3_600,
+                },
+            },
+        );
+
+        if (!result || !result.id) {
+            return null;
+        }
+
+        return { jobId: result.id };
+    }
+
+    public async getUsersIpsListResult(jobId: string): Promise<IGetUsersIpsListResult | null> {
+        const job = await this.queryNodesQueue.getJob(jobId);
+        if (!job) {
+            return null;
+        }
+
+        const state = await job.getState();
+        const isCompleted = state === 'completed';
+        const isFailed = state === 'failed';
+
+        return {
+            isCompleted,
+            isFailed,
+
             result: isCompleted ? job.returnvalue : null,
         };
     }

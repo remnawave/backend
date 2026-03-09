@@ -8,6 +8,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { AxiosService } from '@common/axios/axios.service';
 
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
+import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 import { NodesEntity } from '@modules/nodes';
 
 import { QUEUES_NAMES } from '../../queue.enum';
@@ -38,6 +39,8 @@ export class QueryNodesQueueProcessor extends WorkerHost {
         switch (job.name) {
             case NODES_JOB_NAMES.FETCH_IPS_LIST:
                 return await this.handleFetchIpsList(job);
+            case NODES_JOB_NAMES.FETCH_USERS_IPS_LIST:
+                return await this.handleFetchUsersIpsList(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -140,6 +143,57 @@ export class QueryNodesQueueProcessor extends WorkerHost {
                 userId: job.data.userId,
                 userUuid: job.data.userUuid,
                 nodes: [],
+            };
+        }
+    }
+
+    private async handleFetchUsersIpsList(job: Job<{ nodeUuid: string }>) {
+        try {
+            const nodeResult = await this.queryBus.execute(
+                new GetNodeByUuidQuery(job.data.nodeUuid),
+            );
+            if (!nodeResult.isOk) {
+                return {
+                    success: false,
+                    nodeUuid: job.data.nodeUuid,
+                    users: [],
+                };
+            }
+
+            if (!nodeResult.response.isConnected) {
+                return {
+                    success: false,
+                    nodeUuid: job.data.nodeUuid,
+                    users: [],
+                };
+            }
+
+            const usersIpsListResponse = await this.axios.getUsersIpsList(
+                nodeResult.response.address,
+                nodeResult.response.port,
+            );
+
+            if (!usersIpsListResponse.isOk) {
+                return {
+                    success: false,
+                    nodeUuid: job.data.nodeUuid,
+                    users: [],
+                };
+            }
+
+            const users = usersIpsListResponse.response.response.users;
+
+            return {
+                success: true,
+                nodeUuid: job.data.nodeUuid,
+                users,
+            };
+        } catch (error) {
+            this.logger.error(`Failed to fetch users IPs list: ${error}`);
+            return {
+                success: false,
+                nodeUuid: job.data.nodeUuid,
+                users: [],
             };
         }
     }

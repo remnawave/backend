@@ -11,7 +11,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { EventBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 
-import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
+import { mapDefined, wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
@@ -34,6 +34,7 @@ import {
     BulkAllResponseModel,
     GetUserAccessibleNodesResponseModel,
     GetUserSubscriptionRequestHistoryResponseModel,
+    ResolveUserResponseModel,
 } from './models';
 import {
     CreateUserRequestDto,
@@ -42,6 +43,7 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
     RevokeUserSubscriptionBodyDto,
+    ResolveUserRequestBodyDto,
 } from './dtos';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IUpdateUserDto } from './interfaces';
 import { UsersRepository } from './repositories/users.repository';
@@ -759,6 +761,36 @@ export class UsersService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR);
+        }
+    }
+
+    public async resolveUser(
+        dto: ResolveUserRequestBodyDto,
+    ): Promise<TResult<ResolveUserResponseModel>> {
+        try {
+            const user = await this.userRepository.getPartialUserByUniqueFields(
+                {
+                    uuid: dto.uuid,
+                    tId: mapDefined(dto.id, (id) => wrapBigInt(id)),
+                    shortUuid: dto.shortUuid,
+                    username: dto.username,
+                },
+                ['uuid', 'tId', 'shortUuid', 'username'],
+            );
+
+            if (!user) return fail(ERRORS.USER_NOT_FOUND);
+
+            return ok(
+                new ResolveUserResponseModel({
+                    uuid: user.uuid,
+                    id: Number(user.tId),
+                    shortUuid: user.shortUuid,
+                    username: user.username,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 

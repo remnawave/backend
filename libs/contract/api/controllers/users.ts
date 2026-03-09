@@ -44,4 +44,5 @@ export const USERS_ROUTES = {
     TAGS: {
         GET: 'tags',
     },
+    RESOLVE: 'resolve',
 } as const;
