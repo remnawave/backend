@@ -13,11 +13,12 @@ import { HwidUserDeviceEntity } from '../entities/hwid-user-device.entity';
 import { HwidUserDevicesConverter } from '../hwid-user-devices.converter';
 
 const HWID_FILTER_COLUMN_MAP = {
-    createdAt: sql.ref('hwid_user_devices.created_at'),
-    expireAt: sql.ref('hwid_user_devices.expire_at'),
     userUuid: sql`"user_uuid"::text`,
     hwid: sql.ref('hwid_user_devices.hwid'),
     platform: sql.ref('hwid_user_devices.platform'),
+    userAgent: sql.ref('hwid_user_devices.user_agent'),
+    osVersion: sql.ref('hwid_user_devices.os_version'),
+    deviceModel: sql.ref('hwid_user_devices.device_model'),
 } as const;
 
 type AllowedHwidFilterId = keyof typeof HWID_FILTER_COLUMN_MAP;
