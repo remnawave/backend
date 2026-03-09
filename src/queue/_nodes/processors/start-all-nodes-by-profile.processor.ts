@@ -252,7 +252,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
-                                isDisabled: false,
                                 isConnecting: false,
                                 isConnected: false,
                                 lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
