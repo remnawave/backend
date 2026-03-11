@@ -101,7 +101,6 @@ export class NodesService {
 
             return ok(result);
         } catch (error) {
-            this.logger.error(error);
             if (
                 error instanceof Prisma.PrismaClientKnownRequestError &&
                 error.code === 'P2002' &&
@@ -116,7 +115,7 @@ export class NodesService {
                     return fail(ERRORS.NODE_ADDRESS_ALREADY_EXISTS);
                 }
             }
-
+            this.logger.error(error);
             return fail(ERRORS.CREATE_NODE_ERROR);
         }
     }
@@ -299,8 +298,22 @@ export class NodesService {
 
             return ok(result);
         } catch (error) {
+            if (
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2002' &&
+                error.meta?.modelName === 'Nodes' &&
+                Array.isArray(error.meta.target)
+            ) {
+                const fields = error.meta.target as string[];
+                if (fields.includes('name')) {
+                    return fail(ERRORS.NODE_NAME_ALREADY_EXISTS);
+                }
+                if (fields.includes('address')) {
+                    return fail(ERRORS.NODE_ADDRESS_ALREADY_EXISTS);
+                }
+            }
             this.logger.error(error);
-            return fail(ERRORS.ENABLE_NODE_ERROR);
+            return fail(ERRORS.UPDATE_NODE_ERROR);
         }
     }
 
