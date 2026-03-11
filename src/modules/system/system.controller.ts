@@ -31,6 +31,7 @@ import {
     GetMetadataCommand,
     GetNodesMetricsCommand,
     GetNodesStatisticsCommand,
+    GetRecapCommand,
     GetRemnawaveHealthCommand,
     GetStatsCommand,
     TestSrrMatcherCommand,
@@ -51,6 +52,7 @@ import {
     DebugSrrMatcherRequestDto,
     DebugSrrMatcherResponseDto,
     GetMetadataResponseDto,
+    GetRecapResponseDto,
 } from './dtos';
 import { EncryptHappCryptoLinkResponseModel } from './models';
 import { SystemService } from './system.service';
@@ -227,5 +229,23 @@ export class SystemController {
         @Body() body: DebugSrrMatcherRequestDto,
     ): Promise<Response> {
         return await this.systemService.debugSrrMatcher(request, response, body);
+    }
+
+    @ApiResponse({
+        status: 200,
+        description: 'Returns system recap',
+        type: GetRecapResponseDto,
+    })
+    @Endpoint({
+        command: GetRecapCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getRecap(): Promise<GetRecapResponseDto> {
+        const result = await this.systemService.getRecap();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
     }
 }

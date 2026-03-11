@@ -7,6 +7,7 @@ import { readPackageJSON } from 'pkg-types';
 import axios, { AxiosError } from 'axios';
 import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
+import dayjs from 'dayjs';
 import pm2 from 'pm2';
 
 import { ERRORS } from '@contract/constants';
@@ -31,7 +32,10 @@ import { ResponseRulesMatcherService } from '@modules/subscription-response-rule
 import { ResponseRulesParserService } from '@modules/subscription-response-rules/services/response-rules-parser.service';
 import { GetSumLifetimeQuery } from '@modules/nodes-usage-history/queries/get-sum-lifetime';
 import { Get7DaysStatsQuery } from '@modules/nodes-usage-history/queries/get-7days-stats';
+import { GetInitDateQuery } from '@modules/remnawave-settings/queries/get-init-date';
 import { CountOnlineUsersQuery } from '@modules/nodes/queries/count-online-users';
+import { GetUsersRecapQuery } from '@modules/users/queries/get-users-recap';
+import { GetNodesRecapQuery } from '@modules/nodes/queries/get-nodes-recap';
 import { IGet7DaysStats } from '@modules/nodes-usage-history/interfaces';
 import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
 
@@ -41,6 +45,7 @@ import {
     GetMetadataResponseModel,
     GetNodesStatisticsResponseModel,
     GetNodesStatsResponseModel,
+    GetRecapResponseModel,
     GetRemnawaveHealthResponseModel,
     IBaseStat,
 } from './models';
@@ -335,6 +340,55 @@ export class SystemService implements OnApplicationBootstrap {
         }
     }
 
+    public async getRecap(): Promise<TResult<GetRecapResponseModel>> {
+        try {
+            const now = dayjs().utc();
+
+            const usersRecap = await this.queryBus.execute(new GetUsersRecapQuery());
+            const nodesRecap = await this.queryBus.execute(new GetNodesRecapQuery());
+
+            const nuhLifetimeRecap = await this.queryBus.execute(new GetSumLifetimeQuery());
+            const nuhThisMonthRecap = await this.queryBus.execute(
+                new GetSumByDtRangeQuery(
+                    now.startOf('month').toDate(),
+                    now.endOf('month').toDate(),
+                ),
+            );
+            const initDate = await this.queryBus.execute(new GetInitDateQuery());
+            if (
+                !usersRecap.isOk ||
+                !nodesRecap.isOk ||
+                !nuhLifetimeRecap.isOk ||
+                !nuhThisMonthRecap.isOk
+            ) {
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+            const { total, newUsersThisMonth } = usersRecap.response;
+
+            return ok(
+                new GetRecapResponseModel({
+                    thisMonth: {
+                        users: newUsersThisMonth,
+                        traffic: nuhThisMonthRecap.response.toString(),
+                    },
+                    total: {
+                        users: total,
+                        nodes: nodesRecap.response.total,
+                        traffic: nuhLifetimeRecap.response.totalBytes.toString(),
+                        nodesRam: nodesRecap.response.totalRam.toString(),
+                        nodesCpuCores: nodesRecap.response.totalCpuCores,
+                        distinctCountries: nodesRecap.response.distinctCountries,
+                    },
+                    version: this.rwVersion,
+                    initDate: initDate,
+                }),
+            );
+        } catch (error) {
+            this.logger.error('Error getting system recap:', error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     private async getShortUserStats(): Promise<TResult<ShortUserStats>> {
         return this.queryBus.execute<GetShortUserStatsQuery, TResult<ShortUserStats>>(
             new GetShortUserStatsQuery(),
@@ -353,12 +407,6 @@ export class SystemService implements OnApplicationBootstrap {
         );
     }
 
-    private async getNodesUsageByDtRange(query: GetSumByDtRangeQuery): Promise<TResult<bigint>> {
-        return this.queryBus.execute<GetSumByDtRangeQuery, TResult<bigint>>(
-            new GetSumByDtRangeQuery(query.start, query.end),
-        );
-    }
-
     private async getUsageComparison(dateRanges: [[Date, Date], [Date, Date]]): Promise<{
         current: string;
         difference: string;
@@ -367,14 +415,8 @@ export class SystemService implements OnApplicationBootstrap {
         const [[previousStart, previousEnd], [currentStart, currentEnd]] = dateRanges;
 
         const [nodesCurrentUsage, nodesPreviousUsage] = await Promise.all([
-            this.getNodesUsageByDtRange({
-                start: currentStart,
-                end: currentEnd,
-            }),
-            this.getNodesUsageByDtRange({
-                start: previousStart,
-                end: previousEnd,
-            }),
+            this.queryBus.execute(new GetSumByDtRangeQuery(currentStart, currentEnd)),
+            this.queryBus.execute(new GetSumByDtRangeQuery(previousStart, previousEnd)),
         ]);
 
         const currentUsage = nodesCurrentUsage.isOk ? nodesCurrentUsage.response : 0n;

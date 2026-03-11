@@ -49,4 +49,25 @@ export class RemnawaveSettingsRepository {
 
         return new RemnawaveSettingsEntity(result);
     }
+
+    public async getInitDate(): Promise<Date> {
+        const result = await this.prisma.tx.$queryRaw<{ started_at: Date }[]>`
+            SELECT started_at
+            FROM _prisma_migrations
+            ORDER BY started_at ASC
+            LIMIT 1
+        `;
+
+        if (!result.length || !result[0].started_at) {
+            return new Date();
+        }
+
+        const date = new Date(result[0].started_at);
+
+        if (isNaN(date.getTime())) {
+            return new Date();
+        }
+
+        return date;
+    }
 }

@@ -1312,4 +1312,23 @@ export class UsersRepository {
 
         return result.subpageConfigUuid;
     }
+
+    public async getUsersRecap(): Promise<{ total: number; newUsersThisMonth: number }> {
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select([
+                sql<bigint>`count(*)::int`.as('total'),
+                sql<bigint>`count(*) filter (where created_at >= ${startOfMonth})::int`.as(
+                    'newUsersThisMonth',
+                ),
+            ])
+            .executeTakeFirstOrThrow();
+
+        return {
+            total: Number(result.total),
+            newUsersThisMonth: Number(result.newUsersThisMonth),
+        };
+    }
 }

@@ -7,6 +7,7 @@ import { GetNodeIdByUuidHandler } from './get-node-id-by-uuid';
 import { GetEnabledNodesHandler } from './get-enabled-nodes';
 import { GetOnlineNodesHandler } from './get-online-nodes';
 import { GetNodeByUuidHandler } from './get-node-by-uuid';
+import { GetNodesRecapHandler } from './get-nodes-recap';
 import { GetAllNodesHandler } from './get-all-nodes';
 
 export const QUERIES = [
@@ -20,4 +21,5 @@ export const QUERIES = [
     GetEnabledNodesPartialHandler,
     GetNodesByPluginUuidHandler,
     GetNodeIdByUuidHandler,
+    GetNodesRecapHandler,
 ];

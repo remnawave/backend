@@ -9,6 +9,7 @@ import { GetUserSubpageConfigHandler } from './get-user-subpage-config';
 import { GetUsersByExpireAtHandler } from './get-users-by-expire-at';
 import { GetShortUserStatsHandler } from './get-short-user-stats';
 import { GetUserIdByUuidHandler } from './get-user-id-by-uuid';
+import { GetUsersRecapHandler } from './get-users-recap';
 
 export const QUERIES = [
     GetUserByUniqueFieldHandler,
@@ -22,4 +23,5 @@ export const QUERIES = [
     GetUsersWithResolvedInboundsHandler,
     GetUserIdsByUserUuidsHandler,
     GetUserIdByUuidHandler,
+    GetUsersRecapHandler,
 ];
