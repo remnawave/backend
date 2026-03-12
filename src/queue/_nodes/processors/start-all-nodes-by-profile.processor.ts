@@ -346,6 +346,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
     }
 
     private isUnsecureInbound(protocol: string): boolean {
-        return ['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(protocol);
+        return ['dokodemo-door', 'http', 'mixed', 'tunnel', 'wireguard'].includes(protocol);
     }
 }

@@ -100,6 +100,7 @@ export class XRayConfig {
                     'mixed',
                     'shadowsocks',
                     'trojan',
+                    'tunnel',
                     'vless',
                     'wireguard',
                 ].includes(inbound.protocol)
@@ -463,7 +464,9 @@ export class XRayConfig {
         const publicKeyMap = new Map<string, string>();
 
         for (const inbound of this.config.inbounds) {
-            if (['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(inbound.protocol)) {
+            if (
+                ['dokodemo-door', 'http', 'mixed', 'tunnel', 'wireguard'].includes(inbound.protocol)
+            ) {
                 continue;
             }
 
@@ -528,7 +531,7 @@ export class XRayConfig {
     }
 
     private isInboundWithUsers(protocol: string): boolean {
-        return !['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(protocol);
+        return !['dokodemo-door', 'http', 'mixed', 'tunnel', 'wireguard'].includes(protocol);
     }
 
     public replaceSnippets(snippets: Map<string, unknown>): void {
