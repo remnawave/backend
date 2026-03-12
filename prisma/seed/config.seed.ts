@@ -153,7 +153,7 @@ export const ResponseRulesDefaultConfig = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: '^sfa|sfi|sfm|sft|karing|singbox|rabbithole',
+                    value: '^sfa|sfi|sfm|sft|karing|singbox',
                     caseSensitive: false,
                 },
             ],
