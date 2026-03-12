@@ -131,6 +131,7 @@
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "semver": "^7.7.4",
+    "socks-proxy-agent": "^8.0.5",
     "superjson": "2.2.6",
     "swagger-themes": "^1.4.3",
     "systeminformation": "^5.31.0",

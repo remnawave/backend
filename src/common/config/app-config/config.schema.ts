@@ -43,6 +43,13 @@ export const configSchema = z
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
+        TELEGRAM_BOT_PROXY: z
+            .string()
+            .optional()
+            .refine(
+                (val) => val !== 'change_me',
+                'TELEGRAM_BOT_PROXY cannot be set to "change_me"',
+            ),
         TELEGRAM_NOTIFY_USERS: z.string().optional(),
         TELEGRAM_NOTIFY_NODES: z.string().optional(),
         TELEGRAM_NOTIFY_CRM: z.string().optional(),
