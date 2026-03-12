@@ -168,12 +168,12 @@ export class QueryNodesQueueProcessor extends WorkerHost {
                 };
             }
 
-            const usersIpsListResponse = await this.axios.getUsersIpsList(
+            const result = await this.axios.getUsersIpsList(
                 nodeResult.response.address,
                 nodeResult.response.port,
             );
 
-            if (!usersIpsListResponse.isOk) {
+            if (!result.isOk) {
                 return {
                     success: false,
                     nodeUuid: job.data.nodeUuid,
@@ -181,12 +181,14 @@ export class QueryNodesQueueProcessor extends WorkerHost {
                 };
             }
 
-            const users = usersIpsListResponse.response.response.users;
+            const collator = new Intl.Collator(undefined, { numeric: true });
 
             return {
                 success: true,
                 nodeUuid: job.data.nodeUuid,
-                users,
+                users: result.response.response.users.sort((a, b) =>
+                    collator.compare(a.userId, b.userId),
+                ),
             };
         } catch (error) {
             this.logger.error(`Failed to fetch users IPs list: ${error}`);
