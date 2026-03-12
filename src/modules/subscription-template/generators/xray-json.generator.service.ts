@@ -5,6 +5,8 @@ import type {
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { isNonEmptyObject } from '@common/utils';
+
 import {
     IGenerateConfigParams,
     Outbound,
@@ -141,10 +143,6 @@ function buildTcpSettings(host: IFormattedHost): Record<string, unknown> {
             request: baseRequest,
         },
     };
-}
-
-function isNonEmptyObject(value: unknown): value is Record<string, unknown> {
-    return value != null && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
 function buildTlsSettings(host: IFormattedHost): Record<string, unknown> {

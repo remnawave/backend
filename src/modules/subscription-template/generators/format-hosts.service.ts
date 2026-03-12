@@ -25,6 +25,7 @@ import { RawObject } from '@common/helpers/xray-config/interfaces/transport.conf
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
 import { getVlessFlow } from '@common/utils/flow';
+import { isNonEmptyObject } from '@common/utils';
 import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
@@ -228,6 +229,10 @@ export class FormatHostsService {
             let mtu: number | undefined;
             let shadowsocksOptions: IFormattedHost['shadowsocksOptions'] | undefined;
 
+            if (inbound.streamSettings && isNonEmptyObject(inbound.streamSettings.finalmask)) {
+                finalmaskParams = inbound.streamSettings.finalmask;
+            }
+
             if (inbound.protocol === 'shadowsocks') {
                 const shadowsocksSettings = inbound.settings as ShadowsocksSettings;
                 shadowsocksOptions = {
@@ -322,10 +327,6 @@ export class FormatHostsService {
                     break;
                 }
                 case 'kcp': {
-                    if (inbound.streamSettings?.finalmask) {
-                        finalmaskParams = inbound.streamSettings.finalmask;
-                    }
-
                     const kcpSettings = inbound.streamSettings?.kcpSettings;
                     if (kcpSettings) {
                         if (typeof kcpSettings.clientMtu === 'number') {
