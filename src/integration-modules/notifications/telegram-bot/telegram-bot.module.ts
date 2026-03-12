@@ -1,5 +1,5 @@
 import { NestjsGrammyModule } from '@kastov/grammy-nestjs';
-import { SocksProxyAgent } from 'socks-proxy-agent';
+import { ProxyAgent } from 'proxy-agent';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Module, Logger } from '@nestjs/common';
@@ -17,7 +17,11 @@ import { TELEGRAM_BOT_EVENTS } from './events';
             useFactory: async (configService: ConfigService) => {
                 const token = configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN');
                 const proxy = configService.get<string | undefined>('TELEGRAM_BOT_PROXY');
-                const agent = proxy ? new SocksProxyAgent(proxy) : undefined;
+                const agent = proxy
+                    ? new ProxyAgent({
+                          getProxyForUrl: () => proxy,
+                      })
+                    : undefined;
 
                 return {
                     token: token,
