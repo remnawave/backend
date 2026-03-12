@@ -334,8 +334,6 @@ export class UsersService {
                 vlessUuid: this.createUuid(),
                 ssPassword: this.createPassword(),
                 subRevokedAt: new Date(),
-                subLastOpenedAt: null,
-                subLastUserAgent: null,
                 updatedAt: new Date(),
             });
 

@@ -874,12 +874,6 @@ export class SubscriptionService {
         requestIp?: string,
     ): Promise<void> {
         try {
-            await this.usersQueuesService.updateUserSub({
-                userUuid,
-                subLastOpenedAt: new Date(),
-                subLastUserAgent: userAgent,
-            });
-
             await this.usersQueuesService.addSubscriptionRequestRecord({
                 userUuid,
                 requestAt: new Date(),

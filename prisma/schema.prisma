@@ -55,8 +55,6 @@ model Users {
   /// @kyselyType('NO_RESET' | 'DAY' | 'WEEK' | 'MONTH')
   trafficLimitStrategy   String    @default("NO_RESET") @map("traffic_limit_strategy")
   expireAt               DateTime  @map("expire_at")
-  subLastUserAgent       String?   @map("sub_last_user_agent")
-  subLastOpenedAt        DateTime? @map("sub_last_opened_at")
   lastTrafficResetAt     DateTime? @map("last_traffic_reset_at")
   subRevokedAt           DateTime? @map("sub_revoked_at")
   trojanPassword         String    @map("trojan_password")

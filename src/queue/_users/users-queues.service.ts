@@ -17,7 +17,6 @@ import {
     IFireTorrentBlockerEventJobData,
     IFireUserEventJobData,
     IFireUserEventPayload,
-    IUpdateUserSubPayload,
 } from './interfaces';
 import { USERS_JOB_NAMES } from './constants/users-job-name.constant';
 
@@ -153,21 +152,6 @@ export class UsersQueuesService implements OnApplicationBootstrap {
                 },
             },
         );
-    }
-
-    public async updateUserSub(payload: IUpdateUserSubPayload) {
-        return this.subscriptionRequestsQueue.add(USERS_JOB_NAMES.UPDATE_USER_SUB, payload, {
-            removeOnComplete: {
-                age: 3_600,
-                count: 500,
-            },
-            removeOnFail: {
-                age: 24 * 3_600,
-            },
-            deduplication: {
-                id: md5(`${payload.userUuid}_USS`),
-            },
-        });
     }
 
     public async checkAndUpsertHwidDevice(payload: ICheckAndUpsertHwidDevicePayload) {

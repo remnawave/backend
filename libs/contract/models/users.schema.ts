@@ -41,13 +41,6 @@ export const UsersSchema = z.object({
             .datetime()
             .transform((str) => new Date(str)),
     ),
-    subLastUserAgent: z.nullable(z.string()),
-    subLastOpenedAt: z.nullable(
-        z
-            .string()
-            .datetime()
-            .transform((str) => new Date(str)),
-    ),
     lastTrafficResetAt: z.nullable(
         z
             .string()

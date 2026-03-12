@@ -5,7 +5,6 @@ export const USERS_JOB_NAMES = {
     EXPIRE_USER_NOTIFICATIONS: 'expireUserNotifications',
     DELETE_BY_STATUS: 'deleteByStatus',
     ADD_SUBSCRIPTION_REQUEST_RECORD: 'addSubscriptionRequestRecord',
-    UPDATE_USER_SUB: 'updateUserSub',
     UPSERT_HWID_DEVICE: 'upsertHwidDevice',
     RESET_DAILY_USER_TRAFFIC: 'resetDailyUserTraffic',
     RESET_MONTHLY_USER_TRAFFIC: 'resetMonthlyUserTraffic',

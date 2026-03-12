@@ -39,9 +39,7 @@ const USERS_FILTER_COLUMN_MAP = {
     createdAt: sql.ref('users.created_at'),
     expireAt: sql.ref('users.expire_at'),
     lastTrafficResetAt: sql.ref('users.last_traffic_reset_at'),
-    subLastOpenedAt: sql.ref('users.sub_last_opened_at'),
     subRevokedAt: sql.ref('users.sub_revoked_at'),
-    subLastUserAgent: sql.ref('users.sub_last_user_agent'),
     telegramId: sql.ref('users.telegram_id'),
     uuid: sql.ref('users.uuid'),
     vlessUuid: sql.ref('users.vless_uuid'),
@@ -138,19 +136,6 @@ export class UsersRepository {
                 },
             },
         });
-    }
-
-    public async updateSubLastOpenedAndUserAgent(
-        userUuid: string,
-        subLastOpenedAt: Date,
-        subLastUserAgent: string,
-    ): Promise<void> {
-        await this.qb.kysely
-            .updateTable('users')
-            .set({ subLastOpenedAt, subLastUserAgent })
-            .where('uuid', '=', getKyselyUuid(userUuid))
-            .clearReturning()
-            .execute();
     }
 
     public async updateExceededTrafficUsers(): Promise<{ tId: bigint }[]> {
@@ -252,13 +237,9 @@ export class UsersRepository {
             const mode = filterModes?.[filter.id] ?? 'contains';
 
             if (
-                [
-                    'createdAt',
-                    'expireAt',
-                    'lastTrafficResetAt',
-                    'subLastOpenedAt',
-                    'userTraffic.onlineAt',
-                ].includes(filter.id)
+                ['createdAt', 'expireAt', 'lastTrafficResetAt', 'userTraffic.onlineAt'].includes(
+                    filter.id,
+                )
             ) {
                 qb = qb.where(
                     USERS_FILTER_COLUMN_MAP[filter.id as AllowedUsersFilterId],
@@ -1051,8 +1032,6 @@ export class UsersRepository {
             | 'ssPassword'
             | 'subRevokedAt'
             | 'shortUuid'
-            | 'subLastOpenedAt'
-            | 'subLastUserAgent'
             | 'updatedAt'
         >,
     ): Promise<boolean> {
@@ -1064,8 +1043,6 @@ export class UsersRepository {
                 vlessUuid: getKyselyUuid(dto.vlessUuid),
                 ssPassword: dto.ssPassword,
                 shortUuid: dto.shortUuid,
-                subLastOpenedAt: dto.subLastOpenedAt,
-                subLastUserAgent: dto.subLastUserAgent,
                 updatedAt: dto.updatedAt,
             })
             .where('uuid', '=', getKyselyUuid(dto.uuid))

@@ -31,8 +31,6 @@ export class GetFullUserResponseModel {
 
     public readonly lastTriggeredThreshold: number;
     public readonly subRevokedAt: Date | null;
-    public readonly subLastUserAgent: null | string;
-    public readonly subLastOpenedAt: Date | null;
     public readonly lastTrafficResetAt: Date | null;
 
     public readonly createdAt: Date;
@@ -78,8 +76,6 @@ export class GetFullUserResponseModel {
 
         this.lastTriggeredThreshold = entity.lastTriggeredThreshold;
         this.subRevokedAt = entity.subRevokedAt;
-        this.subLastUserAgent = entity.subLastUserAgent;
-        this.subLastOpenedAt = entity.subLastOpenedAt;
         this.lastTrafficResetAt = entity.lastTrafficResetAt;
 
         this.createdAt = entity.createdAt;
