@@ -295,10 +295,12 @@ export class FormatHostsService {
 
                     streamSettings = settings;
 
-                    rawSettings = {
-                        headerType: settings?.header?.type,
-                        request: settings?.header?.request,
-                    };
+                    if (settings.header) {
+                        rawSettings = {
+                            headerType: settings.header.type,
+                            request: settings.header.request,
+                        };
+                    }
 
                     // fallback to tcp
                     network = 'tcp';
@@ -309,10 +311,13 @@ export class FormatHostsService {
                     const settings = inbound.streamSettings?.tcpSettings as TcpObject;
                     // eslint-disable-next-line
                     streamSettings = settings;
-                    rawSettings = {
-                        headerType: settings?.header?.type,
-                        request: settings?.header?.request,
-                    };
+
+                    if (settings.header) {
+                        rawSettings = {
+                            headerType: settings.header.type,
+                            request: settings.header.request,
+                        };
+                    }
 
                     break;
                 }

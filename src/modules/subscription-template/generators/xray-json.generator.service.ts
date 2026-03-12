@@ -114,9 +114,7 @@ const TRANSPORT_BUILDERS: Record<string, TransportBuilder> = {
 };
 
 function buildTcpSettings(host: IFormattedHost): Record<string, unknown> {
-    if (host.rawSettings?.headerType !== 'http') {
-        return {};
-    }
+    if (!host.rawSettings) return {};
 
     const baseRequest = host.rawSettings.request
         ? (structuredClone(host.rawSettings.request) as Record<string, any>)
