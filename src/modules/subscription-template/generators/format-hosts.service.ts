@@ -300,7 +300,7 @@ export class FormatHostsService {
 
                     streamSettings = settings;
 
-                    if (settings.header) {
+                    if (settings?.header) {
                         rawSettings = {
                             headerType: settings.header.type,
                             request: settings.header.request,
@@ -317,7 +317,7 @@ export class FormatHostsService {
                     // eslint-disable-next-line
                     streamSettings = settings;
 
-                    if (settings.header) {
+                    if (settings?.header) {
                         rawSettings = {
                             headerType: settings.header.type,
                             request: settings.header.request,
