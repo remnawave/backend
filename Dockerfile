@@ -12,7 +12,7 @@ RUN apk add --no-cache curl unzip ca-certificates \
     && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_temp/dist/assets/xray.schema.cn.json \
     && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/dist/assets/main.wasm
 
-FROM node:24.13-alpine AS backend-build
+FROM node:24.14-alpine AS backend-build
 WORKDIR /opt/app
 
 # RUN apk add python3 python3-dev build-base pkgconfig libunwind-dev
