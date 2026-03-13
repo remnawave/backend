@@ -38,6 +38,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
             'SERVICE_DISABLE_USER_USAGE_RECORDS',
         );
     }
+
     onApplicationBootstrap() {
         if (this.disableUserUsageRecords) {
             this.logger.warn(
@@ -75,9 +76,9 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
 
             await this.redis.rename(redisKey, processingKey);
 
-            const results = await this.redis.hgetall(processingKey);
+            const nodeId = BigInt(redisKey.split(':')[1]);
 
-            for await (const batch of this.batchEntries(results, redisKey)) {
+            for await (const batch of this.scanAndBatch(processingKey, nodeId)) {
                 await this.commandBus.execute(new BulkUpsertUserHistoryEntryCommand(batch));
             }
 
@@ -92,31 +93,29 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
         }
     }
 
-    private async *batchEntries(
-        data: Record<string, string>,
-        keyString: string,
+    private async *scanAndBatch(
+        key: string,
+        nodeId: bigint,
         batchSize: number = 10_000,
     ): AsyncGenerator<NodesUserUsageHistoryEntity[]> {
-        const entries = Object.entries(data);
-        let batch: NodesUserUsageHistoryEntity[] = [];
+        const stream = this.redis.hscanStream(key, { count: batchSize });
 
-        for (const [userId, totalBytes] of entries) {
-            batch.push(
-                new NodesUserUsageHistoryEntity({
-                    nodeId: BigInt(keyString.split(':')[1]),
-                    userId: BigInt(userId),
-                    totalBytes: BigInt(totalBytes),
-                }),
-            );
+        for await (const chunk of stream) {
+            const batch: NodesUserUsageHistoryEntity[] = [];
 
-            if (batch.length >= batchSize) {
-                yield batch;
-                batch = [];
+            for (let i = 0; i < chunk.length; i += 2) {
+                batch.push(
+                    new NodesUserUsageHistoryEntity({
+                        nodeId,
+                        userId: BigInt(chunk[i]),
+                        totalBytes: BigInt(chunk[i + 1]),
+                    }),
+                );
             }
-        }
 
-        if (batch.length > 0) {
-            yield batch;
+            if (batch.length > 0) {
+                yield batch;
+            }
         }
     }
 }
