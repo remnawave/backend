@@ -63,8 +63,8 @@ ARG __RW_METADATA_BUILD_NUMBER=0
 # ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 # libunwind
 # Install mimalloc
-RUN apk add --no-cache mimalloc curl
-ENV LD_PRELOAD=/usr/lib/libmimalloc.so
+RUN apk add --no-cache mimalloc2 curl
+ENV LD_PRELOAD=/usr/lib/libmimalloc.so.2
 
 ENV REMNAWAVE_BRANCH=${BRANCH}
 ENV PRISMA_HIDE_UPDATE_MESSAGE=true
