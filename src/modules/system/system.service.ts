@@ -59,6 +59,12 @@ import { ShortUserStats } from '../users/interfaces/user-stats.interface';
 import { GetStatsRequestQueryDto } from './dtos/get-stats.dto';
 import { DebugSrrMatcherRequestDto } from './dtos';
 
+const TYPE_ORDER: Record<string, number> = {
+    api: 0,
+    scheduler: 1,
+    processor: 2,
+};
+
 @Injectable()
 export class SystemService implements OnApplicationBootstrap {
     private readonly logger = new Logger(SystemService.name);
@@ -196,9 +202,14 @@ export class SystemService implements OnApplicationBootstrap {
 
             return ok(
                 new GetRemnawaveHealthResponseModel(
-                    Object.values(runtimeMetrics).map(
-                        (metric) => JSON.parse(metric) as RuntimeMetric,
-                    ),
+                    Object.values(runtimeMetrics)
+                        .map((metric) => JSON.parse(metric) as RuntimeMetric)
+                        .sort((a, b) => {
+                            const typeA = TYPE_ORDER[a.instanceType] ?? 99;
+                            const typeB = TYPE_ORDER[b.instanceType] ?? 99;
+                            if (typeA !== typeB) return typeA - typeB;
+                            return Number(a.instanceId) - Number(b.instanceId);
+                        }),
                 ),
             );
         } catch (error) {
