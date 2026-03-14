@@ -12,12 +12,14 @@ RUN apk add --no-cache curl unzip ca-certificates \
     && curl -L https://validator.remna.dev/xray.schema.cn.json -o frontend_temp/dist/assets/xray.schema.cn.json \
     && curl -L https://validator.remna.dev/main.wasm -o frontend_temp/dist/assets/main.wasm
 
-FROM node:24.14-alpine AS backend-build
+FROM node:24.14-trixie-slim AS backend-build
 WORKDIR /opt/app
 
 # RUN apk add python3 python3-dev build-base pkgconfig libunwind-dev
 
-ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x,linux-musl-arm64-openssl-3.0.x
+#ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x,linux-musl-arm64-openssl-3.0.x
+ENV PRISMA_CLI_BINARY_TARGETS=debian-openssl-3.0.x,linux-arm64-openssl-3.0.x
+
 
 COPY package*.json ./
 COPY prisma ./prisma
@@ -37,7 +39,7 @@ RUN npm cache clean --force
 
 RUN npm prune --omit=dev
 
-FROM node:24.14-alpine
+FROM node:24.14-trixie-slim
 
 LABEL org.opencontainers.image.title="Remnawave"
 LABEL org.opencontainers.image.description="Powerful proxy managment tool"
@@ -63,8 +65,11 @@ ARG __RW_METADATA_BUILD_NUMBER=0
 # ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 # libunwind
 # Install mimalloc
-RUN apk add --no-cache mimalloc2 curl
-ENV LD_PRELOAD=/usr/lib/libmimalloc.so.2
+#RUN apk add --no-cache mimalloc2 curl
+#ENV LD_PRELOAD=/usr/lib/libmimalloc.so.2
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 ENV REMNAWAVE_BRANCH=${BRANCH}
 ENV PRISMA_HIDE_UPDATE_MESSAGE=true
