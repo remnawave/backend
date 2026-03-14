@@ -55,10 +55,13 @@ const USERS_FILTER_COLUMN_MAP = {
     'userTraffic.firstConnectedAt': sql.ref('user_traffic.first_connected_at'),
     'userTraffic.lifetimeUsedTrafficBytes': sql.ref('user_traffic.lifetime_used_traffic_bytes'),
     usedTrafficBytes: sql.ref('user_traffic.used_traffic_bytes'),
+    hwidDeviceLimit: sql.ref('users.hwid_device_limit'),
 
     activeInternalSquads: null,
     nodeName: null,
 } as const;
+
+const NUMERIC_FILTER_IDS = new Set(['hwidDeviceLimit', 'tId']);
 
 type AllowedUsersFilterId = keyof typeof USERS_FILTER_COLUMN_MAP;
 
@@ -233,6 +236,9 @@ export class UsersRepository {
     ) {
         for (const filter of filters ?? []) {
             if (!(filter.id in USERS_FILTER_COLUMN_MAP)) continue;
+            if (Array.isArray(filter.value) && filter.value.length === 0) {
+                continue;
+            }
 
             const mode = filterModes?.[filter.id] ?? 'contains';
 
@@ -305,19 +311,43 @@ export class UsersRepository {
                 continue;
             }
 
+            const value = NUMERIC_FILTER_IDS.has(filter.id) ? Number(filter.value) : filter.value;
+
             const col = USERS_FILTER_COLUMN_MAP[filter.id as AllowedUsersFilterId];
             switch (mode) {
                 case 'equals':
-                    qb = qb.where(col, '=', filter.value);
+                    if (Array.isArray(filter.value) && filter.value.length > 0) {
+                        qb = qb.where(col, 'in', filter.value);
+                    } else {
+                        qb = qb.where(col, '=', value);
+                    }
                     break;
                 case 'startsWith':
-                    qb = qb.where(col, 'like', `${filter.value}%`);
+                    qb = qb.where(col, 'like', `${value}%`);
                     break;
                 case 'endsWith':
-                    qb = qb.where(col, 'like', `%${filter.value}`);
+                    qb = qb.where(col, 'like', `%${value}`);
                     break;
+                case 'greaterThan':
+                    qb = qb.where(col, '>', value);
+                    break;
+                case 'greaterThanOrEqualTo':
+                    qb = qb.where(col, '>=', value);
+                    break;
+                case 'lessThan':
+                    qb = qb.where(col, '<', value);
+                    break;
+                case 'lessThanOrEqualTo':
+                    qb = qb.where(col, '<=', value);
+                    break;
+                case 'between': {
+                    const [from, to] = filter.value as [string, string];
+                    const castFn = NUMERIC_FILTER_IDS.has(filter.id) ? Number : (v: string) => v;
+                    qb = qb.where(col, '>=', castFn(from)).where(col, '<=', castFn(to));
+                    break;
+                }
                 default:
-                    qb = qb.where(col, 'ilike', `%${filter.value}%`);
+                    qb = qb.where(col, 'ilike', `%${value}%`);
             }
         }
 
