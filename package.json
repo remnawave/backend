@@ -124,7 +124,6 @@
     "passport-jwt": "4.0.1",
     "patch-package": "^8.0.1",
     "pkg-types": "2.3.0",
-    "pm2": "6.0.14",
     "prisma": "6.19.0",
     "prisma-kysely": "2.2.1",
     "prom-client": "^15.1.3",

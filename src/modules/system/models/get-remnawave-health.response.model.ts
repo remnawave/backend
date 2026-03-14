@@ -1,11 +1,9 @@
-export class GetRemnawaveHealthResponseModel {
-    pm2Stats: {
-        name: string;
-        memory: string;
-        cpu: string;
-    }[];
+import { RuntimeMetric } from '@common/runtime-metrics/interfaces';
 
-    constructor(data: GetRemnawaveHealthResponseModel) {
-        this.pm2Stats = data.pm2Stats;
+export class GetRemnawaveHealthResponseModel {
+    runtimeMetrics: RuntimeMetric[];
+
+    constructor(data: RuntimeMetric[]) {
+        this.runtimeMetrics = data;
     }
 }

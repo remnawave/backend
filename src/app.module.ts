@@ -1,3 +1,4 @@
+import { RedisModule, RedisModuleOptions } from '@songkeys/nestjs-redis';
 import { createKeyv } from '@keyv/redis';
 import { ClsModule } from 'nestjs-cls';
 import { join } from 'node:path';
@@ -11,6 +12,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { CacheModule } from '@nestjs/cache-manager';
 
 import { CommonConfigModule } from '@common/config/common-config/common-config.module';
+import { RuntimeMetricsModule } from '@common/runtime-metrics/runtime-metrics.module';
 import { disableFrontend } from '@common/utils/startup-app/is-development';
 import { PrismaService } from '@common/database/prisma.service';
 import { getRedisConnectionOptions } from '@common/utils';
@@ -25,6 +27,25 @@ import { QueueModule } from '@queue/queue.module';
 
 @Module({
     imports: [
+        RedisModule.forRootAsync({
+            imports: [ConfigModule],
+            useFactory: async (configService: ConfigService): Promise<RedisModuleOptions> => {
+                return {
+                    config: {
+                        ...getRedisConnectionOptions(
+                            configService.get<string>('REDIS_SOCKET'),
+                            configService.get<string>('REDIS_HOST'),
+                            configService.get<number>('REDIS_PORT'),
+                            'ioredis',
+                        ),
+                        db: configService.getOrThrow<number>('REDIS_DB'),
+                        password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                        keyPrefix: 'ioraw:',
+                    },
+                } satisfies RedisModuleOptions;
+            },
+            inject: [ConfigService],
+        }),
         AxiosModule,
         CommonConfigModule,
         PrismaModule,
@@ -97,6 +118,7 @@ import { QueueModule } from '@queue/queue.module';
                 };
             },
         }),
+        RuntimeMetricsModule,
     ],
 })
 export class AppModule implements OnApplicationShutdown {

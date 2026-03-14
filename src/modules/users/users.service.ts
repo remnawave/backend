@@ -1,13 +1,10 @@
-import type { Cache } from 'cache-manager';
-
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import dayjs from 'dayjs';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 
@@ -62,8 +59,6 @@ export class UsersService {
         private readonly configService: ConfigService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly nodesQueuesService: NodesQueuesService,
-
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }

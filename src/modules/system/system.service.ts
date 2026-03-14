@@ -1,5 +1,6 @@
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { createHappCryptoLink } from '@kastov/cryptohapp';
+import { InjectRedis } from '@songkeys/nestjs-redis';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
 import { Request, Response } from 'express';
@@ -7,10 +8,10 @@ import { readPackageJSON } from 'pkg-types';
 import axios, { AxiosError } from 'axios';
 import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
+import Redis from 'ioredis';
 import dayjs from 'dayjs';
-import pm2 from 'pm2';
 
-import { ERRORS } from '@contract/constants';
+import { ERRORS, INTERNAL_CACHE_KEYS } from '@contract/constants';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +25,7 @@ import {
     getLastTwoWeeksRanges,
 } from '@common/utils/get-date-ranges.uti';
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
+import { RuntimeMetric } from '@common/runtime-metrics/interfaces';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
 import { fail, ok, TResult } from '@common/types';
@@ -67,6 +69,7 @@ export class SystemService implements OnApplicationBootstrap {
         private readonly configService: ConfigService,
         private readonly srrParser: ResponseRulesParserService,
         private readonly srrMatcher: ResponseRulesMatcherService,
+        @InjectRedis() private readonly redis: Redis,
     ) {}
 
     public async onApplicationBootstrap(): Promise<void> {
@@ -189,49 +192,18 @@ export class SystemService implements OnApplicationBootstrap {
 
     public async getRemnawaveHealth(): Promise<TResult<GetRemnawaveHealthResponseModel>> {
         try {
-            const list = await new Promise<pm2.ProcessDescription[]>((resolve, reject) => {
-                pm2.list((err, processes) => {
-                    if (err) {
-                        this.logger.error('Error getting PM2 processes:', err);
-                        reject(err);
-                    } else {
-                        resolve(processes);
-                    }
-                });
-            });
-
-            const instanceType: Record<string, string> = {
-                'remnawave-api': 'REST API',
-                'remnawave-scheduler': 'Scheduler',
-                'remnawave-jobs': 'Jobs',
-            };
-
-            const stats = new Map<string, { memory: string; cpu: string; name: string }>();
-
-            for (const process of list) {
-                if (process.pm2_env) {
-                    if ('INSTANCE_ID' in process.pm2_env) {
-                        stats.set(`${process.name}-${process.pm2_env.INSTANCE_ID}`, {
-                            memory: process.monit?.memory?.toString() || '0',
-                            cpu: process.monit?.cpu?.toString() || '0',
-                            name: `${instanceType[process.name || 'unknown'] || process.name}-${process.pm2_env.INSTANCE_ID || '0'}`,
-                        });
-                    }
-                }
-            }
+            const runtimeMetrics = await this.redis.hgetall(INTERNAL_CACHE_KEYS.RUNTIME_METRICS);
 
             return ok(
-                new GetRemnawaveHealthResponseModel({
-                    pm2Stats: Array.from(stats.values()),
-                }),
+                new GetRemnawaveHealthResponseModel(
+                    Object.values(runtimeMetrics).map(
+                        (metric) => JSON.parse(metric) as RuntimeMetric,
+                    ),
+                ),
             );
         } catch (error) {
             this.logger.error('Error getting system stats:', error);
-            return ok(
-                new GetRemnawaveHealthResponseModel({
-                    pm2Stats: [],
-                }),
-            );
+            return ok(new GetRemnawaveHealthResponseModel([]));
         }
     }
 
