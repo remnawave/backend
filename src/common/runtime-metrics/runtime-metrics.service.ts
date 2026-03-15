@@ -1,10 +1,9 @@
 import { monitorEventLoopDelay, IntervalHistogram } from 'node:perf_hooks';
-import { InjectRedis } from '@songkeys/nestjs-redis';
 import process from 'node:process';
-import Redis from 'ioredis';
 
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 
+import { RawCacheService } from '@common/raw-cache';
 import { INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
 import { RuntimeMetric } from './interfaces';
@@ -21,7 +20,7 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
     private timer: NodeJS.Timeout | null = null;
     private eld: IntervalHistogram;
 
-    constructor(@InjectRedis() private readonly redis: Redis) {
+    constructor(private readonly rawCacheService: RawCacheService) {
         this.INSTANCE_ID = process.env.INSTANCE_ID || '0';
         this.INSTANCE_TYPE = process.env.INSTANCE_TYPE || 'api';
         this.eld = monitorEventLoopDelay({ resolution: 20 });
@@ -69,10 +68,10 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
         try {
             const metrics = this.collect();
 
-            await this.redis.hset(
+            await this.rawCacheService.hsetJson(
                 this.CACHE_KEY,
                 `${this.INSTANCE_TYPE}-${this.INSTANCE_ID}`,
-                Buffer.from(JSON.stringify(metrics)),
+                metrics,
             );
 
             this.eld.reset();

@@ -1,10 +1,8 @@
-import type { Cache } from 'cache-manager';
-
 import isEmail from 'validator/lib/isEmail';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 
+import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
@@ -17,7 +15,7 @@ export class RemnawaveSettingsService {
     private readonly logger = new Logger(RemnawaveSettingsService.name);
     constructor(
         private readonly remnawaveSettingsRepository: RemnawaveSettingsRepository,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly rawCacheService: RawCacheService,
     ) {}
 
     public async getSettingsFromController(): Promise<TResult<RemnawaveSettingsEntity>> {
@@ -54,7 +52,7 @@ export class RemnawaveSettingsService {
                 ...body,
             });
 
-            await this.cacheManager.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+            await this.rawCacheService.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
 
             return await this.getSettingsFromController();
         } catch (error) {

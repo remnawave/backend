@@ -1,12 +1,11 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Job } from 'bullmq';
-import Redis from 'ioredis';
 
 import { Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 
+import { RawCacheService } from '@common/raw-cache';
 import { INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
 import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
@@ -29,7 +28,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
 
     constructor(
         private readonly commandBus: CommandBus,
-        @InjectRedis() private readonly redis: Redis,
+        private readonly rawCacheService: RawCacheService,
         private readonly configService: ConfigService,
     ) {
         super();
@@ -68,13 +67,13 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
                 return;
             }
 
-            const exists = await this.redis.exists(redisKey);
+            const exists = await this.rawCacheService.exists(redisKey);
 
-            if (exists === 0) {
+            if (!exists) {
                 return;
             }
 
-            await this.redis.rename(redisKey, processingKey);
+            await this.rawCacheService.rename(redisKey, processingKey);
 
             const nodeId = BigInt(redisKey.split(':')[1]);
 
@@ -89,7 +88,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
             );
             return;
         } finally {
-            await this.redis.del(processingKey);
+            await this.rawCacheService.del(processingKey);
         }
     }
 
@@ -98,7 +97,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
         nodeId: bigint,
         batchSize: number = 10_000,
     ): AsyncGenerator<NodesUserUsageHistoryEntity[]> {
-        const stream = this.redis.hscanStream(key, { count: batchSize });
+        const stream = this.rawCacheService.hscanStream(key, { count: batchSize });
 
         for await (const chunk of stream) {
             const batch: NodesUserUsageHistoryEntity[] = [];

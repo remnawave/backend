@@ -5,9 +5,7 @@ import allMeasures, {
 } from 'convert-units/definitions/all';
 import configureMeasurements, { Converter } from 'convert-units';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
-import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Gauge } from 'prom-client';
-import { Redis } from 'ioredis';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
@@ -15,6 +13,7 @@ import { QueryBus } from '@nestjs/cqrs';
 
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
 import { RuntimeMetric } from '@common/runtime-metrics/interfaces';
+import { RawCacheService } from '@common/raw-cache';
 import { TResult } from '@common/types';
 import { INTERNAL_CACHE_KEYS, METRIC_NAMES } from '@libs/contracts/constants';
 
@@ -40,7 +39,7 @@ export class ExportMetricsTask {
     private readonly CACHE_TTL_MS: number;
 
     constructor(
-        @InjectRedis() private readonly redis: Redis,
+        private readonly rawCacheService: RawCacheService,
         @InjectMetric(METRIC_NAMES.USERS_STATUS) public usersStatus: Gauge<string>,
         @InjectMetric(METRIC_NAMES.USERS_ONLINE_STATS) public usersOnlineStats: Gauge<string>,
         @InjectMetric(METRIC_NAMES.USERS_TOTAL) public usersTotal: Gauge<string>,
@@ -186,10 +185,15 @@ export class ExportMetricsTask {
 
     public async reportRuntimeMetrics() {
         try {
-            const raw = await this.redis.hgetall(INTERNAL_CACHE_KEYS.RUNTIME_METRICS);
+            const raw = await this.rawCacheService.hgetallParsed<Record<string, RuntimeMetric>>(
+                INTERNAL_CACHE_KEYS.RUNTIME_METRICS,
+            );
 
-            for (const value of Object.values(raw)) {
-                const m = JSON.parse(value) as RuntimeMetric;
+            if (!raw) {
+                return;
+            }
+
+            for (const m of Object.values(raw)) {
                 const labels = { instance_id: m.instanceId, instance_name: m.instanceType };
 
                 this.processRssBytes.set(labels, m.rss);

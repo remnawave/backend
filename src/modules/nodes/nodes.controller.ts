@@ -63,12 +63,7 @@ import {
     UpdateNodeRequestDto,
     UpdateNodeResponseDto,
 } from './dtos';
-import {
-    CreateNodeResponseModel,
-    GetAllNodesResponseModel,
-    GetAllNodesTagsResponseModel,
-    GetOneNodeResponseModel,
-} from './models';
+import { GetAllNodesTagsResponseModel } from './models';
 import { EnableNodeRequestParamDto } from './dtos';
 import { NodesService } from './nodes.service';
 
@@ -111,7 +106,7 @@ export class NodesController {
 
         const data = errorHandler(result);
         return {
-            response: new CreateNodeResponseModel(data),
+            response: data,
         };
     }
 
@@ -127,7 +122,7 @@ export class NodesController {
         const res = await this.nodesService.getAllNodes();
         const data = errorHandler(res);
         return {
-            response: data.map((node) => new GetAllNodesResponseModel(node)),
+            response: data,
         };
     }
 
@@ -144,7 +139,7 @@ export class NodesController {
         const res = await this.nodesService.getOneNode(uuid.uuid);
         const data = errorHandler(res);
         return {
-            response: new GetOneNodeResponseModel(data),
+            response: data,
         };
     }
 
@@ -161,7 +156,7 @@ export class NodesController {
         const res = await this.nodesService.enableNode(uuid.uuid);
         const data = errorHandler(res);
         return {
-            response: new GetOneNodeResponseModel(data),
+            response: data,
         };
     }
 
@@ -178,7 +173,7 @@ export class NodesController {
         const res = await this.nodesService.disableNode(uuid.uuid);
         const data = errorHandler(res);
         return {
-            response: new GetOneNodeResponseModel(data),
+            response: data,
         };
     }
 
@@ -212,7 +207,7 @@ export class NodesController {
         const res = await this.nodesService.updateNode(body);
         const data = errorHandler(res);
         return {
-            response: new GetOneNodeResponseModel(data),
+            response: data,
         };
     }
 
@@ -284,7 +279,7 @@ export class NodesController {
 
         const data = errorHandler(result);
         return {
-            response: data.map((node) => new GetAllNodesResponseModel(node)),
+            response: data,
         };
     }
 

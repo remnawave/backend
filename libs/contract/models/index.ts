@@ -16,6 +16,7 @@ export * from './infra-provider.schema';
 export * from './internal-squad.schema';
 export * from './last-connected-node.schema';
 export * from './node-plugin.schema';
+export * from './node-system.schema';
 export * from './nodes.schema';
 export * from './remnawave-settings';
 export * from './response-rules';

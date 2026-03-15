@@ -196,10 +196,6 @@ model Nodes {
   countryCode  String   @default("XX") @map("country_code")
   tags         String[] @default([]) @map("tags")
 
-  cpuCount Int?    @map("cpu_count")
-  cpuModel String? @map("cpu_model")
-  totalRam String? @map("total_ram")
-
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 

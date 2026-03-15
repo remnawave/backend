@@ -7,18 +7,17 @@ import {
 import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { catchError, firstValueFrom } from 'rxjs';
 import { promisify } from 'node:util';
-import { Cache } from 'cache-manager';
 import { AxiosError } from 'axios';
 import * as arctic from 'arctic';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { JwtService } from '@nestjs/jwt';
 
+import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 import {
     CACHE_KEYS,
@@ -62,7 +61,7 @@ export class AuthService {
     private readonly jwtLifetime: number;
 
     constructor(
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly rawCacheService: RawCacheService,
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
         private readonly queryBus: QueryBus,
@@ -386,7 +385,7 @@ export class AuthService {
                     );
 
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`;
-                    await this.cacheManager.set(`${stateKey}:codeVerifier`, codeVerifier, 600_000);
+                    await this.rawCacheService.set(`${stateKey}:codeVerifier`, codeVerifier, 600);
 
                     break;
                 case OAUTH2_PROVIDERS.GENERIC:
@@ -416,10 +415,10 @@ export class AuthService {
                             );
                             stateKey = `oauth2:${OAUTH2_PROVIDERS.GENERIC}`;
 
-                            await this.cacheManager.set(
+                            await this.rawCacheService.set(
                                 `${stateKey}:codeVerifier`,
                                 codeVerifier,
-                                600_000,
+                                600,
                             );
                             break;
                     }
@@ -437,18 +436,14 @@ export class AuthService {
                     );
 
                     stateKey = `oauth2:${OAUTH2_PROVIDERS.TELEGRAM}`;
-                    await this.cacheManager.set(
-                        `${stateKey}:codeVerifier`,
-                        tgCodeVerifier,
-                        600_000,
-                    );
+                    await this.rawCacheService.set(`${stateKey}:codeVerifier`, tgCodeVerifier, 600);
                     break;
                 }
                 default:
                     return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
             }
 
-            await this.cacheManager.set(stateKey, state, 600_000);
+            await this.rawCacheService.set(stateKey, state, 600);
 
             return ok(
                 new OAuth2AuthorizeResponseModel({
@@ -555,13 +550,13 @@ export class AuthService {
         const stateKey = `oauth2:${provider}`;
 
         const [stateFromCache, codeVerifier] = await Promise.all([
-            this.cacheManager.get<string>(stateKey),
-            this.cacheManager.get<string>(`${stateKey}:codeVerifier`),
+            this.rawCacheService.get<string>(stateKey),
+            this.rawCacheService.get<string>(`${stateKey}:codeVerifier`),
         ]);
 
         await Promise.all([
-            this.cacheManager.del(stateKey),
-            this.cacheManager.del(`${stateKey}:codeVerifier`),
+            this.rawCacheService.del(stateKey),
+            this.rawCacheService.del(`${stateKey}:codeVerifier`),
         ]);
 
         if (stateFromCache !== state) {
@@ -631,7 +626,7 @@ export class AuthService {
     private async exchangeCodeForEmail(
         provider: TOAuth2ProvidersKeys,
         code: string,
-        codeVerifier: string | undefined,
+        codeVerifier: string | null,
         settings: RemnawaveSettingsEntity,
     ): Promise<{ email: string | null; hasCustomClaim?: boolean; error?: string }> {
         try {
@@ -763,7 +758,7 @@ export class AuthService {
 
     private async fetchGenericEmail(
         code: string,
-        codeVerifier: string | undefined,
+        codeVerifier: string | null,
         settings: RemnawaveSettingsEntity,
     ): Promise<{ email: string | null; hasCustomClaim?: boolean; error?: string }> {
         if (settings.oauth2Settings.generic.withPkce && !codeVerifier) {
@@ -933,10 +928,10 @@ export class AuthService {
                 userVerification: 'required',
             });
 
-            await this.cacheManager.set(
+            await this.rawCacheService.set(
                 CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
                 options.challenge,
-                60_000, // 1 minute
+                60, // 1 minute
             );
 
             return ok(options);
@@ -993,7 +988,7 @@ export class AuthService {
                 return fail(ERRORS.FORBIDDEN);
             }
 
-            const expectedChallenge = await this.cacheManager.get<string>(
+            const expectedChallenge = await this.rawCacheService.get<string>(
                 CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
             );
 
@@ -1037,7 +1032,7 @@ export class AuthService {
                 requireUserVerification: true,
             });
 
-            await this.cacheManager.del(
+            await this.rawCacheService.del(
                 CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
             );
 

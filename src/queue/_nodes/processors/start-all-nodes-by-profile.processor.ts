@@ -7,6 +7,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger, Scope } from '@nestjs/common';
 
 import { AxiosService } from '@common/axios/axios.service';
+import { RawCacheService } from '@common/raw-cache';
+import { CACHE_KEYS, CACHE_KEYS_TTL } from '@libs/contracts/constants';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users/get-prepared-config-with-users.query';
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
@@ -39,6 +41,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
+        private readonly rawCacheService: RawCacheService,
     ) {
         super();
         this.CONCURRENCY = 20;
@@ -310,6 +313,17 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     case true:
                         const nodeResponse = startXrayResponse.response.response;
 
+                        await this.rawCacheService.set(
+                            CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid),
+                            nodeResponse.system.info,
+                        );
+
+                        await this.rawCacheService.set(
+                            CACHE_KEYS.NODE_SYSTEM_STATS(node.uuid),
+                            nodeResponse.system.stats,
+                            CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+                        );
+
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
@@ -320,9 +334,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                                 lastStatusChange: new Date(),
                                 isConnecting: false,
                                 usersOnline: 0,
-                                cpuCount: nodeResponse.systemInformation?.cpuCores ?? null,
-                                cpuModel: nodeResponse.systemInformation?.cpuModel ?? null,
-                                totalRam: nodeResponse.systemInformation?.memoryTotal ?? null,
                             }),
                         );
 

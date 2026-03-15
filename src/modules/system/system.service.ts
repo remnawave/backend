@@ -1,15 +1,13 @@
 import parsePrometheusTextFormat from 'parse-prometheus-text-format';
 import { createHappCryptoLink } from '@kastov/cryptohapp';
-import { InjectRedis } from '@songkeys/nestjs-redis';
 import { generateKeyPair } from '@stablelib/x25519';
 import { encodeURLSafe } from '@stablelib/base64';
 import { Request, Response } from 'express';
 import { readPackageJSON } from 'pkg-types';
 import axios, { AxiosError } from 'axios';
-import * as si from 'systeminformation';
 import { groupBy } from 'lodash';
-import Redis from 'ioredis';
 import dayjs from 'dayjs';
+import os from 'node:os';
 
 import { ERRORS, INTERNAL_CACHE_KEYS } from '@contract/constants';
 
@@ -28,6 +26,7 @@ import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
 import { RuntimeMetric } from '@common/runtime-metrics/interfaces';
 import { calcDiff } from '@common/utils/calc-percent-diff.util';
 import { prettyBytesUtil } from '@common/utils/bytes';
+import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
@@ -75,7 +74,7 @@ export class SystemService implements OnApplicationBootstrap {
         private readonly configService: ConfigService,
         private readonly srrParser: ResponseRulesParserService,
         private readonly srrMatcher: ResponseRulesMatcherService,
-        @InjectRedis() private readonly redis: Redis,
+        private readonly rawCacheService: RawCacheService,
     ) {}
 
     public async onApplicationBootstrap(): Promise<void> {
@@ -117,22 +116,19 @@ export class SystemService implements OnApplicationBootstrap {
                 return fail(ERRORS.GET_USER_STATS_ERROR);
             }
 
-            const [cpu, mem, time] = await Promise.all([si.cpu(), si.mem(), si.time()]);
+            const cpus = os.cpus();
 
             return ok(
                 new GetStatsResponseModel({
                     cpu: {
-                        cores: cpu.cores,
-                        physicalCores: cpu.physicalCores,
+                        cores: cpus.length,
                     },
                     memory: {
-                        total: mem.total,
-                        free: mem.free,
-                        used: mem.used,
-                        active: mem.active,
-                        available: mem.available,
+                        total: os.totalmem(),
+                        free: os.freemem(),
+                        used: os.totalmem() - os.freemem(),
                     },
-                    uptime: time.uptime,
+                    uptime: os.uptime(),
                     timestamp: Date.now(),
                     users: userStats.response.statusCounts,
                     onlineStats: userStats.response.onlineStats,
@@ -198,18 +194,22 @@ export class SystemService implements OnApplicationBootstrap {
 
     public async getRemnawaveHealth(): Promise<TResult<GetRemnawaveHealthResponseModel>> {
         try {
-            const runtimeMetrics = await this.redis.hgetall(INTERNAL_CACHE_KEYS.RUNTIME_METRICS);
+            const runtimeMetrics = await this.rawCacheService.hgetallParsed<
+                Record<string, RuntimeMetric>
+            >(INTERNAL_CACHE_KEYS.RUNTIME_METRICS);
+
+            if (!runtimeMetrics) {
+                return ok(new GetRemnawaveHealthResponseModel([]));
+            }
 
             return ok(
                 new GetRemnawaveHealthResponseModel(
-                    Object.values(runtimeMetrics)
-                        .map((metric) => JSON.parse(metric) as RuntimeMetric)
-                        .sort((a, b) => {
-                            const typeA = TYPE_ORDER[a.instanceType] ?? 99;
-                            const typeB = TYPE_ORDER[b.instanceType] ?? 99;
-                            if (typeA !== typeB) return typeA - typeB;
-                            return Number(a.instanceId) - Number(b.instanceId);
-                        }),
+                    Object.values(runtimeMetrics).sort((a, b) => {
+                        const typeA = TYPE_ORDER[a.instanceType] ?? 99;
+                        const typeB = TYPE_ORDER[b.instanceType] ?? 99;
+                        if (typeA !== typeB) return typeA - typeB;
+                        return Number(a.instanceId) - Number(b.instanceId);
+                    }),
                 ),
             );
         } catch (error) {

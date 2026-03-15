@@ -7,8 +7,9 @@ import { Logger } from '@nestjs/common';
 
 import { GetSystemStatsCommand } from '@remnawave/node-contract';
 
+import { RawCacheService } from '@common/raw-cache';
 import { AxiosService } from '@common/axios';
-import { EVENTS } from '@libs/contracts/constants';
+import { CACHE_KEYS, CACHE_KEYS_TTL, EVENTS } from '@libs/contracts/constants';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -31,6 +32,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
         private readonly eventEmitter: EventEmitter2,
         private readonly axios: AxiosService,
         private readonly nodesQueuesService: NodesQueuesService,
+        private readonly rawCacheService: RawCacheService,
     ) {
         super();
     }
@@ -44,19 +46,19 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             let message = '';
 
             while (attempts < attemptsLimit) {
-                const response = await this.axios.getSystemStats(nodeAddress, nodePort);
+                const statResult = await this.axios.getSystemStats(nodeAddress, nodePort);
 
-                switch (response.isOk) {
+                switch (statResult.isOk) {
                     case true:
                         return await this.handleConnectedNode(
                             nodeUuid,
                             nodeAddress,
                             nodePort,
                             isConnected,
-                            response.response,
+                            statResult.response.response,
                         );
                     case false:
-                        message = response.message ?? 'Unknown error';
+                        message = statResult.message ?? 'Unknown error';
                         attempts++;
 
                         this.logger.warn(
@@ -89,10 +91,10 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
         nodeAddress: string,
         nodePort: number | null,
         isConnected: boolean,
-        response: GetSystemStatsCommand.Response,
+        stats: GetSystemStatsCommand.Response['response'],
     ) {
-        if (typeof response.response.uptime !== 'number') {
-            this.logger.error(`Node ${nodeUuid} – uptime is not a number`);
+        if (stats.xrayInfo === null) {
+            this.logger.error(`Node ${nodeUuid} – xrayInfo is null`);
             return;
         }
 
@@ -102,15 +104,21 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
                 isConnected: true,
                 lastStatusChange: new Date(),
                 lastStatusMessage: '',
-                xrayUptime: response.response.uptime.toString(),
+                xrayUptime: stats.xrayInfo.uptime.toString(),
             }),
+        );
+
+        await this.rawCacheService.set(
+            CACHE_KEYS.NODE_SYSTEM_STATS(nodeUuid),
+            stats.system.stats,
+            CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
         );
 
         if (!nodeUpdatedResponse.isOk) {
             return;
         }
 
-        const reports = response.response.reportsCount;
+        const reports = stats.plugins.torrentBlocker.reportsCount;
         if (reports !== undefined && reports > 0) {
             await this.nodesQueuesService.collectReports({
                 nodeUuid,
@@ -138,6 +146,8 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
         isConnected: boolean,
         message: string | undefined,
     ) {
+        await this.rawCacheService.del(CACHE_KEYS.NODE_SYSTEM_INFO(nodeUuid));
+
         const newNodeEntity = await this.commandBus.execute(
             new UpdateNodeCommand({
                 uuid: nodeUuid,

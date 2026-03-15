@@ -7,7 +7,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { ConfigService } from '@nestjs/config';
 
 import { NotificationsConfigService } from '@common/config/common-config';
-import { EVENTS, EVENTS_SCOPES } from '@libs/contracts/constants';
+import { RawCacheService } from '@common/raw-cache';
+import { CACHE_KEYS, EVENTS, EVENTS_SCOPES } from '@libs/contracts/constants';
 
 import {
     UserEvent,
@@ -20,7 +21,8 @@ import {
 } from '@integration-modules/notifications/interfaces';
 
 import { GetFullUserResponseModel } from '@modules/users/models';
-import { GetOneNodeResponseModel } from '@modules/nodes/models';
+import { NodeResponseModel } from '@modules/nodes/models';
+import { INodeSystem } from '@modules/nodes/interfaces';
 
 import { WebhookLoggerQueueService } from '@queue/notifications/webhook-logger/webhook-logger.service';
 
@@ -34,6 +36,7 @@ export class WebhookEvents {
         private readonly webhookLoggerQueueService: WebhookLoggerQueueService,
         private readonly configService: ConfigService,
         private readonly notificationsConfig: NotificationsConfigService,
+        private readonly rawCacheService: RawCacheService,
     ) {
         this.subPublicDomain = this.configService.getOrThrow<string>('SUB_PUBLIC_DOMAIN');
         this.webhookUrls = this.configService
@@ -84,7 +87,12 @@ export class WebhookEvents {
                 scope: EVENTS_SCOPES.NODE,
                 event: event.eventName,
                 timestamp: dayjs().toISOString(),
-                data: instanceToPlain(new GetOneNodeResponseModel(event.node)),
+                data: instanceToPlain(
+                    new NodeResponseModel(
+                        event.node,
+                        await this.getNodesSystemInfo(event.node.uuid),
+                    ),
+                ),
             };
 
             const { json } = serialize(payload);
@@ -229,7 +237,10 @@ export class WebhookEvents {
                 timestamp: dayjs().toISOString(),
                 data: instanceToPlain({
                     ...event.data,
-                    node: new GetOneNodeResponseModel(event.data.node),
+                    node: new NodeResponseModel(
+                        event.data.node,
+                        await this.getNodesSystemInfo(event.data.node.uuid),
+                    ),
                     user: new GetFullUserResponseModel(event.data.user, this.subPublicDomain),
                 }),
             };
@@ -246,5 +257,16 @@ export class WebhookEvents {
         } catch (error) {
             this.logger.error(`Error sending webhook event: ${error}`);
         }
+    }
+
+    private async getNodesSystemInfo(uuid: string): Promise<INodeSystem | null> {
+        const [rawInfo, rawHot] = await Promise.all([
+            this.rawCacheService.get<INodeSystem['info']>(CACHE_KEYS.NODE_SYSTEM_INFO(uuid)),
+            this.rawCacheService.get<INodeSystem['stats']>(CACHE_KEYS.NODE_SYSTEM_STATS(uuid)),
+        ]);
+
+        if (!rawInfo || !rawHot) return null;
+
+        return { info: rawInfo, stats: rawHot };
     }
 }

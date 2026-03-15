@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { ConfigProfileInboundsSchema } from './config-profile-inbounds.schema';
 import { PartialInfraProviderSchema } from './infra-provider.schema';
+import { NodeSystemSchema } from './node-system.schema';
 
 export const NodesSchema = z.object({
     uuid: z.string().uuid(),
@@ -33,10 +34,6 @@ export const NodesSchema = z.object({
     consumptionMultiplier: z.number(),
     tags: z.array(z.string()),
 
-    cpuCount: z.nullable(z.number().int()),
-    cpuModel: z.nullable(z.string()),
-    totalRam: z.nullable(z.string()),
-
     createdAt: z
         .string()
         .datetime()
@@ -54,4 +51,5 @@ export const NodesSchema = z.object({
     providerUuid: z.nullable(z.string().uuid()),
     provider: z.nullable(PartialInfraProviderSchema),
     activePluginUuid: z.nullable(z.string().uuid()),
+    system: z.nullable(NodeSystemSchema),
 });
