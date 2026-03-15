@@ -1,14 +1,14 @@
 import { TNodePlugin } from 'libs/node-plugins';
 
 export const orderNodePluginsConfig = (config: TNodePlugin) => {
-    const { sharedLists, blacklist, torrentBlocker, connectionDrop, egressFilter, ...rest } =
+    const { sharedLists, ingressFilter, torrentBlocker, connectionDrop, egressFilter, ...rest } =
         config;
 
     return {
-        blacklist,
+        ingressFilter,
+        egressFilter,
         torrentBlocker,
         connectionDrop,
-        egressFilter,
         sharedLists,
         ...rest,
     };

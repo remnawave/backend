@@ -1,5 +1,13 @@
 export const EXAMPLE_NODE_PLUGIN_CONFIG = {
-    sharedLists: [],
+    ingressFilter: {
+        enabled: false,
+        blockedIps: [],
+    },
+    egressFilter: {
+        enabled: false,
+        blockedIps: [],
+        blockedPorts: [],
+    },
     torrentBlocker: {
         enabled: false,
         blockDuration: 3600,
@@ -7,12 +15,9 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
             ip: [],
         },
     },
-    blacklist: {
-        enabled: false,
-        ip: [],
-    },
     connectionDrop: {
         enabled: false,
         whitelistIps: [],
     },
+    sharedLists: [],
 };

@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/node-plugins",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "public": true,
   "license": "AGPL-3.0-only",
   "description": "A library for Remnawave Node Plugins.",
