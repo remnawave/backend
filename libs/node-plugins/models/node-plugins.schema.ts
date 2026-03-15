@@ -79,6 +79,30 @@ export const ConnectionDropPluginSchema = z.object({
     ),
 });
 
+export const EgressFilterPluginSchema = z.object({
+    enabled: z.boolean().describe(
+        JSON.stringify({
+            markdownDescription: `If this plugin is enabled, outbound connections to specified IP addresses and ports will be blocked. **Use with caution.**${DOCS_LINK}`,
+        }),
+    ),
+    blockedIps: z
+        .array(z.union([z.string().ip(), z.string().startsWith('ext:')]))
+        .optional()
+        .describe(
+            JSON.stringify({
+                markdownDescription: `List of destination IP addresses to block. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. \n\n Example: \`["10.0.0.1", "ext:blocked_destinations"]\`${DOCS_LINK}`,
+            }),
+        ),
+    blockedPorts: z
+        .array(z.number().int().min(1).max(65535))
+        .optional()
+        .describe(
+            JSON.stringify({
+                markdownDescription: `List of destination ports to block. \n\n Example: \`[25, 465, 587]\` to block SMTP traffic.${DOCS_LINK}`,
+            }),
+        ),
+});
+
 export const NodePluginSchema = z.object({
     sharedLists: z
         .array(SharedListSchema)
@@ -102,6 +126,11 @@ export const NodePluginSchema = z.object({
     connectionDrop: ConnectionDropPluginSchema.optional().describe(
         JSON.stringify({
             markdownDescription: `Connection Drop Plugin configuration. Optional.${DOCS_LINK}`,
+        }),
+    ),
+    egressFilter: EgressFilterPluginSchema.optional().describe(
+        JSON.stringify({
+            markdownDescription: `Egress Filter Plugin configuration. Optional.${DOCS_LINK}`,
         }),
     ),
 });
