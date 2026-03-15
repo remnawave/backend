@@ -1,4 +1,10 @@
-export const MIHOMO_EXTENDED_CLIENTS = [/^FlClash ?X\//, /^Flowvy\//, /^prizrak-box\//] as const;
+export const MIHOMO_EXTENDED_CLIENTS = [
+    /^FlClash ?X\//,
+    /^Flowvy\//,
+    /^prizrak-box\//,
+    /^prizrak-box\//,
+    /^koala-clash\//,
+] as const;
 export const XRAY_EXTENDED_CLIENTS = [/^Happ\//] as const;
 
 export function isMihomoExtendedClient(userAgent: string): boolean {
