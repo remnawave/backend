@@ -177,6 +177,13 @@ export class UsersQueuesService implements OnApplicationBootstrap {
         return this.resetUserTrafficQueue.add(USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC, {});
     }
 
+    public async resetMonthlyRollingUserTraffic() {
+        return this.resetUserTrafficQueue.add(
+            USERS_JOB_NAMES.RESET_MONTHLY_ROLLING_USER_TRAFFIC,
+            {},
+        );
+    }
+
     public async resetWeeklyUserTraffic() {
         return this.resetUserTrafficQueue.add(USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC, {});
     }

@@ -53,6 +53,8 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
                     return await this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
                 case USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC:
                     return await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
+                case USERS_JOB_NAMES.RESET_MONTHLY_ROLLING_USER_TRAFFIC:
+                    return await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH_ROLLING);
                 case USERS_JOB_NAMES.RESET_WEEKLY_USER_TRAFFIC:
                     return await this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
                 case USERS_JOB_NAMES.RESET_NO_RESET_USER_TRAFFIC:
@@ -121,6 +123,7 @@ export class ResetUserTrafficQueueProcessor extends WorkerHost {
 
             await this.handleResetUserTraffic(job, RESET_PERIODS.NO_RESET);
             await this.handleResetUserTraffic(job, RESET_PERIODS.DAY);
+            await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH_ROLLING);
             await this.handleResetUserTraffic(job, RESET_PERIODS.WEEK);
             await this.handleResetUserTraffic(job, RESET_PERIODS.MONTH);
 

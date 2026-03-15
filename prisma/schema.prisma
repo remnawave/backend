@@ -52,7 +52,7 @@ model Users {
   /// @kyselyType('ACTIVE' | 'DISABLED' | 'LIMITED' | 'EXPIRED')
   status                 String    @default("ACTIVE") @map("status") @db.VarChar(10)
   trafficLimitBytes      BigInt    @default(0) @map("traffic_limit_bytes")
-  /// @kyselyType('NO_RESET' | 'DAY' | 'WEEK' | 'MONTH')
+  /// @kyselyType('NO_RESET' | 'DAY' | 'WEEK' | 'MONTH' | 'MONTH_ROLLING')
   trafficLimitStrategy   String    @default("NO_RESET") @map("traffic_limit_strategy")
   expireAt               DateTime  @map("expire_at")
   lastTrafficResetAt     DateTime? @map("last_traffic_reset_at")

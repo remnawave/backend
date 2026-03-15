@@ -3,6 +3,7 @@ export const RESET_PERIODS = {
     DAY: 'DAY',
     WEEK: 'WEEK',
     MONTH: 'MONTH',
+    MONTH_ROLLING: 'MONTH_ROLLING',
 } as const;
 
 export type TResetPeriods = [keyof typeof RESET_PERIODS][number];

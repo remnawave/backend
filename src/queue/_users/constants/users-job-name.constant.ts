@@ -8,6 +8,7 @@ export const USERS_JOB_NAMES = {
     UPSERT_HWID_DEVICE: 'upsertHwidDevice',
     RESET_DAILY_USER_TRAFFIC: 'resetDailyUserTraffic',
     RESET_MONTHLY_USER_TRAFFIC: 'resetMonthlyUserTraffic',
+    RESET_MONTHLY_ROLLING_USER_TRAFFIC: 'resetMonthlyRollingUserTraffic',
     RESET_NO_RESET_USER_TRAFFIC: 'resetNoResetUserTraffic',
     RESET_WEEKLY_USER_TRAFFIC: 'resetWeeklyUserTraffic',
     FIND_EXPIRED_USERS: 'findExpiredUsers',

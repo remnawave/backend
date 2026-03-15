@@ -559,13 +559,27 @@ export class UsersRepository {
         strategy: TResetPeriods,
         batchSize: number = 50_000,
     ): Promise<void> {
-        const targetIds = await this.qb.kysely
+        let targetIdsQuery = this.qb.kysely
             .selectFrom('users')
             .select('tId')
             .where('trafficLimitStrategy', '=', strategy)
             .where('status', '!=', USERS_STATUS.LIMITED)
-            .orderBy('tId')
-            .execute();
+            .orderBy('tId');
+
+        if (strategy === 'MONTH_ROLLING') {
+            targetIdsQuery = targetIdsQuery
+                .where(sql`("created_at" + interval '1 month')::date`, '<=', sql`CURRENT_DATE`)
+                .where(
+                    sql`LEAST(
+                                EXTRACT(DAY FROM "created_at"),
+                                EXTRACT(DAY FROM date_trunc('month', CURRENT_DATE) + interval '1 month - 1 day')
+                            )`,
+                    '=',
+                    sql`EXTRACT(DAY FROM CURRENT_DATE)`,
+                );
+        }
+
+        const targetIds = await targetIdsQuery.execute();
 
         this.logger.log(`Found ${targetIds.length} users with strategy ${strategy} to reset`);
 
@@ -620,16 +634,29 @@ export class UsersRepository {
     }
 
     public async resetLimitedUserTraffic(strategy: TResetPeriods): Promise<{ tId: bigint }[]> {
+        let targetIdsQuery = this.qb.kysely
+            .selectFrom('users')
+            .select('tId')
+            .where('trafficLimitStrategy', '=', strategy)
+            .where('status', '=', USERS_STATUS.LIMITED)
+            .orderBy('tId')
+            .forUpdate();
+
+        if (strategy === 'MONTH_ROLLING') {
+            targetIdsQuery = targetIdsQuery
+                .where(sql`("created_at" + interval '1 month')::date`, '<=', sql`CURRENT_DATE`)
+                .where(
+                    sql`LEAST(
+                            EXTRACT(DAY FROM "created_at"),
+                            EXTRACT(DAY FROM date_trunc('month', CURRENT_DATE) + interval '1 month - 1 day')
+                        )`,
+                    '=',
+                    sql`EXTRACT(DAY FROM CURRENT_DATE)`,
+                );
+        }
+
         const result = await this.qb.kysely
-            .with('targetUsers', (db) =>
-                db
-                    .selectFrom('users')
-                    .select('tId')
-                    .where('trafficLimitStrategy', '=', strategy)
-                    .where('status', '=', USERS_STATUS.LIMITED)
-                    .orderBy('tId')
-                    .forUpdate(),
-            )
+            .with('targetUsers', () => targetIdsQuery)
             .with('updateUsers', (db) =>
                 db
                     .updateTable('users')
@@ -645,9 +672,7 @@ export class UsersRepository {
             .updateTable('userTraffic')
             .from('updateUsers')
             .whereRef('userTraffic.tId', '=', 'updateUsers.tId')
-            .set({
-                usedTrafficBytes: 0n,
-            })
+            .set({ usedTrafficBytes: 0n })
             .returning('userTraffic.tId')
             .execute();
 
