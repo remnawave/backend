@@ -43,6 +43,7 @@ export const configSchema = z
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
+        TELEGRAM_BOT_API_ROOT: z.string().default('https://api.telegram.org'),
         TELEGRAM_BOT_PROXY: z
             .string()
             .optional()

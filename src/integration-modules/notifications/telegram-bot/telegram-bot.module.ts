@@ -18,6 +18,7 @@ import { TELEGRAM_BOT_EVENTS } from './events';
                 let agent: ProxyAgent | undefined = undefined;
 
                 const token = configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN');
+                const apiRoot = configService.getOrThrow<string>('TELEGRAM_BOT_API_ROOT');
                 const proxy = configService.get<string>('TELEGRAM_BOT_PROXY');
 
                 if (proxy) {
@@ -31,6 +32,7 @@ import { TELEGRAM_BOT_EVENTS } from './events';
                     disableUpdates: true,
                     options: {
                         client: {
+                            apiRoot: apiRoot,
                             baseFetchConfig: {
                                 agent,
                                 compress: true,
