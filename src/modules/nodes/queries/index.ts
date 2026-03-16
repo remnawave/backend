@@ -1,6 +1,7 @@
 import { GetEnabledNodesPartialHandler } from './get-enabled-nodes-partial/get-enabled-nodes-partial.handler';
 import { GetNodesByPluginUuidHandler } from './get-nodes-by-plugin-uuid';
 import { FindNodesByCriteriaHandler } from './find-nodes-by-criteria';
+import { GetNodesSystemStatsHandler } from './get-nodes-system-stats';
 import { GetNodesByCriteriaHandler } from './get-nodes-by-criteria';
 import { CountOnlineUsersHandler } from './count-online-users';
 import { GetNodeIdByUuidHandler } from './get-node-id-by-uuid';
@@ -22,4 +23,5 @@ export const QUERIES = [
     GetNodesByPluginUuidHandler,
     GetNodeIdByUuidHandler,
     GetNodesRecapHandler,
+    GetNodesSystemStatsHandler,
 ];

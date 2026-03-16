@@ -3,13 +3,9 @@ import { Counter } from 'prom-client';
 
 import { EventPattern } from '@nestjs/microservices';
 import { Controller, Logger } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
 
-import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
 import { MESSAGING_NAMES } from '@common/microservices';
 import { METRIC_NAMES } from '@libs/contracts/constants';
-
-import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid/get-node-by-uuid.query';
 
 import { INodeMetrics } from './node-metrics.message.interface';
 
@@ -26,45 +22,26 @@ export class NodesMetricMessageController {
         public nodeOutboundUploadBytes: Counter<string>,
         @InjectMetric(METRIC_NAMES.NODE_OUTBOUND_DOWNLOAD_BYTES)
         public nodeOutboundDownloadBytes: Counter<string>,
-        private readonly queryBus: QueryBus,
     ) {}
 
     @EventPattern(MESSAGING_NAMES.NODE_METRICS)
     async handleNodesMetricMessage(message: INodeMetrics) {
         try {
             const { nodeUuid, inbounds, outbounds } = message;
-            const nodeResponse = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
-
-            if (!nodeResponse.isOk) {
-                return;
-            }
-
-            const { name, countryCode, uuid, provider, tags } = nodeResponse.response;
-
-            const countryEmoji = resolveCountryEmoji(countryCode);
-            const nodeTags = tags.join(',');
 
             inbounds.forEach((inbound) => {
                 this.nodeInboundUploadBytes.inc(
                     {
-                        node_uuid: uuid,
-                        node_name: name,
-                        node_country_emoji: countryEmoji,
+                        node_uuid: nodeUuid,
                         tag: inbound.tag,
-                        provider_name: provider?.name || 'unknown',
-                        tags: nodeTags,
                     },
                     Number(inbound.uplink),
                 );
 
                 this.nodeInboundDownloadBytes.inc(
                     {
-                        node_uuid: uuid,
-                        node_name: name,
-                        node_country_emoji: countryEmoji,
+                        node_uuid: nodeUuid,
                         tag: inbound.tag,
-                        provider_name: provider?.name || 'unknown',
-                        tags: nodeTags,
                     },
                     Number(inbound.downlink),
                 );
@@ -73,24 +50,16 @@ export class NodesMetricMessageController {
             outbounds.forEach((outbound) => {
                 this.nodeOutboundUploadBytes.inc(
                     {
-                        node_uuid: uuid,
-                        node_name: name,
-                        node_country_emoji: countryEmoji,
+                        node_uuid: nodeUuid,
                         tag: outbound.tag,
-                        provider_name: provider?.name || 'unknown',
-                        tags: nodeTags,
                     },
                     Number(outbound.uplink),
                 );
 
                 this.nodeOutboundDownloadBytes.inc(
                     {
-                        node_uuid: uuid,
-                        node_name: name,
-                        node_country_emoji: countryEmoji,
+                        node_uuid: nodeUuid,
                         tag: outbound.tag,
-                        provider_name: provider?.name || 'unknown',
-                        tags: nodeTags,
                     },
                     Number(outbound.downlink),
                 );

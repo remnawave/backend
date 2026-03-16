@@ -19,10 +19,15 @@ import { INTERNAL_CACHE_KEYS, METRIC_NAMES } from '@libs/contracts/constants';
 
 import { GetShortUserStatsQuery } from '@modules/users/queries/get-short-user-stats/get-short-user-stats.query';
 import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes/get-all-nodes.query';
+import { GetNodesSystemStatsQuery } from '@modules/nodes/queries/get-nodes-system-stats';
 import { ShortUserStats } from '@modules/users/interfaces/user-stats.interface';
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 
-import { INodeBaseMetricLabels } from '@scheduler/metrics-providers';
+import {
+    INodeBaseMetricLabels,
+    INodeMetricLabel,
+    INodeSystemMetricLabels,
+} from '@scheduler/metrics-providers';
 import { JOBS_INTERVALS } from '@scheduler/intervals';
 
 @Injectable()
@@ -64,6 +69,28 @@ export class ExportMetricsTask {
         public processActiveHandles: Gauge<string>,
         @InjectMetric(METRIC_NAMES.PROCESS_UPTIME_SECONDS)
         public processUptimeSeconds: Gauge<string>,
+
+        @InjectMetric(METRIC_NAMES.NODE_NETWORK_RX_BYTES_PER_SEC)
+        public nodeNetworkRxBytesPerSec: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_NETWORK_TX_BYTES_PER_SEC)
+        public nodeNetworkTxBytesPerSec: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_NETWORK_RX_BYTES_TOTAL)
+        public nodeNetworkRxBytesTotal: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_NETWORK_TX_BYTES_TOTAL)
+        public nodeNetworkTxBytesTotal: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_MEMORY_TOTAL_BYTES)
+        public nodeMemoryTotalBytes: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_MEMORY_FREE_BYTES)
+        public nodeMemoryFreeBytes: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_UPTIME_SECONDS)
+        public nodeUptimeSeconds: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_COUNT)
+        public nodeCpuCount: Gauge<string>,
+
+        @InjectMetric(METRIC_NAMES.NODE_SYSTEM_INFO)
+        public nodeSystemInfo: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_BASIC_INFO)
+        public nodeBasicInfo: Gauge<string>,
 
         private readonly queryBus: QueryBus,
     ) {
@@ -143,28 +170,83 @@ export class ExportMetricsTask {
 
             const nodes = nodesResponse.response;
 
-            nodes.forEach((node) => {
-                this.nodeOnlineUsers.set(
-                    {
-                        node_uuid: node.uuid,
-                        node_name: node.name,
-                        node_country_emoji: resolveCountryEmoji(node.countryCode),
-                        provider_name: node.provider?.name || 'unknown',
-                        tags: node.tags.join(','),
-                    } satisfies INodeBaseMetricLabels,
-                    node.usersOnline ?? 0,
-                );
+            const nodesSystemStats = await this.queryBus.execute(
+                new GetNodesSystemStatsQuery(nodes.map((node) => ({ uuid: node.uuid }))),
+            );
 
-                this.nodeStatus.set(
-                    {
-                        node_uuid: node.uuid,
-                        node_name: node.name,
-                        node_country_emoji: resolveCountryEmoji(node.countryCode),
-                        provider_name: node.provider?.name || 'unknown',
-                        tags: node.tags.join(','),
-                    } satisfies INodeBaseMetricLabels,
-                    node.isConnected ? 1 : 0,
-                );
+            nodes.forEach((node) => {
+                const infoLabels = {
+                    node_uuid: node.uuid,
+                    node_name: node.name,
+                    node_country_emoji: resolveCountryEmoji(node.countryCode),
+                    provider_name: node.provider?.name || 'unknown',
+                    tags: node.tags.join(','),
+                } satisfies INodeBaseMetricLabels;
+
+                this.nodeBasicInfo.set(infoLabels, 1);
+
+                const baseNodeLabels = {
+                    node_uuid: node.uuid,
+                } satisfies INodeMetricLabel;
+
+                this.nodeOnlineUsers.set(baseNodeLabels, node.usersOnline ?? 0);
+                this.nodeStatus.set(baseNodeLabels, node.isConnected ? 1 : 0);
+
+                if (nodesSystemStats.isOk && nodesSystemStats.response.get(node.uuid)) {
+                    const nodeSystemStats = nodesSystemStats.response.get(node.uuid);
+
+                    if (nodeSystemStats) {
+                        this.nodeSystemInfo.set(
+                            {
+                                node_uuid: node.uuid,
+                                arch: nodeSystemStats.info.arch,
+                                cpu_model: nodeSystemStats.info.cpuModel,
+                                hostname: nodeSystemStats.info.hostname,
+                                platform: nodeSystemStats.info.platform,
+                                release: nodeSystemStats.info.release,
+                                version: nodeSystemStats.info.version,
+                            } satisfies INodeSystemMetricLabels,
+                            1,
+                        );
+
+                        this.nodeMemoryTotalBytes.set(
+                            baseNodeLabels,
+                            nodeSystemStats.info.memoryTotal,
+                        );
+                        this.nodeMemoryFreeBytes.set(
+                            baseNodeLabels,
+                            nodeSystemStats.stats.memoryFree,
+                        );
+
+                        this.nodeUptimeSeconds.set(baseNodeLabels, nodeSystemStats.stats.uptime);
+                        this.nodeCpuCount.set(baseNodeLabels, nodeSystemStats.info.cpus);
+
+                        if (nodeSystemStats?.stats.interface) {
+                            this.nodeNetworkRxBytesPerSec.set(
+                                baseNodeLabels,
+                                nodeSystemStats.stats.interface.rxBytesPerSec,
+                            );
+                            this.nodeNetworkTxBytesPerSec.set(
+                                baseNodeLabels,
+                                nodeSystemStats.stats.interface.txBytesPerSec,
+                            );
+                            this.nodeNetworkRxBytesTotal.set(
+                                baseNodeLabels,
+                                nodeSystemStats.stats.interface.rxTotal,
+                            );
+                            this.nodeNetworkTxBytesTotal.set(
+                                baseNodeLabels,
+                                nodeSystemStats.stats.interface.txTotal,
+                            );
+                        } else {
+                            this.removeNodeSystemMetrics(baseNodeLabels);
+                        }
+                    } else {
+                        this.removeNodeSystemMetrics(baseNodeLabels);
+                    }
+                } else {
+                    this.removeNodeSystemMetrics(baseNodeLabels);
+                }
             });
         } catch (error) {
             this.logger.error(`Error in reportNodesStats: ${error}`);
@@ -209,5 +291,16 @@ export class ExportMetricsTask {
         } catch (error) {
             this.logger.error(`Error in reportRuntimeMetrics: ${error}`);
         }
+    }
+
+    private removeNodeSystemMetrics(baseNodeLabels: INodeMetricLabel) {
+        this.nodeMemoryTotalBytes.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeMemoryFreeBytes.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeUptimeSeconds.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeCpuCount.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeNetworkRxBytesPerSec.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeNetworkRxBytesTotal.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeNetworkTxBytesPerSec.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeNetworkTxBytesTotal.remove({ node_uuid: baseNodeLabels.node_uuid });
     }
 }

@@ -25,6 +25,19 @@ export const METRIC_NAMES = {
 
     // General
     PROCESS_UPTIME_SECONDS: 'process_uptime_seconds',
+
+    // Node system
+    NODE_NETWORK_RX_BYTES_PER_SEC: 'node_network_rx_bytes_per_sec',
+    NODE_NETWORK_TX_BYTES_PER_SEC: 'node_network_tx_bytes_per_sec',
+    NODE_NETWORK_RX_BYTES_TOTAL: 'node_network_rx_bytes_total',
+    NODE_NETWORK_TX_BYTES_TOTAL: 'node_network_tx_bytes_total',
+    NODE_MEMORY_TOTAL_BYTES: 'node_memory_total_bytes',
+    NODE_MEMORY_FREE_BYTES: 'node_memory_free_bytes',
+    NODE_UPTIME_SECONDS: 'node_uptime_seconds',
+    NODE_CPU_COUNT: 'node_cpu_count',
+
+    NODE_BASIC_INFO: 'node_basic_info',
+    NODE_SYSTEM_INFO: 'node_system_info',
 } as const;
 
 export type TMetricNames = typeof METRIC_NAMES;

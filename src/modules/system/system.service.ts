@@ -232,7 +232,7 @@ export class SystemService implements OnApplicationBootstrap {
 
             const parsed = parsePrometheusTextFormat(metricsText.data);
 
-            const nodeMetrics = await this.groupMetricsByNodesLodash(parsed);
+            const nodeMetrics = await this.groupMetricsByNodes(parsed);
 
             return ok(new GetNodesStatsResponseModel({ nodes: nodeMetrics }));
         } catch (error) {
@@ -439,25 +439,13 @@ export class SystemService implements OnApplicationBootstrap {
         return this.getUsageComparison(ranges);
     }
 
-    private async groupMetricsByNodesLodash(metrics: Metric[]): Promise<NodeMetrics[]> {
+    private async groupMetricsByNodes(metrics: Metric[]): Promise<NodeMetrics[]> {
         const nodes = await this.queryBus.execute(new GetAllNodesQuery());
         if (!nodes.isOk) {
             return [];
         }
 
-        const createNodeKey = (...parts: string[]) => parts.join('§');
-
-        const nodesMap = new Map(
-            nodes.response.map((node) => {
-                const key = createNodeKey(
-                    node.uuid,
-                    node.name,
-                    resolveCountryEmoji(node.countryCode),
-                    node.provider?.name || 'unknown',
-                );
-                return [key, node];
-            }),
-        );
+        const nodesMap = new Map(nodes.response.map((node) => [node.uuid, node]));
 
         const validMetrics = [
             'remnawave_node_online_users',
@@ -476,26 +464,12 @@ export class SystemService implements OnApplicationBootstrap {
             })),
         );
 
-        const groupedByNode = groupBy(allMetrics, (item) =>
-            createNodeKey(
-                item.labels.node_uuid,
-                item.labels.node_name,
-                item.labels.node_country_emoji,
-                item.labels.provider_name,
-            ),
-        );
+        const groupedByNode = groupBy(allMetrics, (item) => item.labels.node_uuid);
 
         const nodeMetrics = Object.entries(groupedByNode)
-            .filter(([key]) => nodesMap.has(key))
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            .map(([_, nodeMetrics]) => {
-                const firstMetric = nodeMetrics[0];
-                const {
-                    node_uuid: nodeUuid,
-                    node_name: nodeName,
-                    node_country_emoji: countryEmoji,
-                    provider_name: providerName,
-                } = firstMetric.labels;
+            .filter(([uuid]) => nodesMap.has(uuid))
+            .map(([uuid, nodeMetrics]) => {
+                const node = nodesMap.get(uuid)!;
 
                 const metricGroups = {
                     onlineUsers: 0,
@@ -550,10 +524,10 @@ export class SystemService implements OnApplicationBootstrap {
                 })).sort((a, b) => a.tag.localeCompare(b.tag));
 
                 return {
-                    nodeUuid,
-                    nodeName,
-                    countryEmoji,
-                    providerName,
+                    nodeUuid: node.uuid,
+                    nodeName: node.name,
+                    countryEmoji: resolveCountryEmoji(node.countryCode),
+                    providerName: node.provider?.name || 'unknown',
                     usersOnline: metricGroups.onlineUsers,
                     inboundsStats,
                     outboundsStats,
@@ -562,17 +536,9 @@ export class SystemService implements OnApplicationBootstrap {
             .filter((node) => node.inboundsStats.length > 0 || node.outboundsStats.length > 0);
 
         return nodeMetrics.sort((a, b) => {
-            const nodeA = nodesMap.get(
-                createNodeKey(a.nodeUuid, a.nodeName, a.countryEmoji, a.providerName),
-            );
-            const nodeB = nodesMap.get(
-                createNodeKey(b.nodeUuid, b.nodeName, b.countryEmoji, b.providerName),
-            );
-
-            const viewPositionA = nodeA?.viewPosition ?? 0;
-            const viewPositionB = nodeB?.viewPosition ?? 0;
-
-            return viewPositionA - viewPositionB;
+            const nodeA = nodesMap.get(a.nodeUuid);
+            const nodeB = nodesMap.get(b.nodeUuid);
+            return (nodeA?.viewPosition ?? 0) - (nodeB?.viewPosition ?? 0);
         });
     }
 }
