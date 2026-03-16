@@ -9,7 +9,6 @@ import { Roles } from '@common/decorators/roles/roles';
 import { RolesGuard } from '@common/guards/roles';
 import {
     GetLegacyStatsNodeUserUsageCommand,
-    GetStatsNodesRealtimeUsageCommand,
     GetStatsNodeUsersUsageCommand,
 } from '@libs/contracts/commands';
 import { BANDWIDTH_STATS_NODES_CONTROLLER, CONTROLLERS_INFO } from '@libs/contracts/api';
@@ -19,16 +18,12 @@ import {
     GetLegacyStatsNodesUsersUsageRequestDto,
     GetLegacyStatsNodesUsersUsageRequestQueryDto,
     GetLegacyStatsNodesUsersUsageResponseDto,
-    GetStatsNodesRealtimeUsageResponseDto,
     GetStatsNodeUsersUsageRequestDto,
     GetStatsNodeUsersUsageRequestQueryDto,
     GetStatsNodeUsersUsageResponseDto,
 } from './dtos';
-import {
-    GetLegacyStatsNodesUsersUsageResponseModel,
-    GetStatsNodesRealtimeUsageResponseModel,
-} from './models';
 import { NodesUserUsageHistoryService } from './nodes-user-usage-history.service';
+import { GetLegacyStatsNodesUsersUsageResponseModel } from './models';
 
 @ApiBearerAuth('Authorization')
 @ApiTags(CONTROLLERS_INFO.BANDWIDTH_STATS.tag)
@@ -73,23 +68,6 @@ export class BandwidthStatsNodesController {
         const data = errorHandler(result);
         return {
             response: data.map((item) => new GetLegacyStatsNodesUsersUsageResponseModel(item)),
-        };
-    }
-
-    @ApiOkResponse({
-        type: GetStatsNodesRealtimeUsageResponseDto,
-        description: 'Nodes realtime usage fetched successfully',
-    })
-    @Endpoint({
-        command: GetStatsNodesRealtimeUsageCommand,
-        httpCode: HttpStatus.OK,
-    })
-    async getNodesRealtimeUsage(): Promise<GetStatsNodesRealtimeUsageResponseDto> {
-        const result = await this.nodesUserUsageHistoryService.getStatsNodesRealtimeUsage();
-
-        const data = errorHandler(result);
-        return {
-            response: data.map((item) => new GetStatsNodesRealtimeUsageResponseModel(item)),
         };
     }
 

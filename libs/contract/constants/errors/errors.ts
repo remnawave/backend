@@ -468,11 +468,6 @@ export const ERRORS = {
         message: 'Get nodes user usage by range error',
         httpCode: 500,
     },
-    GET_NODES_REALTIME_USAGE_ERROR: {
-        code: 'A095',
-        message: 'Get nodes realtime usage error',
-        httpCode: 500,
-    },
     CREATE_HWID_USER_DEVICE_ERROR: {
         code: 'A096',
         message: 'Create hwid user device error',
