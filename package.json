@@ -78,7 +78,7 @@
     "@prisma/adapter-pg": "6.19.0",
     "@prisma/client": "6.19.0",
     "@remnawave/hashed-set": "^0.0.4",
-    "@remnawave/node-contract": "2.6.13",
+    "@remnawave/node-contract": "2.6.14",
     "@remnawave/xtls-sdk": "^0.8.0",
     "@scalar/nestjs-api-reference": "^1.0.31",
     "@simplewebauthn/server": "^13.2.3",

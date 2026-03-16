@@ -23,7 +23,9 @@ export const NodeSystemInfoSchema = z.object({
 
 export const NodeSystemStatsSchema = z.object({
     memoryFree: z.number(),
+    memoryUsed: z.number(),
     uptime: z.number(),
+    loadAvg: z.array(z.number()),
     interface: z.nullable(NetworkInterfaceSchema),
 });
 
