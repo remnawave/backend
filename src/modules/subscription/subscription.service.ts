@@ -20,17 +20,17 @@ import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfac
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
+import { ResolveProxyConfigService } from '@modules/subscription-template/resolve-proxy/resolve-proxy-config.service';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
-import { FormatHostsService } from '@modules/subscription-template/generators/format-hosts.service';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
 import { RenderTemplatesService } from '@modules/subscription-template/render-templates.service';
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
-import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
 import { isJsonSubscriptionFallbackSupported } from '@modules/subscription-template/constants';
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
+import { ResolvedProxyConfig } from '@modules/subscription-template/resolve-proxy/interfaces';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { GetUserSubpageConfigQuery } from '@modules/users/queries/get-user-subpage-config';
@@ -65,7 +65,7 @@ export class SubscriptionService {
         private readonly commandBus: CommandBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly renderTemplatesService: RenderTemplatesService,
-        private readonly formatHostsService: FormatHostsService,
+        private readonly resolveProxyConfigService: ResolveProxyConfigService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly srrMatcher: ResponseRulesMatcherService,
@@ -367,7 +367,7 @@ export class SubscriptionService {
 
             await this.updateAndReportSubscriptionRequest(user.uuid, userAgent, requestIp);
 
-            let subscription: { rawHosts: IRawHost[] } | undefined;
+            let subscription: ResolvedProxyConfig[] | undefined;
 
             if (!isHwidLimited) {
                 subscription = await this.renderTemplatesService.generateRawSubscription({
@@ -391,7 +391,7 @@ export class SubscriptionService {
                         isHwidLimited: isHwidLimited ?? false,
                     },
                     headers,
-                    rawHosts: subscription?.rawHosts ?? [],
+                    resolvedProxyConfigs: subscription ?? [],
                 }),
             );
         } catch (error) {
@@ -460,7 +460,7 @@ export class SubscriptionService {
                 hostsOverrides = patchedHostsOverrides;
             }
 
-            let formattedHosts: IFormattedHost[] = [];
+            let formattedHosts: ResolvedProxyConfig[] = [];
             let xrayLinks: string[] = [];
             const ssConfLinks: Record<string, string> = {};
 
@@ -469,7 +469,7 @@ export class SubscriptionService {
                     new GetHostsForUserQuery(userEntity.tId, false, false),
                 );
 
-                formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                formattedHosts = await this.resolveProxyConfigService.resolveProxyConfig({
                     subscriptionSettings: settings,
                     hosts: hostsResponse.isOk ? hostsResponse.response : [],
                     user: userEntity,
@@ -990,7 +990,7 @@ export class SubscriptionService {
 
             const formatOrSkip = async (hosts: typeof allHosts, allowEmpty: boolean = false) => {
                 if (hosts.length === 0 && !allowEmpty) return [];
-                return this.formatHostsService.generateFormattedHosts({
+                return this.resolveProxyConfigService.resolveProxyConfig({
                     subscriptionSettings: settings,
                     hosts,
                     user: userEntity,

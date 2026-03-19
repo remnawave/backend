@@ -44,7 +44,10 @@ export function isSS2022Method(rawInbound: RawInbound): boolean {
     return getMethodFromRawInbound(rawInbound) === ShadowsocksMethod.SS2022_BLAKE3_AES_256_GCM;
 }
 
-export function isSS2022MethodFromMethod(method: string): boolean {
+export function isSS2022MethodFromMethod(method: string | undefined): boolean {
+    if (!method) {
+        return false;
+    }
     return method === ShadowsocksMethod.SS2022_BLAKE3_AES_256_GCM;
 }
 

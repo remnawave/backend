@@ -278,9 +278,9 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     {
                         xrayConfig: {
                             ...config.response.config,
-                            inbounds: config.response.config.inbounds.filter(
+                            inbounds: config.response.config.inbounds!.filter(
                                 (inbound) =>
-                                    activeNodeInboundsTags.has(inbound.tag) ||
+                                    activeNodeInboundsTags.has(inbound.tag!) ||
                                     this.isUnsecureInbound(inbound.protocol),
                             ),
                         } as unknown as Record<string, unknown>,
