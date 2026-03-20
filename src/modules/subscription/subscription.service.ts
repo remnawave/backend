@@ -20,17 +20,17 @@ import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfac
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
+import { ResolveProxyConfigService } from '@modules/subscription-template/resolve-proxy/resolve-proxy-config.service';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
 import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
-import { FormatHostsService } from '@modules/subscription-template/generators/format-hosts.service';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
 import { RenderTemplatesService } from '@modules/subscription-template/render-templates.service';
 import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
-import { IFormattedHost, IRawHost } from '@modules/subscription-template/generators/interfaces';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
 import { isJsonSubscriptionFallbackSupported } from '@modules/subscription-template/constants';
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
+import { ResolvedProxyConfig } from '@modules/subscription-template/resolve-proxy/interfaces';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { GetUserSubpageConfigQuery } from '@modules/users/queries/get-user-subpage-config';
@@ -65,7 +65,7 @@ export class SubscriptionService {
         private readonly commandBus: CommandBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly renderTemplatesService: RenderTemplatesService,
-        private readonly formatHostsService: FormatHostsService,
+        private readonly resolveProxyConfigService: ResolveProxyConfigService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly srrMatcher: ResponseRulesMatcherService,
@@ -163,7 +163,10 @@ export class SubscriptionService {
                         contentType: 'text/plain',
                     });
 
-                    if (subscriptionSettings.hwidSettings.maxDevicesAnnounce) {
+                    if (
+                        isAllowed.response.maxDeviceReached &&
+                        subscriptionSettings.hwidSettings.maxDevicesAnnounce
+                    ) {
                         response.headers.announce = `base64:${Buffer.from(
                             TemplateEngine.formatWithUser(
                                 subscriptionSettings.hwidSettings.maxDevicesAnnounce,
@@ -193,6 +196,18 @@ export class SubscriptionService {
 
                         response.body = subscription;
                         response.contentType = contentType;
+                    }
+
+                    if (isAllowed.response.hwidNotSupported) {
+                        response.headers['x-hwid-not-supported'] = 'true';
+                    }
+
+                    if (isAllowed.response.maxDeviceReached) {
+                        response.headers['x-hwid-max-devices-reached'] = 'true';
+                    }
+
+                    if (!isAllowed.response.limitBypassed) {
+                        response.headers['x-hwid-active'] = 'true';
                     }
 
                     response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
@@ -279,7 +294,6 @@ export class SubscriptionService {
             if (!userResult.isOk) {
                 return fail(ERRORS.USER_NOT_FOUND);
             }
-
             const user = userResult.response;
 
             const settingEntity = await this.queryBus.execute(
@@ -317,10 +331,22 @@ export class SubscriptionService {
                         ).toString('base64')}`;
                     }
 
-                    headers['x-hwid-limit'] = 'true'; // v2rayTUN
+                    if (isAllowed.response.hwidNotSupported) {
+                        headers['x-hwid-not-supported'] = 'true';
+                    }
+
+                    if (isAllowed.response.maxDeviceReached) {
+                        headers['x-hwid-max-devices-reached'] = 'true';
+                    }
+
+                    if (!isAllowed.response.limitBypassed) {
+                        headers['x-hwid-active'] = 'true';
+                    }
 
                     isHwidLimited = true;
                 }
+
+                headers['x-hwid-limit'] = 'true'; // v2rayTUN
             } else {
                 await this.checkAndUpsertHwidUserDevice(user, hwidHeaders);
 
@@ -335,13 +361,13 @@ export class SubscriptionService {
                 return fail(ERRORS.GET_ALL_HOSTS_ERROR);
             }
 
-            if (settingEntity.randomizeHosts) {
+            if (patchedSettingEntity.randomizeHosts) {
                 hosts.response = _.shuffle(hosts.response);
             }
 
             await this.updateAndReportSubscriptionRequest(user.uuid, userAgent, requestIp);
 
-            let subscription: { rawHosts: IRawHost[] } | undefined;
+            let subscription: ResolvedProxyConfig[] | undefined;
 
             if (!isHwidLimited) {
                 subscription = await this.renderTemplatesService.generateRawSubscription({
@@ -365,71 +391,12 @@ export class SubscriptionService {
                         isHwidLimited: isHwidLimited ?? false,
                     },
                     headers,
-                    rawHosts: subscription?.rawHosts ?? [],
+                    resolvedProxyConfigs: subscription ?? [],
                 }),
             );
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    /** @deprecated Will be removed soon */
-    public async getOutlineSubscriptionByShortUuid(
-        shortUuid: string,
-        userAgent: string,
-        encodedTag: string,
-    ): Promise<
-        SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
-    > {
-        try {
-            const userResult = await this.queryBus.execute(
-                new GetUserByUniqueFieldQuery(
-                    {
-                        shortUuid,
-                    },
-                    {
-                        activeInternalSquads: false,
-                    },
-                ),
-            );
-
-            if (!userResult.isOk) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            const user = userResult.response;
-
-            const settings = await this.queryBus.execute(new GetCachedSubscriptionSettingsQuery());
-
-            const hosts = await this.queryBus.execute(
-                new GetHostsForUserQuery(user.tId, false, false),
-            );
-
-            if (!hosts.isOk || !settings) {
-                return new SubscriptionNotFoundResponse();
-            }
-
-            await this.usersQueuesService.updateUserSub({
-                userUuid: user.uuid,
-                subLastOpenedAt: new Date(),
-                subLastUserAgent: userAgent,
-            });
-
-            const subscription = await this.renderTemplatesService.generateOutlineSubscription(
-                settings,
-                encodedTag,
-                user,
-                hosts.response,
-            );
-
-            return new SubscriptionWithConfigResponse({
-                headers: {},
-                body: subscription.subscription,
-                contentType: subscription.contentType,
-            });
-        } catch {
-            return new SubscriptionNotFoundResponse();
         }
     }
 
@@ -493,16 +460,16 @@ export class SubscriptionService {
                 hostsOverrides = patchedHostsOverrides;
             }
 
-            let formattedHosts: IFormattedHost[] = [];
+            let formattedHosts: ResolvedProxyConfig[] = [];
             let xrayLinks: string[] = [];
-            let ssConfLinks: Record<string, string> = {};
+            const ssConfLinks: Record<string, string> = {};
 
             if (!settings.hwidSettings.enabled || authenticated) {
                 const hostsResponse = await this.queryBus.execute(
                     new GetHostsForUserQuery(userEntity.tId, false, false),
                 );
 
-                formattedHosts = await this.formatHostsService.generateFormattedHosts({
+                formattedHosts = await this.resolveProxyConfigService.resolveProxyConfig({
                     subscriptionSettings: settings,
                     hosts: hostsResponse.isOk ? hostsResponse.response : [],
                     user: userEntity,
@@ -510,8 +477,6 @@ export class SubscriptionService {
                 });
 
                 xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
-
-                ssConfLinks = await this.generateSsConfLinks(userEntity.shortUuid, formattedHosts);
             }
 
             return ok(await this.getUserInfo(userEntity, xrayLinks, ssConfLinks));
@@ -598,27 +563,6 @@ export class SubscriptionService {
             this.logger.error(`Error getting all subscriptions: ${error}`);
             return fail(ERRORS.GETTING_ALL_SUBSCRIPTIONS_ERROR);
         }
-    }
-
-    private async generateSsConfLinks(
-        subscriptionShortUuid: string,
-        formattedHosts: IFormattedHost[],
-    ): Promise<Record<string, string>> {
-        const publicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
-        const links: Record<string, string> = {};
-
-        for (const host of formattedHosts) {
-            if (host.protocol !== 'shadowsocks' || host.port === 0 || host.port === 1) {
-                continue;
-            }
-
-            links[host.remark] =
-                `ssconf://${publicDomain}/${subscriptionShortUuid}/ss/${Buffer.from(
-                    host.remark,
-                ).toString('base64url')}#${host.remark}`;
-        }
-
-        return links;
     }
 
     private async getUserProfileHeadersInfo(
@@ -778,6 +722,7 @@ export class SubscriptionService {
             isSubscriptionAllowed: boolean;
             maxDeviceReached: boolean;
             hwidNotSupported: boolean;
+            limitBypassed?: boolean;
         }>
     > {
         try {
@@ -796,6 +741,7 @@ export class SubscriptionService {
                     isSubscriptionAllowed: true,
                     maxDeviceReached: false,
                     hwidNotSupported: false,
+                    limitBypassed: true,
                 });
             }
 
@@ -928,12 +874,6 @@ export class SubscriptionService {
         requestIp?: string,
     ): Promise<void> {
         try {
-            await this.usersQueuesService.updateUserSub({
-                userUuid,
-                subLastOpenedAt: new Date(),
-                subLastUserAgent: userAgent,
-            });
-
             await this.usersQueuesService.addSubscriptionRequestRecord({
                 userUuid,
                 requestAt: new Date(),
@@ -1050,7 +990,7 @@ export class SubscriptionService {
 
             const formatOrSkip = async (hosts: typeof allHosts, allowEmpty: boolean = false) => {
                 if (hosts.length === 0 && !allowEmpty) return [];
-                return this.formatHostsService.generateFormattedHosts({
+                return this.resolveProxyConfigService.resolveProxyConfig({
                     subscriptionSettings: settings,
                     hosts,
                     user: userEntity,

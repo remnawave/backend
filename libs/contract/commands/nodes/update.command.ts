@@ -68,6 +68,7 @@ export namespace UpdateNodeCommand {
                 )
                 .max(10, 'Maximum 10 tags'),
         ),
+        activePluginUuid: z.optional(z.nullable(z.string().uuid())),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

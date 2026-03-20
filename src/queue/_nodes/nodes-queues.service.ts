@@ -14,12 +14,18 @@ import {
     IDropUsersConnectionsPayload,
     IGetIpsListProgress,
     IGetIpsListResult,
+    IGetUsersIpsListResult,
     INodeHealthCheckPayload,
     IRecordNodeUsagePayload,
     IRecordUserUsagePayload,
     IRemoveUserFromNodePayload,
     IRemoveUsersFromNodePayload,
 } from './interfaces';
+import {
+    IBlockIpsPayload,
+    IUnblockIpsPayload,
+    IRecreateTablesPayload,
+} from './interfaces/executor.payload.interface';
 import { NODES_JOB_NAMES } from './constants/nodes-job-name.constant';
 
 @Injectable()
@@ -40,6 +46,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         private readonly recordNodeUsageQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.BULK_USERS) private readonly nodeBulkUsersQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.QUERY_NODES) private readonly queryNodesQueue: Queue,
+        @InjectQueue(QUEUES_NAMES.NODES.PLUGINS) private readonly nodePluginsQueue: Queue,
     ) {}
 
     get queues() {
@@ -54,6 +61,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             recordNodeUsage: this.recordNodeUsageQueue,
             nodeBulkUsers: this.nodeBulkUsersQueue,
             queryNodes: this.queryNodesQueue,
+            nodePlugins: this.nodePluginsQueue,
         } as const;
     }
 
@@ -257,11 +265,85 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         };
     }
 
+    public async queryUsersIpsList(payload: {
+        nodeUuid: string;
+    }): Promise<{ jobId: string } | null> {
+        const result = await this.queryNodesQueue.add(
+            NODES_JOB_NAMES.FETCH_USERS_IPS_LIST,
+            payload,
+            {
+                removeOnComplete: {
+                    age: 24 * 3_600,
+                },
+                removeOnFail: {
+                    age: 24 * 3_600,
+                },
+            },
+        );
+
+        if (!result || !result.id) {
+            return null;
+        }
+
+        return { jobId: result.id };
+    }
+
+    public async getUsersIpsListResult(jobId: string): Promise<IGetUsersIpsListResult | null> {
+        const job = await this.queryNodesQueue.getJob(jobId);
+        if (!job) {
+            return null;
+        }
+
+        const state = await job.getState();
+        const isCompleted = state === 'completed';
+        const isFailed = state === 'failed';
+
+        return {
+            isCompleted,
+            isFailed,
+
+            result: isCompleted ? job.returnvalue : null,
+        };
+    }
+
     public async dropUsersConnections(payload: IDropUsersConnectionsPayload) {
         return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_USERS_CONNECTIONS, payload);
     }
 
     public async dropIpsConnections(payload: IDropIpsConnectionsPayload) {
         return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.DROP_IPS_CONNECTIONS, payload);
+    }
+
+    public async blockIps(payload: IBlockIpsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.BLOCK_IPS, payload);
+    }
+
+    public async unblockIps(payload: IUnblockIpsPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.UNBLOCK_IPS, payload);
+    }
+
+    public async recreateTables(payload: IRecreateTablesPayload) {
+        return this.nodeBulkUsersQueue.add(NODES_JOB_NAMES.RECREATE_TABLES, payload);
+    }
+
+    public async collectReports(payload: {
+        nodeUuid: string;
+        address: string;
+        port: number | null;
+    }) {
+        return this.nodePluginsQueue.add(NODES_JOB_NAMES.COLLECT_REPORTS, payload);
+    }
+
+    public async syncNodePlugins(payload: { nodeUuid: string }) {
+        return this.nodePluginsQueue.add(NODES_JOB_NAMES.SYNC_NODE_PLUGINS, payload);
+    }
+
+    public async syncNodePluginsBulk(payload: { nodeUuid: string }[]) {
+        return this.nodePluginsQueue.addBulk(
+            payload.map((node) => ({
+                name: NODES_JOB_NAMES.SYNC_NODE_PLUGINS,
+                data: node,
+            })),
+        );
     }
 }

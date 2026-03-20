@@ -1,11 +1,9 @@
-import type { Cache } from 'cache-manager';
-
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Transactional } from '@nestjs-cls/transactional';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 
+import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, TSubscriptionTemplateType } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
@@ -29,7 +27,7 @@ export class ExternalSquadService {
     constructor(
         private readonly externalSquadRepository: ExternalSquadRepository,
         private readonly squadsQueueService: SquadsQueueService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly rawCacheService: RawCacheService,
     ) {}
 
     public async getExternalSquads(): Promise<TResult<GetExternalSquadsResponseModel>> {
@@ -126,7 +124,7 @@ export class ExternalSquadService {
                 await this.syncExternalSquadTemplates(externalSquad, templates);
             }
 
-            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
+            await this.rawCacheService.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
 
             return await this.getExternalSquadByUuid(externalSquad.uuid);
         } catch (error) {
@@ -180,7 +178,7 @@ export class ExternalSquadService {
                 return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
             }
 
-            await this.cacheManager.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
+            await this.rawCacheService.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
 
             const deleted = await this.externalSquadRepository.deleteByUUID(uuid);
 

@@ -316,4 +316,41 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
         return result.map((value) => value.tag);
     }
+
+    public async getNodeUuidsByPluginUuid(pluginUuid: string): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('uuid')
+            .where('activePluginUuid', '=', getKyselyUuid(pluginUuid))
+            .execute();
+
+        return result.map((value) => value.uuid);
+    }
+
+    public async updateMany(uuids: string[], fields: Partial<NodesEntity>): Promise<boolean> {
+        const result = await this.prisma.tx.nodes.updateMany({
+            where: {
+                uuid: {
+                    in: uuids,
+                },
+            },
+            data: fields,
+        });
+
+        return !!result;
+    }
+
+    public async getNodeIdByUuid(uuid: string): Promise<bigint | null> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('id')
+            .where('uuid', '=', getKyselyUuid(uuid))
+            .executeTakeFirst();
+
+        if (!result) {
+            return null;
+        }
+
+        return result.id;
+    }
 }

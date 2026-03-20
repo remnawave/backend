@@ -265,3 +265,12 @@ events:
   crm.infra_billing_node_payment_overdue_7_days:
     telegram: true
     webhook: true
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # TORRENT BLOCKER EVENTS
+  # ════════════════════════════════════════════════════════════════════════════
+
+  # Triggered when a torrent blocker report is collected from Remnawave Node
+  torrent_blocker.report:
+    telegram: true
+    webhook: true

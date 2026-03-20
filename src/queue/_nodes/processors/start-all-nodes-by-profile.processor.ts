@@ -1,4 +1,5 @@
 import { Job } from 'bullmq';
+import semver from 'semver';
 import pMap from 'p-map';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -6,11 +7,15 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { Logger, Scope } from '@nestjs/common';
 
 import { AxiosService } from '@common/axios/axios.service';
+import { RawCacheService } from '@common/raw-cache';
+import { CACHE_KEYS, CACHE_KEYS_TTL } from '@libs/contracts/constants';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users/get-prepared-config-with-users.query';
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
+import { GetAllPluginsQuery } from '@modules/node-plugins/queries/get-all-plugins';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
+import { NodePluginEntity } from '@modules/node-plugins/entities';
 import { NodesEntity } from '@modules/nodes';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -36,6 +41,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
+        private readonly rawCacheService: RawCacheService,
     ) {
         super();
         this.CONCURRENCY = 20;
@@ -132,6 +138,17 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                 return;
             }
 
+            const pluginsResult = await this.queryBus.execute(new GetAllPluginsQuery(true));
+
+            if (!pluginsResult.isOk) {
+                this.logger.error(`Failed to get all plugins: ${pluginsResult.message}`);
+                return;
+            }
+
+            const pluginsMap = new Map<string, NodePluginEntity>(
+                pluginsResult.response.map((plugin) => [plugin.uuid, plugin]),
+            );
+
             const startTime = Date.now();
 
             const config = await this.queryBus.execute(
@@ -154,6 +171,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     throw new Error('Failed to get active node inbounds tags');
                 }
 
+                let pluginsSupported = true;
                 const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
 
                 if (!xrayStatusResponse.isOk) {
@@ -195,6 +213,61 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                         `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
                     );
                     return;
+                } else if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.7.0')) {
+                    pluginsSupported = false;
+
+                    this.logger.warn(
+                        `Node ${node.uuid} running on outdated version of Remnawave Node. Please upgrade to the latest version. Some features may not work properly.`,
+                    );
+                }
+
+                if (pluginsSupported) {
+                    let plugin: {
+                        uuid: string;
+                        config: Record<string, unknown>;
+                        name: string;
+                    } | null = null;
+
+                    if (node.activePluginUuid) {
+                        const nodePlugin = pluginsMap.get(node.activePluginUuid);
+
+                        if (!nodePlugin) {
+                            this.logger.error(`Node plugin not found: ${node.activePluginUuid}`);
+                            return;
+                        }
+
+                        plugin = {
+                            uuid: nodePlugin.uuid,
+                            config: nodePlugin.pluginConfig as Record<string, unknown>,
+                            name: nodePlugin.name,
+                        };
+                    }
+
+                    const syncNodePluginsResponse = await this.axios.syncNodePlugins(
+                        {
+                            plugin,
+                        },
+                        node.address,
+                        node.port,
+                    );
+
+                    if (!syncNodePluginsResponse.isOk) {
+                        await this.commandBus.execute(
+                            new UpdateNodeCommand({
+                                uuid: node.uuid,
+                                isConnecting: false,
+                                isConnected: false,
+                                lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                                lastStatusChange: new Date(),
+                                usersOnline: 0,
+                            }),
+                        );
+
+                        this.logger.error(
+                            `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                        );
+                        return;
+                    }
                 }
 
                 const filteredInboundsHashes = config.response.hashesPayload.inbounds.filter(
@@ -205,9 +278,9 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     {
                         xrayConfig: {
                             ...config.response.config,
-                            inbounds: config.response.config.inbounds.filter(
+                            inbounds: config.response.config.inbounds!.filter(
                                 (inbound) =>
-                                    activeNodeInboundsTags.has(inbound.tag) ||
+                                    activeNodeInboundsTags.has(inbound.tag!) ||
                                     this.isUnsecureInbound(inbound.protocol),
                             ),
                         } as unknown as Record<string, unknown>,
@@ -240,6 +313,17 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     case true:
                         const nodeResponse = startXrayResponse.response.response;
 
+                        await this.rawCacheService.set(
+                            CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid),
+                            nodeResponse.system.info,
+                        );
+
+                        await this.rawCacheService.set(
+                            CACHE_KEYS.NODE_SYSTEM_STATS(node.uuid),
+                            nodeResponse.system.stats,
+                            CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+                        );
+
                         await this.commandBus.execute(
                             new UpdateNodeCommand({
                                 uuid: node.uuid,
@@ -250,9 +334,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                                 lastStatusChange: new Date(),
                                 isConnecting: false,
                                 usersOnline: 0,
-                                cpuCount: nodeResponse.systemInformation?.cpuCores ?? null,
-                                cpuModel: nodeResponse.systemInformation?.cpuModel ?? null,
-                                totalRam: nodeResponse.systemInformation?.memoryTotal ?? null,
                             }),
                         );
 
@@ -276,6 +357,6 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
     }
 
     private isUnsecureInbound(protocol: string): boolean {
-        return ['dokodemo-door', 'http', 'mixed', 'wireguard'].includes(protocol);
+        return ['dokodemo-door', 'http', 'mixed', 'tunnel', 'wireguard'].includes(protocol);
     }
 }

@@ -31,8 +31,6 @@ export class GetFullUserResponseModel {
 
     public readonly lastTriggeredThreshold: number;
     public readonly subRevokedAt: Date | null;
-    public readonly subLastUserAgent: null | string;
-    public readonly subLastOpenedAt: Date | null;
     public readonly lastTrafficResetAt: Date | null;
 
     public readonly createdAt: Date;
@@ -50,6 +48,9 @@ export class GetFullUserResponseModel {
         lastConnectedNodeUuid: string | null;
         firstConnectedAt: Date | null;
     };
+
+    public readonly subLastUserAgent: null; // TODO: remove before release
+    public readonly subLastOpenedAt: null; // TODO: remove before release
 
     constructor(entity: UserEntity, subPublicDomain: string) {
         this.id = Number(entity.tId);
@@ -78,8 +79,6 @@ export class GetFullUserResponseModel {
 
         this.lastTriggeredThreshold = entity.lastTriggeredThreshold;
         this.subRevokedAt = entity.subRevokedAt;
-        this.subLastUserAgent = entity.subLastUserAgent;
-        this.subLastOpenedAt = entity.subLastOpenedAt;
         this.lastTrafficResetAt = entity.lastTrafficResetAt;
 
         this.createdAt = entity.createdAt;
@@ -97,5 +96,8 @@ export class GetFullUserResponseModel {
         };
 
         this.subscriptionUrl = `https://${subPublicDomain}/${entity.shortUuid}`;
+
+        this.subLastUserAgent = null;
+        this.subLastOpenedAt = null;
     }
 }

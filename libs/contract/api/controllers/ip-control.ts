@@ -7,4 +7,8 @@ export const IP_CONTROL_ROUTES = {
     GET_FETCH_IPS_RESULT: (jobId: string) => `fetch-ips/result/${jobId}`,
     // POST /ip-control/drop-connections
     DROP_CONNECTIONS: 'drop-connections',
+    // POST /ip-control/fetch-users-ips/:nodeUuid
+    FETCH_USERS_IPS: (nodeUuid: string) => `fetch-users-ips/${nodeUuid}`,
+    // GET /ip-control/fetch-users-ips/result/:jobId
+    GET_FETCH_USERS_IPS_RESULT: (jobId: string) => `fetch-users-ips/result/${jobId}`,
 } as const;

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { Controller, Get, HttpStatus, Param, Req, Res, UseFilters } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, Res, UseFilters } from '@nestjs/common';
 import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { PublicHttpExceptionFilter } from '@common/exception/public-http-exception.filter';
@@ -19,7 +19,6 @@ import { REQUEST_TEMPLATE_TYPE } from '@libs/contracts/constants';
 import { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 
 import {
-    GetOutlineSubscriptionRequestDto,
     GetSubscriptionByShortUuidByClientTypeRequestDto,
     GetSubscriptionInfoRequestDto,
     GetSubscriptionInfoResponseDto,
@@ -138,56 +137,5 @@ export class SubscriptionController {
         });
 
         return response.type(result.contentType).send(result.body);
-    }
-
-    @ApiParam({
-        name: 'shortUuid',
-        type: String,
-        description: 'Short UUID of the user',
-        required: true,
-    })
-    @ApiParam({
-        name: 'type',
-        type: String,
-        description:
-            'Subscription type (required if encodedTag is provided). Only SS is supported for now.',
-        required: true,
-        example: 'ss',
-    })
-    @ApiParam({
-        name: 'encodedTag',
-        type: String,
-        description:
-            'Base64 encoded tag for Outline config. This paramter is optional. It is required only when type=ss.',
-        required: true,
-        example: 'VGVzdGVy',
-    })
-    @Get([SUBSCRIPTION_ROUTES.GET_OUTLINE + '/:shortUuid/:type/:encodedTag'])
-    async getSubscriptionWithType(
-        @Param() { shortUuid }: GetOutlineSubscriptionRequestDto,
-        @Req() request: Request,
-        @Res() response: Response,
-        @Param('type') type?: string,
-        @Param('encodedTag') encodedTag?: string,
-    ): Promise<Response> {
-        if (!encodedTag || type !== 'ss') {
-            return response.status(404).send(new SubscriptionNotFoundResponse());
-        }
-
-        const result = await this.subscriptionService.getOutlineSubscriptionByShortUuid(
-            shortUuid,
-            request.headers['user-agent'] as string,
-            encodedTag,
-        );
-
-        if (result instanceof SubscriptionNotFoundResponse) {
-            return response.status(404).send(result);
-        }
-
-        if (result instanceof SubscriptionRawResponse) {
-            return response.status(200).send(result);
-        }
-
-        return response.set(result.headers).type(result.contentType).send(result.body);
     }
 }

@@ -1,17 +1,14 @@
-import type { Cache } from 'cache-manager';
-
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
 import dayjs from 'dayjs';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventBus, QueryBus } from '@nestjs/cqrs';
 import { ConfigService } from '@nestjs/config';
 
-import { wrapBigInt, wrapBigIntNullable } from '@common/utils';
+import { mapDefined, wrapBigInt, wrapBigIntNullable } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 import { GetAllUsersCommand } from '@libs/contracts/commands';
@@ -34,6 +31,7 @@ import {
     BulkAllResponseModel,
     GetUserAccessibleNodesResponseModel,
     GetUserSubscriptionRequestHistoryResponseModel,
+    ResolveUserResponseModel,
 } from './models';
 import {
     CreateUserRequestDto,
@@ -42,6 +40,7 @@ import {
     BulkUpdateUsersRequestDto,
     BulkAllUpdateUsersRequestDto,
     RevokeUserSubscriptionBodyDto,
+    ResolveUserRequestBodyDto,
 } from './dtos';
 import { IGetUserByUnique, IGetUsersByTelegramIdOrEmail, IUpdateUserDto } from './interfaces';
 import { UsersRepository } from './repositories/users.repository';
@@ -60,8 +59,6 @@ export class UsersService {
         private readonly configService: ConfigService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly nodesQueuesService: NodesQueuesService,
-
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) {
         this.shortUuidLength = this.configService.getOrThrow<number>('SHORT_UUID_LENGTH');
     }
@@ -261,7 +258,7 @@ export class UsersService {
         }>
     > {
         try {
-            const [users, total] = await this.userRepository.getAllUsersV2(dto);
+            const [users, total] = await this.userRepository.getAllUsers(dto);
 
             return ok({ users, total });
         } catch (error) {
@@ -332,8 +329,6 @@ export class UsersService {
                 vlessUuid: this.createUuid(),
                 ssPassword: this.createPassword(),
                 subRevokedAt: new Date(),
-                subLastOpenedAt: null,
-                subLastUserAgent: null,
                 updatedAt: new Date(),
             });
 
@@ -759,6 +754,36 @@ export class UsersService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.BULK_EXTEND_EXPIRATION_DATE_ERROR);
+        }
+    }
+
+    public async resolveUser(
+        dto: ResolveUserRequestBodyDto,
+    ): Promise<TResult<ResolveUserResponseModel>> {
+        try {
+            const user = await this.userRepository.getPartialUserByUniqueFields(
+                {
+                    uuid: dto.uuid,
+                    tId: mapDefined(dto.id, (id) => wrapBigInt(id)),
+                    shortUuid: dto.shortUuid,
+                    username: dto.username,
+                },
+                ['uuid', 'tId', 'shortUuid', 'username'],
+            );
+
+            if (!user) return fail(ERRORS.USER_NOT_FOUND);
+
+            return ok(
+                new ResolveUserResponseModel({
+                    uuid: user.uuid,
+                    id: Number(user.tId),
+                    shortUuid: user.shortUuid,
+                    username: user.username,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 

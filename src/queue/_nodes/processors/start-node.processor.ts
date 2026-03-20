@@ -8,11 +8,13 @@ import { Logger } from '@nestjs/common';
 
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 import { AxiosService } from '@common/axios/axios.service';
-import { EVENTS } from '@libs/contracts/constants';
+import { RawCacheService } from '@common/raw-cache';
+import { CACHE_KEYS, CACHE_KEYS_TTL, EVENTS } from '@libs/contracts/constants';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users';
+import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 
@@ -33,6 +35,7 @@ export class StartNodeProcessor extends WorkerHost {
         private readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly commandBus: CommandBus,
+        private readonly rawCacheService: RawCacheService,
     ) {
         super();
     }
@@ -108,15 +111,11 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            if (
-                xrayStatusResponse.response.nodeVersion === null ||
-                xrayStatusResponse.response.nodeVersion === undefined
-            ) {
+            if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.7.0')) {
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: node.uuid,
-                        lastStatusMessage:
-                            'Unknown node version. Please upgrade Remnawave Node to the latest version.',
+                        lastStatusMessage: `Outdated version ${xrayStatusResponse.response.nodeVersion} of Remnawave Node. Please upgrade to the latest version (>= 2.7.0).`,
                         lastStatusChange: new Date(),
                         isConnected: false,
                         isConnecting: false,
@@ -125,13 +124,59 @@ export class StartNodeProcessor extends WorkerHost {
                 );
 
                 this.logger.error(
-                    `Node ${node.uuid} – unknown node version. Please upgrade Remnawave Node to the latest version.`,
+                    `Outdated version ${xrayStatusResponse.response.nodeVersion} of Remnawave Node. Please upgrade to the latest version (>= 2.7.0).`,
+                );
+
+                return;
+            }
+
+            let plugin: {
+                uuid: string;
+                config: Record<string, unknown>;
+                name: string;
+            } | null = null;
+
+            if (node.activePluginUuid) {
+                const getNodePluginResult = await this.queryBus.execute(
+                    new GetPluginByUuidQuery(node.activePluginUuid),
+                );
+
+                if (!getNodePluginResult.isOk) {
+                    this.logger.error(`Failed to get node plugin: ${getNodePluginResult.message}`);
+                    return;
+                }
+                const { response: nodePlugin } = getNodePluginResult;
+                plugin = {
+                    uuid: nodePlugin.uuid,
+                    config: nodePlugin.pluginConfig as Record<string, unknown>,
+                    name: nodePlugin.name,
+                };
+            }
+
+            const syncNodePluginsResponse = await this.axios.syncNodePlugins(
+                {
+                    plugin,
+                },
+                node.address,
+                node.port,
+            );
+
+            if (!syncNodePluginsResponse.isOk) {
+                await this.commandBus.execute(
+                    new UpdateNodeCommand({
+                        uuid: node.uuid,
+                        isConnecting: false,
+                        isConnected: false,
+                        lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                        lastStatusChange: new Date(),
+                        usersOnline: 0,
+                    }),
+                );
+
+                this.logger.error(
+                    `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
                 );
                 return;
-            } else if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.5.0')) {
-                this.logger.warn(
-                    `Node ${node.uuid} running on outdated version of Remnawave Node. Please upgrade to the latest version. Some features may not work properly.`,
-                );
             }
 
             const startTime = getTime();
@@ -162,6 +207,8 @@ export class StartNodeProcessor extends WorkerHost {
             this.logger.log(`Started node in ${formatExecutionTime(reqStartTime)}`);
 
             if (!startNodeResult.isOk) {
+                await this.rawCacheService.del(CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid));
+
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: node.uuid,
@@ -178,6 +225,17 @@ export class StartNodeProcessor extends WorkerHost {
 
             const nodeResponse = startNodeResult.response.response;
 
+            await this.rawCacheService.set(
+                CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid),
+                nodeResponse.system.info,
+            );
+
+            await this.rawCacheService.set(
+                CACHE_KEYS.NODE_SYSTEM_STATS(node.uuid),
+                nodeResponse.system.stats,
+                CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+            );
+
             const updateNodeResult = await this.commandBus.execute(
                 new UpdateNodeCommand({
                     uuid: node.uuid,
@@ -187,9 +245,6 @@ export class StartNodeProcessor extends WorkerHost {
                     lastStatusMessage: nodeResponse.error ?? null,
                     lastStatusChange: new Date(),
                     isConnecting: false,
-                    cpuCount: nodeResponse.systemInformation?.cpuCores ?? null,
-                    cpuModel: nodeResponse.systemInformation?.cpuModel ?? null,
-                    totalRam: nodeResponse.systemInformation?.memoryTotal ?? null,
                     usersOnline: 0,
                 }),
             );

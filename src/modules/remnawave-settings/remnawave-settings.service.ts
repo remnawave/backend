@@ -1,10 +1,8 @@
-import type { Cache } from 'cache-manager';
-
 import isEmail from 'validator/lib/isEmail';
 
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Injectable, Logger } from '@nestjs/common';
 
+import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 import { CACHE_KEYS, ERRORS } from '@libs/contracts/constants';
 
@@ -17,7 +15,7 @@ export class RemnawaveSettingsService {
     private readonly logger = new Logger(RemnawaveSettingsService.name);
     constructor(
         private readonly remnawaveSettingsRepository: RemnawaveSettingsRepository,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly rawCacheService: RawCacheService,
     ) {}
 
     public async getSettingsFromController(): Promise<TResult<RemnawaveSettingsEntity>> {
@@ -54,7 +52,7 @@ export class RemnawaveSettingsService {
                 ...body,
             });
 
-            await this.cacheManager.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
+            await this.rawCacheService.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
 
             return await this.getSettingsFromController();
         } catch (error) {
@@ -90,7 +88,7 @@ export class RemnawaveSettingsService {
                 !settings.oauth2Settings.pocketid.enabled &&
                 !settings.oauth2Settings.yandex.enabled &&
                 !settings.oauth2Settings.keycloak.enabled &&
-                !settings.tgAuthSettings.enabled &&
+                !settings.oauth2Settings.telegram.enabled &&
                 !settings.passwordSettings.enabled &&
                 !settings.oauth2Settings.generic.enabled
             ) {
@@ -156,25 +154,6 @@ export class RemnawaveSettingsService {
                 }
             }
 
-            // Test 5: Check up Telegram authentication
-            if (settings.tgAuthSettings.enabled && !settings.tgAuthSettings.botToken) {
-                return {
-                    valid: false,
-                    error: '[Telegram] Bot token must be set in order to use Telegram authentication.',
-                };
-            }
-
-            // Test 6: If Telegram Auth enabled, check Bot Token is valid
-            if (settings.tgAuthSettings.enabled && settings.tgAuthSettings.botToken) {
-                const botTokenParts = settings.tgAuthSettings.botToken.split(':');
-                if (botTokenParts.length !== 2) {
-                    return {
-                        valid: false,
-                        error: '[Telegram] Bot token must be in the format "12334:EYXJ...".',
-                    };
-                }
-            }
-
             // Test 7: Oauth2 Emails array must be an array of valid emails
             for (const provider of oauth2Providers) {
                 if (provider.enabled && provider.allowedEmails.length > 0) {
@@ -210,14 +189,6 @@ export class RemnawaveSettingsService {
                 }
             }
 
-            // Test 9: Telegram Admin IDs must be not empty
-            if (settings.tgAuthSettings.enabled && settings.tgAuthSettings.adminIds.length === 0) {
-                return {
-                    valid: false,
-                    error: `[Telegram] Admin IDs must be set in order to use Telegram authentication.`,
-                };
-            }
-
             // Test 10: Generic OAuth2 with PKCE must have authorization URL and token URL
             if (settings.oauth2Settings.generic.enabled) {
                 if (
@@ -228,6 +199,27 @@ export class RemnawaveSettingsService {
                     return {
                         valid: false,
                         error: `[Generic OAuth2] Authorization URL, token URL and frontend domain must be set in order to use Generic OAuth2 authentication.`,
+                    };
+                }
+            }
+
+            // Test 11: Telegram OAuth2 must have client ID, client secret and frontend domain
+            if (settings.oauth2Settings.telegram.enabled) {
+                if (
+                    !settings.oauth2Settings.telegram.clientId ||
+                    !settings.oauth2Settings.telegram.clientSecret ||
+                    !settings.oauth2Settings.telegram.frontendDomain
+                ) {
+                    return {
+                        valid: false,
+                        error: `[Telegram OAuth2] Client ID, client secret and frontend domain must be set in order to use Telegram OAuth2 authentication.`,
+                    };
+                }
+
+                if (settings.oauth2Settings.telegram.allowedIds.length === 0) {
+                    return {
+                        valid: false,
+                        error: `[Telegram OAuth2] At least one admin ID must be set in order to use Telegram OAuth2 authentication.`,
                     };
                 }
             }

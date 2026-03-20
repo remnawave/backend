@@ -54,7 +54,7 @@ export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
 
             config = new XRayConfig(configProfile.response.config as object);
 
-            config.cleanInboundClients();
+            config.cleanInboundClients(true);
 
             config.processCertificates();
 

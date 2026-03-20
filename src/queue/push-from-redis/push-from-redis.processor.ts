@@ -1,15 +1,14 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
 import { Job } from 'bullmq';
-import Redis from 'ioredis';
 
 import { Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { CommandBus } from '@nestjs/cqrs';
 
+import { RawCacheService } from '@common/raw-cache';
 import { INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
-import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry/bulk-upsert-user-history-entry.command';
+import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
 import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
 
 import { IRecordUserUsageFromRedisPayload } from './interfaces';
@@ -29,7 +28,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
 
     constructor(
         private readonly commandBus: CommandBus,
-        @InjectRedis() private readonly redis: Redis,
+        private readonly rawCacheService: RawCacheService,
         private readonly configService: ConfigService,
     ) {
         super();
@@ -38,6 +37,7 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
             'SERVICE_DISABLE_USER_USAGE_RECORDS',
         );
     }
+
     onApplicationBootstrap() {
         if (this.disableUserUsageRecords) {
             this.logger.warn(
@@ -67,17 +67,17 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
                 return;
             }
 
-            const exists = await this.redis.exists(redisKey);
+            const exists = await this.rawCacheService.exists(redisKey);
 
-            if (exists === 0) {
+            if (!exists) {
                 return;
             }
 
-            await this.redis.rename(redisKey, processingKey);
+            await this.rawCacheService.rename(redisKey, processingKey);
 
-            const results = await this.redis.hgetall(processingKey);
+            const nodeId = BigInt(redisKey.split(':')[1]);
 
-            for await (const batch of this.batchEntries(results, redisKey)) {
+            for await (const batch of this.scanAndBatch(processingKey, nodeId)) {
                 await this.commandBus.execute(new BulkUpsertUserHistoryEntryCommand(batch));
             }
 
@@ -88,35 +88,33 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
             );
             return;
         } finally {
-            await this.redis.del(processingKey);
+            await this.rawCacheService.del(processingKey);
         }
     }
 
-    private async *batchEntries(
-        data: Record<string, string>,
-        keyString: string,
+    private async *scanAndBatch(
+        key: string,
+        nodeId: bigint,
         batchSize: number = 10_000,
     ): AsyncGenerator<NodesUserUsageHistoryEntity[]> {
-        const entries = Object.entries(data);
-        let batch: NodesUserUsageHistoryEntity[] = [];
+        const stream = this.rawCacheService.hscanStream(key, { count: batchSize });
 
-        for (const [userId, totalBytes] of entries) {
-            batch.push(
-                new NodesUserUsageHistoryEntity({
-                    nodeId: BigInt(keyString.split(':')[1]),
-                    userId: BigInt(userId),
-                    totalBytes: BigInt(totalBytes),
-                }),
-            );
+        for await (const chunk of stream) {
+            const batch: NodesUserUsageHistoryEntity[] = [];
 
-            if (batch.length >= batchSize) {
-                yield batch;
-                batch = [];
+            for (let i = 0; i < chunk.length; i += 2) {
+                batch.push(
+                    new NodesUserUsageHistoryEntity({
+                        nodeId,
+                        userId: BigInt(chunk[i]),
+                        totalBytes: BigInt(chunk[i + 1]),
+                    }),
+                );
             }
-        }
 
-        if (batch.length > 0) {
-            yield batch;
+            if (batch.length > 0) {
+                yield batch;
+            }
         }
     }
 }

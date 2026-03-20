@@ -17,6 +17,8 @@ import {
     DropConnectionsCommand,
     FetchIpsCommand,
     FetchIpsResultCommand,
+    FetchUsersIpsCommand,
+    FetchUsersIpsResultCommand,
 } from '@libs/contracts/commands';
 import { CONTROLLERS_INFO, IP_CONTROL_CONTROLLER } from '@libs/contracts/api';
 import { ROLE } from '@libs/contracts/constants';
@@ -28,6 +30,10 @@ import {
     FetchIpsResultResponseDto,
     DropConnectionsRequestDto,
     DropConnectionsResponseDto,
+    FetchUsersIpsResponseDto,
+    FetchUsersIpsRequestDto,
+    FetchUsersIpsResultRequestDto,
+    FetchUsersIpsResultResponseDto,
 } from './dtos';
 import { IpControlService } from './ip-control.service';
 
@@ -100,6 +106,52 @@ export class IpControlController {
         @Body() bodyData: DropConnectionsRequestDto,
     ): Promise<DropConnectionsResponseDto> {
         const result = await this.ipControlService.dropConnections(bodyData);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'Node not found',
+    })
+    @ApiOkResponse({
+        type: FetchUsersIpsResponseDto,
+        description: 'Return jobId for further processing',
+    })
+    @ApiParam({ name: 'nodeUuid', type: String, description: 'UUID of the node', required: true })
+    @Endpoint({
+        command: FetchUsersIpsCommand,
+        httpCode: HttpStatus.CREATED,
+    })
+    async fetchUsersIps(
+        @Param() paramData: FetchUsersIpsRequestDto,
+    ): Promise<FetchUsersIpsResponseDto> {
+        const result = await this.ipControlService.fetchUsersIps(paramData.nodeUuid);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'Job not found',
+    })
+    @ApiOkResponse({
+        type: FetchUsersIpsResultResponseDto,
+        description: 'Return result or status of the job',
+    })
+    @ApiParam({ name: 'jobId', type: String, description: 'Job ID', required: true })
+    @Endpoint({
+        command: FetchUsersIpsResultCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getFetchUsersIpsResult(
+        @Param() paramData: FetchUsersIpsResultRequestDto,
+    ): Promise<FetchUsersIpsResultResponseDto> {
+        const result = await this.ipControlService.getFetchUsersIpsResult(paramData.jobId);
 
         const data = errorHandler(result);
         return {

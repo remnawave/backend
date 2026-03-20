@@ -5,29 +5,25 @@ import { HostWithRawInbound } from '@modules/hosts/entities/host-with-inbound-ta
 import { ExternalSquadEntity } from '@modules/external-squads/entities';
 import { UserEntity } from '@modules/users/entities';
 
+import { ResolveProxyConfigService } from './resolve-proxy/resolve-proxy-config.service';
 import { XrayJsonGeneratorService } from './generators/xray-json.generator.service';
-import { RawHostsGeneratorService } from './generators/raw-hosts.generator.service';
-import { OutlineGeneratorService } from './generators/outline.generator.service';
 import { SingBoxGeneratorService } from './generators/singbox.generator.service';
 import { MihomoGeneratorService } from './generators/mihomo.generator.service';
 import { ClashGeneratorService } from './generators/clash.generator.service';
 import { XrayGeneratorService } from './generators/xray.generator.service';
-import { FormatHostsService } from './generators/format-hosts.service';
 import { SUBSCRIPTION_CONFIG_TYPES } from './constants/config-types';
+import { ResolvedProxyConfig } from './resolve-proxy/interfaces';
 import { IGenerateSubscription } from './interfaces';
-import { IRawHost } from './generators/interfaces';
 
 @Injectable()
 export class RenderTemplatesService {
     constructor(
-        private readonly formatHostsService: FormatHostsService,
+        private readonly resolveProxyConfigService: ResolveProxyConfigService,
         private readonly mihomoGeneratorService: MihomoGeneratorService,
         private readonly clashGeneratorService: ClashGeneratorService,
-        private readonly outlineGeneratorService: OutlineGeneratorService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly singBoxGeneratorService: SingBoxGeneratorService,
         private readonly xrayJsonGeneratorService: XrayJsonGeneratorService,
-        private readonly rawHostsGeneratorService: RawHostsGeneratorService,
     ) {}
 
     public async generateSubscription(params: IGenerateSubscription): Promise<{
@@ -36,7 +32,7 @@ export class RenderTemplatesService {
     }> {
         const { srrContext, user, hosts, hostsOverrides, fallbackOptions } = params;
 
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+        const formattedHosts = await this.resolveProxyConfigService.resolveProxyConfig({
             subscriptionSettings: srrContext.subscriptionSettings,
             hosts,
             user,
@@ -116,44 +112,14 @@ export class RenderTemplatesService {
         hosts: HostWithRawInbound[];
         hostsOverrides: ExternalSquadEntity['hostOverrides'] | undefined;
         subscriptionSettings: SubscriptionSettingsEntity;
-    }): Promise<{
-        rawHosts: IRawHost[];
-    }> {
+    }): Promise<ResolvedProxyConfig[]> {
         const { user, hosts, hostsOverrides, subscriptionSettings } = params;
 
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
+        return await this.resolveProxyConfigService.resolveProxyConfig({
             subscriptionSettings,
             hosts,
             user,
             hostsOverrides,
-            returnDbHost: true,
         });
-
-        const rawHosts = await this.rawHostsGeneratorService.generateConfig(formattedHosts);
-
-        return {
-            rawHosts,
-        };
-    }
-
-    public async generateOutlineSubscription(
-        subscriptionSettings: SubscriptionSettingsEntity | null,
-        encodedTag: string,
-        user: UserEntity,
-        hosts: HostWithRawInbound[],
-    ): Promise<{
-        contentType: string;
-        subscription: string;
-    }> {
-        const formattedHosts = await this.formatHostsService.generateFormattedHosts({
-            subscriptionSettings,
-            hosts,
-            user,
-        });
-
-        return {
-            subscription: this.outlineGeneratorService.generateConfig(formattedHosts, encodedTag),
-            contentType: 'application/json',
-        };
     }
 }

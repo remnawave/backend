@@ -11,8 +11,11 @@ export class BulkUpsertHistoryEntryBuilder {
     }
 
     private getQuery(usageHistoryList: NodesUserUsageHistoryEntity[]): Prisma.Sql {
+        const sorted = [...usageHistoryList].sort((a, b) =>
+            a.userId < b.userId ? -1 : a.userId > b.userId ? 1 : 0,
+        );
         const values = Prisma.join(
-            usageHistoryList.map(
+            sorted.map(
                 (h) =>
                     Prisma.sql`(${h.nodeId}, ${h.userId}, ${h.totalBytes}, (NOW() AT TIME ZONE 'UTC')::date, NOW())`,
             ),

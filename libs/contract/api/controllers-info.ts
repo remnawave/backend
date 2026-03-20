@@ -38,6 +38,10 @@ export const CONTROLLERS_INFO = {
         tag: 'Nodes Controller',
         description: '',
     },
+    NODE_PLUGINS: {
+        tag: 'Node Plugins Controller',
+        description: '',
+    },
     BANDWIDTH_STATS: {
         tag: 'Bandwidth Stats Controller',
         description: '',
@@ -101,5 +105,9 @@ export const CONTROLLERS_INFO = {
     SUBSCRIPTION_PAGE_CONFIGS: {
         tag: 'Subscription Page Configs Controller',
         description: '',
+    },
+    METADATA: {
+        tag: 'Metadata Controller',
+        description: 'Manage arbitrary metadata for Users and Nodes.',
     },
 } as const;

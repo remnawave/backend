@@ -1,5 +1,3 @@
-import { InjectRedis } from '@songkeys/nestjs-redis';
-import { Redis } from 'ioredis';
 import ems from 'enhanced-ms';
 import { Job } from 'bullmq';
 import { t } from 'try';
@@ -12,6 +10,7 @@ import { Logger } from '@nestjs/common';
 import { GetUsersStatsCommand } from '@remnawave/node-contract';
 
 import { fromNanoToNumber } from '@common/utils/nano';
+import { RawCacheService } from '@common/raw-cache';
 import { AxiosService } from '@common/axios';
 import { INTERNAL_CACHE_KEYS, INTERNAL_CACHE_KEYS_TTL } from '@libs/contracts/constants';
 
@@ -37,7 +36,7 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
         private readonly configService: ConfigService,
         private readonly usersQueuesService: UsersQueuesService,
         private readonly pushFromRedisQueueService: PushFromRedisQueueService,
-        @InjectRedis() private readonly redis: Redis,
+        private readonly rawCacheService: RawCacheService,
     ) {
         super();
 
@@ -117,7 +116,7 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
             const nodeRedisKey = INTERNAL_CACHE_KEYS.NODE_USER_USAGE(nodeId);
 
-            const pipeline = this.redis.pipeline();
+            const pipeline = this.rawCacheService.createPipeline();
 
             response.response.users.forEach((user) => {
                 const { ok } = t(() => BigInt(user.username));

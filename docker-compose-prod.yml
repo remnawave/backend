@@ -23,6 +23,8 @@ services:
     container_name: remnawave
     hostname: remnawave
     <<: [*common, *logging, *env]
+    volumes:
+      - valkey-socket:/var/run/valkey
     ports:
       - 127.0.0.1:3000:${APP_PORT:-3000}
       - 127.0.0.1:3001:${METRICS_PORT:-3001}
@@ -59,18 +61,23 @@ services:
       retries: 3
 
   remnawave-redis:
-    image: valkey/valkey:8.1-alpine
+    image: valkey/valkey:9-alpine
     container_name: remnawave-redis
     hostname: remnawave-redis
     <<: [*common, *logging]
+    volumes:
+      - valkey-socket:/var/run/valkey
     command: >
       valkey-server
       --save ""
       --appendonly no
       --maxmemory-policy noeviction
       --loglevel warning
+      --unixsocket /var/run/valkey/valkey.sock
+      --unixsocketperm 777
+      --port 0
     healthcheck:
-      test: ['CMD', 'valkey-cli', 'ping']
+      test: ['CMD', 'valkey-cli', '-s', '/var/run/valkey/valkey.sock', 'ping']
       interval: 3s
       timeout: 3s
       retries: 3
@@ -84,5 +91,9 @@ networks:
 volumes:
   remnawave-db-data:
     name: remnawave-db-data
+    driver: local
+    external: false
+  valkey-socket:
+    name: valkey-socket
     driver: local
     external: false

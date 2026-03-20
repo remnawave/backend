@@ -16,7 +16,6 @@ import {
     GetStatusCommand,
     LoginCommand,
     RegisterCommand,
-    TelegramCallbackCommand,
     OAuth2AuthorizeCommand,
     OAuth2CallbackCommand,
     GetPasskeyAuthenticationOptionsCommand,
@@ -33,8 +32,6 @@ import {
     LoginResponseDto,
     RegisterRequestDto,
     RegisterResponseDto,
-    TelegramCallbackRequestDto,
-    TelegramCallbackResponseDto,
     OAuth2AuthorizeResponseDto,
     OAuth2CallbackResponseDto,
     OAuth2CallbackRequestDto,
@@ -120,28 +117,6 @@ export class AuthController {
         const data = errorHandler(result);
         return {
             response: data,
-        };
-    }
-
-    @ApiResponse({
-        type: TelegramCallbackResponseDto,
-        description: 'Access token for further requests',
-    })
-    @Endpoint({
-        command: TelegramCallbackCommand,
-        httpCode: HttpStatus.OK,
-        apiBody: TelegramCallbackRequestDto,
-    })
-    async telegramCallback(
-        @Body() body: TelegramCallbackRequestDto,
-        @IpAddress() ip: string,
-        @UserAgent() userAgent: string,
-    ): Promise<TelegramCallbackResponseDto> {
-        const result = await this.authService.telegramCallback(body, ip, userAgent);
-
-        const data = errorHandler(result);
-        return {
-            response: new AuthResponseModel(data),
         };
     }
 

@@ -1,4 +1,4 @@
-import { IRawHost } from '@modules/subscription-template/generators/interfaces';
+import { ResolvedProxyConfig } from '@modules/subscription-template/resolve-proxy/interfaces';
 import { GetFullUserResponseModel } from '@modules/users/models';
 
 import { ISubscriptionHeaders } from '../interfaces';
@@ -12,13 +12,13 @@ export class RawSubscriptionWithHostsResponse {
         lifetimeTrafficUsed: string;
         isHwidLimited: boolean;
     };
-    public rawHosts: IRawHost[];
+    public resolvedProxyConfigs: ResolvedProxyConfig[];
     public headers: ISubscriptionHeaders;
 
     constructor(data: RawSubscriptionWithHostsResponse) {
         this.user = data.user;
         this.convertedUserInfo = data.convertedUserInfo;
-        this.rawHosts = data.rawHosts;
+        this.resolvedProxyConfigs = data.resolvedProxyConfigs;
         this.headers = data.headers;
     }
 }

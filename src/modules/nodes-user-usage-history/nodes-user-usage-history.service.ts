@@ -10,13 +10,9 @@ import { ERRORS } from '@libs/contracts/constants';
 import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-unique-field';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 
-import {
-    IGetLegacyStatsNodesUsersUsage,
-    IGetLegacyStatsUserUsage,
-    IGetNodesRealtimeUsage,
-} from './interfaces';
 import { NodesUserUsageHistoryRepository } from './repositories/nodes-user-usage-history.repository';
 import { GetStatsNodesUsersUsageResponseModel, GetStatsUserUsageResponseModel } from './models';
+import { IGetLegacyStatsNodesUsersUsage, IGetLegacyStatsUserUsage } from './interfaces';
 
 @Injectable()
 export class NodesUserUsageHistoryService {
@@ -73,17 +69,6 @@ export class NodesUserUsageHistoryService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GET_USER_USAGE_BY_RANGE_ERROR);
-        }
-    }
-
-    public async getStatsNodesRealtimeUsage(): Promise<TResult<IGetNodesRealtimeUsage[]>> {
-        try {
-            const result = await this.nodeUserUsageHistoryRepository.getNodesRealtimeUsage();
-
-            return ok(result);
-        } catch (error) {
-            this.logger.error(error);
-            return fail(ERRORS.GET_NODES_REALTIME_USAGE_ERROR);
         }
     }
 
