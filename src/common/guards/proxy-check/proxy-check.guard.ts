@@ -23,6 +23,11 @@ export class ProxyCheckGuard implements CanActivate {
             return true;
         }
 
+        const sourceIp = request.ip || request.socket?.remoteAddress || '';
+        if (sourceIp.startsWith('10.') || sourceIp.startsWith('::ffff:10.')) {
+            return true;
+        }
+
         const isProxy = Boolean(request.headers['x-forwarded-for']);
         const isHttps = Boolean(request.headers['x-forwarded-proto'] === 'https');
 
