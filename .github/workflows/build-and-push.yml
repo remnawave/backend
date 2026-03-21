@@ -26,7 +26,7 @@ jobs:
   generate-tag:
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     name: Generate Tag
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-bdtfs
     permissions:
       contents: write
     outputs:
@@ -53,7 +53,7 @@ jobs:
   build-amd64:
     name: Build amd64
     needs: generate-tag
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-bdtfs
     permissions:
       contents: read
       packages: write
@@ -84,7 +84,7 @@ jobs:
   build-arm64:
     name: Build arm64
     needs: generate-tag
-    runs-on: [self-hosted, linux, ARM64]
+    runs-on: namespace-profile-bdtfs-arm
     permissions:
       contents: read
       packages: write
@@ -117,7 +117,7 @@ jobs:
   manifest:
     name: Create Multi-Arch Manifest
     needs: [generate-tag, build-amd64, build-arm64]
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-bdtfs
     permissions:
       packages: write
     steps:
@@ -145,7 +145,7 @@ jobs:
     name: Dispatch Tag to ArgoCD
     needs: [generate-tag, manifest]
     if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-bdtfs
     steps:
       - name: Dispatch tag update
         uses: peter-evans/repository-dispatch@v3
