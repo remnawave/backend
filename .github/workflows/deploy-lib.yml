@@ -3,7 +3,7 @@ on:
   push:
     branches: ['**']
     paths:
-      - 'libs/**/package.json'
+      - 'libs/contract/package.json'
       - '.github/workflows/deploy-lib.yml'
 jobs:
   build:

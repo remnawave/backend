@@ -2,10 +2,29 @@ import { z } from 'zod';
 
 const DOCS_LINK = `\n\n[📖 Documentation](https://docs.rw/docs/learn/node-plugins)`;
 
+const IpCidrOrExtSchema = z
+    .union([
+        z.string().cidr({ version: 'v4' }),
+        z.string().cidr({ version: 'v6' }),
+        z.string().ip(),
+        z.string().startsWith('ext:'),
+    ])
+    .describe(
+        JSON.stringify({
+            markdownDescription: `IP address or CIDR range. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
+        }),
+    );
+
 export const SharedListSchema = z.object({
     name: z.string().startsWith('ext:'),
     type: z.enum(['ipList']),
-    items: z.array(z.union([z.string().ip(), z.string().cidr()])),
+    items: z.array(
+        z.union([
+            z.string().cidr({ version: 'v4' }),
+            z.string().cidr({ version: 'v6' }),
+            z.string().ip(),
+        ]),
+    ),
 });
 
 export const TorrentBlockerPluginSchema = z.object({
@@ -25,7 +44,7 @@ export const TorrentBlockerPluginSchema = z.object({
     ignoreLists: z
         .object({
             ip: z
-                .array(z.union([z.string().ip(), z.string().startsWith('ext:'), z.string().cidr()]))
+                .array(IpCidrOrExtSchema)
                 .optional()
                 .describe(
                     JSON.stringify({
@@ -59,13 +78,11 @@ export const ConnectionDropPluginSchema = z.object({
             markdownDescription: `Controls whether IP addresses from the **whitelistIps** object will be used.${DOCS_LINK}`,
         }),
     ),
-    whitelistIps: z
-        .array(z.union([z.string().ip(), z.string().startsWith('ext:'), z.string().cidr()]))
-        .describe(
-            JSON.stringify({
-                markdownDescription: `List of IP addresses and CIDR ranges, for which the connection drop will not be applied, which is enabled by default for all IP addresses. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
-            }),
-        ),
+    whitelistIps: z.array(IpCidrOrExtSchema).describe(
+        JSON.stringify({
+            markdownDescription: `List of IP addresses and CIDR ranges, for which the connection drop will not be applied, which is enabled by default for all IP addresses. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
+        }),
+    ),
 });
 
 export const IngressFilterPluginSchema = z.object({
@@ -74,13 +91,11 @@ export const IngressFilterPluginSchema = z.object({
             markdownDescription: `If this plugin is enabled, all IP addresses specified in the **blockedIps** object will be blocked via nftables. **Use with caution.**${DOCS_LINK}`,
         }),
     ),
-    blockedIps: z
-        .array(z.union([z.string().ip(), z.string().startsWith('ext:'), z.string().cidr()]))
-        .describe(
-            JSON.stringify({
-                markdownDescription: `List of IP addresses and CIDR ranges to block via nftables. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
-            }),
-        ),
+    blockedIps: z.array(IpCidrOrExtSchema).describe(
+        JSON.stringify({
+            markdownDescription: `List of IP addresses and CIDR ranges to block via nftables. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
+        }),
+    ),
 });
 
 export const EgressFilterPluginSchema = z.object({
@@ -90,7 +105,7 @@ export const EgressFilterPluginSchema = z.object({
         }),
     ),
     blockedIps: z
-        .array(z.union([z.string().ip(), z.string().startsWith('ext:'), z.string().cidr()]))
+        .array(IpCidrOrExtSchema)
         .optional()
         .describe(
             JSON.stringify({
