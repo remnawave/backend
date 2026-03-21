@@ -109,6 +109,8 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
     }),
     kcp: (host) => ({
         mtu: host.transportOptions.clientMtu,
+        tti: host.transportOptions.tti,
+        congestion: host.transportOptions.congestion,
     }),
 };
 

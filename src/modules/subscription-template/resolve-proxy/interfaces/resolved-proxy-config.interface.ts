@@ -55,6 +55,8 @@ export interface IGrpcTransportOptions {
 
 export interface IKcpTransportOptions {
     clientMtu: number;
+    tti: number;
+    congestion: boolean;
 }
 
 // ─── Security Options ────────────────────────────────────
