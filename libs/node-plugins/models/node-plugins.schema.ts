@@ -78,9 +78,9 @@ export const ConnectionDropPluginSchema = z.object({
             markdownDescription: `Controls whether IP addresses from the **whitelistIps** object will be used.${DOCS_LINK}`,
         }),
     ),
-    whitelistIps: z.array(IpCidrOrExtSchema).describe(
+    whitelistIps: z.array(z.union([z.string().ip(), z.string().startsWith('ext:')])).describe(
         JSON.stringify({
-            markdownDescription: `List of IP addresses and CIDR ranges, for which the connection drop will not be applied, which is enabled by default for all IP addresses. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
+            markdownDescription: `List of IP addresses, for which the connection drop will not be applied, which is enabled by default for all IP addresses. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. Please note that this field only supports IP addresses ranges, not CIDR ranges.${DOCS_LINK}`,
         }),
     ),
 });
