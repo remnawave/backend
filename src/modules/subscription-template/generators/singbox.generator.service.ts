@@ -49,8 +49,8 @@ interface TransportConfig {
     type: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
-const PROXY_PROTOCOL_TYPES = new Set(['shadowsocks', 'trojan', 'vless']);
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
+const PROXY_PROTOCOL_TYPES = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
 const SELECTOR_TYPES = new Set(['shadowsocks', 'trojan', 'urltest', 'vless']);
 
 @Injectable()

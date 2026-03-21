@@ -20,12 +20,13 @@ import { UserForConfigEntity } from '@modules/users/entities/users-for-config';
 
 import { getSsPassword, isSS2022MethodFromMethod, SHADOWSOCKS_METHODS } from './ss-cipher';
 
-const MANAGED_CLIENT_PROTOCOLS = new Set(['shadowsocks', 'trojan', 'vless']);
+const MANAGED_CLIENT_PROTOCOLS = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
 type ManagedInboundSettings = VLessInboundConfig | TrojanInboundConfig | ShadowsocksInboundConfig;
 
 const ALLOWED_PROTOCOLS = new Set([
     'dokodemo-door',
     'http',
+    'hysteria',
     'mixed',
     'shadowsocks',
     'trojan',
@@ -34,7 +35,16 @@ const ALLOWED_PROTOCOLS = new Set([
     'wireguard',
 ]);
 
-const ALLOWED_NETWORKS = new Set(['grpc', 'httpupgrade', 'kcp', 'raw', 'tcp', 'ws', 'xhttp']);
+const ALLOWED_NETWORKS = new Set([
+    'grpc',
+    'httpupgrade',
+    'hysteria',
+    'kcp',
+    'raw',
+    'tcp',
+    'ws',
+    'xhttp',
+]);
 
 interface InboundsWithTagsAndType {
     tag: string;
@@ -237,6 +247,21 @@ export class XRayConfig {
                 for (const user of users) {
                     inbound.settings.clients.push({
                         id: user.vlessUuid,
+                        email: user.tId.toString(),
+                    });
+                }
+                break;
+
+            case 'hysteria':
+                if (!inbound.settings) {
+                    inbound.settings = {};
+                }
+                inbound.settings.clients ??= [];
+
+                for (const user of users) {
+                    inbound.settings.clients.push({
+                        id: user.vlessUuid,
+                        auth: user.vlessUuid,
                         email: user.tId.toString(),
                     });
                 }

@@ -91,6 +91,13 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                                 password: getSsPassword(ssPassword, true),
                                 tag: inbound.tag,
                             };
+                        case 'hysteria':
+                            return {
+                                type: inboundType,
+                                username: tId.toString(),
+                                password: vlessUuid,
+                                tag: inbound.tag,
+                            };
                         default:
                             throw new Error(`Unsupported inbound type: ${inboundType}`);
                     }

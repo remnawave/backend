@@ -1,6 +1,7 @@
 import {
     GRPCConfig,
     HTTPUpgradeConfig,
+    HysteriaConfig,
     InboundConfig,
     KCPConfig,
     SplitHTTPConfig,
@@ -33,6 +34,7 @@ import { UserEntity } from '@modules/users/entities';
 import {
     GrpcTransport,
     HttpUpgradeTransport,
+    HysteriaTransport,
     KcpTransport,
     ProtocolVariant,
     ResolvedProxyConfig,
@@ -167,6 +169,7 @@ export class ResolveProxyConfigService {
     private resolveTransport(
         streamSettings: StreamSettingsConfig | undefined,
         inputHost: HostWithRawInbound,
+        vlessUuid: string,
     ): TransportVariant {
         const rawNetwork = streamSettings?.network;
 
@@ -194,6 +197,8 @@ export class ResolveProxyConfigService {
                 return this.resolveTcp(streamSettings.tcpSettings, inputHost);
             case 'kcp':
                 return this.resolveKcp(streamSettings.kcpSettings);
+            case 'hysteria':
+                return this.resolveHysteria(streamSettings.hysteriaSettings, vlessUuid);
             default:
                 return {
                     transport: 'tcp',
@@ -318,6 +323,19 @@ export class ResolveProxyConfigService {
                 clientMtu: settings?.clientMtu || settings?.mtu || 1350,
                 tti: settings?.tti || 50,
                 congestion: settings?.congestion || false,
+            },
+        };
+    }
+
+    private resolveHysteria(
+        settings: HysteriaConfig | undefined,
+        vlessUuid: string,
+    ): HysteriaTransport {
+        return {
+            transport: 'hysteria',
+            transportOptions: {
+                version: 2,
+                auth: vlessUuid,
             },
         };
     }
@@ -477,6 +495,13 @@ export class ResolveProxyConfigService {
                         uotVersion: settings.uotVersion || 1,
                     },
                 };
+            case 'hysteria':
+                return {
+                    protocol: 'hysteria',
+                    protocolOptions: {
+                        version: 2,
+                    },
+                };
             default:
                 return null;
         }
@@ -495,17 +520,6 @@ export class ResolveProxyConfigService {
 
         const address = this.resolveRandomizedValue(inputHost.address);
 
-        const transport = this.resolveTransport(inbound.streamSettings, inputHost);
-
-        const security = this.resolveSecurity(
-            inbound.streamSettings,
-            inputHost,
-            inbound.tag!,
-            ctx.publicKeyMap,
-            ctx.mldsa65PublicKeyMap,
-            address,
-        );
-
         const protocol = this.resolveProtocolOptions(
             inputHost,
             inbound,
@@ -516,6 +530,17 @@ export class ResolveProxyConfigService {
         if (!protocol) {
             return null;
         }
+
+        const transport = this.resolveTransport(inbound.streamSettings, inputHost, user.vlessUuid);
+
+        const security = this.resolveSecurity(
+            inbound.streamSettings,
+            inputHost,
+            inbound.tag!,
+            ctx.publicKeyMap,
+            ctx.mldsa65PublicKeyMap,
+            address,
+        );
 
         return {
             finalRemark: finalRemark,

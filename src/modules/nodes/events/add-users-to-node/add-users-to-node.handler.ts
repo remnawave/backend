@@ -85,6 +85,11 @@ export class AddUsersToNodeHandler implements IEventHandler<AddUsersToNodeEvent>
                                         tag: inbound.tag,
                                         flow: getVlessFlowFromDbInbound(inbound),
                                     };
+                                case 'hysteria':
+                                    return {
+                                        type: inboundType,
+                                        tag: inbound.tag,
+                                    };
                                 case 'shadowsocks':
                                     return { type: inboundType, tag: inbound.tag };
                                 case 'shadowsocks22':

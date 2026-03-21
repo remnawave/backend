@@ -48,7 +48,8 @@ interface ProxyNode {
     serverDescription?: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
+const UNSUPPORTED_PROTOCOLS = new Set(['hysteria']);
 
 @Injectable()
 export class MihomoGeneratorService {
@@ -84,6 +85,7 @@ export class MihomoGeneratorService {
                 if (host.metadata.excludeFromSubscriptionTypes.includes(subType)) continue;
 
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
+                if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
 
                 const node = this.buildProxyNode(host, isFlClashX);
                 if (!node) continue;

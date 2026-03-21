@@ -21,6 +21,10 @@ export interface IShadowsocksProtocolOptions {
     uotVersion: number;
 }
 
+export interface IHysteriaProtocolOptions {
+    version: number;
+}
+
 // ─── Transport Options ───────────────────────────────────
 
 export interface ITcpTransportOptions {
@@ -57,6 +61,11 @@ export interface IKcpTransportOptions {
     clientMtu: number;
     tti: number;
     congestion: boolean;
+}
+
+export interface IHysteriaTransportOptions {
+    version: number;
+    auth: string;
 }
 
 // ─── Security Options ────────────────────────────────────
@@ -97,7 +106,16 @@ export type ShadowsocksProtocol = {
     protocolOptions: IShadowsocksProtocolOptions;
 };
 
-export type ProtocolVariant = VlessProtocol | TrojanProtocol | ShadowsocksProtocol;
+export type HysteriaProtocol = {
+    protocol: 'hysteria';
+    protocolOptions: IHysteriaProtocolOptions;
+};
+
+export type ProtocolVariant =
+    | VlessProtocol
+    | TrojanProtocol
+    | ShadowsocksProtocol
+    | HysteriaProtocol;
 
 // ─── Transport Variants ──────────────────────────────────
 
@@ -131,13 +149,19 @@ export type KcpTransport = {
     transportOptions: IKcpTransportOptions;
 };
 
+export type HysteriaTransport = {
+    transport: 'hysteria';
+    transportOptions: IHysteriaTransportOptions;
+};
+
 export type TransportVariant =
     | TcpTransport
     | XHttpTransport
     | WsTransport
     | HttpUpgradeTransport
     | GrpcTransport
-    | KcpTransport;
+    | KcpTransport
+    | HysteriaTransport;
 
 // ─── Security Variants ───────────────────────────────────
 

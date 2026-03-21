@@ -44,8 +44,8 @@ interface ClashData {
     rules: string[];
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
-
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
+const UNSUPPORTED_PROTOCOLS = new Set(['hysteria', 'vless']);
 @Injectable()
 export class ClashGeneratorService {
     private readonly logger = new Logger(ClashGeneratorService.name);
@@ -63,6 +63,7 @@ export class ClashGeneratorService {
             for (const host of hosts) {
                 if (host.metadata.excludeFromSubscriptionTypes.includes('CLASH')) continue;
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
+                if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
 
                 const node = this.buildProxyNode(host);
                 if (!node) continue;
