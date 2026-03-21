@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import geoip from 'geoip-lite';
 
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
@@ -9,6 +10,7 @@ import {
     ERRORS,
     RESPONSE_RULES_RESPONSE_TYPES,
     TRequestTemplateTypeKeys,
+    REMNAWAVE_REAL_IP_EMPTY,
 } from '@libs/contracts/constants';
 
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
@@ -58,6 +60,18 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 overrideClientType = req.params.clientType as unknown as TRequestTemplateTypeKeys;
                 if (overrideClientType) {
                     headersToAppend['x-remnawave-injected-client-type'] = overrideClientType;
+                }
+            }
+
+            const clientIp = req.clientIp;
+            if (clientIp !== REMNAWAVE_REAL_IP_EMPTY) {
+                headersToAppend['x-remnawave-injected-client-ip'] = clientIp;
+
+                const lookup = geoip.lookup(clientIp);
+                const clientCountry = lookup?.country;
+
+                if (clientCountry) {
+                    headersToAppend['x-remnawave-injected-client-country'] = clientCountry;
                 }
             }
 
