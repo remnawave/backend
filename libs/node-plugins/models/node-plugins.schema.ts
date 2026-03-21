@@ -44,11 +44,11 @@ export const TorrentBlockerPluginSchema = z.object({
     ignoreLists: z
         .object({
             ip: z
-                .array(IpCidrOrExtSchema)
+                .array(z.union([z.string().ip(), z.string().startsWith('ext:')]))
                 .optional()
                 .describe(
                     JSON.stringify({
-                        markdownDescription: `List of IP addresses and CIDR ranges to ignore from the block. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. \n\n You can also specify user IDs to ignore from the block.${DOCS_LINK}`,
+                        markdownDescription: `List of IP addresses ranges to ignore from the block. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. \n\n You can also specify user IDs to ignore from the block. Please note that this field only supports IP addresses ranges, not CIDR ranges.${DOCS_LINK}`,
                     }),
                 ),
             userId: z
