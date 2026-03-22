@@ -93,27 +93,9 @@ export class FormatHostsService {
         }
 
         if (user.status !== USERS_STATUS.ACTIVE) {
-            if (subscriptionSettings.isShowCustomRemarks) {
-                let specialRemarks: string[] = [];
-
-                switch (user.status) {
-                    case USERS_STATUS.EXPIRED:
-                        specialRemarks = subscriptionSettings.customRemarks.expiredUsers;
-                        break;
-                    case USERS_STATUS.DISABLED:
-                        specialRemarks = subscriptionSettings.customRemarks.disabledUsers;
-                        break;
-                    case USERS_STATUS.LIMITED:
-                        specialRemarks = subscriptionSettings.customRemarks.limitedUsers;
-                        break;
-                }
-
-                const templatedRemarks = specialRemarks.map((remark) =>
-                    TemplateEngine.formatWithUser(remark, user, this.subPublicDomain),
-                );
-
-                return this.createFallbackHosts(templatedRemarks);
-            }
+            // Non-active users get no links — the client handles
+            // expired/disabled/limited states via the subscription info API
+            return [];
         }
 
         if (hosts.length === 0) {
