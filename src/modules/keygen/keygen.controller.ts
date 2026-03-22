@@ -26,7 +26,7 @@ export class KeygenController {
 
     @ApiOkResponse({
         type: GetPubKeyResponseDto,
-        description: 'Get SSL_CERT for Remnawave Node',
+        description: 'Get SECRET_KEY for Remnawave Node',
     })
     @Endpoint({
         command: GetPubKeyCommand,

@@ -88,7 +88,7 @@ export const CONTROLLERS_INFO = {
     },
     KEYGEN: {
         tag: 'Keygen Controller',
-        description: 'Generation of SSL_CERT for Remnawave Node.',
+        description: 'Generation of SECRET_KEY for Remnawave Node.',
     },
     SUBSCRIPTION_REQUEST_HISTORY: {
         tag: 'Subscription Request History Controller',
