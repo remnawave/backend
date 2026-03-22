@@ -11,7 +11,7 @@ import { IAddUserToNodePayload, IRemoveUserFromNodePayload } from '../interfaces
 import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 
 @Processor(QUEUES_NAMES.NODES.USERS, {
-    concurrency: 75,
+    concurrency: parseInt(process.env.QUEUE_NODE_USERS_CONCURRENCY || '75', 10),
 })
 export class NodeUsersQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(NodeUsersQueueProcessor.name);

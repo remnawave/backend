@@ -22,7 +22,7 @@ import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 import { NodesQueuesService } from '../nodes-queues.service';
 
 @Processor(QUEUES_NAMES.NODES.START, {
-    concurrency: 40,
+    concurrency: parseInt(process.env.QUEUE_START_NODE_CONCURRENCY || '40', 10),
 })
 export class StartNodeProcessor extends WorkerHost {
     private readonly logger = new Logger(StartNodeProcessor.name);

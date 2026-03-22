@@ -21,7 +21,7 @@ import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 import { INodeHealthCheckPayload } from '../interfaces';
 
 @Processor(QUEUES_NAMES.NODES.HEALTH_CHECK, {
-    concurrency: 40,
+    concurrency: parseInt(process.env.QUEUE_HEALTH_CHECK_CONCURRENCY || '40', 10),
 })
 export class NodeHealthCheckQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(NodeHealthCheckQueueProcessor.name);

@@ -2,6 +2,7 @@ import { Queue } from 'bullmq';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 
 import { IGetEnabledNodesPartialResponse } from '@modules/nodes/queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
 
@@ -40,6 +41,7 @@ export class NodesQueuesService implements OnApplicationBootstrap {
         private readonly recordNodeUsageQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.BULK_USERS) private readonly nodeBulkUsersQueue: Queue,
         @InjectQueue(QUEUES_NAMES.NODES.QUERY_NODES) private readonly queryNodesQueue: Queue,
+        private readonly configService: ConfigService,
     ) {}
 
     get queues() {
@@ -67,8 +69,12 @@ export class NodesQueuesService implements OnApplicationBootstrap {
 
         this.logger.log(`${Object.values(this.queues).length} queues are connected.`);
 
-        await this.startAllNodesByProfileQueue.setGlobalConcurrency(3);
-        await this.startAllNodesQueue.setGlobalConcurrency(1);
+        await this.startAllNodesByProfileQueue.setGlobalConcurrency(
+            this.configService.getOrThrow<number>('QUEUE_PROFILE_GLOBAL_CONCURRENCY'),
+        );
+        await this.startAllNodesQueue.setGlobalConcurrency(
+            this.configService.getOrThrow<number>('QUEUE_START_ALL_NODES_GLOBAL_CONCURRENCY'),
+        );
     }
 
     public async startNode(payload: { nodeUuid: string }) {

@@ -179,6 +179,73 @@ export const configSchema = z
             .default('0')
             .transform((bytes) => BigInt(bytes))
             .pipe(z.bigint().max(1_048_576n).default(0n)),
+
+        // Queue concurrency settings
+        QUEUE_NODE_USERS_CONCURRENCY: z
+            .string()
+            .default('75')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_HEALTH_CHECK_CONCURRENCY: z
+            .string()
+            .default('40')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_BULK_USERS_CONCURRENCY: z
+            .string()
+            .default('20')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_START_NODE_CONCURRENCY: z
+            .string()
+            .default('40')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_STOP_NODE_CONCURRENCY: z
+            .string()
+            .default('30')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_RECORD_USER_USAGE_CONCURRENCY: z
+            .string()
+            .default('20')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_RECORD_NODE_USAGE_CONCURRENCY: z
+            .string()
+            .default('40')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(2000)),
+        QUEUE_PROFILE_WORKER_CONCURRENCY: z
+            .string()
+            .default('5')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(500)),
+        QUEUE_PROFILE_PMAP_CONCURRENCY: z
+            .string()
+            .default('20')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(500)),
+        QUEUE_PROFILE_GLOBAL_CONCURRENCY: z
+            .string()
+            .default('3')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(100)),
+        QUEUE_START_ALL_NODES_GLOBAL_CONCURRENCY: z
+            .string()
+            .default('1')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(100)),
+        QUEUE_QUERY_NODES_CONCURRENCY: z
+            .string()
+            .default('5')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(500)),
+        QUEUE_QUERY_NODES_PMAP_CONCURRENCY: z
+            .string()
+            .default('20')
+            .transform((val) => parseInt(val, 10))
+            .pipe(z.number().int().min(1).max(500)),
     })
     .superRefine((data, ctx) => {
         if (!data.REDIS_SOCKET && (!data.REDIS_HOST || !data.REDIS_PORT)) {

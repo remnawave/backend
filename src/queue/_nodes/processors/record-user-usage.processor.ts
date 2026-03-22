@@ -25,7 +25,7 @@ import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 import { IRecordUserUsagePayload } from '../interfaces';
 
 @Processor(QUEUES_NAMES.NODES.RECORD_USER_USAGE, {
-    concurrency: 20,
+    concurrency: parseInt(process.env.QUEUE_RECORD_USER_USAGE_CONCURRENCY || '20', 10),
 })
 export class RecordUserUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordUserUsageQueueProcessor.name);

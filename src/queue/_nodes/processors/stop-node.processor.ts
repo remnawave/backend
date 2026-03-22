@@ -15,7 +15,7 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 
 @Processor(QUEUES_NAMES.NODES.STOP, {
-    concurrency: 30,
+    concurrency: parseInt(process.env.QUEUE_STOP_NODE_CONCURRENCY || '30', 10),
 })
 export class StopNodeProcessor extends WorkerHost {
     private readonly logger = new Logger(StopNodeProcessor.name);

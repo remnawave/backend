@@ -16,7 +16,7 @@ import {
 import { NODES_JOB_NAMES } from '../constants/nodes-job-name.constant';
 
 @Processor(QUEUES_NAMES.NODES.BULK_USERS, {
-    concurrency: 20,
+    concurrency: parseInt(process.env.QUEUE_BULK_USERS_CONCURRENCY || '20', 10),
 })
 export class NodeBulkUsersQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(NodeBulkUsersQueueProcessor.name);

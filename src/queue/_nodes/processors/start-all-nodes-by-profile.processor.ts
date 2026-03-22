@@ -3,6 +3,7 @@ import pMap from 'p-map';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ConfigService } from '@nestjs/config';
 import { Logger, Scope } from '@nestjs/common';
 
 import { AxiosService } from '@common/axios/axios.service';
@@ -24,7 +25,7 @@ import { NODES_JOB_NAMES } from '../constants';
         scope: Scope.REQUEST,
     },
     {
-        concurrency: 5,
+        concurrency: parseInt(process.env.QUEUE_PROFILE_WORKER_CONCURRENCY || '5', 10),
     },
 )
 export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
@@ -36,9 +37,10 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
+        private readonly configService: ConfigService,
     ) {
         super();
-        this.CONCURRENCY = 20;
+        this.CONCURRENCY = this.configService.getOrThrow<number>('QUEUE_PROFILE_PMAP_CONCURRENCY');
     }
 
     async process(job: Job) {
