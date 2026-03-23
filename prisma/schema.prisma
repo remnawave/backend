@@ -81,6 +81,12 @@ model Users {
 
   externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
+  @@index([status, expireAt])
+  @@index([trafficLimitStrategy, status])
+  @@index([expireAt])
+  @@index([externalSquadUuid])
+  @@index([telegramId])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -98,6 +104,7 @@ model UserTraffic {
   user              Users  @relation(fields: [tId], references: [tId], onDelete: Cascade)
   lastConnectedNode Nodes? @relation(fields: [lastConnectedNodeUuid], references: [uuid], onDelete: SetNull)
 
+  @@index([onlineAt])
   @@map("user_traffic")
 }
 
@@ -300,6 +307,7 @@ model Hosts {
   nodes                  HostsToNodes[]
   excludedInternalSquads InternalSquadHostExclusions[]
 
+  @@index([configProfileInboundUuid])
   @@map("hosts")
 }
 
@@ -407,6 +415,7 @@ model InternalSquadInbounds {
   inbound       ConfigProfileInbounds @relation(fields: [inboundUuid], references: [uuid], onDelete: Cascade)
 
   @@id([internalSquadUuid, inboundUuid])
+  @@index([inboundUuid])
   @@map("internal_squad_inbounds")
 }
 
