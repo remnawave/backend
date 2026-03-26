@@ -939,7 +939,13 @@ export class UsersRepository {
     }
 
     public async getAllTags(): Promise<string[]> {
-        const result = await this.qb.kysely.selectFrom('users').select('tag').distinct().execute();
+        const result = await this.qb.kysely
+            .selectFrom('users')
+            .select('tag')
+            .where('tag', 'is not', null)
+            .distinct()
+            .limit(1000)
+            .execute();
 
         return result.map((user) => user.tag).filter((tag) => tag !== null);
     }
