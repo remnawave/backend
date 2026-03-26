@@ -468,6 +468,7 @@ export class UsersRepository {
 
                 return eb.or(conditions);
             })
+            .orderBy('users.tId', 'desc')
             .execute();
 
         return user.map((user) => new UserEntity(user));
