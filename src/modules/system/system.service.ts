@@ -109,7 +109,7 @@ export class SystemService implements OnApplicationBootstrap {
     public async getStats(): Promise<TResult<GetStatsResponseModel>> {
         try {
             const userStats = await this.getShortUserStats();
-            const onlineUsers = await this.getOnlineUsers();
+            const onlineUsers = await this.queryBus.execute(new CountOnlineUsersQuery());
             const nodesSumLifetime = await this.queryBus.execute(new GetSumLifetimeQuery());
 
             if (!userStats.isOk || !nodesSumLifetime.isOk || !onlineUsers.isOk) {
@@ -133,7 +133,7 @@ export class SystemService implements OnApplicationBootstrap {
                     users: userStats.response.statusCounts,
                     onlineStats: userStats.response.onlineStats,
                     nodes: {
-                        totalOnline: onlineUsers.response?.usersOnline || 0,
+                        totalOnline: onlineUsers.response.usersOnline,
                         totalBytesLifetime: nodesSumLifetime.response.totalBytes,
                     },
                 }),
@@ -375,12 +375,6 @@ export class SystemService implements OnApplicationBootstrap {
     private async getShortUserStats(): Promise<TResult<ShortUserStats>> {
         return this.queryBus.execute<GetShortUserStatsQuery, TResult<ShortUserStats>>(
             new GetShortUserStatsQuery(),
-        );
-    }
-
-    private async getOnlineUsers(): Promise<TResult<{ usersOnline: number }>> {
-        return this.queryBus.execute<CountOnlineUsersQuery, TResult<{ usersOnline: number }>>(
-            new CountOnlineUsersQuery(),
         );
     }
 

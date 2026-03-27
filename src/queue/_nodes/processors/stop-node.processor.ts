@@ -57,7 +57,6 @@ export class StopNodeProcessor extends WorkerHost {
                         isConnected: false,
                         isConnecting: false,
                         isDisabled: true,
-                        usersOnline: 0,
                     }),
                 );
             }

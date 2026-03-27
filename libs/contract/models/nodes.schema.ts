@@ -19,16 +19,11 @@ export const NodesSchema = z.object({
             .transform((str) => new Date(str)),
     ),
     lastStatusMessage: z.nullable(z.string()),
-    xrayVersion: z.nullable(z.string()),
-    nodeVersion: z.nullable(z.string()),
-    xrayUptime: z.string(),
     isTrafficTrackingActive: z.boolean(),
     trafficResetDay: z.nullable(z.number().int()),
     trafficLimitBytes: z.nullable(z.number()),
     trafficUsedBytes: z.nullable(z.number()),
     notifyPercent: z.nullable(z.number().int()),
-    usersOnline: z.nullable(z.number().int()),
-
     viewPosition: z.number().int(),
     countryCode: z.string(),
     consumptionMultiplier: z.number(),
@@ -52,4 +47,12 @@ export const NodesSchema = z.object({
     provider: z.nullable(PartialInfraProviderSchema),
     activePluginUuid: z.nullable(z.string().uuid()),
     system: z.nullable(NodeSystemSchema),
+    versions: z.nullable(
+        z.object({
+            xray: z.string(),
+            node: z.string(),
+        }),
+    ),
+    xrayUptime: z.number(),
+    usersOnline: z.number(),
 });

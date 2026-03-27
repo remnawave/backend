@@ -3,7 +3,7 @@ import { fromNanoToNumber } from '@common/utils/nano';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { InfraProviderEntity } from '@modules/infra-billing/entities';
 
-import { INodeSystem } from '../interfaces';
+import { INodeHotCache, INodeSystem, INodeVersions } from '../interfaces';
 import { NodesEntity } from '../entities';
 
 export class NodeResponseModel {
@@ -16,14 +16,9 @@ export class NodeResponseModel {
     public isDisabled: boolean;
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
-    public xrayVersion: null | string;
-    public nodeVersion: null | string;
-    public xrayUptime: string;
-    public isTrafficTrackingActive: boolean;
     public trafficResetDay: null | number;
-    public usersOnline: null | number;
     public consumptionMultiplier: number;
-
+    public isTrafficTrackingActive: boolean;
     public trafficLimitBytes: null | number;
     public trafficUsedBytes: null | number;
     public notifyPercent: null | number;
@@ -42,9 +37,12 @@ export class NodeResponseModel {
     public provider: InfraProviderEntity | null;
     public activePluginUuid: string | null;
 
+    public xrayUptime: number;
+    public usersOnline: number;
     public system: INodeSystem | null;
+    public versions: INodeVersions | null;
 
-    constructor(data: NodesEntity, system: INodeSystem | null) {
+    constructor(data: NodesEntity, hotCache: INodeHotCache) {
         this.uuid = data.uuid;
         this.name = data.name;
         this.address = data.address;
@@ -54,15 +52,11 @@ export class NodeResponseModel {
         this.isDisabled = data.isDisabled;
         this.lastStatusChange = data.lastStatusChange;
         this.lastStatusMessage = data.lastStatusMessage;
-        this.xrayVersion = data.xrayVersion;
-        this.nodeVersion = data.nodeVersion;
-        this.xrayUptime = data.xrayUptime;
         this.isTrafficTrackingActive = data.isTrafficTrackingActive;
         this.trafficResetDay = data.trafficResetDay;
         this.trafficLimitBytes = Number(data.trafficLimitBytes);
         this.trafficUsedBytes = Number(data.trafficUsedBytes);
         this.notifyPercent = data.notifyPercent;
-        this.usersOnline = data.usersOnline;
 
         this.consumptionMultiplier = fromNanoToNumber(data.consumptionMultiplier);
 
@@ -81,6 +75,10 @@ export class NodeResponseModel {
         this.providerUuid = data.providerUuid;
         this.provider = data.provider;
         this.activePluginUuid = data.activePluginUuid;
-        this.system = system;
+
+        this.system = hotCache.system;
+        this.usersOnline = hotCache.onlineUsers;
+        this.versions = hotCache.versions;
+        this.xrayUptime = hotCache.xrayUptime;
     }
 }

@@ -20,9 +20,9 @@ import {
     TorrentBlockerEvent,
 } from '@integration-modules/notifications/interfaces';
 
+import { INodeHotCache, INodeSystem, INodeVersions } from '@modules/nodes/interfaces';
 import { GetFullUserResponseModel } from '@modules/users/models';
 import { NodeResponseModel } from '@modules/nodes/models';
-import { INodeSystem } from '@modules/nodes/interfaces';
 
 import { WebhookLoggerQueueService } from '@queue/notifications/webhook-logger/webhook-logger.service';
 
@@ -259,14 +259,20 @@ export class WebhookEvents {
         }
     }
 
-    private async getNodesSystemInfo(uuid: string): Promise<INodeSystem | null> {
-        const [rawInfo, rawHot] = await Promise.all([
+    private async getNodesSystemInfo(uuid: string): Promise<INodeHotCache> {
+        const [info, stats, onlineUsers, xrayUptime, versions] = await Promise.all([
             this.rawCacheService.get<INodeSystem['info']>(CACHE_KEYS.NODE_SYSTEM_INFO(uuid)),
             this.rawCacheService.get<INodeSystem['stats']>(CACHE_KEYS.NODE_SYSTEM_STATS(uuid)),
+            this.rawCacheService.getNumber(CACHE_KEYS.NODE_USERS_ONLINE(uuid)),
+            this.rawCacheService.getNumber(CACHE_KEYS.NODE_XRAY_UPTIME(uuid)),
+            this.rawCacheService.get<INodeVersions>(CACHE_KEYS.NODE_VERSIONS(uuid)),
         ]);
 
-        if (!rawInfo || !rawHot) return null;
-
-        return { info: rawInfo, stats: rawHot };
+        return {
+            system: info && stats ? { info, stats } : null,
+            onlineUsers,
+            versions,
+            xrayUptime,
+        };
     }
 }

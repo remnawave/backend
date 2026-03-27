@@ -133,7 +133,16 @@ export class NodesService {
 
             return ok(
                 nodes.map(
-                    (node) => new NodeResponseModel(node, systemInfoMap.get(node.uuid) ?? null),
+                    (node) =>
+                        new NodeResponseModel(
+                            node,
+                            systemInfoMap.get(node.uuid) ?? {
+                                system: null,
+                                onlineUsers: 0,
+                                versions: null,
+                                xrayUptime: 0,
+                            },
+                        ),
                 ),
             );
         } catch (error) {
@@ -346,6 +355,8 @@ export class NodesService {
                 return fail(ERRORS.NODE_NOT_FOUND);
             }
 
+            await this.nodesSystemCacheService.delete(node.uuid);
+
             if (!node.activeConfigProfileUuid || node.activeInbounds.length === 0) {
                 const result = await this.nodesRepository.update({
                     uuid: node.uuid,
@@ -355,7 +366,6 @@ export class NodesService {
                     isConnected: false,
                     lastStatusMessage: null,
                     lastStatusChange: new Date(),
-                    usersOnline: 0,
                 });
 
                 if (!result) {
@@ -411,6 +421,8 @@ export class NodesService {
                 });
             }
 
+            await this.nodesSystemCacheService.delete(node.uuid);
+
             const result = await this.nodesRepository.update({
                 uuid: node.uuid,
                 isDisabled: true,
@@ -418,7 +430,6 @@ export class NodesService {
                 isConnected: false,
                 lastStatusMessage: null,
                 lastStatusChange: new Date(),
-                usersOnline: 0,
             });
 
             if (!result) {
@@ -455,7 +466,16 @@ export class NodesService {
             const systemInfoMap = await this.nodesSystemCacheService.getMany(nodes);
             return ok(
                 nodes.map(
-                    (node) => new NodeResponseModel(node, systemInfoMap.get(node.uuid) ?? null),
+                    (node) =>
+                        new NodeResponseModel(
+                            node,
+                            systemInfoMap.get(node.uuid) ?? {
+                                system: null,
+                                onlineUsers: 0,
+                                versions: null,
+                                xrayUptime: 0,
+                            },
+                        ),
                 ),
             );
         } catch (error) {

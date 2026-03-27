@@ -57,6 +57,12 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
+            await this.rawCacheService.delMany([
+                CACHE_KEYS.NODE_SYSTEM_STATS(nodeUuid),
+                CACHE_KEYS.NODE_USERS_ONLINE(nodeUuid),
+                CACHE_KEYS.NODE_XRAY_UPTIME(nodeUuid),
+            ]);
+
             if (node.activeInbounds.length === 0 || !node.activeConfigProfileUuid) {
                 this.logger.warn(
                     `Node ${nodeUuid} has no active config profile or inbounds, disabling and clearing profile from node...`,
@@ -71,7 +77,6 @@ export class StartNodeProcessor extends WorkerHost {
                         isConnected: false,
                         lastStatusMessage: null,
                         lastStatusChange: new Date(),
-                        usersOnline: 0,
                     }),
                 );
 
@@ -100,7 +105,6 @@ export class StartNodeProcessor extends WorkerHost {
                         lastStatusChange: new Date(),
                         isConnected: false,
                         isConnecting: false,
-                        usersOnline: 0,
                     }),
                 );
 
@@ -119,7 +123,6 @@ export class StartNodeProcessor extends WorkerHost {
                         lastStatusChange: new Date(),
                         isConnected: false,
                         isConnecting: false,
-                        usersOnline: 0,
                     }),
                 );
 
@@ -169,7 +172,6 @@ export class StartNodeProcessor extends WorkerHost {
                         isConnected: false,
                         lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
                         lastStatusChange: new Date(),
-                        usersOnline: 0,
                     }),
                 );
 
@@ -207,8 +209,6 @@ export class StartNodeProcessor extends WorkerHost {
             this.logger.log(`Started node in ${formatExecutionTime(reqStartTime)}`);
 
             if (!startNodeResult.isOk) {
-                await this.rawCacheService.del(CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid));
-
                 await this.commandBus.execute(
                     new UpdateNodeCommand({
                         uuid: node.uuid,
@@ -216,7 +216,6 @@ export class StartNodeProcessor extends WorkerHost {
                         lastStatusChange: new Date(),
                         isConnected: false,
                         isConnecting: false,
-                        usersOnline: 0,
                     }),
                 );
 
@@ -225,27 +224,35 @@ export class StartNodeProcessor extends WorkerHost {
 
             const nodeResponse = startNodeResult.response.response;
 
-            await this.rawCacheService.set(
-                CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid),
-                nodeResponse.system.info,
-            );
-
-            await this.rawCacheService.set(
-                CACHE_KEYS.NODE_SYSTEM_STATS(node.uuid),
-                nodeResponse.system.stats,
-                CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
-            );
+            await this.rawCacheService.setMany([
+                {
+                    key: CACHE_KEYS.NODE_SYSTEM_INFO(node.uuid),
+                    value: nodeResponse.system.info,
+                },
+                {
+                    key: CACHE_KEYS.NODE_VERSIONS(node.uuid),
+                    value:
+                        nodeResponse.nodeInformation.version && nodeResponse.version
+                            ? {
+                                  xray: nodeResponse.version,
+                                  node: nodeResponse.nodeInformation.version,
+                              }
+                            : null,
+                },
+                {
+                    key: CACHE_KEYS.NODE_SYSTEM_STATS(node.uuid),
+                    value: nodeResponse.system.stats,
+                    ttlSeconds: CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+                },
+            ]);
 
             const updateNodeResult = await this.commandBus.execute(
                 new UpdateNodeCommand({
                     uuid: node.uuid,
-                    xrayVersion: nodeResponse.version,
-                    nodeVersion: nodeResponse.nodeInformation?.version || null,
                     isConnected: nodeResponse.isStarted,
                     lastStatusMessage: nodeResponse.error ?? null,
                     lastStatusChange: new Date(),
                     isConnecting: false,
-                    usersOnline: 0,
                 }),
             );
 

@@ -27,12 +27,12 @@ export class GetNodesRecapHandler implements IQueryHandler<GetNodesRecapQuery> {
             const countries = new Set<string>();
 
             for (const row of nodes) {
-                const systemInfo = systemInfoMap.get(row.uuid);
-                if (!systemInfo) {
+                const hotCache = systemInfoMap.get(row.uuid);
+                if (!hotCache || !hotCache.system) {
                     continue;
                 }
-                totalRamBytes += systemInfo.info.memoryTotal;
-                totalCpuCores += systemInfo.info.cpus;
+                totalRamBytes += hotCache.system.info.memoryTotal;
+                totalCpuCores += hotCache.system.info.cpus;
                 if (row.countryCode && row.countryCode !== 'XX') {
                     countries.add(row.countryCode);
                 }

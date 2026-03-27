@@ -177,11 +177,7 @@ model Nodes {
 
   lastStatusChange  DateTime? @map("last_status_change")
   lastStatusMessage String?   @map("last_status_message")
-  xrayVersion       String?   @map("xray_version")
-  nodeVersion       String?   @map("node_version")
-  xrayUptime        String    @default("0") @map("xray_uptime")
 
-  usersOnline           Int?   @default(0) @map("users_online")
   consumptionMultiplier BigInt @default(1000000000) @map("consumption_multiplier")
 
   isTrafficTrackingActive Boolean @default(false) @map("is_traffic_tracking_active")

@@ -17,12 +17,6 @@ export class NodesEntity implements Nodes {
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
 
-    public xrayVersion: null | string;
-    public nodeVersion: null | string;
-    public xrayUptime: string;
-
-    public usersOnline: null | number;
-
     public isTrafficTrackingActive: boolean;
     public trafficResetDay: null | number;
     public trafficLimitBytes: bigint | null;

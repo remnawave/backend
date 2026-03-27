@@ -189,54 +189,60 @@ export class ExportMetricsTask {
                     node_uuid: node.uuid,
                 } satisfies INodeMetricLabel;
 
-                this.nodeOnlineUsers.set(baseNodeLabels, node.usersOnline ?? 0);
                 this.nodeStatus.set(baseNodeLabels, node.isConnected ? 1 : 0);
 
                 if (nodesSystemStats.isOk && nodesSystemStats.response.get(node.uuid)) {
                     const nodeSystemStats = nodesSystemStats.response.get(node.uuid);
 
                     if (nodeSystemStats) {
+                        this.nodeOnlineUsers.set(baseNodeLabels, nodeSystemStats.onlineUsers);
+                    }
+
+                    if (nodeSystemStats && nodeSystemStats.system) {
                         this.nodeSystemInfo.set(
                             {
                                 node_uuid: node.uuid,
-                                arch: nodeSystemStats.info.arch,
-                                cpu_model: nodeSystemStats.info.cpuModel,
-                                hostname: nodeSystemStats.info.hostname,
-                                platform: nodeSystemStats.info.platform,
-                                release: nodeSystemStats.info.release,
-                                version: nodeSystemStats.info.version,
+                                arch: nodeSystemStats.system.info.arch,
+                                cpu_model: nodeSystemStats.system.info.cpuModel,
+                                hostname: nodeSystemStats.system.info.hostname,
+                                platform: nodeSystemStats.system.info.platform,
+                                release: nodeSystemStats.system.info.release,
+                                version: nodeSystemStats.system.info.version,
                             } satisfies INodeSystemMetricLabels,
                             1,
                         );
 
                         this.nodeMemoryTotalBytes.set(
                             baseNodeLabels,
-                            nodeSystemStats.info.memoryTotal,
+                            nodeSystemStats.system.info.memoryTotal,
                         );
                         this.nodeMemoryFreeBytes.set(
                             baseNodeLabels,
-                            nodeSystemStats.stats.memoryFree,
+                            nodeSystemStats.system.stats.memoryFree,
                         );
 
-                        this.nodeUptimeSeconds.set(baseNodeLabels, nodeSystemStats.stats.uptime);
-                        this.nodeCpuCount.set(baseNodeLabels, nodeSystemStats.info.cpus);
+                        this.nodeUptimeSeconds.set(
+                            baseNodeLabels,
+                            nodeSystemStats.system.stats.uptime,
+                        );
+                        this.nodeCpuCount.set(baseNodeLabels, nodeSystemStats.system.info.cpus);
 
-                        if (nodeSystemStats?.stats.interface) {
+                        if (nodeSystemStats && nodeSystemStats.system.stats.interface) {
                             this.nodeNetworkRxBytesPerSec.set(
                                 baseNodeLabels,
-                                nodeSystemStats.stats.interface.rxBytesPerSec,
+                                nodeSystemStats.system.stats.interface.rxBytesPerSec,
                             );
                             this.nodeNetworkTxBytesPerSec.set(
                                 baseNodeLabels,
-                                nodeSystemStats.stats.interface.txBytesPerSec,
+                                nodeSystemStats.system.stats.interface.txBytesPerSec,
                             );
                             this.nodeNetworkRxBytesTotal.set(
                                 baseNodeLabels,
-                                nodeSystemStats.stats.interface.rxTotal,
+                                nodeSystemStats.system.stats.interface.rxTotal,
                             );
                             this.nodeNetworkTxBytesTotal.set(
                                 baseNodeLabels,
-                                nodeSystemStats.stats.interface.txTotal,
+                                nodeSystemStats.system.stats.interface.txTotal,
                             );
                         } else {
                             this.removeNodeSystemMetrics(baseNodeLabels);

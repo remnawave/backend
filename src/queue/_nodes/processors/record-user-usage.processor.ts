@@ -12,9 +12,12 @@ import { GetUsersStatsCommand } from '@remnawave/node-contract';
 import { fromNanoToNumber } from '@common/utils/nano';
 import { RawCacheService } from '@common/raw-cache';
 import { AxiosService } from '@common/axios';
-import { INTERNAL_CACHE_KEYS, INTERNAL_CACHE_KEYS_TTL } from '@libs/contracts/constants';
-
-import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
+import {
+    CACHE_KEYS,
+    CACHE_KEYS_TTL,
+    INTERNAL_CACHE_KEYS,
+    INTERNAL_CACHE_KEYS_TTL,
+} from '@libs/contracts/constants';
 
 import { PushFromRedisQueueService } from '@queue/push-from-redis/push-from-redis.service';
 import { UsersQueuesService } from '@queue/_users';
@@ -66,11 +69,10 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
                         consumptionMultiplier,
                     );
                 case false:
-                    await this.commandBus.execute(
-                        new UpdateNodeCommand({
-                            uuid: nodeUuid,
-                            usersOnline: 0,
-                        }),
+                    await this.rawCacheService.set(
+                        CACHE_KEYS.NODE_USERS_ONLINE(nodeUuid),
+                        0,
+                        CACHE_KEYS_TTL.NODE_USERS_ONLINE,
                     );
 
                     this.logger.error(
@@ -99,11 +101,10 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
 
         try {
             if (response.response.users.length === 0) {
-                await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: nodeUuid,
-                        usersOnline: 0,
-                    }),
+                await this.rawCacheService.set(
+                    CACHE_KEYS.NODE_USERS_ONLINE(nodeUuid),
+                    0,
+                    CACHE_KEYS_TTL.NODE_USERS_ONLINE,
                 );
 
                 return;
@@ -140,25 +141,14 @@ export class RecordUserUsageQueueProcessor extends WorkerHost {
                 };
             });
 
-            if (userUsageIndex === 0) {
-                await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: nodeUuid,
-                        usersOnline: 0,
-                    }),
-                );
-                return;
-            }
-
             pipeline.expire(nodeRedisKey, INTERNAL_CACHE_KEYS_TTL.NODE_USER_USAGE);
 
             await pipeline.exec();
 
-            await this.commandBus.execute(
-                new UpdateNodeCommand({
-                    uuid: nodeUuid,
-                    usersOnline: userUsageIndex,
-                }),
+            await this.rawCacheService.set(
+                CACHE_KEYS.NODE_USERS_ONLINE(nodeUuid),
+                userUsageIndex,
+                CACHE_KEYS_TTL.NODE_USERS_ONLINE,
             );
 
             await this.usersQueuesService.updateUserUsage(userUsageList.slice(0, userUsageIndex));

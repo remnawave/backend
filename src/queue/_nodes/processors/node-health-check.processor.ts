@@ -102,21 +102,25 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             new UpdateNodeCommand({
                 uuid: nodeUuid,
                 isConnected: true,
-                lastStatusChange: new Date(),
-                lastStatusMessage: '',
-                xrayUptime: stats.xrayInfo.uptime.toString(),
             }),
-        );
-
-        await this.rawCacheService.set(
-            CACHE_KEYS.NODE_SYSTEM_STATS(nodeUuid),
-            stats.system.stats,
-            CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
         );
 
         if (!nodeUpdatedResponse.isOk) {
             return;
         }
+
+        await this.rawCacheService.setMany([
+            {
+                key: CACHE_KEYS.NODE_SYSTEM_STATS(nodeUuid),
+                value: stats.system.stats,
+                ttlSeconds: CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+            },
+            {
+                key: CACHE_KEYS.NODE_XRAY_UPTIME(nodeUuid),
+                value: stats.xrayInfo.uptime,
+                ttlSeconds: CACHE_KEYS_TTL.NODE_XRAY_UPTIME,
+            },
+        ]);
 
         const reports = stats.plugins.torrentBlocker.reportsCount;
         if (reports !== undefined && reports > 0) {
@@ -146,7 +150,11 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
         isConnected: boolean,
         message: string | undefined,
     ) {
-        await this.rawCacheService.del(CACHE_KEYS.NODE_SYSTEM_INFO(nodeUuid));
+        await this.rawCacheService.delMany([
+            CACHE_KEYS.NODE_SYSTEM_INFO(nodeUuid),
+            CACHE_KEYS.NODE_USERS_ONLINE(nodeUuid),
+            CACHE_KEYS.NODE_XRAY_UPTIME(nodeUuid),
+        ]);
 
         const newNodeEntity = await this.commandBus.execute(
             new UpdateNodeCommand({
@@ -154,8 +162,6 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
                 isConnected: false,
                 lastStatusChange: new Date(),
                 lastStatusMessage: message,
-                usersOnline: 0,
-                xrayUptime: '0',
             }),
         );
 

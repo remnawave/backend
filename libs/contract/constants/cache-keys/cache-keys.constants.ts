@@ -10,6 +10,9 @@ export const CACHE_KEYS = {
     REMNAWAVE_SETTINGS: 'remnawave_settings',
     NODE_SYSTEM_INFO: (uuid: string) => `node_system_info:${uuid}`,
     NODE_SYSTEM_STATS: (uuid: string) => `node_system_stats:${uuid}`,
+    NODE_USERS_ONLINE: (uuid: string) => `node_users_online:${uuid}`,
+    NODE_VERSIONS: (uuid: string) => `node_versions:${uuid}`,
+    NODE_XRAY_UPTIME: (uuid: string) => `node_xray_uptime:${uuid}`,
 } as const;
 
 export const CACHE_KEYS_TTL = {
@@ -17,6 +20,8 @@ export const CACHE_KEYS_TTL = {
     EXTERNAL_SQUAD_SETTINGS: 3_600, // 1 hour
     SUBSCRIPTION_SETTINGS: 3_600, // 1 hour
     NODE_SYSTEM_STATS: 30, // 30 seconds
+    NODE_USERS_ONLINE: 16, // 16 seconds
+    NODE_XRAY_UPTIME: 16, // 16 seconds
 } as const;
 
 export const INTERNAL_CACHE_KEYS = {
