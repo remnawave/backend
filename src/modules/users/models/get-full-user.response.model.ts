@@ -49,9 +49,6 @@ export class GetFullUserResponseModel {
         firstConnectedAt: Date | null;
     };
 
-    public readonly subLastUserAgent: null; // TODO: remove before release
-    public readonly subLastOpenedAt: null; // TODO: remove before release
-
     constructor(entity: UserEntity, subPublicDomain: string) {
         this.id = Number(entity.tId);
         this.uuid = entity.uuid;
@@ -96,8 +93,5 @@ export class GetFullUserResponseModel {
         };
 
         this.subscriptionUrl = `https://${subPublicDomain}/${entity.shortUuid}`;
-
-        this.subLastUserAgent = null;
-        this.subLastOpenedAt = null;
     }
 }
