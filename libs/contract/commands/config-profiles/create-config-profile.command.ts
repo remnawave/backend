@@ -23,7 +23,7 @@ export namespace CreateConfigProfileCommand {
                 /^[A-Za-z0-9_\s-]+$/,
                 'Name can only contain letters, numbers, underscores, dashes and spaces',
             ),
-        config: z.object({}).passthrough(),
+        config: z.union([z.string(), z.object({}).passthrough()]),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

@@ -109,6 +109,7 @@
     "husky": "9.1.7",
     "hygen": "^6.2.11",
     "ioredis": "^5.9.3",
+    "jsonc-parser": "^3.3.1",
     "jsonwebtoken": "^9.0.3",
     "kysely": "^0.28.11",
     "morgan": "^1.10.1",
