@@ -25,7 +25,7 @@ export namespace UpdateConfigProfileCommand {
                 'Name can only contain letters, numbers, underscores, dashes and spaces',
             )
             .optional(),
-        config: z.object({}).passthrough().optional(),
+        config: z.union([z.string(), z.object({}).passthrough()]).optional(),
     });
 
     export type Request = z.infer<typeof RequestSchema>;

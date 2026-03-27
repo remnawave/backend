@@ -1,6 +1,7 @@
 import { createPublicKey, createPrivateKey, KeyObject } from 'node:crypto';
 import { hasher } from 'node-object-hash';
 import { readFileSync } from 'node:fs';
+import { parse } from 'jsonc-parser';
 
 import { HashedSet } from '@remnawave/hashed-set';
 
@@ -61,9 +62,9 @@ export class XRayConfig {
 
         if (typeof configInput === 'string') {
             try {
-                config = JSON.parse(configInput) as IXrayConfig;
+                config = parse(configInput) as IXrayConfig;
             } catch (error) {
-                throw new Error(`Invalid JSON input or file path: ${error}`);
+                throw new Error(`Invalid JSON/JSONC input: ${error}`);
             }
         } else if (typeof configInput === 'object') {
             config = configInput as IXrayConfig;
