@@ -98,17 +98,6 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             return;
         }
 
-        const nodeUpdatedResponse = await this.commandBus.execute(
-            new UpdateNodeCommand({
-                uuid: nodeUuid,
-                isConnected: true,
-            }),
-        );
-
-        if (!nodeUpdatedResponse.isOk) {
-            return;
-        }
-
         await this.rawCacheService.setMany([
             {
                 key: CACHE_KEYS.NODE_SYSTEM_STATS(nodeUuid),
@@ -134,6 +123,17 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
         }
 
         if (!isConnected) {
+            const nodeUpdatedResponse = await this.commandBus.execute(
+                new UpdateNodeCommand({
+                    uuid: nodeUuid,
+                    isConnected: true,
+                }),
+            );
+
+            if (!nodeUpdatedResponse.isOk) {
+                return;
+            }
+
             await this.nodesQueuesService.startNode({ nodeUuid });
 
             this.eventEmitter.emit(
