@@ -38,7 +38,7 @@ export class XrayGeneratorService {
             if (!link) continue;
 
             if (isHapp && host.clientOverrides.serverDescription) {
-                links.push(`${link}&serverDescription=${host.clientOverrides.serverDescription}`);
+                links.push(`${link}?serverDescription=${host.clientOverrides.serverDescription}`);
             } else {
                 links.push(link);
             }
