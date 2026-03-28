@@ -9,6 +9,8 @@ export * from './infra-billing';
 export * from './internal-squads';
 export * from './ip-control';
 export * from './keygen';
+export * from './metadata';
+export * from './node-plugins';
 export * from './nodes';
 export * from './passkeys';
 export * from './remnawave-settings';

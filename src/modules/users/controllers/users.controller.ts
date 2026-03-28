@@ -33,6 +33,7 @@ import {
     GetUserByUuidCommand,
     GetUserSubscriptionRequestHistoryCommand,
     ResetUserTrafficCommand,
+    ResolveUserCommand,
     RevokeUserSubscriptionCommand,
     UpdateUserCommand,
 } from '@libs/contracts/commands';
@@ -67,6 +68,8 @@ import {
     GetUserSubscriptionRequestHistoryResponseDto,
     ResetUserTrafficRequestDto,
     ResetUserTrafficResponseDto,
+    ResolveUserRequestBodyDto,
+    ResolveUserResponseDto,
     RevokeUserSubscriptionBodyDto,
     RevokeUserSubscriptionRequestDto,
     RevokeUserSubscriptionResponseDto,
@@ -180,6 +183,7 @@ export class UsersController {
     })
     async getAllUsers(@Query() query: GetAllUsersQueryDto): Promise<GetAllUsersResponseDto> {
         const { start, size, filters, filterModes, globalFilterMode, sorting } = query;
+
         const result = await this.usersService.getAllUsers({
             start,
             size,
@@ -559,6 +563,29 @@ export class UsersController {
         const data = errorHandler(result);
         return {
             response: new GetFullUserResponseModel(data, this.subPublicDomain),
+        };
+    }
+
+    @ApiNotFoundResponse({
+        description: 'User not found',
+    })
+    @ApiOkResponse({
+        type: ResolveUserResponseDto,
+        description: 'User resolved successfully',
+    })
+    @Endpoint({
+        command: ResolveUserCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: ResolveUserRequestBodyDto,
+    })
+    async resolveUser(
+        @Body() bodyData: ResolveUserRequestBodyDto,
+    ): Promise<ResolveUserResponseDto> {
+        const result = await this.usersService.resolveUser(bodyData);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
         };
     }
 }

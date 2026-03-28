@@ -15,8 +15,8 @@ type EventHandler = (event: UserEvent) => string | null;
 
 @Injectable()
 export class UsersEvents implements OnApplicationBootstrap {
-    private readonly adminId: string | undefined;
-    private readonly adminThreadId: string | undefined;
+    private readonly chatId: string | undefined;
+    private readonly threadId: string | undefined;
     private readonly logger = new Logger(UsersEvents.name);
 
     constructor(
@@ -25,8 +25,10 @@ export class UsersEvents implements OnApplicationBootstrap {
         private readonly telegramQueue: TelegramBotLoggerQueueService,
         private readonly configService: ConfigService,
     ) {
-        this.adminId = this.configService.get<string>('TELEGRAM_NOTIFY_USERS_CHAT_ID');
-        this.adminThreadId = this.configService.get<string>('TELEGRAM_NOTIFY_USERS_THREAD_ID');
+        const chatId = this.configService.get<string>('TELEGRAM_NOTIFY_USERS');
+        if (chatId) {
+            [this.chatId, this.threadId] = chatId.split(':');
+        }
     }
 
     async onApplicationBootstrap(): Promise<void> {
@@ -34,7 +36,7 @@ export class UsersEvents implements OnApplicationBootstrap {
     }
 
     private registerEnabledListeners(): void {
-        if (!this.adminId) return;
+        if (!this.chatId) return;
 
         for (const [eventName, template] of Object.entries(USERS_EVENTS_TEMPLATES)) {
             if (!this.notificationsConfig.isEnabled(eventName as TUserEvents, 'telegram')) {
@@ -57,8 +59,8 @@ export class UsersEvents implements OnApplicationBootstrap {
 
         await this.telegramQueue.addJobToSendTelegramMessage({
             message,
-            chatId: this.adminId!,
-            threadId: this.adminThreadId,
+            chatId: this.chatId!,
+            threadId: this.threadId,
         });
     }
 }

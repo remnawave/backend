@@ -14,9 +14,9 @@ import { QUEUES_NAMES } from '@queue/queue.enum';
 import {
     IAddUserSubscriptionRequestHistoryPayload,
     ICheckAndUpsertHwidDevicePayload,
+    IFireTorrentBlockerEventJobData,
     IFireUserEventJobData,
     IFireUserEventPayload,
-    IUpdateUserSubPayload,
 } from './interfaces';
 import { USERS_JOB_NAMES } from './constants/users-job-name.constant';
 
@@ -154,21 +154,6 @@ export class UsersQueuesService implements OnApplicationBootstrap {
         );
     }
 
-    public async updateUserSub(payload: IUpdateUserSubPayload) {
-        return this.subscriptionRequestsQueue.add(USERS_JOB_NAMES.UPDATE_USER_SUB, payload, {
-            removeOnComplete: {
-                age: 3_600,
-                count: 500,
-            },
-            removeOnFail: {
-                age: 24 * 3_600,
-            },
-            deduplication: {
-                id: md5(`${payload.userUuid}_USS`),
-            },
-        });
-    }
-
     public async checkAndUpsertHwidDevice(payload: ICheckAndUpsertHwidDevicePayload) {
         return this.subscriptionRequestsQueue.add(USERS_JOB_NAMES.UPSERT_HWID_DEVICE, payload, {
             removeOnComplete: {
@@ -190,6 +175,13 @@ export class UsersQueuesService implements OnApplicationBootstrap {
 
     public async resetMonthlyUserTraffic() {
         return this.resetUserTrafficQueue.add(USERS_JOB_NAMES.RESET_MONTHLY_USER_TRAFFIC, {});
+    }
+
+    public async resetMonthlyRollingUserTraffic() {
+        return this.resetUserTrafficQueue.add(
+            USERS_JOB_NAMES.RESET_MONTHLY_ROLLING_USER_TRAFFIC,
+            {},
+        );
     }
 
     public async resetWeeklyUserTraffic() {
@@ -268,6 +260,10 @@ export class UsersQueuesService implements OnApplicationBootstrap {
                 })),
             );
         }
+    }
+
+    public async fireTorrentBlockerEvent(payload: IFireTorrentBlockerEventJobData) {
+        return this.userEventsQueue.add(USERS_JOB_NAMES.FIRE_TORRENT_BLOCKER_EVENT, payload);
     }
 
     public async bulkUpdateAllUsers(payload: BulkAllUpdateUsersRequestDto) {

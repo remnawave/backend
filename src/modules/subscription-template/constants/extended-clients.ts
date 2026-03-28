@@ -1,5 +1,10 @@
-export const MIHOMO_EXTENDED_CLIENTS = [/^FlClash ?X\//, /^Flowvy\//, /^prizrak-box\//] as const;
-export const XRAY_EXTENDED_CLIENTS = [/^Happ\//] as const;
+export const MIHOMO_EXTENDED_CLIENTS = [
+    /^FlClash ?X\//,
+    /^Flowvy\//,
+    /^prizrak-box\//,
+    /^koala-clash\//,
+] as const;
+export const XRAY_EXTENDED_CLIENTS = [/^Happ\//, /^INCY\//] as const;
 
 export function isMihomoExtendedClient(userAgent: string): boolean {
     return MIHOMO_EXTENDED_CLIENTS.some((client) => client.test(userAgent));
@@ -12,6 +17,7 @@ export function isXrayExtendedClient(userAgent: string): boolean {
 export const JSON_SUBSCRIPTION_FALLBACK_CLIENTS = [
     /^[Ss]treisand/,
     /^Happ\//,
+    /^INCY\//,
     /^ktor-client/,
     /^V2Box/,
     /^io\.github\.saeeddev94\.xray\//,

@@ -3,11 +3,8 @@ import { TUsersStatus } from '@libs/contracts/constants';
 interface IGetStatsResponseData {
     cpu: {
         cores: number;
-        physicalCores: number;
     };
     memory: {
-        active: number;
-        available: number;
         free: number;
         total: number;
         used: number;
@@ -33,11 +30,8 @@ interface IGetStatsResponseData {
 export class GetStatsResponseModel {
     cpu: {
         cores: number;
-        physicalCores: number;
     };
     memory: {
-        active: number;
-        available: number;
         free: number;
         total: number;
         used: number;

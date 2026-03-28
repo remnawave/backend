@@ -22,18 +22,11 @@ const entityToModel = (entity: NodesEntity): Nodes => {
         isDisabled: entity.isDisabled,
         lastStatusChange: entity.lastStatusChange,
         lastStatusMessage: entity.lastStatusMessage,
-        xrayVersion: entity.xrayVersion,
-        nodeVersion: entity.nodeVersion,
-        xrayUptime: entity.xrayUptime,
         isTrafficTrackingActive: entity.isTrafficTrackingActive,
         trafficResetDay: entity.trafficResetDay,
         trafficLimitBytes: entity.trafficLimitBytes,
         trafficUsedBytes: entity.trafficUsedBytes,
         notifyPercent: entity.notifyPercent,
-        usersOnline: entity.usersOnline,
-        cpuCount: entity.cpuCount,
-        cpuModel: entity.cpuModel,
-        totalRam: entity.totalRam,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
         viewPosition: entity.viewPosition,
@@ -43,6 +36,7 @@ const entityToModel = (entity: NodesEntity): Nodes => {
 
         activeConfigProfileUuid: entity.activeConfigProfileUuid,
         providerUuid: entity.providerUuid,
+        activePluginUuid: entity.activePluginUuid,
     };
 };
 

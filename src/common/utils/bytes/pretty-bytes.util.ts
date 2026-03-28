@@ -19,3 +19,8 @@ export function prettyBytesUtil(
 
     return String(res.size);
 }
+
+export function parseRamToBytes(ram: string | null): number {
+    if (!ram) return 0;
+    return xbytes.parseSize(ram, { iec: true });
+}

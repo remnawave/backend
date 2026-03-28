@@ -1,4 +1,3 @@
-import { UpdateSubLastOpenedAndUserAgentHandler } from './update-sub-last-opened-and-user-agent';
 import { BatchResetLimitedUsersTrafficHandler } from './batch-reset-limited-users-traffic';
 import { TriggerThresholdNotificationHandler } from './trigger-threshold-notification';
 import { BulkAllExtendExpirationDateHandler } from './bulk-all-extend-expiration-date';
@@ -14,7 +13,6 @@ import { ResetUserTrafficHandler } from './reset-user-traffic';
 import { BulkSyncUsersHandler } from './bulk-sync-users';
 
 export const COMMANDS = [
-    UpdateSubLastOpenedAndUserAgentHandler,
     BatchResetUserTrafficHandler,
     UpdateExpiredUsersHandler,
     UpdateExceededTrafficUsersHandler,

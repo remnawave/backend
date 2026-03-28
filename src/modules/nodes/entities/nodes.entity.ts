@@ -17,12 +17,6 @@ export class NodesEntity implements Nodes {
     public lastStatusChange: Date | null;
     public lastStatusMessage: null | string;
 
-    public xrayVersion: null | string;
-    public nodeVersion: null | string;
-    public xrayUptime: string;
-
-    public usersOnline: null | number;
-
     public isTrafficTrackingActive: boolean;
     public trafficResetDay: null | number;
     public trafficLimitBytes: bigint | null;
@@ -34,10 +28,6 @@ export class NodesEntity implements Nodes {
     public tags: string[];
     public consumptionMultiplier: bigint;
 
-    public cpuCount: null | number;
-    public cpuModel: null | string;
-    public totalRam: null | string;
-
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -46,6 +36,7 @@ export class NodesEntity implements Nodes {
 
     public providerUuid: string | null;
     public provider: InfraProviderEntity | null;
+    public activePluginUuid: string | null;
 
     constructor(node: Partial<INodesWithResolvedInbounds & Nodes>) {
         Object.assign(this, node);

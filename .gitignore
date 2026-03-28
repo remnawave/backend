@@ -13,6 +13,9 @@
 /libs/subscription-page/build
 /libs/subscription-page/node_modules
 /libs/subscription-page/dist
+/libs/node-plugins/build
+/libs/node-plugins/node_modules
+/libs/node-plugins/dist
 # Logs
 logs
 *.log

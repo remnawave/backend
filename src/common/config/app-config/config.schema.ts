@@ -43,25 +43,22 @@ export const configSchema = z
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
-        TELEGRAM_NOTIFY_USERS_CHAT_ID: z.string().optional(),
-        TELEGRAM_NOTIFY_USERS_THREAD_ID: z
+        TELEGRAM_BOT_API_ROOT: z.string().default('https://api.telegram.org'),
+        TELEGRAM_BOT_PROXY: z
             .string()
-            .transform((val) => (val === '' ? undefined : val))
-            .optional(),
-
-        TELEGRAM_NOTIFY_NODES_CHAT_ID: z.string().optional(),
-        TELEGRAM_NOTIFY_NODES_THREAD_ID: z
-            .string()
-            .transform((val) => (val === '' ? undefined : val))
-            .optional(),
-
-        TELEGRAM_NOTIFY_CRM_CHAT_ID: z.string().optional(),
-        TELEGRAM_NOTIFY_CRM_THREAD_ID: z
-            .string()
-            .transform((val) => (val === '' ? undefined : val))
-            .optional(),
+            .optional()
+            .refine(
+                (val) => val !== 'change_me',
+                'TELEGRAM_BOT_PROXY cannot be set to "change_me"',
+            ),
+        TELEGRAM_NOTIFY_USERS: z.string().optional(),
+        TELEGRAM_NOTIFY_NODES: z.string().optional(),
+        TELEGRAM_NOTIFY_CRM: z.string().optional(),
+        TELEGRAM_NOTIFY_SERVICE: z.string().optional(),
+        TELEGRAM_NOTIFY_TBLOCKER: z.string().optional(),
 
         FRONT_END_DOMAIN: z.string(),
+        PANEL_DOMAIN: z.string().optional(),
         IS_DOCS_ENABLED: z
             .string()
             .default('false')
@@ -106,11 +103,6 @@ export const configSchema = z
             .transform((val) => (val === '' ? 'false' : val))
             .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
         ENABLE_DEBUG_LOGS: z
-            .string()
-            .default('false')
-            .transform((val) => (val === '' ? 'false' : val))
-            .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".'),
-        IS_CROWDIN_EDITOR_ENABLED: z
             .string()
             .default('false')
             .transform((val) => (val === '' ? 'false' : val))
@@ -264,14 +256,6 @@ export const configSchema = z
                     message:
                         'TELEGRAM_BOT_TOKEN is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
                     path: ['TELEGRAM_BOT_TOKEN'],
-                });
-            }
-            if (!data.TELEGRAM_NOTIFY_NODES_CHAT_ID) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    message:
-                        'TELEGRAM_NOTIFY_NODES_CHAT_ID is required when IS_TELEGRAM_NOTIFICATIONS_ENABLED is true',
-                    path: ['TELEGRAM_NOTIFY_NODES_CHAT_ID'],
                 });
             }
         }

@@ -1,4 +1,5 @@
 export const OAUTH2_PROVIDERS = {
+    TELEGRAM: 'telegram',
     GITHUB: 'github',
     POCKETID: 'pocketid',
     YANDEX: 'yandex',

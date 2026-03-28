@@ -9,7 +9,7 @@ export namespace GetPubKeyCommand {
     export const endpointDetails = getEndpointDetails(
         KEYGEN_ROUTES.GET,
         'get',
-        'Get SSL_CERT for Remnawave Node',
+        'Get SECRET_KEY for Remnawave Node',
     );
 
     export const ResponseSchema = z.object({

@@ -63,7 +63,6 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
             const { response: updatedUsers } = usersResponse;
 
             if (updatedUsers.length === 0) {
-                this.logger.debug('No expired users found');
                 return;
             }
 
@@ -103,7 +102,6 @@ export class UsersWatchdogQueueProcessor extends WorkerHost {
             const { response: users } = updateExceededTrafficUsersResult;
 
             if (users.length === 0) {
-                this.logger.debug('No exceeded traffic usage users found');
                 return;
             }
 

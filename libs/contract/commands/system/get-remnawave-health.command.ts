@@ -15,11 +15,21 @@ export namespace GetRemnawaveHealthCommand {
 
     export const ResponseSchema = z.object({
         response: z.object({
-            pm2Stats: z.array(
+            runtimeMetrics: z.array(
                 z.object({
-                    name: z.string(),
-                    memory: z.string(),
-                    cpu: z.string(),
+                    rss: z.number(),
+                    heapUsed: z.number(),
+                    heapTotal: z.number(),
+                    external: z.number(),
+                    arrayBuffers: z.number(),
+                    eventLoopDelayMs: z.number(),
+                    eventLoopP99Ms: z.number(),
+                    activeHandles: z.number(),
+                    uptime: z.number(),
+                    pid: z.number(),
+                    timestamp: z.number(),
+                    instanceId: z.string(),
+                    instanceType: z.string(),
                 }),
             ),
         }),

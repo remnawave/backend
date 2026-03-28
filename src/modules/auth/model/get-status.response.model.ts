@@ -4,10 +4,6 @@ interface IAuthentication {
     passkey: {
         enabled: boolean;
     };
-    tgAuth: {
-        enabled: boolean;
-        botId: number | null;
-    };
     oauth2: {
         providers: Record<TOAuth2ProvidersKeys, boolean>;
     };
