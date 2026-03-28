@@ -139,10 +139,6 @@ export class ResolveProxyConfigService {
         fallbackOptions: IResolveProxyConfigOptions['fallbackOptions'],
         hostCount: number,
     ): string[] | null {
-        if (hostCount === 0) {
-            return settings.customRemarks.emptyHosts;
-        }
-
         if (settings.isShowCustomRemarks) {
             if (fallbackOptions) {
                 if (fallbackOptions.showHwidMaxDeviceRemarks) {
@@ -161,6 +157,10 @@ export class ResolveProxyConfigService {
                 };
                 return statusRemarksMap[user.status] ?? [];
             }
+        }
+
+        if (hostCount === 0) {
+            return settings.customRemarks.emptyHosts;
         }
 
         return null;
