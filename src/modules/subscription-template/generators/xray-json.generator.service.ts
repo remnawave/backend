@@ -72,13 +72,9 @@ const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
         ],
     }),
     hysteria: (host) => ({
-        servers: [
-            {
-                address: host.address,
-                port: host.port,
-                version: 2,
-            },
-        ],
+        address: host.address,
+        port: host.port,
+        version: 2,
     }),
 
     shadowsocks: (host) => ({
