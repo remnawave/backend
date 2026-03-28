@@ -42,7 +42,7 @@ RUN npm prune --omit=dev
 FROM node:24.14-trixie-slim
 
 LABEL org.opencontainers.image.title="Remnawave"
-LABEL org.opencontainers.image.description="Powerful proxy managment tool"
+LABEL org.opencontainers.image.description="Powerful proxy management tool"
 LABEL org.opencontainers.image.url="https://github.com/remnawave/backend"
 LABEL org.opencontainers.image.source="https://github.com/remnawave/backend"
 LABEL org.opencontainers.image.vendor="Remnawave"

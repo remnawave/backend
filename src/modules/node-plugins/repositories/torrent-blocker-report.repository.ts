@@ -18,8 +18,8 @@ import { ITorrentBlockerReportsStats } from '../models';
 
 const FILTER_COLUMN_MAP = {
     id: sql.ref('torrent_blocker_reports.id'),
-    userId: sql.ref('torrent_blocker_reports.userId'),
-    nodeId: sql.ref('torrent_blocker_reports.nodeId'),
+    userId: sql.ref('torrent_blocker_reports.user_id'),
+    nodeId: sql.ref('torrent_blocker_reports.node_id'),
     createdAt: sql.ref('torrent_blocker_reports.created_at'),
     'user.username': sql.ref('users.username'),
     'user.uuid': sql.ref('users.uuid'),
