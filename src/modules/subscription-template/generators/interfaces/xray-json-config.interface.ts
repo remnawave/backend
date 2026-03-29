@@ -61,7 +61,7 @@ export interface XrayJsonConfig {
 
 export interface IGenerateConfigParams {
     hosts: ResolvedProxyConfig[];
-    isHapp: boolean;
+    isExtendedClient: boolean;
     overrideTemplateName?: string;
     ignoreHostXrayJsonTemplate?: boolean;
 }

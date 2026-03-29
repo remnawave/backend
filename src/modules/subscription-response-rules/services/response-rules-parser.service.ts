@@ -54,6 +54,19 @@ export class ResponseRulesParserService {
                     }
                 }
             }
+
+            if (
+                rule.responseModifications &&
+                rule.responseModifications.additionalExtendedClientsRegex
+            ) {
+                for (const regex of rule.responseModifications.additionalExtendedClientsRegex) {
+                    try {
+                        new RegExp(regex);
+                    } catch {
+                        throw new Error(`Invalid regex in rule "${rule.name}": ${regex}`);
+                    }
+                }
+            }
         }
     }
 }

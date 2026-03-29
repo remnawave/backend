@@ -180,7 +180,12 @@ export class XrayJsonGeneratorService {
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
     public async generateConfig(params: IGenerateConfigParams): Promise<string> {
-        const { hosts, isHapp, overrideTemplateName, ignoreHostXrayJsonTemplate = false } = params;
+        const {
+            hosts,
+            isExtendedClient,
+            overrideTemplateName,
+            ignoreHostXrayJsonTemplate = false,
+        } = params;
 
         try {
             const templateContent = (await this.subscriptionTemplateService.getCachedTemplateByType(
@@ -200,12 +205,17 @@ export class XrayJsonGeneratorService {
                       templateContent);
 
                 if (baseTemplate.remnawave) {
-                    const injected = this.applyRemnawaveInjector(baseTemplate, host, hosts, isHapp);
+                    const injected = this.applyRemnawaveInjector(
+                        baseTemplate,
+                        host,
+                        hosts,
+                        isExtendedClient,
+                    );
                     if (injected) configs.push(injected);
                     continue;
                 }
 
-                const outboundConfig = this.buildOutboundConfig(host, isHapp);
+                const outboundConfig = this.buildOutboundConfig(host, isExtendedClient);
                 if (!outboundConfig) continue;
 
                 configs.push({
@@ -225,7 +235,7 @@ export class XrayJsonGeneratorService {
 
     private buildOutboundConfig(
         host: ResolvedProxyConfig,
-        isHapp: boolean,
+        isExtendedClient: boolean,
         tag = 'proxy',
     ): XrayJsonConfig | null {
         try {
@@ -236,7 +246,7 @@ export class XrayJsonGeneratorService {
                 outbounds: [outbound],
             };
 
-            if (isHapp && host.clientOverrides.serverDescription) {
+            if (isExtendedClient && host.clientOverrides.serverDescription) {
                 config.meta = {
                     serverDescription: Buffer.from(
                         host.clientOverrides.serverDescription,
@@ -409,7 +419,7 @@ export class XrayJsonGeneratorService {
         baseTemplate: XrayJsonConfig,
         host: ResolvedProxyConfig,
         allHosts: ResolvedProxyConfig[],
-        isHapp: boolean,
+        isExtendedClient: boolean,
     ): XrayJsonConfig | null {
         const { remnawave: injector, ...template } = baseTemplate;
         if (!injector) return null;
@@ -435,7 +445,7 @@ export class XrayJsonGeneratorService {
             remarks: host.finalRemark,
         };
 
-        if (isHapp && host.clientOverrides.serverDescription) {
+        if (isExtendedClient && host.clientOverrides.serverDescription) {
             config.meta = {
                 serverDescription: Buffer.from(
                     host.clientOverrides.serverDescription,
