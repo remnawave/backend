@@ -133,6 +133,8 @@ export class XrayGeneratorService {
     private buildHysteriaLink(
         host: Extract<ResolvedProxyConfig, { protocol: 'hysteria' }>,
     ): string | null {
+        if (host.transport !== 'hysteria') return null;
+
         const params: Record<string, unknown> = {};
 
         if (host.security === 'tls') {
@@ -145,7 +147,6 @@ export class XrayGeneratorService {
             }
         }
 
-        if (host.transport !== 'hysteria') return null;
         const auth = encodeURIComponent(host.transportOptions.auth);
         const remark = encodeURIComponent(host.finalRemark);
         const query = this.buildQueryString(params);
