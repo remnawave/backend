@@ -95,6 +95,16 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
     ) {
         if (stats.xrayInfo === null) {
             this.logger.error(`Node ${nodeUuid} – xrayInfo is null`);
+
+            await this.commandBus.execute(
+                new UpdateNodeCommand({
+                    uuid: nodeUuid,
+                    isConnected: false,
+                    lastStatusChange: new Date(),
+                    lastStatusMessage: 'Required info is missing. Outdated version?',
+                }),
+            );
+
             return;
         }
 
