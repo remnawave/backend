@@ -170,6 +170,9 @@ export class ExportMetricsTask {
 
             const nodes = nodesResponse.response;
 
+            this.nodeBasicInfo.reset();
+            this.nodeSystemInfo.reset();
+
             const nodesSystemStats = await this.queryBus.execute(
                 new GetNodesSystemStatsQuery(nodes.map((node) => ({ uuid: node.uuid }))),
             );
