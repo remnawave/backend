@@ -38,13 +38,7 @@ export class XrayGeneratorService {
             if (!link) continue;
 
             if (isHapp && host.clientOverrides.serverDescription) {
-                const fragmentIndex = link.indexOf('#');
-                const [base, fragment] =
-                    fragmentIndex >= 0
-                        ? [link.slice(0, fragmentIndex), link.slice(fragmentIndex)]
-                        : [link, ''];
-                const separator = base.includes('?') ? '&' : '?';
-                links.push(`${base}${separator}serverDescription=${host.clientOverrides.serverDescription}${fragment}`);
+                links.push(`${link}?serverDescription=${host.clientOverrides.serverDescription}`);
             } else {
                 links.push(link);
             }
