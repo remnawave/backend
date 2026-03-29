@@ -11,6 +11,11 @@ export function proxyCheckMiddleware(req: Request, res: Response, next: NextFunc
         return next();
     }
 
+    const sourceIp = req.ip || req.socket?.remoteAddress || '';
+    if (sourceIp.startsWith('10.') || sourceIp.startsWith('::ffff:10.')) {
+        return next();
+    }
+
     const isProxy = Boolean(req.headers['x-forwarded-for']);
     const isHttps = Boolean(req.headers['x-forwarded-proto'] === 'https');
 
