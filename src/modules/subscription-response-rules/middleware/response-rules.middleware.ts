@@ -12,10 +12,7 @@ import {
 } from '@libs/contracts/constants';
 
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
-import {
-    isMihomoExtendedClient,
-    isXrayExtendedClient,
-} from '@modules/subscription-template/constants';
+import { isExtendedClient } from '@modules/subscription-template/constants';
 
 import { ResponseRulesMatcherService } from '../services/response-rules-matcher.service';
 import { ISRRContext } from '../interfaces';
@@ -155,6 +152,10 @@ export class ResponseRulesMiddleware implements NestMiddleware {
         userAgent: string,
         clientRegexes: string[] | undefined,
     ): boolean {
+        if (isExtendedClient(userAgent)) {
+            return true;
+        }
+
         if (clientRegexes && clientRegexes.length > 0) {
             for (const pattern of clientRegexes) {
                 let compiled = this.regexCache.get(pattern);
@@ -168,6 +169,6 @@ export class ResponseRulesMiddleware implements NestMiddleware {
             }
         }
 
-        return isMihomoExtendedClient(userAgent) || isXrayExtendedClient(userAgent);
+        return false;
     }
 }
