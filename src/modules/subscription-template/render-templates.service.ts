@@ -46,7 +46,7 @@ export class RenderTemplatesService {
                     subscription: await this.xrayGeneratorService.generateConfig(
                         formattedHosts,
                         SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].isBase64,
-                        srrContext.isXrayExtSupported,
+                        srrContext.isExtendedClient,
                     ),
                     contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].CONTENT_TYPE,
                 };
@@ -65,7 +65,7 @@ export class RenderTemplatesService {
                     subscription: await this.mihomoGeneratorService.generateConfig(
                         formattedHosts,
                         false,
-                        srrContext.isMihomoExtSupported,
+                        srrContext.isExtendedClient,
                         srrContext.overrideTemplateName,
                     ),
                     contentType: SUBSCRIPTION_CONFIG_TYPES['MIHOMO'].CONTENT_TYPE,
@@ -95,7 +95,7 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.xrayJsonGeneratorService.generateConfig({
                         hosts: formattedHosts,
-                        isHapp: srrContext.isXrayExtSupported,
+                        isExtendedClient: srrContext.isExtendedClient,
                         overrideTemplateName: srrContext.overrideTemplateName,
                         ignoreHostXrayJsonTemplate: srrContext.ignoreHostXrayJsonTemplate,
                     }),

@@ -90,6 +90,24 @@ export const ResponseRuleModificationsSchema = z
                         'If you set this flag to **true**, the **Serve JSON at Base Subscription** setting will be ignored (set to **false**).',
                 }),
             ),
+        additionalExtendedClientsRegex: z
+            .array(z.string().min(1))
+            .optional()
+            .describe(
+                JSON.stringify({
+                    markdownDescription:
+                        'Additional regex patterns to match extended clients. Matched clients will receive `serverDescription` in the subscription response.\n\n' +
+                        '**Default Mihomo extended clients:**\n' +
+                        '- `^FlClash ?X/`\n' +
+                        '- `^Flowvy/`\n' +
+                        '- `^prizrak-box/`\n' +
+                        '- `^koala-clash/`\n\n' +
+                        '**Default Xray extended clients:**\n' +
+                        '- `^Happ/`\n' +
+                        '- `^INCY/`\n\n' +
+                        '**Example:** `["^MyClient/", "^CustomApp\\\\/v2"]`',
+                }),
+            ),
     })
     .optional()
     .describe(

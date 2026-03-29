@@ -547,7 +547,10 @@ export class ResolveProxyConfigService {
             address: address,
             port: inputHost.port,
             streamOverrides: {
-                finalMask: toNonEmptyRecord(inbound.streamSettings?.finalmask),
+                finalMask: override(
+                    toNonEmptyRecord(inputHost.finalMask),
+                    toNonEmptyRecord(inbound.streamSettings?.finalmask),
+                ),
                 sockopt: toNonEmptyRecord(inputHost.sockoptParams),
             },
             mux: toNonEmptyRecord(inputHost.muxParams),

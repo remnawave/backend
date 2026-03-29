@@ -21,6 +21,7 @@ export class HostsEntity implements Hosts {
     xHttpExtraParams: null | object;
     muxParams: null | object;
     sockoptParams: null | object;
+    finalMask: null | object;
     isDisabled: boolean;
     serverDescription: null | string;
     allowInsecure: boolean;

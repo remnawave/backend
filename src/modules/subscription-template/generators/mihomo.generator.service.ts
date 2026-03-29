@@ -60,7 +60,7 @@ export class MihomoGeneratorService {
     public async generateConfig(
         hosts: ResolvedProxyConfig[],
         isStash = false,
-        isFlClashX = false,
+        isExtendedClient = false,
         overrideTemplateName?: string,
     ): Promise<string> {
         try {
@@ -87,7 +87,7 @@ export class MihomoGeneratorService {
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
 
-                const node = this.buildProxyNode(host, isFlClashX);
+                const node = this.buildProxyNode(host, isExtendedClient);
                 if (!node) continue;
 
                 data.proxies.push(node);
@@ -101,7 +101,7 @@ export class MihomoGeneratorService {
         }
     }
 
-    private buildProxyNode(host: ResolvedProxyConfig, isFlClashX: boolean): ProxyNode | null {
+    private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
         const node: ProxyNode = {
             name: host.finalRemark,
             type: this.resolveClashType(host.protocol),
@@ -120,7 +120,7 @@ export class MihomoGeneratorService {
 
         node['client-fingerprint'] = this.resolveFingerprint(host);
 
-        if (isFlClashX && host.clientOverrides.serverDescription) {
+        if (isExtendedClient && host.clientOverrides.serverDescription) {
             node.serverDescription = Buffer.from(
                 host.clientOverrides.serverDescription,
                 'base64',

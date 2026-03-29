@@ -12,10 +12,7 @@ import {
 } from '@libs/contracts/constants';
 
 import { GetCachedSubscriptionSettingsQuery } from '@modules/subscription-settings/queries/get-cached-subscrtipion-settings';
-import {
-    isMihomoExtendedClient,
-    isXrayExtendedClient,
-} from '@modules/subscription-template/constants';
+import { isExtendedClient } from '@modules/subscription-template/constants';
 
 import { ResponseRulesMatcherService } from '../services/response-rules-matcher.service';
 import { ISRRContext } from '../interfaces';
@@ -23,6 +20,8 @@ import { ISRRContext } from '../interfaces';
 @Injectable()
 export class ResponseRulesMiddleware implements NestMiddleware {
     private readonly logger = new Logger(ResponseRulesMiddleware.name);
+    private readonly regexCache = new Map<string, RegExp>();
+
     constructor(
         private readonly queryBus: QueryBus,
         private readonly matcher: ResponseRulesMatcherService,
@@ -81,8 +80,10 @@ export class ResponseRulesMiddleware implements NestMiddleware {
             const ssrContext: ISRRContext = {
                 userAgent,
                 hwidHeaders: extractHwidHeaders(req),
-                isXrayExtSupported: isXrayExtendedClient(userAgent),
-                isMihomoExtSupported: isMihomoExtendedClient(userAgent),
+                isExtendedClient: this.resolveExtendedClients(
+                    userAgent,
+                    result.matchedRule?.responseModifications?.additionalExtendedClientsRegex,
+                ),
                 matchedResponseType: result.responseType,
                 ip: req.clientIp,
                 subscriptionSettings: settingsEntity,
@@ -145,5 +146,29 @@ export class ResponseRulesMiddleware implements NestMiddleware {
         } catch (error) {
             next(error);
         }
+    }
+
+    private resolveExtendedClients(
+        userAgent: string,
+        clientRegexes: string[] | undefined,
+    ): boolean {
+        if (isExtendedClient(userAgent)) {
+            return true;
+        }
+
+        if (clientRegexes && clientRegexes.length > 0) {
+            for (const pattern of clientRegexes) {
+                let compiled = this.regexCache.get(pattern);
+                if (!compiled) {
+                    compiled = new RegExp(pattern);
+                    this.regexCache.set(pattern, compiled);
+                }
+                if (compiled.test(userAgent)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

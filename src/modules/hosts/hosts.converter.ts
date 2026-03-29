@@ -28,6 +28,7 @@ const entityToModel = (entity: HostsEntity): Hosts => {
         xHttpExtraParams: entity.xHttpExtraParams,
         muxParams: entity.muxParams,
         sockoptParams: entity.sockoptParams,
+        finalMask: entity.finalMask,
         serverDescription: entity.serverDescription,
         allowInsecure: entity.allowInsecure,
         shuffleHost: entity.shuffleHost,

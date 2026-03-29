@@ -80,7 +80,7 @@ export class SubscriptionService {
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
         try {
-            const { userAgent, hwidHeaders, matchedResponseType, isXrayExtSupported } = srrContext;
+            const { userAgent, hwidHeaders, matchedResponseType } = srrContext;
 
             if (matchedResponseType === 'BROWSER') {
                 const subscriptionInfo = await this.getSubscriptionInfo({
@@ -156,7 +156,7 @@ export class SubscriptionService {
                     const response = new SubscriptionWithConfigResponse({
                         headers: await this.getUserProfileHeadersInfo(
                             user.response,
-                            isXrayExtSupported,
+                            /^Happ\//.test(userAgent),
                             subscriptionSettings,
                         ),
                         body: '',
@@ -261,7 +261,7 @@ export class SubscriptionService {
             return new SubscriptionWithConfigResponse({
                 headers: await this.getUserProfileHeadersInfo(
                     user.response,
-                    isXrayExtSupported,
+                    /^Happ\//.test(userAgent),
                     subscriptionSettings,
                 ),
                 body: subscription.subscription,

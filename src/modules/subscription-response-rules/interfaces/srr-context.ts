@@ -6,8 +6,7 @@ import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entit
 export interface ISRRContext {
     userAgent: string;
     hwidHeaders: HwidHeaders | null;
-    isXrayExtSupported: boolean;
-    isMihomoExtSupported: boolean;
+    isExtendedClient: boolean;
     matchedResponseType: TResponseRulesResponseType;
     ip: string;
     subscriptionSettings: SubscriptionSettingsEntity;
