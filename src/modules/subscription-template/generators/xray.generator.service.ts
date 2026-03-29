@@ -38,7 +38,13 @@ export class XrayGeneratorService {
             if (!link) continue;
 
             if (isHapp && host.clientOverrides.serverDescription) {
-                links.push(`${link}?serverDescription=${host.clientOverrides.serverDescription}`);
+                const fragmentIndex = link.indexOf('#');
+                const [base, fragment] =
+                    fragmentIndex >= 0
+                        ? [link.slice(0, fragmentIndex), link.slice(fragmentIndex)]
+                        : [link, ''];
+                const separator = base.includes('?') ? '&' : '?';
+                links.push(`${base}${separator}serverDescription=${host.clientOverrides.serverDescription}${fragment}`);
             } else {
                 links.push(link);
             }
@@ -55,6 +61,8 @@ export class XrayGeneratorService {
                 return this.buildTrojanLink(host);
             case 'shadowsocks':
                 return this.buildShadowsocksLink(host);
+            case 'hysteria':
+                return this.buildHysteriaLink(host);
             default:
                 return null;
         }
@@ -123,6 +131,34 @@ export class XrayGeneratorService {
         const remark = encodeURIComponent(host.finalRemark);
 
         return `ss://${credentials}@${host.address}:${host.port}#${remark}`;
+    }
+
+    // ── Hysteria2 ─────────────────────────────────────
+    // hy2://auth@host:port?params#remark
+
+    private buildHysteriaLink(
+        host: Extract<ResolvedProxyConfig, { protocol: 'hysteria' }>,
+    ): string | null {
+        const params: Record<string, unknown> = {};
+
+        if (host.security === 'tls') {
+            const opts = host.securityOptions;
+            if (opts.serverName) {
+                params.sni = opts.serverName;
+            }
+            if (opts.allowInsecure) {
+                params.insecure = 1;
+            }
+        }
+
+        if (host.transport !== 'hysteria') return null;
+        const auth = encodeURIComponent(host.transportOptions.auth);
+        const remark = encodeURIComponent(host.finalRemark);
+        const query = this.buildQueryString(params);
+
+        return query
+            ? `hy2://${auth}@${host.address}:${host.port}?${query}#${remark}`
+            : `hy2://${auth}@${host.address}:${host.port}#${remark}`;
     }
 
     // ── Transport Params ─────────────────────────────
