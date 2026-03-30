@@ -14,7 +14,9 @@ export class GetNodesByPluginUuidHandler implements IQueryHandler<GetNodesByPlug
 
     async execute(query: GetNodesByPluginUuidQuery) {
         try {
-            const nodeUuids = await this.nodesRepository.getNodeUuidsByPluginUuid(query.pluginUuid);
+            const nodeUuids = await this.nodesRepository.getEnabledNodesByPluginUuid(
+                query.pluginUuid,
+            );
 
             return ok(nodeUuids);
         } catch (error) {

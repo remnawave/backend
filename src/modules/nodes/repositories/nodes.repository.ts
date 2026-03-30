@@ -304,11 +304,14 @@ export class NodesRepository implements ICrud<NodesEntity> {
         return result.map((value) => value.tag);
     }
 
-    public async getNodeUuidsByPluginUuid(pluginUuid: string): Promise<string[]> {
+    public async getEnabledNodesByPluginUuid(pluginUuid: string): Promise<string[]> {
         const result = await this.qb.kysely
             .selectFrom('nodes')
             .select('uuid')
             .where('activePluginUuid', '=', getKyselyUuid(pluginUuid))
+            .where('isDisabled', '=', false)
+            .where('isConnected', '=', true)
+            .where('isConnecting', '=', false)
             .execute();
 
         return result.map((value) => value.uuid);
