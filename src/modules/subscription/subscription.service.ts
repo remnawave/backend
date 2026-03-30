@@ -82,6 +82,8 @@ export class SubscriptionService {
         try {
             const { userAgent, hwidHeaders, matchedResponseType } = srrContext;
 
+            let isHwidLimitActive: boolean = false;
+
             if (matchedResponseType === 'BROWSER') {
                 const subscriptionInfo = await this.getSubscriptionInfo({
                     searchBy: {
@@ -152,7 +154,12 @@ export class SubscriptionService {
                     subscriptionSettings.hwidSettings,
                 );
 
-                if (isAllowed.isOk && !isAllowed.response.isSubscriptionAllowed) {
+                if (!isAllowed.isOk) {
+                    this.logger.error(`Error checking hwid device limit: ${isAllowed}`);
+                    return new SubscriptionNotFoundResponse();
+                }
+
+                if (!isAllowed.response.isSubscriptionAllowed) {
                     const response = new SubscriptionWithConfigResponse({
                         headers: await this.getUserProfileHeadersInfo(
                             user.response,
@@ -162,6 +169,10 @@ export class SubscriptionService {
                         body: '',
                         contentType: 'text/plain',
                     });
+
+                    if (!isAllowed.response.limitBypassed) {
+                        response.headers['x-hwid-active'] = 'true';
+                    }
 
                     if (
                         isAllowed.response.maxDeviceReached &&
@@ -206,13 +217,13 @@ export class SubscriptionService {
                         response.headers['x-hwid-max-devices-reached'] = 'true';
                     }
 
-                    if (!isAllowed.response.limitBypassed) {
-                        response.headers['x-hwid-active'] = 'true';
-                    }
-
                     response.headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     return response;
+                }
+
+                if (!isAllowed.response.limitBypassed) {
+                    isHwidLimitActive = true;
                 }
             } else {
                 await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
@@ -263,6 +274,7 @@ export class SubscriptionService {
                     user.response,
                     /^Happ\//.test(userAgent),
                     subscriptionSettings,
+                    isHwidLimitActive,
                 ),
                 body: subscription.subscription,
                 contentType: subscription.contentType,
@@ -324,7 +336,16 @@ export class SubscriptionService {
                     patchedSettingEntity.hwidSettings,
                 );
 
-                if (isAllowed.isOk && !isAllowed.response.isSubscriptionAllowed) {
+                if (!isAllowed.isOk) {
+                    this.logger.error(`Error checking hwid device limit: ${isAllowed}`);
+                    return fail(ERRORS.INTERNAL_SERVER_ERROR);
+                }
+
+                if (!isAllowed.response.limitBypassed) {
+                    headers['x-hwid-active'] = 'true';
+                }
+
+                if (!isAllowed.response.isSubscriptionAllowed) {
                     if (patchedSettingEntity.hwidSettings.maxDevicesAnnounce) {
                         headers.announce = `base64:${Buffer.from(
                             patchedSettingEntity.hwidSettings.maxDevicesAnnounce,
@@ -339,14 +360,10 @@ export class SubscriptionService {
                         headers['x-hwid-max-devices-reached'] = 'true';
                     }
 
-                    if (!isAllowed.response.limitBypassed) {
-                        headers['x-hwid-active'] = 'true';
-                    }
+                    headers['x-hwid-limit'] = 'true'; // v2rayTUN
 
                     isHwidLimited = true;
                 }
-
-                headers['x-hwid-limit'] = 'true'; // v2rayTUN
             } else {
                 await this.checkAndUpsertHwidUserDevice(user, hwidHeaders);
 
@@ -569,6 +586,7 @@ export class SubscriptionService {
         user: UserEntity,
         isHapp: boolean,
         settings: SubscriptionSettingsEntity,
+        hwidLimit: boolean = false,
     ): Promise<ISubscriptionHeaders> {
         const headers: ISubscriptionHeaders = {
             'content-disposition': `attachment; filename=${user.username}`,
@@ -609,6 +627,10 @@ export class SubscriptionService {
         const refillDate = getSubscriptionRefillDate(user.trafficLimitStrategy);
         if (refillDate) {
             headers['subscription-refill-date'] = refillDate;
+        }
+
+        if (hwidLimit) {
+            headers['x-hwid-limit'] = 'true'; // v2rayTUN
         }
 
         if (settings.customResponseHeaders) {
