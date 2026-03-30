@@ -15,17 +15,24 @@ const IpCidrOrExtSchema = z
         }),
     );
 
-export const SharedListSchema = z.object({
-    name: z.string().startsWith('ext:'),
-    type: z.enum(['ipList']),
-    items: z.array(
-        z.union([
-            z.string().cidr({ version: 'v4' }),
-            z.string().cidr({ version: 'v6' }),
-            z.string().ip(),
-        ]),
-    ),
-});
+export const SharedListSchema = z.discriminatedUnion('type', [
+    z.object({
+        name: z.string().startsWith('ext:'),
+        type: z.literal('ipList'),
+        items: z.array(
+            z.union([
+                z.string().cidr({ version: 'v4' }),
+                z.string().cidr({ version: 'v6' }),
+                z.string().ip(),
+            ]),
+        ),
+    }),
+    z.object({
+        name: z.string().startsWith('ext:'),
+        type: z.literal('asList'),
+        items: z.array(z.number().int().min(1).max(4294967295)),
+    }),
+]);
 
 export const TorrentBlockerPluginSchema = z.object({
     enabled: z.boolean().describe(
