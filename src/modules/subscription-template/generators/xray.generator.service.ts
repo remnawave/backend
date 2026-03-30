@@ -256,7 +256,7 @@ export class XrayGeneratorService {
         const opts = host.securityOptions;
 
         // 4.4.1: sni
-        if (opts.serverName) {
+        if (opts.serverName !== null) {
             params.sni = opts.serverName;
         }
 
@@ -283,7 +283,7 @@ export class XrayGeneratorService {
         const opts = host.securityOptions;
 
         // 4.4.1: sni
-        if (opts.serverName) {
+        if (opts.serverName !== null) {
             params.sni = opts.serverName;
         }
 
@@ -317,7 +317,7 @@ export class XrayGeneratorService {
         const stringParams: Record<string, string> = {};
 
         for (const [key, value] of Object.entries(params)) {
-            if (value === undefined || value === null || value === '') continue;
+            if (value === undefined || value === null) continue;
             stringParams[key] = String(value);
         }
 
