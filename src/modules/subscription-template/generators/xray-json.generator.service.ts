@@ -94,6 +94,7 @@ const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
 const TRANSPORT_BUILDERS: TransportBuilderMap = {
     ws: (host) => ({
         path: host.transportOptions.path,
+        host: host.transportOptions.host,
         headers: { ...host.transportOptions.headers },
         ...(host.transportOptions.heartbeatPeriod != null && {
             heartbeatPeriod: host.transportOptions.heartbeatPeriod,
