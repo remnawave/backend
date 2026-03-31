@@ -94,7 +94,7 @@ const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
 const TRANSPORT_BUILDERS: TransportBuilderMap = {
     ws: (host) => ({
         path: host.transportOptions.path,
-        headers: { Host: host.transportOptions.host, ...host.transportOptions.headers },
+        headers: { ...host.transportOptions.headers },
         ...(host.transportOptions.heartbeatPeriod != null && {
             heartbeatPeriod: host.transportOptions.heartbeatPeriod,
         }),
@@ -102,7 +102,7 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
     httpupgrade: (host) => ({
         path: host.transportOptions.path,
         host: host.transportOptions.host,
-        headers: { Host: host.transportOptions.host, ...host.transportOptions.headers },
+        headers: { ...host.transportOptions.headers },
     }),
     tcp: buildTcpSettings,
     xhttp: (host) => ({
