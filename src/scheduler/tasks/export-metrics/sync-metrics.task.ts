@@ -49,6 +49,12 @@ export class SyncMetricsTask {
         public nodeSystemInfo: Gauge<string>,
         @InjectMetric(METRIC_NAMES.NODE_BASIC_INFO)
         public nodeBasicInfo: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_1M)
+        public nodeCpuLoadAvg1m: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_5M)
+        public nodeCpuLoadAvg5m: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_15M)
+        public nodeCpuLoadAvg15m: Gauge<string>,
         private readonly queryBus: QueryBus,
     ) {}
 
@@ -97,6 +103,9 @@ export class SyncMetricsTask {
                 this.nodeNetworkTxBytesTotal,
                 this.nodeBasicInfo,
                 this.nodeSystemInfo,
+                this.nodeCpuLoadAvg1m,
+                this.nodeCpuLoadAvg5m,
+                this.nodeCpuLoadAvg15m,
                 this.nodeInboundUploadBytes,
                 this.nodeInboundDownloadBytes,
                 this.nodeOutboundUploadBytes,

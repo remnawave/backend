@@ -35,6 +35,9 @@ export const METRIC_NAMES = {
     NODE_MEMORY_FREE_BYTES: 'node_memory_free_bytes',
     NODE_UPTIME_SECONDS: 'node_uptime_seconds',
     NODE_CPU_COUNT: 'node_cpu_count',
+    NODE_CPU_LOAD_AVG_1M: 'node_cpu_load_avg_1m',
+    NODE_CPU_LOAD_AVG_5M: 'node_cpu_load_avg_5m',
+    NODE_CPU_LOAD_AVG_15M: 'node_cpu_load_avg_15m',
 
     NODE_BASIC_INFO: 'node_basic_info',
     NODE_SYSTEM_INFO: 'node_system_info',

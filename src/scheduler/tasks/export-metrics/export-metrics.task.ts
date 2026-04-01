@@ -92,6 +92,13 @@ export class ExportMetricsTask {
         @InjectMetric(METRIC_NAMES.NODE_BASIC_INFO)
         public nodeBasicInfo: Gauge<string>,
 
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_1M)
+        public nodeCpuLoadAvg1m: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_5M)
+        public nodeCpuLoadAvg5m: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_CPU_LOAD_AVG_15M)
+        public nodeCpuLoadAvg15m: Gauge<string>,
+
         private readonly queryBus: QueryBus,
     ) {
         this.lastUserStatsUpdateTime = 0;
@@ -230,7 +237,20 @@ export class ExportMetricsTask {
                         );
                         this.nodeCpuCount.set(baseNodeLabels, nodeSystemStats.system.info.cpus);
 
-                        if (nodeSystemStats && nodeSystemStats.system.stats.interface) {
+                        this.nodeCpuLoadAvg1m.set(
+                            baseNodeLabels,
+                            nodeSystemStats.system.stats.loadAvg[0],
+                        );
+                        this.nodeCpuLoadAvg5m.set(
+                            baseNodeLabels,
+                            nodeSystemStats.system.stats.loadAvg[1],
+                        );
+                        this.nodeCpuLoadAvg15m.set(
+                            baseNodeLabels,
+                            nodeSystemStats.system.stats.loadAvg[2],
+                        );
+
+                        if (nodeSystemStats.system.stats.interface) {
                             this.nodeNetworkRxBytesPerSec.set(
                                 baseNodeLabels,
                                 nodeSystemStats.system.stats.interface.rxBytesPerSec,
@@ -311,5 +331,8 @@ export class ExportMetricsTask {
         this.nodeNetworkRxBytesTotal.remove({ node_uuid: baseNodeLabels.node_uuid });
         this.nodeNetworkTxBytesPerSec.remove({ node_uuid: baseNodeLabels.node_uuid });
         this.nodeNetworkTxBytesTotal.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeCpuLoadAvg1m.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeCpuLoadAvg5m.remove({ node_uuid: baseNodeLabels.node_uuid });
+        this.nodeCpuLoadAvg15m.remove({ node_uuid: baseNodeLabels.node_uuid });
     }
 }

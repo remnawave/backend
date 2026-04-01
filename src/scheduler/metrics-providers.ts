@@ -142,6 +142,22 @@ export const METRIC_PROVIDERS = [
     }),
 
     makeGaugeProvider({
+        name: METRIC_NAMES.NODE_CPU_LOAD_AVG_1M,
+        help: 'Node CPU load average 1 minute',
+        labelNames: ['node_uuid'],
+    }),
+    makeGaugeProvider({
+        name: METRIC_NAMES.NODE_CPU_LOAD_AVG_5M,
+        help: 'Node CPU load average 5 minutes',
+        labelNames: ['node_uuid'],
+    }),
+    makeGaugeProvider({
+        name: METRIC_NAMES.NODE_CPU_LOAD_AVG_15M,
+        help: 'Node CPU load average 15 minutes',
+        labelNames: ['node_uuid'],
+    }),
+
+    makeGaugeProvider({
         name: METRIC_NAMES.NODE_SYSTEM_INFO,
         help: 'Node system info',
         labelNames: [
