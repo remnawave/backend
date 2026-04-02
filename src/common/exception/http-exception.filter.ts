@@ -48,12 +48,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
             response.removeHeader('x-powered-by');
             response.status(status).json(exception.getResponse());
         } else {
-            this.logger.error({
-                timestamp: new Date().toISOString(),
-                code: errorCode,
-                path: request.url,
-                message: errorMessage,
-            });
+            if (status !== HttpStatus.NOT_FOUND) {
+                this.logger.error({
+                    timestamp: new Date().toISOString(),
+                    code: errorCode,
+                    path: request.url,
+                    message: errorMessage,
+                });
+            }
+
             response.status(status).json({
                 timestamp: new Date().toISOString(),
                 path: request.url,
