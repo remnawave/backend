@@ -159,9 +159,14 @@ export class XrayGeneratorService {
         host: Extract<ResolvedProxyConfig, { transport: 'tcp' }>,
     ): void {
         const header = host.transportOptions.header;
-        if (header) {
-            params.headerType = header.type;
-        }
+        if (!header) return;
+
+        params.headerType = header.type;
+
+        if (header.type !== 'http' || !header.request) return;
+
+        params.path = header.request.path?.join(',') ?? '';
+        params.host = header.request.headers?.Host?.join(',') ?? '';
     }
 
     // 4.3.4-5 WebSocket: path, host
