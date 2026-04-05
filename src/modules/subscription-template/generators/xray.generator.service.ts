@@ -148,8 +148,20 @@ export class XrayGeneratorService {
                 this.applyXhttpParams(params, host);
                 break;
             case 'kcp':
-                // 4.3.6: headerType — not available in current interface
+                this.applyKcpParams(params, host);
                 break;
+        }
+    }
+
+    private applyKcpParams(
+        params: Record<string, unknown>,
+        host: Extract<ResolvedProxyConfig, { transport: 'kcp' }>,
+    ): void {
+        if (host.transportOptions.clientMtu) {
+            params.mtu = host.transportOptions.clientMtu;
+        }
+        if (host.transportOptions.tti) {
+            params.tti = host.transportOptions.tti;
         }
     }
 
