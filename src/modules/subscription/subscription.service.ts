@@ -22,7 +22,7 @@ import { ResponseRulesMatcherService } from '@modules/subscription-response-rule
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
 import { ResolveProxyConfigService } from '@modules/subscription-template/resolve-proxy/resolve-proxy-config.service';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
-import { UpsertHwidUserDeviceCommand } from '@modules/hwid-user-devices/commands/upsert-hwid-user-device';
+import { CreateWithAdvisoryLockCommand } from '@modules/hwid-user-devices/commands/create-with-advisory-lock';
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
 import { RenderTemplatesService } from '@modules/subscription-template/render-templates.service';
@@ -780,55 +780,33 @@ export class SubscriptionService {
                 userUuid: user.uuid,
             });
 
-            if (isDeviceExists.isOk) {
-                if (isDeviceExists.response.exists) {
-                    await this.usersQueuesService.checkAndUpsertHwidDevice({
-                        hwid: hwidHeaders.hwid,
-                        userUuid: user.uuid,
-                        platform: hwidHeaders.platform,
-                        osVersion: hwidHeaders.osVersion,
-                        deviceModel: hwidHeaders.deviceModel,
-                        userAgent: hwidHeaders.userAgent,
-                    });
+            if (isDeviceExists.isOk && isDeviceExists.response.exists) {
+                await this.usersQueuesService.checkAndUpsertHwidDevice({
+                    hwid: hwidHeaders.hwid,
+                    userUuid: user.uuid,
+                    platform: hwidHeaders.platform,
+                    osVersion: hwidHeaders.osVersion,
+                    deviceModel: hwidHeaders.deviceModel,
+                    userAgent: hwidHeaders.userAgent,
+                });
 
-                    return ok({
-                        isSubscriptionAllowed: true,
-                        maxDeviceReached: false,
-                        hwidNotSupported: false,
-                    });
-                }
+                return ok({
+                    isSubscriptionAllowed: true,
+                    maxDeviceReached: false,
+                    hwidNotSupported: false,
+                });
             }
-
-            const count = await this.countHwidUserDevices({ userUuid: user.uuid });
 
             const deviceLimit = user.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
 
-            if (!count.isOk) {
-                return ok({
-                    isSubscriptionAllowed: false,
-                    maxDeviceReached: true,
-                    hwidNotSupported: false,
-                });
-            }
-
-            if (count.response >= deviceLimit) {
-                return ok({
-                    isSubscriptionAllowed: false,
-                    maxDeviceReached: true,
-                    hwidNotSupported: false,
-                });
-            }
-
             const result = await this.commandBus.execute(
-                new UpsertHwidUserDeviceCommand(
+                new CreateWithAdvisoryLockCommand(
                     new HwidUserDeviceEntity({
                         hwid: hwidHeaders.hwid,
                         userUuid: user.uuid,
-                        platform: hwidHeaders.platform,
-                        osVersion: hwidHeaders.osVersion,
-                        deviceModel: hwidHeaders.deviceModel,
-                        userAgent: hwidHeaders.userAgent,
                     }),
+                    deviceLimit,
+                    user.tId,
                 ),
             );
 
@@ -842,9 +820,21 @@ export class SubscriptionService {
                 });
             }
 
+            if (!result.response.created || !result.response.hwidUserDevice) {
+                return ok({
+                    isSubscriptionAllowed: false,
+                    maxDeviceReached: true,
+                    hwidNotSupported: false,
+                });
+            }
+
             this.eventEmitter.emit(
                 EVENTS.USER_HWID_DEVICES.ADDED,
-                new UserHwidDeviceEvent(user, result.response, EVENTS.USER_HWID_DEVICES.ADDED),
+                new UserHwidDeviceEvent(
+                    user,
+                    result.response.hwidUserDevice,
+                    EVENTS.USER_HWID_DEVICES.ADDED,
+                ),
             );
 
             return ok({

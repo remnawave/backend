@@ -23,6 +23,8 @@ const HWID_FILTER_COLUMN_MAP = {
 
 type AllowedHwidFilterId = keyof typeof HWID_FILTER_COLUMN_MAP;
 
+const HWID_LOCK_PREFIX = 900000000n;
+
 @Injectable()
 export class HwidUserDevicesRepository implements Omit<
     ICrudWithStringId<HwidUserDeviceEntity>,
@@ -261,5 +263,40 @@ export class HwidUserDevicesRepository implements Omit<
             })),
             total: Number(count),
         };
+    }
+
+    public async createWithAdvisoryLock(
+        entity: HwidUserDeviceEntity,
+        deviceLimit: number,
+        userId: bigint,
+    ): Promise<{ created: boolean; hwidUserDevice: HwidUserDeviceEntity | null }> {
+        let created = false;
+        let hwidUserDevice: HwidUserDeviceEntity | null = null;
+
+        await this.prisma.withTransaction(async () => {
+            await this.prisma.tx.$executeRaw`
+                SELECT pg_advisory_xact_lock(${HWID_LOCK_PREFIX + userId})
+            `;
+
+            const count = await this.prisma.tx.hwidUserDevices.count({
+                where: { userUuid: entity.userUuid },
+            });
+
+            if (count >= deviceLimit) {
+                return;
+            }
+
+            const model = this.converter.fromEntityToPrismaModel(entity);
+            const result = await this.prisma.tx.hwidUserDevices.upsert({
+                where: { hwid_userUuid: { hwid: entity.hwid, userUuid: entity.userUuid } },
+                update: { ...model, updatedAt: new Date() },
+                create: model,
+            });
+
+            created = true;
+            hwidUserDevice = this.converter.fromPrismaModelToEntity(result);
+        });
+
+        return { created, hwidUserDevice };
     }
 }
