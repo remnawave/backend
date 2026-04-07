@@ -19,7 +19,7 @@ export class CheckHwidExistsHandler implements IQueryHandler<
         try {
             const result = await this.hwidUserDevicesRepository.checkHwidExists(
                 query.hwid,
-                query.userUuid,
+                query.userId,
             );
 
             return ok({ exists: result });

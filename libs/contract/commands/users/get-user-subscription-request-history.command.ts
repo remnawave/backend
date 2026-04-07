@@ -25,7 +25,7 @@ export namespace GetUserSubscriptionRequestHistoryCommand {
             records: z.array(
                 z.object({
                     id: z.number(),
-                    userUuid: z.string().uuid(),
+                    userId: z.number(),
                     requestAt: z
                         .string()
                         .datetime()

@@ -1,6 +1,6 @@
 interface IUserSubscriptionRequestHistoryRecord {
     id: number;
-    userUuid: string;
+    userId: number;
     requestAt: Date;
     requestIp: string | null;
     userAgent: string | null;

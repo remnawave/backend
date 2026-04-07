@@ -49,7 +49,7 @@ export class HwidUserDevicesService {
 
             const isDeviceExists = await this.hwidUserDevicesRepository.checkHwidExists(
                 dto.hwid,
-                dto.userUuid,
+                user.response.tId,
             );
 
             if (isDeviceExists) {
@@ -81,7 +81,7 @@ export class HwidUserDevicesService {
             }
 
             if (hwidSettings && hwidSettings.enabled) {
-                const count = await this.hwidUserDevicesRepository.countByUserUuid(dto.userUuid);
+                const count = await this.hwidUserDevicesRepository.countByUserId(user.response.tId);
 
                 const deviceLimit =
                     user.response.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
@@ -92,7 +92,15 @@ export class HwidUserDevicesService {
             }
 
             const result = await this.hwidUserDevicesRepository.create(
-                new HwidUserDeviceEntity(dto),
+                new HwidUserDeviceEntity({
+                    hwid: dto.hwid,
+                    userId: user.response.tId,
+                    platform: dto.platform,
+                    osVersion: dto.osVersion,
+                    deviceModel: dto.deviceModel,
+                    userAgent: dto.userAgent,
+                    requestIp: dto.requestIp,
+                }),
             );
 
             this.eventEmitter.emit(
@@ -101,7 +109,7 @@ export class HwidUserDevicesService {
             );
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
-                userUuid: dto.userUuid,
+                userId: user.response.tId,
             });
 
             return ok(userHwidDevices);
@@ -129,7 +137,7 @@ export class HwidUserDevicesService {
             }
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
-                userUuid,
+                userId: user.response.tId,
             });
 
             return ok(userHwidDevices);
@@ -161,14 +169,14 @@ export class HwidUserDevicesService {
 
             const hwidDevice = await this.hwidUserDevicesRepository.findFirstByCriteria({
                 hwid,
-                userUuid,
+                userId: user.response.tId,
             });
 
             if (!hwidDevice) {
                 return fail(ERRORS.HWID_DEVICE_NOT_FOUND);
             }
 
-            await this.hwidUserDevicesRepository.deleteByHwidAndUserUuid(hwid, userUuid);
+            await this.hwidUserDevicesRepository.deleteByHwidAndUserId(hwid, user.response.tId);
 
             this.eventEmitter.emit(
                 EVENTS.USER_HWID_DEVICES.DELETED,
@@ -180,7 +188,7 @@ export class HwidUserDevicesService {
             );
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
-                userUuid,
+                userId: user.response.tId,
             });
 
             return ok(userHwidDevices);
@@ -209,10 +217,10 @@ export class HwidUserDevicesService {
                 return fail(ERRORS.USER_NOT_FOUND);
             }
 
-            await this.hwidUserDevicesRepository.deleteByUserUuid(userUuid);
+            await this.hwidUserDevicesRepository.deleteByUserId(user.response.tId);
 
             const userHwidDevices = await this.hwidUserDevicesRepository.findByCriteria({
-                userUuid,
+                userId: user.response.tId,
             });
 
             return ok(userHwidDevices);

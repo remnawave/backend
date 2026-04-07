@@ -4,9 +4,9 @@ import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-pr
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { Injectable } from '@nestjs/common';
 
-import { getKyselyUuid, paginateQuery } from '@common/helpers';
 import { ICrudWithId } from '@common/types/crud-port';
 import { TxKyselyService } from '@common/database';
+import { paginateQuery } from '@common/helpers';
 import { GetSubscriptionRequestHistoryCommand } from '@libs/contracts/commands';
 
 import { UserSubscriptionRequestHistoryEntity } from '../entities/user-subscription-request-history.entity';
@@ -14,9 +14,9 @@ import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-re
 
 const SUB_HISTORY_FILTER_COLUMN_MAP = {
     id: sql`CAST(id AS TEXT)`,
+    userId: sql`CAST(user_id AS TEXT)`,
     requestAt: sql.ref('user_subscription_request_history.request_at'),
     requestIp: sql.ref('user_subscription_request_history.request_ip'),
-    userUuid: sql`"user_uuid"::text`,
     userAgent: sql.ref('user_subscription_request_history.user_agent'),
 } as const;
 
@@ -81,26 +81,26 @@ export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<Use
         return !!result;
     }
 
-    public async countByUserUuid(userUuid: string): Promise<number> {
+    public async countByUserId(userId: bigint): Promise<number> {
         const result = await this.prisma.tx.userSubscriptionRequestHistory.count({
-            where: { userUuid },
+            where: { userId },
         });
         return result;
     }
 
-    public async findOldestByUserUuid(
-        userUuid: string,
+    public async findOldestByUserId(
+        userId: bigint,
     ): Promise<UserSubscriptionRequestHistoryEntity | null> {
         const result = await this.prisma.tx.userSubscriptionRequestHistory.findFirst({
-            where: { userUuid },
+            where: { userId },
             orderBy: { requestAt: 'asc' },
         });
         return result ? this.converter.fromPrismaModelToEntity(result) : null;
     }
 
-    public async findByUserUuid(userUuid: string): Promise<UserSubscriptionRequestHistoryEntity[]> {
+    public async findByUserId(userId: bigint): Promise<UserSubscriptionRequestHistoryEntity[]> {
         const result = await this.prisma.tx.userSubscriptionRequestHistory.findMany({
-            where: { userUuid },
+            where: { userId },
             orderBy: { requestAt: 'desc' },
         });
         return this.converter.fromPrismaModelsToEntities(result);
@@ -152,7 +152,7 @@ export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<Use
                 continue;
             }
 
-            if (filter.id === 'id') {
+            if (filter.id === 'id' || filter.id === 'userId') {
                 try {
                     BigInt(filter.value as string);
                     qb = qb.where(column, 'like', `%${filter.value}%`);
@@ -208,15 +208,15 @@ export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<Use
         };
     }
 
-    public async cleanupUserRecords(userUuid: string, keepLatest: number): Promise<number> {
+    public async cleanupUserRecords(userId: bigint, keepLatest: number): Promise<number> {
         const result = await this.qb.kysely
             .deleteFrom('userSubscriptionRequestHistory')
-            .where('userUuid', '=', getKyselyUuid(userUuid))
+            .where('userId', '=', userId)
             .where('id', 'not in', (eb) =>
                 eb
                     .selectFrom('userSubscriptionRequestHistory')
                     .select('id')
-                    .where('userUuid', '=', getKyselyUuid(userUuid))
+                    .where('userId', '=', userId)
                     .orderBy('requestAt', 'desc')
                     .limit(keepLatest),
             )

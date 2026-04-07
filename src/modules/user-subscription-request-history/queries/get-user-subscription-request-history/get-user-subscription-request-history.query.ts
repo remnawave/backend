@@ -7,7 +7,7 @@ import { UserSubscriptionRequestHistoryEntity } from '@modules/user-subscription
 export class GetUserSubscriptionRequestHistoryQuery extends Query<
     TResult<UserSubscriptionRequestHistoryEntity[]>
 > {
-    constructor(public readonly userUuid: string) {
+    constructor(public readonly userId: bigint) {
         super();
     }
 }

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const SubscriptionRequestHistorySchema = z.object({
     id: z.number(),
-    userUuid: z.string().uuid(),
+    userId: z.number(),
     requestIp: z.nullable(z.string()),
     userAgent: z.nullable(z.string()),
     requestAt: z

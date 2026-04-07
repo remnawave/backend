@@ -353,18 +353,19 @@ model SubscriptionSettings {
 
 model HwidUserDevices {
   hwid        String  @map("hwid")
-  userUuid    String  @map("user_uuid") @db.Uuid
+  userId      BigInt  @map("user_id")
   platform    String? @map("platform")
   osVersion   String? @map("os_version")
   deviceModel String? @map("device_model")
   userAgent   String? @map("user_agent")
+  requestIp   String? @map("request_ip")
 
-  user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [tId], onDelete: Cascade)
 
   createdAt DateTime @default(dbgenerated("now()")) @map("created_at")
   updatedAt DateTime @default(dbgenerated("now()")) @updatedAt @map("updated_at")
 
-  @@id([hwid, userUuid])
+  @@id([hwid, userId])
   @@map("hwid_user_devices")
 }
 
@@ -504,14 +505,14 @@ model InfraBillingHistory {
 
 model UserSubscriptionRequestHistory {
   id        BigInt   @id @default(autoincrement())
-  userUuid  String   @map("user_uuid") @db.Uuid
+  userId    BigInt   @map("user_id")
   requestIp String?  @map("request_ip")
   userAgent String?  @map("user_agent")
   requestAt DateTime @default(dbgenerated("now()")) @map("request_at")
 
-  user Users @relation(fields: [userUuid], references: [uuid], onDelete: Cascade)
+  user Users @relation(fields: [userId], references: [tId], onDelete: Cascade)
 
-  @@index([userUuid])
+  @@index([userId])
   @@index([requestAt(sort: Asc)])
   @@map("user_subscription_request_history")
 }

@@ -126,6 +126,11 @@ export const configSchema = z
             .default('false')
             .transform((val) => val === 'true' || val === '1')
             .pipe(z.boolean()),
+        SERVICE_DISABLE_SRH_RECORDS: z
+            .string()
+            .default('false')
+            .transform((val) => val === 'true' || val === '1')
+            .pipe(z.boolean()),
 
         BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED: z
             .string()

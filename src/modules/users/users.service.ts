@@ -687,13 +687,13 @@ export class UsersService {
         try {
             const user = await this.userRepository.getPartialUserByUniqueFields(
                 { uuid: userUuid },
-                ['uuid'],
+                ['tId'],
             );
 
             if (!user) return fail(ERRORS.USER_NOT_FOUND);
 
             const requestHistory = await this.queryBus.execute(
-                new GetUserSubscriptionRequestHistoryQuery(user.uuid),
+                new GetUserSubscriptionRequestHistoryQuery(user.tId),
             );
 
             if (!requestHistory.isOk) {
@@ -704,7 +704,7 @@ export class UsersService {
                 new GetUserSubscriptionRequestHistoryResponseModel(
                     requestHistory.response.map((history) => ({
                         id: Number(history.id),
-                        userUuid: history.userUuid,
+                        userId: Number(history.userId),
                         requestAt: history.requestAt,
                         requestIp: history.requestIp,
                         userAgent: history.userAgent,

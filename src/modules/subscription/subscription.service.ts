@@ -26,7 +26,6 @@ import { CreateWithAdvisoryLockCommand } from '@modules/hwid-user-devices/comman
 import { XrayGeneratorService } from '@modules/subscription-template/generators/xray.generator.service';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
 import { RenderTemplatesService } from '@modules/subscription-template/render-templates.service';
-import { CountUsersDevicesQuery } from '@modules/hwid-user-devices/queries/count-users-devices';
 import { GetUsersWithPaginationQuery } from '@modules/users/queries/get-users-with-pagination';
 import { isJsonSubscriptionFallbackSupported } from '@modules/subscription-template/constants';
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
@@ -152,6 +151,7 @@ export class SubscriptionService {
                     user.response,
                     hwidHeaders,
                     subscriptionSettings.hwidSettings,
+                    srrContext.ip,
                 );
 
                 if (!isAllowed.isOk) {
@@ -226,7 +226,7 @@ export class SubscriptionService {
                     isHwidLimitActive = true;
                 }
             } else {
-                await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders);
+                await this.checkAndUpsertHwidUserDevice(user.response, hwidHeaders, srrContext.ip);
             }
 
             if (
@@ -257,7 +257,7 @@ export class SubscriptionService {
             }
 
             await this.updateAndReportSubscriptionRequest(
-                user.response.uuid,
+                user.response.tId,
                 userAgent,
                 srrContext.ip,
             );
@@ -334,6 +334,7 @@ export class SubscriptionService {
                     user,
                     hwidHeaders,
                     patchedSettingEntity.hwidSettings,
+                    requestIp,
                 );
 
                 if (!isAllowed.isOk) {
@@ -365,7 +366,7 @@ export class SubscriptionService {
                     isHwidLimited = true;
                 }
             } else {
-                await this.checkAndUpsertHwidUserDevice(user, hwidHeaders);
+                await this.checkAndUpsertHwidUserDevice(user, hwidHeaders, requestIp);
 
                 isHwidLimited = false;
             }
@@ -382,7 +383,7 @@ export class SubscriptionService {
                 hosts.response = _.shuffle(hosts.response);
             }
 
-            await this.updateAndReportSubscriptionRequest(user.uuid, userAgent, requestIp);
+            await this.updateAndReportSubscriptionRequest(user.tId, userAgent, requestIp);
 
             let subscription: ResolvedProxyConfig[] | undefined;
 
@@ -721,17 +722,11 @@ export class SubscriptionService {
         >(new GetUsersWithPaginationQuery(dto.start, dto.size));
     }
 
-    private async countHwidUserDevices(dto: CountUsersDevicesQuery): Promise<TResult<number>> {
-        return this.queryBus.execute<CountUsersDevicesQuery, TResult<number>>(
-            new CountUsersDevicesQuery(dto.userUuid),
-        );
-    }
-
     private async checkHwidDeviceExists(
         dto: CheckHwidExistsQuery,
     ): Promise<TResult<{ exists: boolean }>> {
         return this.queryBus.execute<CheckHwidExistsQuery, TResult<{ exists: boolean }>>(
-            new CheckHwidExistsQuery(dto.hwid, dto.userUuid),
+            new CheckHwidExistsQuery(dto.hwid, dto.userId),
         );
     }
 
@@ -739,6 +734,7 @@ export class SubscriptionService {
         user: UserEntity,
         hwidHeaders: HwidHeaders | null,
         hwidSettings: THwidSettings,
+        requestIp?: string,
     ): Promise<
         TResult<{
             isSubscriptionAllowed: boolean;
@@ -752,11 +748,12 @@ export class SubscriptionService {
                 if (hwidHeaders !== null) {
                     await this.usersQueuesService.checkAndUpsertHwidDevice({
                         hwid: hwidHeaders.hwid,
-                        userUuid: user.uuid,
+                        userId: user.tId.toString(),
                         platform: hwidHeaders.platform,
                         osVersion: hwidHeaders.osVersion,
                         deviceModel: hwidHeaders.deviceModel,
                         userAgent: hwidHeaders.userAgent,
+                        requestIp,
                     });
                 }
                 return ok({
@@ -777,17 +774,18 @@ export class SubscriptionService {
 
             const isDeviceExists = await this.checkHwidDeviceExists({
                 hwid: hwidHeaders.hwid,
-                userUuid: user.uuid,
+                userId: user.tId,
             });
 
             if (isDeviceExists.isOk && isDeviceExists.response.exists) {
                 await this.usersQueuesService.checkAndUpsertHwidDevice({
                     hwid: hwidHeaders.hwid,
-                    userUuid: user.uuid,
+                    userId: user.tId.toString(),
                     platform: hwidHeaders.platform,
                     osVersion: hwidHeaders.osVersion,
                     deviceModel: hwidHeaders.deviceModel,
                     userAgent: hwidHeaders.userAgent,
+                    requestIp,
                 });
 
                 return ok({
@@ -803,10 +801,14 @@ export class SubscriptionService {
                 new CreateWithAdvisoryLockCommand(
                     new HwidUserDeviceEntity({
                         hwid: hwidHeaders.hwid,
-                        userUuid: user.uuid,
+                        userId: user.tId,
+                        platform: hwidHeaders.platform,
+                        osVersion: hwidHeaders.osVersion,
+                        deviceModel: hwidHeaders.deviceModel,
+                        userAgent: hwidHeaders.userAgent,
+                        requestIp,
                     }),
                     deviceLimit,
-                    user.tId,
                 ),
             );
 
@@ -855,6 +857,7 @@ export class SubscriptionService {
     private async checkAndUpsertHwidUserDevice(
         user: UserEntity,
         hwidHeaders: HwidHeaders | null,
+        requestIp?: string,
     ): Promise<void> {
         try {
             if (hwidHeaders === null) {
@@ -863,11 +866,12 @@ export class SubscriptionService {
 
             await this.usersQueuesService.checkAndUpsertHwidDevice({
                 hwid: hwidHeaders.hwid,
-                userUuid: user.uuid,
+                userId: user.tId.toString(),
                 platform: hwidHeaders.platform,
                 osVersion: hwidHeaders.osVersion,
                 deviceModel: hwidHeaders.deviceModel,
                 userAgent: hwidHeaders.userAgent,
+                requestIp,
             });
         } catch (error) {
             this.logger.error(`Error upserting hwid user device: ${error}`);
@@ -881,13 +885,13 @@ export class SubscriptionService {
     }
 
     private async updateAndReportSubscriptionRequest(
-        userUuid: string,
+        userId: bigint,
         userAgent: string,
         requestIp?: string,
     ): Promise<void> {
         try {
             await this.usersQueuesService.addSubscriptionRequestRecord({
-                userUuid,
+                userId: userId.toString(),
                 requestAt: new Date(),
                 requestIp,
                 userAgent,

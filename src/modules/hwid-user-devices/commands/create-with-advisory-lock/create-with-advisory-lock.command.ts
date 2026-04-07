@@ -10,7 +10,6 @@ export class CreateWithAdvisoryLockCommand extends Command<
     constructor(
         public readonly hwidUserDevice: HwidUserDeviceEntity,
         public readonly deviceLimit: number,
-        public readonly userId: bigint,
     ) {
         super();
     }

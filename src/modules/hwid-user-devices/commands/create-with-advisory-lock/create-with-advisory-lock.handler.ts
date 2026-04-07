@@ -19,7 +19,6 @@ export class CreateWithAdvisoryLockHandler implements ICommandHandler<CreateWith
             const result = await this.hwidUserDevicesRepository.createWithAdvisoryLock(
                 command.hwidUserDevice,
                 command.deviceLimit,
-                command.userId,
             );
 
             return ok(result);

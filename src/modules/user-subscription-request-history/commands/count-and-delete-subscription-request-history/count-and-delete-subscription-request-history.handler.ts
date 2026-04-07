@@ -17,9 +17,9 @@ export class CountAndDeleteSubscriptionRequestHistoryHandler implements ICommand
 
     async execute(command: CountAndDeleteSubscriptionRequestHistoryCommand): Promise<void> {
         try {
-            const { userUuid } = command;
+            const { userId } = command;
 
-            await this.userSubscriptionRequestHistoryRepository.cleanupUserRecords(userUuid, 24);
+            await this.userSubscriptionRequestHistoryRepository.cleanupUserRecords(userId, 24);
 
             return;
         } catch (error: unknown) {

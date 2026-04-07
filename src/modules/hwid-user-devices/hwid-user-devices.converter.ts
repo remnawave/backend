@@ -13,12 +13,12 @@ const modelToEntity = (model: HwidUserDevices): HwidUserDeviceEntity => {
 const entityToModel = (entity: HwidUserDeviceEntity): HwidUserDevices => {
     return {
         hwid: entity.hwid,
-        userUuid: entity.userUuid,
-
+        userId: entity.userId,
         platform: entity.platform,
         osVersion: entity.osVersion,
         deviceModel: entity.deviceModel,
         userAgent: entity.userAgent,
+        requestIp: entity.requestIp,
 
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,

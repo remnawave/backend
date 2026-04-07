@@ -1,3 +1,3 @@
 export class CountUsersDevicesQuery {
-    constructor(public readonly userUuid: string) {}
+    constructor(public readonly userId: bigint) {}
 }

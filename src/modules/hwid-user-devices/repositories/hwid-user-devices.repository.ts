@@ -13,7 +13,7 @@ import { HwidUserDeviceEntity } from '../entities/hwid-user-device.entity';
 import { HwidUserDevicesConverter } from '../hwid-user-devices.converter';
 
 const HWID_FILTER_COLUMN_MAP = {
-    userUuid: sql`"user_uuid"::text`,
+    userId: sql`CAST(user_id AS TEXT)`,
     hwid: sql.ref('hwid_user_devices.hwid'),
     platform: sql.ref('hwid_user_devices.platform'),
     userAgent: sql.ref('hwid_user_devices.user_agent'),
@@ -48,7 +48,7 @@ export class HwidUserDevicesRepository implements Omit<
     public async upsert(entity: HwidUserDeviceEntity): Promise<HwidUserDeviceEntity> {
         const model = this.converter.fromEntityToPrismaModel(entity);
         const result = await this.prisma.tx.hwidUserDevices.upsert({
-            where: { hwid_userUuid: { hwid: entity.hwid, userUuid: entity.userUuid } },
+            where: { hwid_userId: { hwid: entity.hwid, userId: entity.userId } },
             update: { ...model, updatedAt: new Date() },
             create: model,
         });
@@ -82,29 +82,29 @@ export class HwidUserDevicesRepository implements Omit<
         return this.converter.fromPrismaModelToEntity(result);
     }
 
-    public async countByUserUuid(userUuid: string): Promise<number> {
+    public async countByUserId(userId: bigint): Promise<number> {
         return await this.prisma.tx.hwidUserDevices.count({
-            where: { userUuid },
+            where: { userId },
         });
     }
 
-    public async checkHwidExists(hwid: string, userUuid: string): Promise<boolean> {
+    public async checkHwidExists(hwid: string, userId: bigint): Promise<boolean> {
         const count = await this.prisma.tx.hwidUserDevices.count({
-            where: { hwid, userUuid },
+            where: { hwid, userId },
         });
         return count > 0;
     }
 
-    public async deleteByHwidAndUserUuid(hwid: string, userUuid: string): Promise<boolean> {
+    public async deleteByHwidAndUserId(hwid: string, userId: bigint): Promise<boolean> {
         const result = await this.prisma.tx.hwidUserDevices.delete({
-            where: { hwid_userUuid: { hwid, userUuid } },
+            where: { hwid_userId: { hwid, userId } },
         });
         return !!result;
     }
 
-    public async deleteByUserUuid(userUuid: string): Promise<boolean> {
+    public async deleteByUserId(userId: bigint): Promise<boolean> {
         const result = await this.prisma.tx.hwidUserDevices.deleteMany({
-            where: { userUuid },
+            where: { userId },
         });
         return !!result;
     }
@@ -150,6 +150,16 @@ export class HwidUserDevicesRepository implements Omit<
 
             if (filter.id === 'createdAt' || filter.id === 'expireAt') {
                 qb = qb.where(column, '=', new Date(filter.value as string));
+                continue;
+            }
+
+            if (filter.id === 'userId') {
+                try {
+                    BigInt(filter.value as string);
+                    qb = qb.where(column, 'like', `%${filter.value}%`);
+                } catch {
+                    continue;
+                }
                 continue;
             }
 
@@ -204,7 +214,7 @@ export class HwidUserDevicesRepository implements Omit<
             .select([
                 (eb) => eb.fn.count('hwid').as('totalHwidDevices'),
                 (eb) => eb.fn.count(sql`DISTINCT hwid`).as('totalUniqueDevices'),
-                (eb) => eb.fn.count(sql`DISTINCT "user_uuid"`).as('totalUsers'),
+                (eb) => eb.fn.count(sql`DISTINCT "user_id"`).as('totalUsers'),
             ])
             .executeTakeFirstOrThrow();
 
@@ -236,7 +246,7 @@ export class HwidUserDevicesRepository implements Omit<
     public async getTopUsersByHwidDevices({ start, size }: { start: number; size: number }) {
         const query = this.qb.kysely
             .selectFrom('hwidUserDevices as d')
-            .innerJoin('users as u', 'u.uuid', 'd.userUuid')
+            .innerJoin('users as u', 'u.tId', 'd.userId')
             .select([
                 'u.uuid as userUuid',
                 'u.tId as id',
@@ -250,7 +260,7 @@ export class HwidUserDevicesRepository implements Omit<
 
         const countQuery = this.qb.kysely
             .selectFrom('hwidUserDevices')
-            .select((eb) => eb.fn.count(eb.fn('distinct', ['userUuid'])).as('count'))
+            .select((eb) => eb.fn.count(eb.fn('distinct', ['userId'])).as('count'))
             .executeTakeFirstOrThrow();
 
         const [users, { count }] = await Promise.all([query.execute(), countQuery]);
@@ -268,18 +278,17 @@ export class HwidUserDevicesRepository implements Omit<
     public async createWithAdvisoryLock(
         entity: HwidUserDeviceEntity,
         deviceLimit: number,
-        userId: bigint,
     ): Promise<{ created: boolean; hwidUserDevice: HwidUserDeviceEntity | null }> {
         let created = false;
         let hwidUserDevice: HwidUserDeviceEntity | null = null;
 
         await this.prisma.withTransaction(async () => {
             await this.prisma.tx.$executeRaw`
-                SELECT pg_advisory_xact_lock(${HWID_LOCK_PREFIX + userId})
+                SELECT pg_advisory_xact_lock(${HWID_LOCK_PREFIX + entity.userId})
             `;
 
             const count = await this.prisma.tx.hwidUserDevices.count({
-                where: { userUuid: entity.userUuid },
+                where: { userId: entity.userId },
             });
 
             if (count >= deviceLimit) {
@@ -288,7 +297,7 @@ export class HwidUserDevicesRepository implements Omit<
 
             const model = this.converter.fromEntityToPrismaModel(entity);
             const result = await this.prisma.tx.hwidUserDevices.upsert({
-                where: { hwid_userUuid: { hwid: entity.hwid, userUuid: entity.userUuid } },
+                where: { hwid_userId: { hwid: entity.hwid, userId: entity.userId } },
                 update: { ...model, updatedAt: new Date() },
                 create: model,
             });

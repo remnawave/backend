@@ -42,12 +42,13 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
 
     private async handleAddRecordJob(job: Job<IAddUserSubscriptionRequestHistoryPayload>) {
         try {
-            const { userUuid, requestIp, userAgent, requestAt } = job.data;
+            const { userId: userIdString, requestIp, userAgent, requestAt } = job.data;
+            const userId = BigInt(userIdString);
 
             await this.commandBus.execute(
                 new CreateSubscriptionRequestHistoryCommand(
                     new UserSubscriptionRequestHistoryEntity({
-                        userUuid,
+                        userId,
                         requestIp,
                         userAgent,
                         requestAt,
@@ -56,7 +57,7 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
             );
 
             await this.commandBus.execute(
-                new CountAndDeleteSubscriptionRequestHistoryCommand(userUuid),
+                new CountAndDeleteSubscriptionRequestHistoryCommand(userId),
             );
 
             return;
@@ -69,13 +70,13 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
 
     private async handleCheckAndUpsertHwidDeviceJob(job: Job<ICheckAndUpsertHwidDevicePayload>) {
         try {
-            const { hwid, userUuid, platform, osVersion, deviceModel, userAgent } = job.data;
+            const { hwid, userId, platform, osVersion, deviceModel, userAgent } = job.data;
 
             await this.commandBus.execute(
                 new UpsertHwidUserDeviceCommand(
                     new HwidUserDeviceEntity({
                         hwid,
-                        userUuid,
+                        userId: BigInt(userId),
                         platform,
                         osVersion,
                         deviceModel,

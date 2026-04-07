@@ -17,8 +17,8 @@ export class GetUserSubscriptionRequestHistoryHandler implements IQueryHandler<G
 
     async execute(query: GetUserSubscriptionRequestHistoryQuery) {
         try {
-            const result = await this.userSubscriptionRequestHistoryRepository.findByUserUuid(
-                query.userUuid,
+            const result = await this.userSubscriptionRequestHistoryRepository.findByUserId(
+                query.userId,
             );
 
             return ok(result);

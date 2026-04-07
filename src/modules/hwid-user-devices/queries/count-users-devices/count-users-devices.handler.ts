@@ -17,7 +17,7 @@ export class CountUsersDevicesHandler implements IQueryHandler<
 
     async execute(query: CountUsersDevicesQuery): Promise<TResult<number>> {
         try {
-            const count = await this.hwidUserDevicesRepository.countByUserUuid(query.userUuid);
+            const count = await this.hwidUserDevicesRepository.countByUserId(query.userId);
 
             return ok(count);
         } catch (error) {

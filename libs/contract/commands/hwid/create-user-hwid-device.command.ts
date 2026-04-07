@@ -21,6 +21,7 @@ export namespace CreateUserHwidDeviceCommand {
         osVersion: z.optional(z.string()),
         deviceModel: z.optional(z.string()),
         userAgent: z.optional(z.string()),
+        requestIp: z.optional(z.string()),
     });
 
     export type Request = z.infer<typeof RequestSchema>;
