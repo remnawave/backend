@@ -70,7 +70,8 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
 
     private async handleCheckAndUpsertHwidDeviceJob(job: Job<ICheckAndUpsertHwidDevicePayload>) {
         try {
-            const { hwid, userId, platform, osVersion, deviceModel, userAgent } = job.data;
+            const { hwid, userId, platform, osVersion, deviceModel, userAgent, requestIp } =
+                job.data;
 
             await this.commandBus.execute(
                 new UpsertHwidUserDeviceCommand(
@@ -81,6 +82,7 @@ export class SubscriptionRequestsQueueProcessor extends WorkerHost {
                         osVersion,
                         deviceModel,
                         userAgent,
+                        requestIp,
                     }),
                 ),
             );
