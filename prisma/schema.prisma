@@ -282,7 +282,7 @@ model Hosts {
   keepSniBlank                 Boolean  @default(false) @map("keep_sni_blank")
   excludeFromSubscriptionTypes String[] @default([]) @map("exclude_from_subscription_types")
 
-  tag      String? @map("tag")
+  tags     String[] @default([]) @map("tags")
   isHidden Boolean @default(false) @map("is_hidden")
 
   overrideSniFromAddress Boolean @default(false) @map("override_sni_from_address")

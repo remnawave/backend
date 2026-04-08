@@ -67,19 +67,22 @@ export namespace UpdateHostCommand {
                 })
                 .nullable(),
         ),
-        tag: z
+        tags: z
             .optional(
                 z
-                    .string()
-                    .regex(
-                        /^[A-Z0-9_:]+$/,
-                        'Tag can only contain uppercase letters, numbers, underscores and colons',
+                    .array(
+                        z
+                            .string()
+                            .regex(
+                                /^[A-Z0-9_:]+$/,
+                                'Tag can only contain uppercase letters, numbers, underscores and colons',
+                            )
+                            .max(32, 'Tag must be less than 32 characters'),
                     )
-                    .max(32, 'Tag must be less than 32 characters')
-                    .nullable(),
+                    .max(10, 'Maximum 10 tags allowed'),
             )
             .describe(
-                'Optional. Host tag for categorization. Max 32 characters, uppercase letters, numbers, underscores and colons are allowed.',
+                'Optional. Host tags for categorization. Max 10 tags, each max 32 characters, uppercase letters, numbers, underscores and colons are allowed.',
             ),
         isHidden: z.optional(z.boolean()),
         overrideSniFromAddress: z.optional(z.boolean()),

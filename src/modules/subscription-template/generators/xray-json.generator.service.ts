@@ -351,7 +351,9 @@ export class XrayJsonGeneratorService {
         }
 
         if (useHostTagAsTag) {
-            return hosts.map((h) => this.buildOutbound(h, h.metadata.tag || h.finalRemark));
+            return hosts.map((h) =>
+                this.buildOutbound(h, h.metadata.tags[0] || h.finalRemark),
+            );
         }
 
         const proxyTag = tagPrefix ?? 'proxy';
@@ -404,13 +406,17 @@ export class XrayJsonGeneratorService {
             case 'sameTagAsRecipient':
                 return candidates.filter(
                     (h) =>
-                        h.metadata.tag && host.metadata.tag && h.metadata.tag === host.metadata.tag,
+                        h.metadata.tags.length > 0 &&
+                        host.metadata.tags.length > 0 &&
+                        h.metadata.tags.some((t) => host.metadata.tags.includes(t)),
                 );
 
             case 'tagRegex': {
                 const regex = this.parseRegex(selector.pattern);
                 if (!regex) return [];
-                return candidates.filter((h) => h.metadata.tag && regex.test(h.metadata.tag));
+                return candidates.filter(
+                    (h) => h.metadata.tags.length > 0 && h.metadata.tags.some((t) => regex.test(t)),
+                );
             }
         }
     }

@@ -26,7 +26,7 @@ export class HostsEntity implements Hosts {
     serverDescription: null | string;
     allowInsecure: boolean;
 
-    tag: null | string;
+    tags: string[];
     isHidden: boolean;
 
     overrideSniFromAddress: boolean;
