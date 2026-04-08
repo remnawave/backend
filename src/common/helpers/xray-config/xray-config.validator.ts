@@ -30,6 +30,7 @@ const ALLOWED_PROTOCOLS = new Set([
     'mixed',
     'shadowsocks',
     'trojan',
+    'tun',
     'tunnel',
     'vless',
     'wireguard',
