@@ -490,10 +490,12 @@ export class MihomoGeneratorService {
             if (xhttpSettings.scMaxEachPostBytes !== undefined) {
                 settings['sc-max-each-post-bytes'] = xhttpSettings.scMaxEachPostBytes;
             }
-            if (xhttpSettings.xmux && typeof xhttpSettings.xmux === 'object') {
-                settings['reuse-settings'] = this.buildXhttpReuseSettings(
-                    xhttpSettings.xmux as Record<string, unknown>,
-                );
+            if (xhttpSettings.extra && typeof xhttpSettings.extra === 'object') {
+                if (xhttpSettings.xmux && typeof xhttpSettings.xmux === 'object') {
+                    settings['reuse-settings'] = this.buildXhttpReuseSettings(
+                        xhttpSettings.xmux as Record<string, unknown>,
+                    );
+                }
             }
         }
 
