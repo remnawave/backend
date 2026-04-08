@@ -48,7 +48,7 @@ interface ProxyNode {
     serverDescription?: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp']);
 const UNSUPPORTED_PROTOCOLS = new Set(['hysteria']);
 
 @Injectable()
@@ -86,6 +86,7 @@ export class MihomoGeneratorService {
 
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
+                if (isStash && host.transport === 'xhttp') continue;
 
                 const node = this.buildProxyNode(host, isExtendedClient);
                 if (!node) continue;
@@ -261,6 +262,13 @@ export class MihomoGeneratorService {
                 netOpts = this.buildGrpcOpts(host.transportOptions.serviceName);
                 break;
 
+            case 'xhttp':
+                netOpts = this.buildXhttpOpts(
+                    host.transportOptions,
+                    host.clientOverrides.mihomoX25519,
+                );
+                break;
+
             default:
                 return;
         }
@@ -319,6 +327,177 @@ export class MihomoGeneratorService {
         return {
             'grpc-service-name': serviceName ?? '',
         };
+    }
+
+    private buildXhttpOpts(
+        transportOptions: {
+            path: string | null;
+            host: string | null;
+            mode: string;
+            extra: Record<string, unknown> | null;
+        },
+        mihomoX25519?: boolean,
+    ): Record<string, unknown> {
+        const config: Record<string, unknown> = {};
+
+        if (transportOptions.path) {
+            config.path = transportOptions.path;
+        }
+
+        if (transportOptions.host) {
+            config.host = transportOptions.host;
+        }
+
+        if (transportOptions.mode) {
+            config.mode = transportOptions.mode;
+        }
+
+        const extra = transportOptions.extra;
+        if (!extra) return config;
+
+        if (extra.headers) {
+            config.headers = extra.headers;
+        }
+
+        if (extra.noGRPCHeader !== undefined) {
+            config['no-grpc-header'] = extra.noGRPCHeader;
+        }
+
+        if (extra.xPaddingBytes !== undefined) {
+            config['x-padding-bytes'] = String(extra.xPaddingBytes);
+        }
+
+        if (extra.scMaxEachPostBytes !== undefined) {
+            config['sc-max-each-post-bytes'] = extra.scMaxEachPostBytes;
+        }
+
+        if (extra.scMinPostsIntervalMs !== undefined) {
+            config['sc-min-posts-interval-ms'] = extra.scMinPostsIntervalMs;
+        }
+
+        if (extra.scStreamUpServerSecs !== undefined) {
+            config['sc-stream-up-server-secs'] = String(extra.scStreamUpServerSecs);
+        }
+
+        if (extra.xmux && typeof extra.xmux === 'object') {
+            config['reuse-settings'] = this.buildXhttpReuseSettings(
+                extra.xmux as Record<string, unknown>,
+            );
+        }
+
+        if (extra.downloadSettings && typeof extra.downloadSettings === 'object') {
+            config['download-settings'] = this.buildXhttpDownloadSettings(
+                extra.downloadSettings as Record<string, unknown>,
+                mihomoX25519,
+            );
+        }
+
+        return config;
+    }
+
+    private buildXhttpReuseSettings(xmux: Record<string, unknown>): Record<string, unknown> {
+        const settings: Record<string, unknown> = {};
+
+        if (xmux.maxConnections !== undefined) {
+            settings['max-connections'] = String(xmux.maxConnections);
+        }
+        if (xmux.maxConcurrency !== undefined) {
+            settings['max-concurrency'] = String(xmux.maxConcurrency);
+        }
+        if (xmux.cMaxReuseTimes !== undefined) {
+            settings['c-max-reuse-times'] = String(xmux.cMaxReuseTimes);
+        }
+        if (xmux.hMaxRequestTimes !== undefined) {
+            settings['h-max-request-times'] = String(xmux.hMaxRequestTimes);
+        }
+        if (xmux.hMaxReusableSecs !== undefined) {
+            settings['h-max-reusable-secs'] = String(xmux.hMaxReusableSecs);
+        }
+        if (xmux.hKeepAlivePeriod !== undefined) {
+            settings['h-keep-alive-period'] = xmux.hKeepAlivePeriod;
+        }
+
+        return settings;
+    }
+
+    private buildXhttpDownloadSettings(
+        ds: Record<string, unknown>,
+        mihomoX25519?: boolean,
+    ): Record<string, unknown> {
+        const settings: Record<string, unknown> = {};
+
+        if (ds.address) {
+            settings.server = ds.address;
+        }
+        if (ds.port) {
+            settings.port = ds.port;
+        }
+
+        if (ds.security === 'tls' || ds.security === 'reality') {
+            settings.tls = true;
+
+            const tlsSettings = ds.tlsSettings as Record<string, unknown> | undefined;
+            if (tlsSettings) {
+                if (tlsSettings.serverName) {
+                    settings.servername = tlsSettings.serverName;
+                }
+                if (tlsSettings.fingerprint) {
+                    settings['client-fingerprint'] = tlsSettings.fingerprint;
+                }
+                if (tlsSettings.alpn) {
+                    settings.alpn = tlsSettings.alpn;
+                }
+                if (tlsSettings.allowInsecure) {
+                    settings['skip-cert-verify'] = true;
+                }
+            }
+
+            const realitySettings = ds.realitySettings as Record<string, unknown> | undefined;
+            if (ds.security === 'reality' && realitySettings) {
+                const realityOpts: Record<string, unknown> = {};
+                if (realitySettings.publicKey) {
+                    realityOpts['public-key'] = realitySettings.publicKey;
+                }
+                if (realitySettings.shortId) {
+                    realityOpts['short-id'] = realitySettings.shortId;
+                }
+                if (mihomoX25519) {
+                    realityOpts['support-x25519mlkem768'] = true;
+                }
+                if (Object.keys(realityOpts).length > 0) {
+                    settings['reality-opts'] = realityOpts;
+                }
+            }
+        }
+
+        const xhttpSettings = ds.xhttpSettings as Record<string, unknown> | undefined;
+        if (xhttpSettings) {
+            if (xhttpSettings.path) {
+                settings.path = xhttpSettings.path;
+            }
+            if (xhttpSettings.host) {
+                settings.host = xhttpSettings.host;
+            }
+            if (xhttpSettings.headers) {
+                settings.headers = xhttpSettings.headers;
+            }
+            if (xhttpSettings.noGRPCHeader !== undefined) {
+                settings['no-grpc-header'] = xhttpSettings.noGRPCHeader;
+            }
+            if (xhttpSettings.xPaddingBytes !== undefined) {
+                settings['x-padding-bytes'] = String(xhttpSettings.xPaddingBytes);
+            }
+            if (xhttpSettings.scMaxEachPostBytes !== undefined) {
+                settings['sc-max-each-post-bytes'] = xhttpSettings.scMaxEachPostBytes;
+            }
+            if (xhttpSettings.xmux && typeof xhttpSettings.xmux === 'object') {
+                settings['reuse-settings'] = this.buildXhttpReuseSettings(
+                    xhttpSettings.xmux as Record<string, unknown>,
+                );
+            }
+        }
+
+        return settings;
     }
 
     private async renderConfig(
