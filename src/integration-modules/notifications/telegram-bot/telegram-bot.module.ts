@@ -37,6 +37,7 @@ import { TELEGRAM_BOT_EVENTS } from './events';
                                 agent,
                                 compress: true,
                             },
+                            timeoutSeconds: 10,
                         },
                     },
                 };
