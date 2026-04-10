@@ -377,16 +377,21 @@ export class XrayJsonGeneratorService {
         allHosts: ResolvedProxyConfig[],
     ): ResolvedProxyConfig[] {
         const source = selectFrom ?? 'HIDDEN';
+        const recipientUuid = host.metadata.uuid;
         let candidates: ResolvedProxyConfig[] = [];
         switch (source) {
             case 'ALL':
-                candidates = allHosts;
+                candidates = allHosts.filter((h) => h.metadata.uuid !== recipientUuid);
                 break;
             case 'HIDDEN':
-                candidates = allHosts.filter((h) => h.metadata.isHidden);
+                candidates = allHosts.filter(
+                    (h) => h.metadata.isHidden && h.metadata.uuid !== recipientUuid,
+                );
                 break;
             case 'NOT_HIDDEN':
-                candidates = allHosts.filter((h) => !h.metadata.isHidden);
+                candidates = allHosts.filter(
+                    (h) => !h.metadata.isHidden && h.metadata.uuid !== recipientUuid,
+                );
                 break;
         }
 
