@@ -154,6 +154,14 @@ function buildTlsSettings(host: ResolvedProxyConfig): Record<string, unknown> {
         settings.allowInsecure = true;
     }
 
+    if (host.securityOptions.echForceQuery) {
+        settings.echForceQuery = host.securityOptions.echForceQuery;
+    }
+
+    if (host.securityOptions.echConfigList) {
+        settings.echConfigList = host.securityOptions.echConfigList;
+    }
+
     return settings;
 }
 
