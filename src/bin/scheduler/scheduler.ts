@@ -2,6 +2,8 @@
     return this.toString();
 };
 
+process.title = 'rw-scheduler';
+
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import timezone from 'dayjs/plugin/timezone';

@@ -2,6 +2,8 @@
     return this.toString();
 };
 
+process.title = 'rw-api';
+
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod';
 import relativeTime from 'dayjs/plugin/relativeTime';
