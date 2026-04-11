@@ -20,6 +20,7 @@ export const JSON_SUBSCRIPTION_FALLBACK_CLIENTS = [
     /^io\.github\.saeeddev94\.xray\//,
     /^v2rayNG\/(\d+\.\d+\.\d+)/,
     /^v2rayN\/(\d+\.\d+\.\d+)/,
+    /^v2plus\/(\d+\.\d+\.\d+)/,
 ] as const;
 
 export function isJsonSubscriptionFallbackSupported(userAgent: string): boolean {
