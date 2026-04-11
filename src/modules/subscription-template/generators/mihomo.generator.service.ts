@@ -27,13 +27,28 @@ interface NetworkConfig {
     'short-id'?: string;
 }
 
+interface Hysteria2FinalMask {
+    quicParams?: {
+        brutalUp?: string | number;
+        brutalDown?: string | number;
+        udpHop?: {
+            ports?: string | number;
+            interval?: string | number;
+        };
+    };
+    udp?: Array<{
+        type?: string;
+        settings?: { password?: string };
+    }>;
+}
+
 interface ProxyNode {
     [key: string]: unknown;
     alpn?: string[];
     alterId?: number;
     cipher?: string;
     name: string;
-    network: string;
+    network?: string;
     password?: string;
     port: number;
     server: string;
@@ -48,8 +63,8 @@ interface ProxyNode {
     serverDescription?: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp']);
-const UNSUPPORTED_PROTOCOLS = new Set(['hysteria']);
+const UNSUPPORTED_TRANSPORTS = new Set(['kcp']);
+const UNSUPPORTED_PROTOCOLS = new Set<string>();
 
 @Injectable()
 export class MihomoGeneratorService {
@@ -103,6 +118,10 @@ export class MihomoGeneratorService {
     }
 
     private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
+        if (host.protocol === 'hysteria') {
+            return this.buildHysteria2Node(host, isExtendedClient);
+        }
+
         const node: ProxyNode = {
             name: host.finalRemark,
             type: this.resolveClashType(host.protocol),
@@ -579,5 +598,79 @@ export class MihomoGeneratorService {
                 provider.payload = [...data.proxies];
             }
         }
+    }
+
+    private buildHysteria2Node(
+        host: ResolvedProxyConfig,
+        isExtendedClient: boolean,
+    ): ProxyNode | null {
+        if (host.protocol !== 'hysteria' || host.transport !== 'hysteria') {
+            return null;
+        }
+
+        const node: ProxyNode = {
+            name: host.finalRemark,
+            type: 'hysteria2',
+            server: host.address,
+            port: host.port,
+            udp: true,
+            password: host.transportOptions.auth,
+            ...this.buildHysteria2QuicFields(host.streamOverrides.finalMask),
+            ...this.buildHysteria2ObfsFields(host.streamOverrides.finalMask),
+            ...this.buildHysteria2TlsFields(host),
+        };
+
+        if (isExtendedClient && host.clientOverrides.serverDescription) {
+            node.serverDescription = Buffer.from(
+                host.clientOverrides.serverDescription,
+                'base64',
+            ).toString();
+        }
+
+        return node;
+    }
+
+    private buildHysteria2QuicFields(
+        finalMask: Record<string, unknown> | null,
+    ): Record<string, unknown> {
+        const { brutalUp, brutalDown, udpHop } =
+            (finalMask as Hysteria2FinalMask | null)?.quicParams ?? {};
+        const hopInterval = this.parseHopInterval(udpHop?.interval);
+
+        return {
+            ...(brutalUp && { up: String(brutalUp) }),
+            ...(brutalDown && { down: String(brutalDown) }),
+            ...(udpHop?.ports && { ports: String(udpHop.ports) }),
+            ...(hopInterval !== null && { 'hop-interval': hopInterval }),
+        };
+    }
+
+    private parseHopInterval(interval: string | number | undefined): number | null {
+        if (interval === undefined) return null;
+        const parsed = parseInt(String(interval).split('-')[0], 10);
+        return isNaN(parsed) ? null : parsed;
+    }
+
+    private buildHysteria2ObfsFields(
+        finalMask: Record<string, unknown> | null,
+    ): Record<string, unknown> {
+        const password = (finalMask as Hysteria2FinalMask | null)?.udp?.find(
+            (m) => m?.type === 'salamander',
+        )?.settings?.password;
+
+        if (!password) return {};
+        return { obfs: 'salamander', 'obfs-password': password };
+    }
+
+    private buildHysteria2TlsFields(host: ResolvedProxyConfig): Record<string, unknown> {
+        if (host.security !== 'tls') return {};
+        const { serverName, allowInsecure, fingerprint, alpn } = host.securityOptions;
+
+        return {
+            ...(serverName && { sni: serverName }),
+            ...(allowInsecure && { 'skip-cert-verify': true }),
+            ...(fingerprint && { fingerprint }),
+            ...(alpn && { alpn: alpn.split(',') }),
+        };
     }
 }
