@@ -16,6 +16,7 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
     private readonly INSTANCE_TYPE: string;
     private readonly INTERVAL_MS = 5_000;
     private readonly CACHE_KEY = INTERNAL_CACHE_KEYS.RUNTIME_METRICS;
+    private readonly RESOLUTION_MS = 10;
 
     private timer: NodeJS.Timeout | null = null;
     private eld: IntervalHistogram;
@@ -23,7 +24,7 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
     constructor(private readonly rawCacheService: RawCacheService) {
         this.INSTANCE_ID = process.env.INSTANCE_ID || '0';
         this.INSTANCE_TYPE = process.env.INSTANCE_TYPE || 'api';
-        this.eld = monitorEventLoopDelay({ resolution: 10 });
+        this.eld = monitorEventLoopDelay({ resolution: this.RESOLUTION_MS });
     }
 
     onModuleInit(): void {
@@ -53,8 +54,8 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
             heapTotal: mem.heapTotal,
             external: mem.external,
             arrayBuffers: mem.arrayBuffers,
-            eventLoopDelayMs: this.eld.mean / 1e6 || 0,
-            eventLoopP99Ms: this.eld.percentile(99) / 1e6,
+            eventLoopDelayMs: Math.max(0, this.eld.mean / 1e6 - this.RESOLUTION_MS),
+            eventLoopP99Ms: Math.max(0, this.eld.percentile(99) / 1e6 - this.RESOLUTION_MS),
             activeHandles: process.getActiveResourcesInfo().length,
             uptime: process.uptime(),
             pid: process.pid,
