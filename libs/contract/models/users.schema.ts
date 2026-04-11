@@ -10,7 +10,7 @@ export const UsersSchema = z.object({
 
     status: z.nativeEnum(USERS_STATUS).default(USERS_STATUS.ACTIVE),
 
-    trafficLimitBytes: z.number().int().default(0),
+    trafficLimitBytes: z.number().default(0),
     trafficLimitStrategy: z
         .nativeEnum(RESET_PERIODS, {
             description: 'Available reset periods',

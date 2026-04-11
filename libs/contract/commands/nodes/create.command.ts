@@ -23,9 +23,7 @@ export namespace CreateNodeCommand {
             .max(65535, 'Port must be less than 65535')
             .optional(),
         isTrafficTrackingActive: z.boolean().optional().default(false),
-        trafficLimitBytes: z.optional(
-            z.number().int().min(0, 'Traffic limit must be greater than 0'),
-        ),
+        trafficLimitBytes: z.optional(z.number().min(0, 'Traffic limit must be greater than 0')),
         notifyPercent: z.optional(
             z
                 .number()

@@ -22,7 +22,6 @@ export namespace BulkAllUpdateUsersCommand {
                 .number({
                     invalid_type_error: 'Traffic limit must be a number',
                 })
-                .int('Traffic limit must be an integer')
                 .min(0, 'Traffic limit must be 0 or greater')
                 .describe('Traffic limit in bytes. 0 - unlimited'),
         ),

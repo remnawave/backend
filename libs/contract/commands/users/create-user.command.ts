@@ -66,7 +66,6 @@ export namespace CreateUserCommand {
             .number({
                 invalid_type_error: 'Traffic limit must be a number',
             })
-            .int('Traffic limit must be an integer')
             .min(0, 'Traffic limit must be greater than 0')
             .optional()
             .describe('Optional. Traffic limit in bytes. Set to 0 for unlimited traffic.'),
