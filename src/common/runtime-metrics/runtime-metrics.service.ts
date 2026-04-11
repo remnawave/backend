@@ -23,7 +23,7 @@ export class RuntimeMetricsService implements OnModuleDestroy, OnModuleInit {
     constructor(private readonly rawCacheService: RawCacheService) {
         this.INSTANCE_ID = process.env.INSTANCE_ID || '0';
         this.INSTANCE_TYPE = process.env.INSTANCE_TYPE || 'api';
-        this.eld = monitorEventLoopDelay({ resolution: 20 });
+        this.eld = monitorEventLoopDelay({ resolution: 10 });
     }
 
     onModuleInit(): void {
