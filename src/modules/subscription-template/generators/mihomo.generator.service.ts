@@ -671,7 +671,7 @@ export class MihomoGeneratorService {
         return {
             ...(serverName && { sni: serverName }),
             ...(allowInsecure && { 'skip-cert-verify': true }),
-            ...(fingerprint && { fingerprint }),
+            ...(fingerprint && { 'client-fingerprint': fingerprint }),
             ...(alpn && { alpn: alpn.split(',') }),
         };
     }
