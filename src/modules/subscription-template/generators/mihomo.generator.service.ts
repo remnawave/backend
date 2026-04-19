@@ -386,6 +386,58 @@ export class MihomoGeneratorService {
             config['x-padding-bytes'] = String(extra.xPaddingBytes);
         }
 
+        if (extra.xPaddingObfsMode !== undefined) {
+            config['x-padding-obfs-mode'] = extra.xPaddingObfsMode;
+        }
+
+        if (extra.xPaddingKey !== undefined) {
+            config['x-padding-key'] = extra.xPaddingKey;
+        }
+
+        if (extra.xPaddingHeader !== undefined) {
+            config['x-padding-header'] = extra.xPaddingHeader;
+        }
+
+        if (extra.xPaddingPlacement !== undefined) {
+            config['x-padding-placement'] = extra.xPaddingPlacement;
+        }
+
+        if (extra.xPaddingMethod !== undefined) {
+            config['x-padding-method'] = extra.xPaddingMethod;
+        }
+
+        if (extra.uplinkHttpMethod !== undefined) {
+            config['uplink-http-method'] = extra.uplinkHttpMethod;
+        }
+
+        if (extra.sessionPlacement !== undefined) {
+            config['session-placement'] = extra.sessionPlacement;
+        }
+
+        if (extra.sessionKey !== undefined) {
+            config['session-key'] = extra.sessionKey;
+        }
+
+        if (extra.seqPlacement !== undefined) {
+            config['seq-placement'] = extra.seqPlacement;
+        }
+
+        if (extra.seqKey !== undefined) {
+            config['seq-key'] = extra.seqKey;
+        }
+
+        if (extra.uplinkDataPlacement !== undefined) {
+            config['uplink-data-placement'] = extra.uplinkDataPlacement;
+        }
+
+        if (extra.uplinkDataKey !== undefined) {
+            config['uplink-data-key'] = extra.uplinkDataKey;
+        }
+
+        if (extra.uplinkChunkSize !== undefined) {
+            config['uplink-chunk-size'] = extra.uplinkChunkSize;
+        }
+
         if (extra.scMaxEachPostBytes !== undefined) {
             config['sc-max-each-post-bytes'] = extra.scMaxEachPostBytes;
         }
@@ -506,9 +558,52 @@ export class MihomoGeneratorService {
             if (xhttpSettings.xPaddingBytes !== undefined) {
                 settings['x-padding-bytes'] = String(xhttpSettings.xPaddingBytes);
             }
+            if (xhttpSettings.xPaddingObfsMode !== undefined) {
+                settings['x-padding-obfs-mode'] = xhttpSettings.xPaddingObfsMode;
+            }
+            if (xhttpSettings.xPaddingKey !== undefined) {
+                settings['x-padding-key'] = xhttpSettings.xPaddingKey;
+            }
+            if (xhttpSettings.xPaddingHeader !== undefined) {
+                settings['x-padding-header'] = xhttpSettings.xPaddingHeader;
+            }
+            if (xhttpSettings.xPaddingPlacement !== undefined) {
+                settings['x-padding-placement'] = xhttpSettings.xPaddingPlacement;
+            }
+            if (xhttpSettings.xPaddingMethod !== undefined) {
+                settings['x-padding-method'] = xhttpSettings.xPaddingMethod;
+            }
+            if (xhttpSettings.uplinkHttpMethod !== undefined) {
+                settings['uplink-http-method'] = xhttpSettings.uplinkHttpMethod;
+            }
+            if (xhttpSettings.sessionPlacement !== undefined) {
+                settings['session-placement'] = xhttpSettings.sessionPlacement;
+            }
+            if (xhttpSettings.sessionKey !== undefined) {
+                settings['session-key'] = xhttpSettings.sessionKey;
+            }
+            if (xhttpSettings.seqPlacement !== undefined) {
+                settings['seq-placement'] = xhttpSettings.seqPlacement;
+            }
+            if (xhttpSettings.seqKey !== undefined) {
+                settings['seq-key'] = xhttpSettings.seqKey;
+            }
+            if (xhttpSettings.uplinkDataPlacement !== undefined) {
+                settings['uplink-data-placement'] = xhttpSettings.uplinkDataPlacement;
+            }
+            if (xhttpSettings.uplinkDataKey !== undefined) {
+                settings['uplink-data-key'] = xhttpSettings.uplinkDataKey;
+            }
+            if (xhttpSettings.uplinkChunkSize !== undefined) {
+                settings['uplink-chunk-size'] = xhttpSettings.uplinkChunkSize;
+            }
             if (xhttpSettings.scMaxEachPostBytes !== undefined) {
                 settings['sc-max-each-post-bytes'] = xhttpSettings.scMaxEachPostBytes;
             }
+            if (xhttpSettings.scMinPostsIntervalMs !== undefined) {
+                settings['sc-min-posts-interval-ms'] = xhttpSettings.scMinPostsIntervalMs;
+            }
+
             const extra = xhttpSettings.extra;
             if (extra && typeof extra === 'object') {
                 const xmux = (extra as Record<string, unknown>).xmux;
