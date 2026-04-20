@@ -66,6 +66,36 @@ interface ProxyNode {
 const UNSUPPORTED_TRANSPORTS = new Set(['kcp']);
 const UNSUPPORTED_PROTOCOLS = new Set<string>();
 
+const XHTTP_FIELD_MAP: [string, string, boolean?][] = [
+    ['noGRPCHeader', 'no-grpc-header'],
+    ['xPaddingBytes', 'x-padding-bytes', true],
+    ['xPaddingObfsMode', 'x-padding-obfs-mode'],
+    ['xPaddingKey', 'x-padding-key'],
+    ['xPaddingHeader', 'x-padding-header'],
+    ['xPaddingPlacement', 'x-padding-placement'],
+    ['xPaddingMethod', 'x-padding-method'],
+    ['uplinkHttpMethod', 'uplink-http-method'],
+    ['sessionPlacement', 'session-placement'],
+    ['sessionKey', 'session-key'],
+    ['seqPlacement', 'seq-placement'],
+    ['seqKey', 'seq-key'],
+    ['uplinkDataPlacement', 'uplink-data-placement'],
+    ['uplinkDataKey', 'uplink-data-key'],
+    ['uplinkChunkSize', 'uplink-chunk-size'],
+    ['scMaxEachPostBytes', 'sc-max-each-post-bytes'],
+    ['scMinPostsIntervalMs', 'sc-min-posts-interval-ms'],
+    ['scStreamUpServerSecs', 'sc-stream-up-server-secs', true],
+];
+
+const XMUX_FIELD_MAP: [string, string, boolean?][] = [
+    ['maxConnections', 'max-connections', true],
+    ['maxConcurrency', 'max-concurrency', true],
+    ['cMaxReuseTimes', 'c-max-reuse-times', true],
+    ['hMaxRequestTimes', 'h-max-request-times', true],
+    ['hMaxReusableSecs', 'h-max-reusable-secs', true],
+    ['hKeepAlivePeriod', 'h-keep-alive-period'],
+];
+
 @Injectable()
 export class MihomoGeneratorService {
     private readonly logger = new Logger(MihomoGeneratorService.name);
@@ -378,77 +408,7 @@ export class MihomoGeneratorService {
             config.headers = extra.headers;
         }
 
-        if (extra.noGRPCHeader !== undefined) {
-            config['no-grpc-header'] = extra.noGRPCHeader;
-        }
-
-        if (extra.xPaddingBytes !== undefined) {
-            config['x-padding-bytes'] = String(extra.xPaddingBytes);
-        }
-
-        if (extra.xPaddingObfsMode !== undefined) {
-            config['x-padding-obfs-mode'] = extra.xPaddingObfsMode;
-        }
-
-        if (extra.xPaddingKey !== undefined) {
-            config['x-padding-key'] = extra.xPaddingKey;
-        }
-
-        if (extra.xPaddingHeader !== undefined) {
-            config['x-padding-header'] = extra.xPaddingHeader;
-        }
-
-        if (extra.xPaddingPlacement !== undefined) {
-            config['x-padding-placement'] = extra.xPaddingPlacement;
-        }
-
-        if (extra.xPaddingMethod !== undefined) {
-            config['x-padding-method'] = extra.xPaddingMethod;
-        }
-
-        if (extra.uplinkHttpMethod !== undefined) {
-            config['uplink-http-method'] = extra.uplinkHttpMethod;
-        }
-
-        if (extra.sessionPlacement !== undefined) {
-            config['session-placement'] = extra.sessionPlacement;
-        }
-
-        if (extra.sessionKey !== undefined) {
-            config['session-key'] = extra.sessionKey;
-        }
-
-        if (extra.seqPlacement !== undefined) {
-            config['seq-placement'] = extra.seqPlacement;
-        }
-
-        if (extra.seqKey !== undefined) {
-            config['seq-key'] = extra.seqKey;
-        }
-
-        if (extra.uplinkDataPlacement !== undefined) {
-            config['uplink-data-placement'] = extra.uplinkDataPlacement;
-        }
-
-        if (extra.uplinkDataKey !== undefined) {
-            config['uplink-data-key'] = extra.uplinkDataKey;
-        }
-
-        if (extra.uplinkChunkSize !== undefined) {
-            config['uplink-chunk-size'] = extra.uplinkChunkSize;
-        }
-
-        if (extra.scMaxEachPostBytes !== undefined) {
-            config['sc-max-each-post-bytes'] = extra.scMaxEachPostBytes;
-        }
-
-        if (extra.scMinPostsIntervalMs !== undefined) {
-            config['sc-min-posts-interval-ms'] = extra.scMinPostsIntervalMs;
-        }
-
-        if (extra.scStreamUpServerSecs !== undefined) {
-            config['sc-stream-up-server-secs'] = String(extra.scStreamUpServerSecs);
-        }
+        this.applyFieldMap(extra, config, XHTTP_FIELD_MAP);
 
         if (extra.xmux && typeof extra.xmux === 'object') {
             config['reuse-settings'] = this.buildXhttpReuseSettings(
@@ -468,26 +428,7 @@ export class MihomoGeneratorService {
 
     private buildXhttpReuseSettings(xmux: Record<string, unknown>): Record<string, unknown> {
         const settings: Record<string, unknown> = {};
-
-        if (xmux.maxConnections !== undefined) {
-            settings['max-connections'] = String(xmux.maxConnections);
-        }
-        if (xmux.maxConcurrency !== undefined) {
-            settings['max-concurrency'] = String(xmux.maxConcurrency);
-        }
-        if (xmux.cMaxReuseTimes !== undefined) {
-            settings['c-max-reuse-times'] = String(xmux.cMaxReuseTimes);
-        }
-        if (xmux.hMaxRequestTimes !== undefined) {
-            settings['h-max-request-times'] = String(xmux.hMaxRequestTimes);
-        }
-        if (xmux.hMaxReusableSecs !== undefined) {
-            settings['h-max-reusable-secs'] = String(xmux.hMaxReusableSecs);
-        }
-        if (xmux.hKeepAlivePeriod !== undefined) {
-            settings['h-keep-alive-period'] = xmux.hKeepAlivePeriod;
-        }
-
+        this.applyFieldMap(xmux, settings, XMUX_FIELD_MAP);
         return settings;
     }
 
@@ -552,57 +493,7 @@ export class MihomoGeneratorService {
             if (xhttpSettings.headers) {
                 settings.headers = xhttpSettings.headers;
             }
-            if (xhttpSettings.noGRPCHeader !== undefined) {
-                settings['no-grpc-header'] = xhttpSettings.noGRPCHeader;
-            }
-            if (xhttpSettings.xPaddingBytes !== undefined) {
-                settings['x-padding-bytes'] = String(xhttpSettings.xPaddingBytes);
-            }
-            if (xhttpSettings.xPaddingObfsMode !== undefined) {
-                settings['x-padding-obfs-mode'] = xhttpSettings.xPaddingObfsMode;
-            }
-            if (xhttpSettings.xPaddingKey !== undefined) {
-                settings['x-padding-key'] = xhttpSettings.xPaddingKey;
-            }
-            if (xhttpSettings.xPaddingHeader !== undefined) {
-                settings['x-padding-header'] = xhttpSettings.xPaddingHeader;
-            }
-            if (xhttpSettings.xPaddingPlacement !== undefined) {
-                settings['x-padding-placement'] = xhttpSettings.xPaddingPlacement;
-            }
-            if (xhttpSettings.xPaddingMethod !== undefined) {
-                settings['x-padding-method'] = xhttpSettings.xPaddingMethod;
-            }
-            if (xhttpSettings.uplinkHttpMethod !== undefined) {
-                settings['uplink-http-method'] = xhttpSettings.uplinkHttpMethod;
-            }
-            if (xhttpSettings.sessionPlacement !== undefined) {
-                settings['session-placement'] = xhttpSettings.sessionPlacement;
-            }
-            if (xhttpSettings.sessionKey !== undefined) {
-                settings['session-key'] = xhttpSettings.sessionKey;
-            }
-            if (xhttpSettings.seqPlacement !== undefined) {
-                settings['seq-placement'] = xhttpSettings.seqPlacement;
-            }
-            if (xhttpSettings.seqKey !== undefined) {
-                settings['seq-key'] = xhttpSettings.seqKey;
-            }
-            if (xhttpSettings.uplinkDataPlacement !== undefined) {
-                settings['uplink-data-placement'] = xhttpSettings.uplinkDataPlacement;
-            }
-            if (xhttpSettings.uplinkDataKey !== undefined) {
-                settings['uplink-data-key'] = xhttpSettings.uplinkDataKey;
-            }
-            if (xhttpSettings.uplinkChunkSize !== undefined) {
-                settings['uplink-chunk-size'] = xhttpSettings.uplinkChunkSize;
-            }
-            if (xhttpSettings.scMaxEachPostBytes !== undefined) {
-                settings['sc-max-each-post-bytes'] = xhttpSettings.scMaxEachPostBytes;
-            }
-            if (xhttpSettings.scMinPostsIntervalMs !== undefined) {
-                settings['sc-min-posts-interval-ms'] = xhttpSettings.scMinPostsIntervalMs;
-            }
+            this.applyFieldMap(xhttpSettings, settings, XHTTP_FIELD_MAP);
 
             const extra = xhttpSettings.extra;
             if (extra && typeof extra === 'object') {
@@ -769,5 +660,17 @@ export class MihomoGeneratorService {
             ...(fingerprint && { 'client-fingerprint': fingerprint }),
             ...(alpn && { alpn: alpn.split(',') }),
         };
+    }
+
+    private applyFieldMap(
+        source: Record<string, unknown>,
+        target: Record<string, unknown>,
+        fieldMap: [string, string, boolean?][],
+    ): void {
+        for (const [src, dst, asString] of fieldMap) {
+            if (source[src] !== undefined) {
+                target[dst] = asString ? String(source[src]) : source[src];
+            }
+        }
     }
 }
