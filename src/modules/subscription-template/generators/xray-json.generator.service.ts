@@ -229,7 +229,7 @@ export class XrayJsonGeneratorService {
 
                 configs.push({
                     ...baseTemplate,
-                    outbounds: [...outboundConfig.outbounds, ...baseTemplate.outbounds],
+                    outbounds: [...outboundConfig.outbounds, ...(baseTemplate.outbounds ?? [])],
                     remarks: outboundConfig.remarks,
                     meta: outboundConfig.meta,
                 });
