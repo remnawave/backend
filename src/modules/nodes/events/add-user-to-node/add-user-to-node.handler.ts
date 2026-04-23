@@ -29,18 +29,30 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
             );
 
             if (!userEntity.isOk) {
+                this.logger.error(
+                    `BDT-27: AddUserToNode failed to resolve user ${event.userUuid}. ` +
+                        `New user will not be pushed to any xray — they will see "connected, no internet".`,
+                );
                 return;
             }
 
             const { tId, trojanPassword, vlessUuid, ssPassword, inbounds } = userEntity.response;
 
             if (inbounds.length === 0) {
+                this.logger.error(
+                    `BDT-27: AddUserToNode: user tId=${tId} has no resolved inbounds (no active internal squads or no squad→inbound mapping). ` +
+                        `User will NOT be pushed to any xray. Check the user's internal_squad_members rows and internal_squad_inbounds linkage.`,
+                );
                 return;
             }
 
             const nodes = await this.nodesRepository.findConnectedNodes();
 
             if (nodes.length === 0) {
+                this.logger.error(
+                    `BDT-27: AddUserToNode: no connected nodes found while trying to push tId=${tId}. ` +
+                        `User created in DB but not pushed to any xray. Check node connectivity.`,
+                );
                 return;
             }
 
@@ -84,6 +96,8 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                 }),
             };
 
+            let pushedToAny = false;
+
             for (const node of nodes) {
                 if (node.activeInbounds.length === 0 || !node.activeConfigProfileUuid) {
                     continue;
@@ -113,6 +127,8 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                     continue;
                 }
 
+                pushedToAny = true;
+
                 await this.nodesQueuesService.addUserToNode({
                     data: filteredData,
                     node: {
@@ -120,6 +136,23 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         port: node.port,
                     },
                 });
+            }
+
+            if (!pushedToAny) {
+                // Every connected node either had activeInbounds.length === 0, no
+                // activeConfigProfileUuid, or zero tag-overlap with the user's
+                // resolved inbounds. User stays in DB/squad but is never added to
+                // any xray → "connected, no internet" on the client. This is the
+                // new-user breakage mode behind BDT-27 whenever it isn't a field
+                // hydration miss.
+                this.logger.error(
+                    `BDT-27: AddUserToNode: user tId=${tId} not pushed to any of ${nodes.length} connected nodes. ` +
+                        `Possible causes: node.activeInbounds empty, no activeConfigProfileUuid, or no tag overlap ` +
+                        `between user squads and node inbounds. User-tags=[${userData.data
+                            .map((d) => d.tag)
+                            .join(',')}]. Run docker restart remnawave-node on each exit as a one-shot workaround ` +
+                        `(reloads from DB), and investigate squad/inbound wiring.`,
+                );
             }
 
             return;

@@ -18,6 +18,20 @@ export class RemoveUserFromNodeHandler implements IEventHandler<RemoveUserFromNo
     ) {}
     async handle(event: RemoveUserFromNodeEvent) {
         try {
+            // BDT-27: Exit-node logs show recurring /node/handler/remove-user 400s
+            // with { username: undefined, hashData: undefined } at root. The
+            // RemoveUserCommand schema requires both, so something is firing
+            // this event without hydrated fields. Fail-fast here with full
+            // context so we can identify the bad caller on the next occurrence,
+            // instead of the node silently rejecting the payload.
+            if (event.tId === undefined || event.tId === null || event.vlessUuid === undefined || event.vlessUuid === null || event.vlessUuid === '') {
+                this.logger.error(
+                    `BDT-27: RemoveUserFromNodeEvent fired with missing fields — refusing to send. ` +
+                        `tId=${String(event.tId)} vlessUuid=${String(event.vlessUuid)}`,
+                );
+                return;
+            }
+
             const nodes = await this.nodesRepository.findConnectedNodesWithoutInbounds();
 
             if (nodes.length === 0) {
