@@ -6,6 +6,7 @@ import { GetEnabledNodesHandler } from './get-enabled-nodes';
 import { GetOnlineNodesHandler } from './get-online-nodes';
 import { GetNodeByUuidHandler } from './get-node-by-uuid';
 import { GetAllNodesHandler } from './get-all-nodes';
+import { GetExpectedUsersHandler } from './get-expected-users';
 
 export const QUERIES = [
     GetEnabledNodesHandler,
@@ -16,4 +17,5 @@ export const QUERIES = [
     GetNodeByUuidHandler,
     FindNodesByCriteriaHandler,
     GetEnabledNodesPartialHandler,
+    GetExpectedUsersHandler,
 ];

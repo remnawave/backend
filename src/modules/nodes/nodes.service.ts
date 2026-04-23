@@ -16,6 +16,8 @@ import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usa
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
 
+import { AxiosService } from '@common/axios';
+
 import { NodesQueuesService } from '@queue/_nodes';
 
 import {
@@ -30,7 +32,7 @@ import {
     DeleteNodeResponseModel,
     RestartNodeResponseModel,
 } from './models';
-import { NodesRepository } from './repositories/nodes.repository';
+import { ExpectedUserRow, NodesRepository } from './repositories/nodes.repository';
 import { NodesEntity } from './entities';
 
 @Injectable()
@@ -43,6 +45,7 @@ export class NodesService {
         private readonly nodesQueuesService: NodesQueuesService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
+        private readonly axiosService: AxiosService,
     ) {}
 
     public async createNode(body: CreateNodeRequestDto): Promise<TResult<NodesEntity>> {
@@ -481,6 +484,75 @@ export class NodesService {
             }
 
             return ok(new BaseEventResponseModel(true));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getExpectedUsers(uuid: string): Promise<TResult<ExpectedUserRow[]>> {
+        try {
+            const node = await this.nodesRepository.findByUUID(uuid);
+            if (!node) {
+                return fail(ERRORS.NODE_NOT_FOUND);
+            }
+            const users = await this.nodesRepository.getExpectedUsersForNode(uuid);
+            return ok(users);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getActualUsers(
+        uuid: string,
+    ): Promise<
+        TResult<{
+            users: Array<{ username: string; inboundTags: string[] }>;
+            unreachableTags: string[];
+        }>
+    > {
+        try {
+            const node = await this.nodesRepository.findByUUID(uuid);
+            if (!node) {
+                return fail(ERRORS.NODE_NOT_FOUND);
+            }
+
+            const tags = (node.activeInbounds ?? []).map((ib) => ib.tag);
+            if (tags.length === 0) {
+                return ok({ users: [], unreachableTags: [] });
+            }
+
+            const usersByUsername = new Map<string, Set<string>>();
+            const unreachableTags: string[] = [];
+
+            await Promise.all(
+                tags.map(async (tag) => {
+                    const result = await this.axiosService.getInboundUsers(
+                        { tag },
+                        node.address,
+                        node.port,
+                    );
+                    if (!result.isOk) {
+                        unreachableTags.push(tag);
+                        return;
+                    }
+                    for (const u of result.response.response.users) {
+                        const set = usersByUsername.get(u.username) ?? new Set<string>();
+                        set.add(tag);
+                        usersByUsername.set(u.username, set);
+                    }
+                }),
+            );
+
+            const users = [...usersByUsername.entries()]
+                .map(([username, tagSet]) => ({
+                    username,
+                    inboundTags: [...tagSet].sort(),
+                }))
+                .sort((a, b) => a.username.localeCompare(b.username));
+
+            return ok({ users, unreachableTags });
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);

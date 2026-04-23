@@ -21,8 +21,10 @@ import {
     DeleteNodeCommand,
     DisableNodeCommand,
     EnableNodeCommand,
+    GetActualUsersCommand,
     GetAllNodesCommand,
     GetAllNodesTagsCommand,
+    GetExpectedUsersCommand,
     GetOneNodeCommand,
     BulkNodesProfileModificationCommand,
     ReorderNodeCommand,
@@ -43,8 +45,12 @@ import {
     DisableNodeRequestParamDto,
     DisableNodeResponseDto,
     EnableNodeResponseDto,
+    GetActualUsersRequestParamDto,
+    GetActualUsersResponseDto,
     GetAllNodesResponseDto,
     GetAllNodesTagsResponseDto,
+    GetExpectedUsersRequestParamDto,
+    GetExpectedUsersResponseDto,
     GetOneNodeRequestParamDto,
     GetOneNodeResponseDto,
     ProfileModificationRequestDto,
@@ -62,8 +68,10 @@ import {
 } from './dtos';
 import {
     CreateNodeResponseModel,
+    GetActualUsersResponseModel,
     GetAllNodesResponseModel,
     GetAllNodesTagsResponseModel,
+    GetExpectedUsersResponseModel,
     GetOneNodeResponseModel,
 } from './models';
 import { EnableNodeRequestParamDto } from './dtos';
@@ -142,6 +150,45 @@ export class NodesController {
         const data = errorHandler(res);
         return {
             response: new GetOneNodeResponseModel(data),
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetExpectedUsersResponseDto,
+        description: 'Expected user list (panel-side) for this node, as used by compono-relay-sync',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: GetExpectedUsersCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getExpectedUsers(
+        @Param() uuid: GetExpectedUsersRequestParamDto,
+    ): Promise<GetExpectedUsersResponseDto> {
+        const res = await this.nodesService.getExpectedUsers(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: new GetExpectedUsersResponseModel(uuid.uuid, data),
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetActualUsersResponseDto,
+        description:
+            'Actual usernames currently in xray on this node, union of get-inbound-users across the node active inbound tags (compono-relay-sync observer)',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: GetActualUsersCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getActualUsers(
+        @Param() uuid: GetActualUsersRequestParamDto,
+    ): Promise<GetActualUsersResponseDto> {
+        const res = await this.nodesService.getActualUsers(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: new GetActualUsersResponseModel(uuid.uuid, data.users, data.unreachableTags),
         };
     }
 

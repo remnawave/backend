@@ -27,4 +27,7 @@ export const NODES_ROUTES = {
     TAGS: {
         GET: 'tags',
     },
+
+    EXPECTED_USERS: (uuid: string) => `${uuid}/expected-users`,
+    ACTUAL_USERS: (uuid: string) => `${uuid}/actual-users`,
 } as const;

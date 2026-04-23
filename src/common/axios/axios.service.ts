@@ -11,6 +11,7 @@ import {
     AddUserCommand,
     AddUsersCommand,
     GetCombinedStatsCommand,
+    GetInboundUsersCommand,
     GetNodeHealthCheckCommand,
     GetSystemStatsCommand,
     GetUsersStatsCommand,
@@ -436,6 +437,32 @@ export class AxiosService {
             }
 
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getInboundUsers(
+        data: GetInboundUsersCommand.Request,
+        url: string,
+        port: null | number,
+    ): Promise<TResult<GetInboundUsersCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, GetInboundUsersCommand.url, port);
+
+        try {
+            const response = await this.axiosInstance.post<GetInboundUsersCommand.Response>(
+                nodeUrl,
+                data,
+                { timeout: 15_000 },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            }
+            this.logger.error('Error in getInboundUsers:', error);
+            return fail(
+                ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error) ?? 'Unknown error'),
+            );
         }
     }
 

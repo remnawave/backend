@@ -26,6 +26,13 @@ export type INodesWithResolvedInbounds = Prisma.NodesGetPayload<{
     };
 }>;
 
+export interface ExpectedUserRow {
+    tId: number;
+    vlessUuid: string;
+    username: string;
+    inboundTags: string[];
+}
+
 const INCLUDE_RESOLVED_INBOUNDS = {
     configProfileInboundsToNodes: {
         select: {
@@ -315,5 +322,44 @@ export class NodesRepository implements ICrud<NodesEntity> {
             .execute();
 
         return result.map((value) => value.tag);
+    }
+
+    public async getExpectedUsersForNode(nodeUuid: string): Promise<ExpectedUserRow[]> {
+        const rows = await this.qb.kysely
+            .selectFrom('users')
+            .innerJoin('internalSquadMembers', 'internalSquadMembers.userId', 'users.tId')
+            .innerJoin(
+                'internalSquadInbounds',
+                'internalSquadInbounds.internalSquadUuid',
+                'internalSquadMembers.internalSquadUuid',
+            )
+            .innerJoin(
+                'configProfileInboundsToNodes',
+                'configProfileInboundsToNodes.configProfileInboundUuid',
+                'internalSquadInbounds.inboundUuid',
+            )
+            .innerJoin(
+                'configProfileInbounds',
+                'configProfileInbounds.uuid',
+                'configProfileInboundsToNodes.configProfileInboundUuid',
+            )
+            .where('configProfileInboundsToNodes.nodeUuid', '=', getKyselyUuid(nodeUuid))
+            .where('users.status', '=', 'ACTIVE')
+            .select([
+                'users.tId as tId',
+                sql<string>`users.vless_uuid::text`.as('vlessUuid'),
+                'users.username as username',
+                sql<string[]>`array_agg(distinct "configProfileInbounds"."tag")`.as('inboundTags'),
+            ])
+            .groupBy(['users.tId', 'users.vlessUuid', 'users.username'])
+            .orderBy('users.tId')
+            .execute();
+
+        return rows.map((r) => ({
+            tId: Number(r.tId),
+            vlessUuid: r.vlessUuid,
+            username: r.username,
+            inboundTags: r.inboundTags,
+        }));
     }
 }
