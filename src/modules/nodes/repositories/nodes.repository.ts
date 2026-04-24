@@ -349,7 +349,13 @@ export class NodesRepository implements ICrud<NodesEntity> {
                 'users.tId as tId',
                 sql<string>`users.vless_uuid::text`.as('vlessUuid'),
                 'users.username as username',
-                sql<string[]>`array_agg(distinct "configProfileInbounds"."tag")`.as('inboundTags'),
+                // sql.ref() goes through CamelCasePlugin so configProfileInbounds.tag
+                // is rewritten to the on-disk "config_profile_inbounds"."tag". A
+                // hand-written quoted identifier would bypass the plugin and the
+                // emitted SQL would reference a table Postgres doesn't have.
+                sql<
+                    string[]
+                >`array_agg(distinct ${sql.ref('configProfileInbounds.tag')})`.as('inboundTags'),
             ])
             .groupBy(['users.tId', 'users.vlessUuid', 'users.username'])
             .orderBy('users.tId')
