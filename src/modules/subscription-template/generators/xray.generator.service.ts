@@ -2,6 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
+interface Hysteria2FinalMask {
+    quicParams?: {
+        brutalUp?: string | number;
+        brutalDown?: string | number;
+        udpHop?: {
+            ports?: string | number;
+            interval?: string | number;
+        };
+    };
+    udp?: Array<{
+        type?: string;
+        settings?: { password?: string };
+    }>;
+}
+
 /**
  * Generates VLESS/Trojan/Shadowsocks share links per the standard:
  * https://github.com/XTLS/Xray-core/discussions/716
@@ -55,6 +70,8 @@ export class XrayGeneratorService {
                 return this.buildTrojanLink(host);
             case 'shadowsocks':
                 return this.buildShadowsocksLink(host);
+            case 'hysteria':
+                return this.buildHysteria2Link(host);
             default:
                 return null;
         }
@@ -123,6 +140,40 @@ export class XrayGeneratorService {
         const remark = encodeURIComponent(host.finalRemark);
 
         return `ss://${credentials}@${host.address}:${host.port}#${remark}`;
+    }
+
+    // ── Hysteria 2 ───────────────────────────────────
+    // hysteria2://auth@host:port/?params#remark
+
+    private buildHysteria2Link(
+        host: Extract<ResolvedProxyConfig, { protocol: 'hysteria' }>,
+    ): string | null {
+        if (host.transport !== 'hysteria') return null;
+
+        const params: Record<string, unknown> = {};
+
+        // Obfuscation
+        const finalMask = host.streamOverrides.finalMask as Hysteria2FinalMask | null;
+        const obfsPassword = finalMask?.udp?.find((m) => m?.type === 'salamander')?.settings
+            ?.password;
+        if (obfsPassword) {
+            params.obfs = 'salamander';
+            params['obfs-password'] = obfsPassword;
+        }
+
+        // TLS
+        if (host.security === 'tls') {
+            if (host.securityOptions.serverName) {
+                params.sni = host.securityOptions.serverName;
+            }
+        }
+
+        const query = this.buildQueryString(params);
+        const remark = encodeURIComponent(host.finalRemark);
+        const auth = encodeURIComponent(host.transportOptions.auth);
+        const queryPart = query ? `?${query}` : '';
+
+        return `hysteria2://${auth}@${host.address}:${host.port}/${queryPart}#${remark}`;
     }
 
     // ── Transport Params ─────────────────────────────
