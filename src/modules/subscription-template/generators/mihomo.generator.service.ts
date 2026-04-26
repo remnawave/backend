@@ -493,7 +493,6 @@ export class MihomoGeneratorService {
             if (xhttpSettings.headers) {
                 settings.headers = xhttpSettings.headers;
             }
-            this.applyFieldMap(xhttpSettings, settings, XHTTP_FIELD_MAP);
 
             const extra = xhttpSettings.extra;
             if (extra && typeof extra === 'object') {
