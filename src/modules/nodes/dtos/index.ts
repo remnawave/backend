@@ -9,6 +9,7 @@ export * from './get-expected-users.dto';
 export * from './get-one-node.dto';
 export * from './node-bulk-actions.dto';
 export * from './profile-modification.dto';
+export * from './reconcile-users.dto';
 export * from './reorder.dto';
 export * from './reset-traffic.request.dto';
 export * from './restart-all.dto';

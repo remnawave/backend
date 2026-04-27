@@ -6,5 +6,6 @@ export * from './get-actual-users.command';
 export * from './get-all.command';
 export * from './get-expected-users.command';
 export * from './get-one.command';
+export * from './reconcile-users.command';
 export * from './tags';
 export * from './update.command';

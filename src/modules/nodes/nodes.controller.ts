@@ -27,6 +27,7 @@ import {
     GetExpectedUsersCommand,
     GetOneNodeCommand,
     BulkNodesProfileModificationCommand,
+    ReconcileUsersCommand,
     ReorderNodeCommand,
     ResetNodeTrafficCommand,
     RestartAllNodesCommand,
@@ -55,6 +56,8 @@ import {
     GetOneNodeResponseDto,
     ProfileModificationRequestDto,
     ProfileModificationResponseDto,
+    ReconcileUsersRequestParamDto,
+    ReconcileUsersResponseDto,
     ReorderNodeRequestDto,
     ReorderNodeResponseDto,
     ResetNodeTrafficRequestDto,
@@ -189,6 +192,26 @@ export class NodesController {
         const data = errorHandler(res);
         return {
             response: new GetActualUsersResponseModel(uuid.uuid, data.users, data.unreachableTags),
+        };
+    }
+
+    @ApiOkResponse({
+        type: ReconcileUsersResponseDto,
+        description:
+            'Reconcile xray on this node with the panel DB: add ACTIVE users that are missing per inbound tag, remove users that no longer belong. Returns 200 with errors[] populated even if individual sub-ops failed (BDT-27 convergent reconciliation).',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: ReconcileUsersCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async reconcileUsers(
+        @Param() uuid: ReconcileUsersRequestParamDto,
+    ): Promise<ReconcileUsersResponseDto> {
+        const res = await this.nodesService.reconcileUsers(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
         };
     }
 

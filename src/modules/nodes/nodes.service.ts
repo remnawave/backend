@@ -6,20 +6,31 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
+import { AddUserCommand as AddUserToNodeCommandSdk, CipherType } from '@remnawave/node-contract';
+
+import { getVlessFlowFromDbInbound } from '@common/utils/flow/get-vless-flow';
 import { mapDefined, wrapBigInt } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
+import { AxiosService } from '@common/axios';
 import { toNano } from '@common/utils/nano';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
 import { CreateNodeTrafficUsageHistoryCommand } from '@modules/nodes-traffic-usage-history/commands/create-node-traffic-usage-history';
 import { NodesTrafficUsageHistoryEntity } from '@modules/nodes-traffic-usage-history/entities/nodes-traffic-usage-history.entity';
+import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities/config-profile-inbound.entity';
 import { GetConfigProfileByUuidQuery } from '@modules/config-profiles/queries/get-config-profile-by-uuid';
-
-import { AxiosService } from '@common/axios';
 
 import { NodesQueuesService } from '@queue/_nodes';
 
+import {
+    BaseEventResponseModel,
+    DeleteNodeResponseModel,
+    ReconcileUserChange,
+    ReconcileUserError,
+    ReconcileUsersResponseModel,
+    RestartNodeResponseModel,
+} from './models';
 import {
     BulkNodesActionsRequestDto,
     CreateNodeRequestDto,
@@ -28,11 +39,21 @@ import {
     UpdateNodeRequestDto,
 } from './dtos';
 import {
-    BaseEventResponseModel,
-    DeleteNodeResponseModel,
-    RestartNodeResponseModel,
-} from './models';
-import { ExpectedUserRow, NodesRepository } from './repositories/nodes.repository';
+    reconcileAddedTotal,
+    reconcileErrorsTotal,
+    reconcileRemovedTotal,
+    reconcileRunsTotal,
+} from './utils/reconcile-metrics';
+import {
+    ExpectedUserForReconcile,
+    ExpectedUserRow,
+    NodesRepository,
+} from './repositories/nodes.repository';
+import {
+    computeReconcileDiff,
+    evaluateSafetyCap,
+    ReconcileExpectedUser,
+} from './utils/reconcile-diff';
 import { NodesEntity } from './entities';
 
 @Injectable()
@@ -504,9 +525,7 @@ export class NodesService {
         }
     }
 
-    public async getActualUsers(
-        uuid: string,
-    ): Promise<
+    public async getActualUsers(uuid: string): Promise<
         TResult<{
             users: Array<{ username: string; inboundTags: string[] }>;
             unreachableTags: string[];
@@ -556,6 +575,350 @@ export class NodesService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Reconcile a node's xray with the panel DB. ACTIVE users from `expected`
+     * that are missing on xray for a given inbound tag get a synchronous
+     * AddUser RPC; users on xray that aren't in `expected` get a synchronous
+     * RemoveUser RPC. Read-modify-write: this replaces the unreliable
+     * AddUserToNodeEvent push (BDT-27) for new-user provisioning. Designed
+     * to be called every cycle by compono-relay-sync — idempotent when the
+     * node is converged.
+     *
+     * Safety cap: if the proposed deletions exceed BOTH 10 absolute AND 50%
+     * of the live xray population, the call returns skipped=true with no
+     * mutations. Tunable via `RECONCILE_MAX_STALE_RATIO` (default 0.5) and
+     * `RECONCILE_MAX_STALE_ABSOLUTE` (default 10).
+     */
+    public async reconcileUsers(uuid: string): Promise<TResult<ReconcileUsersResponseModel>> {
+        try {
+            const node = await this.nodesRepository.findByUUID(uuid);
+            if (!node) {
+                return fail(ERRORS.NODE_NOT_FOUND);
+            }
+
+            const nodeTags = (node.activeInbounds ?? []).map((ib) => ib.tag);
+            if (nodeTags.length === 0) {
+                reconcileRunsTotal.inc({ node_uuid: uuid, outcome: 'skipped' });
+                return ok(
+                    new ReconcileUsersResponseModel({
+                        nodeUuid: uuid,
+                        added: [],
+                        removed: [],
+                        errors: [],
+                        unreachableTags: [],
+                        skipped: true,
+                        skipReason: 'node has no active inbounds',
+                    }),
+                );
+            }
+
+            // Pull both sides concurrently. Expected goes against the panel DB,
+            // actual hits the node directly via the existing getActualUsers
+            // path (mTLS+JWT to xray), so a node-side outage degrades to a
+            // skip rather than a wipe.
+            const [expectedResult, actualResult] = await Promise.all([
+                this.fetchExpectedForReconcile(uuid),
+                this.getActualUsers(uuid),
+            ]);
+
+            if (!expectedResult.isOk) {
+                reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'fetch_expected' });
+                reconcileRunsTotal.inc({ node_uuid: uuid, outcome: 'error' });
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+            if (!actualResult.isOk) {
+                reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'fetch_actual' });
+                reconcileRunsTotal.inc({ node_uuid: uuid, outcome: 'error' });
+                return fail(ERRORS.INTERNAL_SERVER_ERROR);
+            }
+
+            const expectedUsers = expectedResult.response;
+            const { users: actualUsers, unreachableTags } = actualResult.response;
+
+            // If the panel was unable to read xray for a tag, refuse to remove
+            // anything for that tag — we'd be deleting based on stale info.
+            const reachableTags = nodeTags.filter((t) => !unreachableTags.includes(t));
+
+            const expectedForDiff: ReconcileExpectedUser[] = expectedUsers.map((u) => ({
+                tId: u.tId,
+                inboundTags: u.inbounds.map((ib) => ib.tag),
+            }));
+            const diff = computeReconcileDiff({
+                expected: expectedForDiff,
+                actual: actualUsers,
+                nodeTags: reachableTags,
+            });
+
+            const maxStaleRatio = Number(process.env.RECONCILE_MAX_STALE_RATIO ?? '0.5');
+            const maxStaleAbsolute = Number(process.env.RECONCILE_MAX_STALE_ABSOLUTE ?? '10');
+            const cap = evaluateSafetyCap({
+                actualTotal: diff.actualTotal,
+                staleTotal: diff.staleTotal,
+                maxStaleRatio,
+                maxStaleAbsolute,
+            });
+            if (cap.refused) {
+                this.logger.warn(
+                    `reconcileUsers ${uuid}: refused — ${cap.reason}. expected=${diff.expectedTotal} actual=${diff.actualTotal} stale=${diff.staleTotal}`,
+                );
+                reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'safety_cap' });
+                reconcileRunsTotal.inc({ node_uuid: uuid, outcome: 'skipped' });
+                return ok(
+                    new ReconcileUsersResponseModel({
+                        nodeUuid: uuid,
+                        added: [],
+                        removed: [],
+                        errors: [],
+                        unreachableTags,
+                        skipped: true,
+                        skipReason: cap.reason,
+                    }),
+                );
+            }
+
+            // Phase 1: add missing. Build one combined AddUser RPC per node so
+            // we make a single network call regardless of how many users drift.
+            const usersByTId = new Map(expectedUsers.map((u) => [String(u.tId), u]));
+            const addEntries: AddUserToNodeCommandSdk.Request['data'] = [];
+            const addedByUser = new Map<string, Set<string>>();
+            const addErrors: ReconcileUserError[] = [];
+            for (const { tag, missing } of diff.perTag) {
+                for (const username of missing) {
+                    const u = usersByTId.get(username);
+                    if (!u) {
+                        addErrors.push({
+                            username,
+                            tag,
+                            phase: 'add',
+                            error: 'expected user disappeared between fetch and apply',
+                        });
+                        continue;
+                    }
+                    const inbound = u.inbounds.find((ib) => ib.tag === tag);
+                    if (!inbound) {
+                        addErrors.push({
+                            username,
+                            tag,
+                            phase: 'add',
+                            error: 'tag not present in expected user inbounds',
+                        });
+                        continue;
+                    }
+                    const entry = this.buildAddUserEntry(u, inbound);
+                    if (!entry) {
+                        addErrors.push({
+                            username,
+                            tag,
+                            phase: 'add',
+                            error: `unsupported inbound type ${inbound.type}`,
+                        });
+                        continue;
+                    }
+                    addEntries.push(entry);
+                    let tagSet = addedByUser.get(username);
+                    if (!tagSet) {
+                        tagSet = new Set<string>();
+                        addedByUser.set(username, tagSet);
+                    }
+                    tagSet.add(tag);
+                }
+            }
+
+            if (addEntries.length > 0) {
+                // hashData.vlessUuid is used by the node's cache layer; pick
+                // the first user's vlessUuid so we always satisfy the schema.
+                // It's per-RPC, not per-entry, so the precise value doesn't
+                // matter for correctness — only that it's a valid UUID.
+                const firstUser = expectedUsers.find((u) =>
+                    addEntries.some((e) => e.username === String(u.tId)),
+                );
+                const hashUuid = firstUser?.vlessUuid ?? expectedUsers[0]?.vlessUuid;
+                if (!hashUuid) {
+                    addErrors.push({
+                        username: '<batch>',
+                        tag: '<batch>',
+                        phase: 'add',
+                        error: 'no expected user available to source hashData.vlessUuid',
+                    });
+                } else {
+                    const result = await this.axiosService.addUser(
+                        {
+                            data: addEntries,
+                            hashData: { vlessUuid: hashUuid },
+                        },
+                        node.address,
+                        node.port,
+                    );
+                    if (!result.isOk) {
+                        const msg =
+                            (result as { message?: string }).message ?? 'addUser RPC failed';
+                        // Whole batch failed — book one error per (user,tag).
+                        for (const e of addEntries) {
+                            addErrors.push({
+                                username: e.username,
+                                tag: e.tag,
+                                phase: 'add',
+                                error: msg,
+                            });
+                            reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'add' });
+                        }
+                        // Do not increment add counter on failure.
+                        addedByUser.clear();
+                    } else {
+                        for (const e of addEntries) {
+                            reconcileAddedTotal.inc({ node_uuid: uuid, tag: e.tag });
+                        }
+                    }
+                }
+            }
+
+            // Phase 2: remove stale. Per-user RPC since RemoveUser doesn't
+            // accept a batch shape. We need vless_uuid even for users no
+            // longer ACTIVE — the node uses it as a cache key.
+            const staleTIds = new Set<number>();
+            for (const { stale } of diff.perTag) {
+                for (const username of stale) {
+                    const n = Number(username);
+                    if (Number.isFinite(n)) staleTIds.add(n);
+                }
+            }
+            const vlessByTId = await this.nodesRepository.findVlessUuidsByTIds([...staleTIds]);
+
+            const removedByUser = new Map<string, Set<string>>();
+            const removeErrors: ReconcileUserError[] = [];
+            for (const { tag, stale } of diff.perTag) {
+                for (const username of stale) {
+                    let tagSet = removedByUser.get(username);
+                    if (!tagSet) {
+                        tagSet = new Set<string>();
+                        removedByUser.set(username, tagSet);
+                    }
+                    tagSet.add(tag);
+                }
+            }
+            // RemoveUser is per-user (not per-tag); xray identifies users by
+            // username globally on the node. So we issue ONE remove per stale
+            // username, not one per (username,tag) pair.
+            for (const [username, tags] of removedByUser) {
+                const vlessUuid =
+                    vlessByTId.get(username) ??
+                    // Fallback: if user truly vanished from DB, send a zero
+                    // UUID. The node will still drop them by username.
+                    '00000000-0000-0000-0000-000000000000';
+                const result = await this.axiosService.deleteUser(
+                    { username, hashData: { vlessUuid } },
+                    node.address,
+                    node.port,
+                );
+                if (!result.isOk) {
+                    for (const tag of tags) {
+                        removeErrors.push({
+                            username,
+                            tag,
+                            phase: 'remove',
+                            error: 'deleteUser RPC failed',
+                        });
+                        reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'remove' });
+                    }
+                    removedByUser.delete(username);
+                } else {
+                    for (const tag of tags) {
+                        reconcileRemovedTotal.inc({ node_uuid: uuid, tag });
+                    }
+                }
+            }
+
+            const added: ReconcileUserChange[] = [...addedByUser.entries()]
+                .map(([username, ts]) => ({ username, tags: [...ts].sort() }))
+                .sort((a, b) => a.username.localeCompare(b.username));
+            const removed: ReconcileUserChange[] = [...removedByUser.entries()]
+                .map(([username, ts]) => ({ username, tags: [...ts].sort() }))
+                .sort((a, b) => a.username.localeCompare(b.username));
+            const errors = [...addErrors, ...removeErrors];
+
+            reconcileRunsTotal.inc({
+                node_uuid: uuid,
+                outcome: errors.length > 0 ? 'error' : 'ok',
+            });
+
+            return ok(
+                new ReconcileUsersResponseModel({
+                    nodeUuid: uuid,
+                    added,
+                    removed,
+                    errors,
+                    unreachableTags,
+                    skipped: false,
+                    skipReason: null,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(`reconcileUsers ${uuid}: ${error}`);
+            reconcileErrorsTotal.inc({ node_uuid: uuid, phase: 'unhandled' });
+            reconcileRunsTotal.inc({ node_uuid: uuid, outcome: 'error' });
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private async fetchExpectedForReconcile(
+        uuid: string,
+    ): Promise<TResult<ExpectedUserForReconcile[]>> {
+        try {
+            const users = await this.nodesRepository.getExpectedUsersForReconcile(uuid);
+            return ok(users);
+        } catch (error) {
+            this.logger.error(`fetchExpectedForReconcile ${uuid}: ${error}`);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private buildAddUserEntry(
+        user: ExpectedUserForReconcile,
+        inbound: ExpectedUserForReconcile['inbounds'][number],
+    ): AddUserToNodeCommandSdk.Request['data'][number] | null {
+        // Mirror src/modules/nodes/events/add-user-to-node/add-user-to-node.handler.ts
+        // — we MUST produce the same payload shape, otherwise the user shows up
+        // with a different vlessUuid/password than their subscription URL and
+        // they connect-but-no-internet anyway.
+        const username = user.tId.toString();
+        switch (inbound.type) {
+            case 'trojan':
+                return {
+                    type: 'trojan',
+                    username,
+                    password: user.trojanPassword,
+                    tag: inbound.tag,
+                };
+            case 'vless':
+                return {
+                    type: 'vless',
+                    username,
+                    uuid: user.vlessUuid,
+                    flow: getVlessFlowFromDbInbound(
+                        new ConfigProfileInboundEntity({
+                            tag: inbound.tag,
+                            type: inbound.type,
+                            network: inbound.network,
+                            security: inbound.security,
+                            rawInbound: inbound.rawInbound as object | null,
+                        }),
+                    ),
+                    tag: inbound.tag,
+                };
+            case 'shadowsocks':
+                return {
+                    type: 'shadowsocks',
+                    username,
+                    password: user.ssPassword,
+                    tag: inbound.tag,
+                    cipherType: CipherType.CHACHA20_POLY1305,
+                    ivCheck: false,
+                };
+            default:
+                return null;
         }
     }
 }

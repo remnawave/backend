@@ -33,6 +33,23 @@ export interface ExpectedUserRow {
     inboundTags: string[];
 }
 
+export interface ExpectedInboundForReconcile {
+    tag: string;
+    type: string;
+    network: string | null;
+    security: string | null;
+    rawInbound: unknown;
+}
+
+export interface ExpectedUserForReconcile {
+    tId: number;
+    vlessUuid: string;
+    username: string;
+    trojanPassword: string;
+    ssPassword: string;
+    inbounds: ExpectedInboundForReconcile[];
+}
+
 const INCLUDE_RESOLVED_INBOUNDS = {
     configProfileInboundsToNodes: {
         select: {
@@ -353,9 +370,9 @@ export class NodesRepository implements ICrud<NodesEntity> {
                 // is rewritten to the on-disk "config_profile_inbounds"."tag". A
                 // hand-written quoted identifier would bypass the plugin and the
                 // emitted SQL would reference a table Postgres doesn't have.
-                sql<
-                    string[]
-                >`array_agg(distinct ${sql.ref('configProfileInbounds.tag')})`.as('inboundTags'),
+                sql<string[]>`array_agg(distinct ${sql.ref('configProfileInbounds.tag')})`.as(
+                    'inboundTags',
+                ),
             ])
             .groupBy(['users.tId', 'users.vlessUuid', 'users.username'])
             .orderBy('users.tId')
@@ -367,5 +384,103 @@ export class NodesRepository implements ICrud<NodesEntity> {
             username: r.username,
             inboundTags: r.inboundTags,
         }));
+    }
+
+    /**
+     * Returns ACTIVE users whose squad inbounds overlap this node, with the
+     * full credential set + per-inbound metadata required to push them into
+     * xray. Used by reconcileUsers — the diff endpoint that compono-relay-sync
+     * calls every cycle to converge node state with the panel DB. Companion
+     * to getExpectedUsersForNode (the read-only observer view).
+     */
+    public async getExpectedUsersForReconcile(
+        nodeUuid: string,
+    ): Promise<ExpectedUserForReconcile[]> {
+        const rows = await this.qb.kysely
+            .selectFrom('users')
+            .innerJoin('internalSquadMembers', 'internalSquadMembers.userId', 'users.tId')
+            .innerJoin(
+                'internalSquadInbounds',
+                'internalSquadInbounds.internalSquadUuid',
+                'internalSquadMembers.internalSquadUuid',
+            )
+            .innerJoin(
+                'configProfileInboundsToNodes',
+                'configProfileInboundsToNodes.configProfileInboundUuid',
+                'internalSquadInbounds.inboundUuid',
+            )
+            .innerJoin(
+                'configProfileInbounds',
+                'configProfileInbounds.uuid',
+                'configProfileInboundsToNodes.configProfileInboundUuid',
+            )
+            .where('configProfileInboundsToNodes.nodeUuid', '=', getKyselyUuid(nodeUuid))
+            .where('users.status', '=', 'ACTIVE')
+            .select([
+                'users.tId as tId',
+                sql<string>`users.vless_uuid::text`.as('vlessUuid'),
+                'users.username as username',
+                'users.trojanPassword as trojanPassword',
+                'users.ssPassword as ssPassword',
+                'configProfileInbounds.tag as tag',
+                'configProfileInbounds.type as type',
+                'configProfileInbounds.network as network',
+                'configProfileInbounds.security as security',
+                'configProfileInbounds.rawInbound as rawInbound',
+            ])
+            .execute();
+
+        const byTid = new Map<string, ExpectedUserForReconcile>();
+        for (const r of rows) {
+            const key = String(r.tId);
+            let user = byTid.get(key);
+            if (!user) {
+                user = {
+                    tId: Number(r.tId),
+                    vlessUuid: r.vlessUuid,
+                    username: r.username,
+                    trojanPassword: r.trojanPassword,
+                    ssPassword: r.ssPassword,
+                    inbounds: [],
+                };
+                byTid.set(key, user);
+            }
+            // Same (tag,type) can appear once per matching squad; dedupe on tag.
+            if (!user.inbounds.some((ib) => ib.tag === r.tag)) {
+                user.inbounds.push({
+                    tag: r.tag,
+                    type: r.type,
+                    network: r.network,
+                    security: r.security,
+                    rawInbound: r.rawInbound,
+                });
+            }
+        }
+        return [...byTid.values()].sort((a, b) => a.tId - b.tId);
+    }
+
+    /**
+     * Look up vless_uuid for a set of t_ids regardless of status. Used by
+     * reconcileUsers when removing stale users from xray — RemoveUserCommand
+     * requires hashData.vlessUuid for cache-key invalidation on the node.
+     */
+    public async findVlessUuidsByTIds(tIds: number[]): Promise<Map<string, string>> {
+        const out = new Map<string, string>();
+        if (tIds.length === 0) {
+            return out;
+        }
+        const rows = await this.qb.kysely
+            .selectFrom('users')
+            .where(
+                'users.tId',
+                'in',
+                tIds.map((n) => BigInt(n)),
+            )
+            .select(['users.tId as tId', sql<string>`users.vless_uuid::text`.as('vlessUuid')])
+            .execute();
+        for (const r of rows) {
+            out.set(String(r.tId), r.vlessUuid);
+        }
+        return out;
     }
 }
