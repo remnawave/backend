@@ -164,6 +164,7 @@ export class SubscriptionService {
                         headers: await this.getUserProfileHeadersInfo(
                             user.response,
                             /^Happ\//.test(userAgent),
+                            /^INCY\//.test(userAgent),
                             subscriptionSettings,
                         ),
                         body: '',
@@ -273,6 +274,7 @@ export class SubscriptionService {
                 headers: await this.getUserProfileHeadersInfo(
                     user.response,
                     /^Happ\//.test(userAgent),
+                    /^INCY\//.test(userAgent),
                     subscriptionSettings,
                     isHwidLimitActive,
                 ),
@@ -326,6 +328,7 @@ export class SubscriptionService {
             const headers = await this.getUserProfileHeadersInfo(
                 user,
                 /^Happ\//.test(userAgent),
+                /^INCY\//.test(userAgent),
                 patchedSettingEntity,
             );
 
@@ -586,6 +589,7 @@ export class SubscriptionService {
     private async getUserProfileHeadersInfo(
         user: UserEntity,
         isHapp: boolean,
+        isIncy: boolean,
         settings: SubscriptionSettingsEntity,
         hwidLimit: boolean = false,
     ): Promise<ISubscriptionHeaders> {
@@ -619,6 +623,10 @@ export class SubscriptionService {
 
         if (isHapp && settings.happRouting) {
             headers.routing = settings.happRouting;
+        }
+
+        if (isIncy && settings.happRouting) {
+            headers.routing = settings.happRouting.replaceAll('happ', 'incy');
         }
 
         if (settings.isProfileWebpageUrlEnabled) {
