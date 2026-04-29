@@ -101,7 +101,7 @@ async function resetSuperadmin() {
 
         consola.success(`✅ Superadmin ${superadmin.username} was reset successfully. Please open the login page and set a new one.`);
     } catch (error) {
-        consola.error('❌ Failed to delete superadmin:', error);
+        consola.error('❌ Failed to reset superadmin:', error);
         process.exit(1);
     }
 }
