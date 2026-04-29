@@ -71,7 +71,7 @@ async function checkRedisConnection() {
 }
 
 async function resetSuperadmin() {
-    const answer = await consola.prompt('Are you sure you want to delete the superadmin?', {
+    const answer = await consola.prompt('Are you sure you want to reset the superadmin?', {
         type: 'confirm',
         required: true,
     });
@@ -81,7 +81,7 @@ async function resetSuperadmin() {
         process.exit(1);
     }
 
-    consola.start('🔄 Deleting superadmin...');
+    consola.start('🔄 Reseting superadmin...');
 
     const superadmin = await prisma.admin.findFirst();
 
