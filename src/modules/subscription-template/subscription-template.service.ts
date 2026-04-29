@@ -328,7 +328,7 @@ export class SubscriptionTemplateService {
             case 'MIHOMO':
             case 'STASH':
             case 'CLASH':
-                templateContent = yaml.parse(template.templateYaml!);
+                templateContent = yaml.parse(template.templateYaml!, { maxAliasCount: -1 });
                 break;
             case 'SINGBOX':
             case 'XRAY_JSON':
