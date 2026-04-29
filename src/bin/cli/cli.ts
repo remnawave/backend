@@ -99,7 +99,7 @@ async function resetSuperadmin() {
 
         await redis.del(CACHE_KEYS.REMNAWAVE_SETTINGS);
 
-        consola.success(`✅ Superadmin ${superadmin.username} deleted successfully.`);
+        consola.success(`✅ Superadmin ${superadmin.username} was reset successfully. Please open the login page and set a new one.`);
     } catch (error) {
         consola.error('❌ Failed to delete superadmin:', error);
         process.exit(1);
