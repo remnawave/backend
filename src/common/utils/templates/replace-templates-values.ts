@@ -14,13 +14,29 @@ type LazyTemplateValues = {
     [key in TemplateKeys]: TemplateValueGetter;
 };
 
+type TemplateTransform = (input: string) => string;
+
 export class TemplateEngine {
     private static readonly TEMPLATE_REGEX = /\{\{(\w+)\}\}/g;
+    private static readonly BASE64_RESULT_PREFIX = 'base64:';
+
+    private static readonly TRANSFORMATIONS: ReadonlyArray<{
+        prefix: string;
+        transform: TemplateTransform;
+    }> = [
+        {
+            prefix: 'rwEncodeBase64:',
+            transform: (input) =>
+                TemplateEngine.BASE64_RESULT_PREFIX + Buffer.from(input, 'utf8').toString('base64'),
+        },
+    ];
 
     static replace(template: string, values: LazyTemplateValues): string {
+        const { body, transform } = this.parseTransform(template);
+
         let hasReplacement = false;
 
-        const result = template.replace(this.TEMPLATE_REGEX, (match, key: TemplateKeys) => {
+        const result = body.replace(this.TEMPLATE_REGEX, (match, key: TemplateKeys) => {
             const getter = values[key];
             if (getter !== undefined) {
                 hasReplacement = true;
@@ -29,7 +45,23 @@ export class TemplateEngine {
             return match;
         });
 
+        if (transform) {
+            return transform(hasReplacement ? result : body);
+        }
+
         return hasReplacement ? result : template;
+    }
+
+    private static parseTransform(template: string): {
+        body: string;
+        transform: TemplateTransform | null;
+    } {
+        for (const { prefix, transform } of this.TRANSFORMATIONS) {
+            if (template.startsWith(prefix)) {
+                return { body: template.slice(prefix.length), transform };
+            }
+        }
+        return { body: template, transform: null };
     }
 
     static formatWithUser(
