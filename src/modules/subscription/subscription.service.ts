@@ -631,7 +631,7 @@ export class SubscriptionService {
         }
 
         if (hwidLimit) {
-            headers['x-hwid-limit'] = 'true'; // v2rayTUN
+            headers['x-hwid-active'] = 'true';
         }
 
         if (settings.customResponseHeaders) {
