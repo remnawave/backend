@@ -22,7 +22,7 @@ export namespace GetStatsNodesUsersUsageCommand {
     export type RequestQuery = z.infer<typeof RequestQuerySchema>;
 
     export const RequestSchema = z.object({
-        nodesUuids: z.array(z.string().uuid()),
+        nodesUuids: z.array(z.string().uuid()).min(1, 'Must be at least 1 node UUID'),
     });
 
     export type Request = z.infer<typeof RequestSchema>;
