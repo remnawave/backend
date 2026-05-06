@@ -186,7 +186,7 @@ export type SecurityVariant = TlsSecurity | RealitySecurity | NoneSecurity;
 
 export interface IProxyEntryMetadata {
     uuid: string;
-    tag: string | null;
+    tags: string[];
     excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
     inboundTag: string;
     configProfileUuid: string | null;
