@@ -276,4 +276,56 @@ export class NodesUserUsageHistoryRepository implements ICrudHistoricalRecords<N
         const result = await this.prisma.tx.$queryRaw<Array<{ value: bigint }>>(query);
         return result.map((item) => Number(item.value));
     }
+
+    public async getNodesDailyTrafficSum(
+        nodeIds: bigint[],
+        start: Date,
+        end: Date,
+        dates: string[],
+    ): Promise<number[]> {
+        const query = Prisma.sql`
+        WITH daily_traffic AS (
+            SELECT 
+                created_at::date AS date,
+                SUM(total_bytes) AS bytes
+            FROM nodes_user_usage_history
+            WHERE 
+                node_id IN (${Prisma.join(nodeIds)})
+                AND created_at >= ${start}::date
+                AND created_at <= ${end}::date
+            GROUP BY created_at
+        )
+        SELECT 
+            COALESCE(dt.bytes, 0) AS value
+        FROM unnest(${dates}::date[]) WITH ORDINALITY AS d(date, ord)
+        LEFT JOIN daily_traffic dt ON dt.date = d.date::date
+        ORDER BY d.ord;
+    `;
+
+        const result = await this.prisma.tx.$queryRaw<Array<{ value: bigint }>>(query);
+        return result.map((item) => Number(item.value));
+    }
+
+    public async getTopNodesUsersByTraffic(
+        nodeIds: bigint[],
+        start: Date,
+        end: Date,
+        limit: number = 5,
+    ): Promise<IGetUniversalTopUser[]> {
+        return await this.qb.kysely
+            .selectFrom('users as u')
+            .innerJoin('nodesUserUsageHistory as nuh', 'nuh.userId', 'u.tId')
+            .select([
+                'u.uuid',
+                'u.username',
+                (eb) => eb.fn.sum<bigint>('nuh.totalBytes').as('total'),
+            ])
+            .where('nuh.nodeId', 'in', nodeIds)
+            .where('nuh.createdAt', '>=', start)
+            .where('nuh.createdAt', '<=', end)
+            .groupBy(['u.uuid', 'u.username'])
+            .orderBy((eb) => eb.fn.sum<bigint>('nuh.totalBytes'), 'desc')
+            .limit(limit)
+            .execute();
+    }
 }
