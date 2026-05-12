@@ -95,6 +95,14 @@ export class StartNodeProcessor extends WorkerHost {
                 }),
             );
 
+            // Fork: VEIL-cored nodes use a separate dispatch
+            // path that talks to /node/veil/* and pushes a
+            // server.yaml string instead of an Xray JSON config.
+            // See startVeilNode() at the bottom of this file.
+            if (node.core === 'VEIL') {
+                return await this.startVeilNode(node);
+            }
+
             const xrayStatusResponse = await this.axios.getNodeHealth(node.address, node.port);
 
             if (!xrayStatusResponse.isOk) {
@@ -272,5 +280,135 @@ export class StartNodeProcessor extends WorkerHost {
         } catch (error) {
             this.logger.error(`Error handling "${NODES_JOB_NAMES.START_NODE}" job: ${error}`);
         }
+    }
+
+    /**
+     * VEIL-cored node start path.
+     *
+     * Mirrors the Xray happy-path above but talks to /node/veil/* and
+     * pushes a server.yaml string rather than the JSON Xray config.
+     * The hashed-set cache check is replaced by a SHA-256 of the
+     * generated server.yaml — Veil's daemon does the same comparison
+     * server-side and short-circuits a restart if it matches.
+     *
+     * The serverConfig generator is intentionally minimal in this PR
+     * (just the inbounds the operator already configured for the
+     * Xray path). Wiring Veil's full transport surface — Reality
+     * decoy origins, mimicry profiles, decoy traffic — lands in a
+     * follow-up after the upstream Veil schema stabilises post-audit.
+     */
+    private async startVeilNode(
+        node: Awaited<ReturnType<typeof this.queryBus.execute<GetNodeByUuidQuery>>>['response'],
+    ): Promise<void> {
+        const startTime = getTime();
+        const veilHealth = await this.axios.getVeilNodeHealth(node.address, node.port);
+
+        if (!veilHealth.isOk) {
+            await this.commandBus.execute(
+                new UpdateNodeCommand({
+                    uuid: node.uuid,
+                    lastStatusMessage: veilHealth.message ?? null,
+                    lastStatusChange: new Date(),
+                    isConnected: false,
+                    isConnecting: false,
+                }),
+            );
+
+            this.eventEmitter.emit(EVENTS.NODE.DISCONNECTED, new NodeEvent(node, EVENTS.NODE.DISCONNECTED));
+            return;
+        }
+
+        const serverConfig = await this.buildVeilServerConfig(node);
+        const configHash = await this.sha256(serverConfig);
+
+        const startResult = await this.axios.startVeil(
+            {
+                internals: {
+                    forceRestart: false,
+                    configHash,
+                },
+                serverConfig,
+            },
+            node.address,
+            node.port,
+        );
+
+        if (!startResult.isOk || !startResult.response.response.isStarted) {
+            const errMsg = !startResult.isOk
+                ? (startResult.message ?? 'Veil start failed')
+                : (startResult.response.response.error ?? 'Veil start failed');
+
+            await this.commandBus.execute(
+                new UpdateNodeCommand({
+                    uuid: node.uuid,
+                    lastStatusMessage: errMsg,
+                    lastStatusChange: new Date(),
+                    isConnected: false,
+                    isConnecting: false,
+                }),
+            );
+
+            this.eventEmitter.emit(EVENTS.NODE.DISCONNECTED, new NodeEvent(node, EVENTS.NODE.DISCONNECTED));
+
+            this.logger.warn(`Veil node ${node.uuid} failed to start: ${errMsg}`);
+            return;
+        }
+
+        await this.rawCacheService.set(
+            CACHE_KEYS.NODE_XRAY_UPTIME(node.uuid),
+            Date.now().toString(),
+            CACHE_KEYS_TTL.NODE_XRAY_UPTIME,
+        );
+
+        await this.commandBus.execute(
+            new UpdateNodeCommand({
+                uuid: node.uuid,
+                isConnected: true,
+                isConnecting: false,
+                lastStatusChange: new Date(),
+                lastStatusMessage: null,
+            }),
+        );
+
+        this.eventEmitter.emit(EVENTS.NODE.CONNECTED, new NodeEvent(node, EVENTS.NODE.CONNECTED));
+
+        this.logger.log(
+            `Veil node ${node.name} (${node.uuid}) connected in ${formatExecutionTime(startTime)}`,
+        );
+    }
+
+    /**
+     * Stub server.yaml generator for VEIL-cored nodes.
+     *
+     * Real version (follow-up PR) reads the node's activeInbounds and
+     * the active config-profile to emit a fully-featured Veil
+     * server.yaml — Reality target_sni, WSS path, QUIC bind, decoy
+     * origin, mimicry profile, etc. Today it emits a minimal three-
+     * transport skeleton on the canonical ports so end-to-end
+     * connectivity can be verified without that machinery in place.
+     */
+    private async buildVeilServerConfig(
+        _node: Awaited<ReturnType<typeof this.queryBus.execute<GetNodeByUuidQuery>>>['response'],
+    ): Promise<string> {
+        return [
+            'transports:',
+            '  - type: reality',
+            '    listen: "0.0.0.0:443"',
+            '    target_sni: www.microsoft.com',
+            '    target_addr: www.microsoft.com:443',
+            '  - type: wss',
+            '    listen: "0.0.0.0:8443"',
+            '    path: "/api/sync"',
+            '  - type: quic',
+            '    listen: "0.0.0.0:8444"',
+            'static_key_path: "/var/lib/veil/server.key"',
+            'user_db_path: "/var/lib/veil/users.db"',
+            '',
+        ].join('\n');
+    }
+
+    private async sha256(input: string): Promise<string> {
+        const { createHash } = await import('node:crypto');
+        return createHash('sha256').update(input).digest('hex');
     }
 }

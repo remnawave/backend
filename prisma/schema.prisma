@@ -168,6 +168,11 @@ model Nodes {
   address String @unique @map("address")
   port    Int?   @map("port")
 
+  // Which proxy core powers this node. XRAY uses the existing
+  // Xray-core dispatch path; VEIL targets the Veil daemon
+  // (https://github.com/redstone-md/veil) via /node/veil/*.
+  core    NodeCore @default(XRAY) @map("core")
+
   activeConfigProfileUuid String? @map("active_config_profile_uuid") @db.Uuid
   activePluginUuid        String? @map("active_plugin_uuid") @db.Uuid
 
@@ -632,4 +637,14 @@ model TorrentBlockerReports {
   node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@map("torrent_blocker_reports")
+}
+
+// NodeCore selects which proxy daemon the node hosts. Keep tiny; new
+// cores added here must be matched by a queue-processor branch and a
+// matching axios facade method.
+enum NodeCore {
+  XRAY
+  VEIL
+
+  @@map("node_core")
 }

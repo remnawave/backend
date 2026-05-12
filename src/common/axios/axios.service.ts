@@ -29,6 +29,12 @@ import {
     UnblockIpsCommand,
 } from '@remnawave/node-contract';
 
+import {
+    GetNodeHealthCheckVeilCommand,
+    StartVeilCommand,
+    StopVeilCommand,
+} from '@common/veil-contract/veil-commands';
+
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 import { prettyBytesUtil } from '@common/utils/bytes';
 
@@ -738,10 +744,101 @@ export class AxiosService {
                     ),
                 );
             }
+
+    // ───────────────────────────────────────────────────────────────
+    // Veil — counterpart to startXray/stopXray/getNodeHealth above.
+    // Talks to the new /node/veil/* endpoints introduced in the
+    // matching feat(veil-core) PR on remnawave/node. Once that PR
+    // ships in @remnawave/node-contract>=2.8.0 the imports above
+    // collapse from the inline shim back to the package.
+    // ───────────────────────────────────────────────────────────────
+
+    public async startVeil(
+        data: StartVeilCommand.Request,
+        url: string,
+        port: null | number,
+    ): Promise<TResult<StartVeilCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, StartVeilCommand.url, port);
+
+        try {
+            const startTime = getTime();
+            const compressedData = await this.compressData(data);
+
+            this.logger.log(
+                `[ZSTD] [START VEIL] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
+            );
+
+            const response = await this.axiosInstance.post<StartVeilCommand.Response>(
+                nodeUrl,
+                compressedData,
+                {
+                    timeout: 60_000,
+                    headers: {
+                        'Content-Encoding': 'zstd',
+                    },
+                },
+            );
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
         }
     }
 
-    private async compressData(data: any): Promise<Buffer> {
-        return await compress(Buffer.from(JSON.stringify(data)), 1);
+    public async stopVeil(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<StopVeilCommand.Response>> {
+        const nodeUrl = this.getNodeUrl(url, StopVeilCommand.url, port);
+        try {
+            const response = await this.axiosInstance.get<StopVeilCommand.Response>(nodeUrl);
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                this.logger.error(
+                    'Error in Axios StopVeil Request:',
+                    JSON.stringify(error.message),
+                );
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
+    }
+
+    public async getVeilNodeHealth(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<GetNodeHealthCheckVeilCommand.Response['response']>> {
+        try {
+            const nodeUrl = this.getNodeUrl(url, GetNodeHealthCheckVeilCommand.url, port);
+            const { data } = await this.axiosInstance.get<GetNodeHealthCheckVeilCommand.Response>(
+                nodeUrl,
+                { timeout: 15_000 },
+            );
+            return ok(data.response);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            } else {
+                return fail(
+                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                        JSON.stringify(error) ?? 'Unknown error',
+                    ),
+                );
+            }
+        }
     }
 }

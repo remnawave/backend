@@ -44,7 +44,13 @@ export class StopNodeProcessor extends WorkerHost {
                 return true;
             }
 
-            await this.axios.stopXray(result.response.address, result.response.port);
+            // Dispatch by core: VEIL-cored nodes have their own
+            // /node/veil/stop endpoint exposed by remnawave/node.
+            if (result.response.core === 'VEIL') {
+                await this.axios.stopVeil(result.response.address, result.response.port);
+            } else {
+                await this.axios.stopXray(result.response.address, result.response.port);
+            }
 
             // TODO: disable plugins?
 

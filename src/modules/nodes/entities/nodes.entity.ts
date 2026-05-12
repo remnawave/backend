@@ -11,6 +11,7 @@ export class NodesEntity implements Nodes {
     public name: string;
     public address: string;
     public port: null | number;
+    public core: 'XRAY' | 'VEIL';
     public isConnected: boolean;
     public isConnecting: boolean;
     public isDisabled: boolean;
