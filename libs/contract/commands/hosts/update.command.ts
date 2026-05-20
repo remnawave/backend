@@ -33,9 +33,6 @@ export namespace UpdateHostCommand {
             .string({
                 invalid_type_error: 'Remark must be a string',
             })
-            .max(40, {
-                message: 'Remark must be less than 40 characters',
-            })
             .optional(),
         address: z
             .string({

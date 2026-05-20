@@ -31,9 +31,6 @@ export namespace CreateHostCommand {
             })
             .min(1, {
                 message: 'Remark must be at least 1 character',
-            })
-            .max(40, {
-                message: 'Remark must be less than 40 characters',
             }),
 
         address: z.string({
