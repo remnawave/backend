@@ -119,7 +119,7 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
     }),
     kcp: (host) => ({
         mtu: host.transportOptions.clientMtu,
-        tti: host.transportOptions.tti,
+        ...(host.transportOptions.clientTti !== null && { tti: host.transportOptions.clientTti }),
         congestion: host.transportOptions.congestion,
     }),
     hysteria: (host) => ({

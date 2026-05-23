@@ -57,6 +57,11 @@ interface IResolveProxyConfigOptions {
     };
 }
 
+type RemnawaveKcpConfig = Omit<KCPConfig, 'clientMtu'> & {
+    clientMtu?: number;
+    clientTti?: number;
+};
+
 @Injectable()
 export class ResolveProxyConfigService {
     private readonly nanoid: ReturnType<typeof customAlphabet>;
@@ -316,11 +321,12 @@ export class ResolveProxyConfigService {
         };
     }
 
-    private resolveKcp(settings: KCPConfig | undefined): KcpTransport {
+    private resolveKcp(settings: RemnawaveKcpConfig | undefined): KcpTransport {
         return {
             transport: 'kcp',
             transportOptions: {
                 clientMtu: settings?.clientMtu || settings?.mtu || 1350,
+                clientTti: typeof settings?.clientTti === 'number' ? settings.clientTti : null,
                 tti: settings?.tti || 50,
                 congestion: settings?.congestion || false,
             },
