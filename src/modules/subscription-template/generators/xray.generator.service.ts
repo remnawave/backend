@@ -55,9 +55,46 @@ export class XrayGeneratorService {
                 return this.buildTrojanLink(host);
             case 'shadowsocks':
                 return this.buildShadowsocksLink(host);
+            case 'hysteria':
+                return this.buildHysteriaLink(host);
             default:
                 return null;
         }
+    }
+
+    // ── Hysteria ─────────────────────────────────────
+    // hy2://$(auth)@host:port?params#remark
+
+    private buildHysteriaLink(
+        host: Extract<ResolvedProxyConfig, { protocol: 'hysteria' }>,
+    ): string | null {
+        if (host.transport !== 'hysteria') return null;
+        const transportOpts = host.transportOptions as { version: number; auth: string };
+
+        const params: Record<string, unknown> = {};
+
+        if (host.security === 'tls') {
+            const tlsOpts = host.securityOptions as {
+                serverName?: string | null;
+                alpn?: string | null;
+                allowInsecure?: boolean;
+            };
+            if (tlsOpts?.serverName) {
+                params.sni = tlsOpts.serverName;
+            }
+            if (tlsOpts?.alpn) {
+                params.alpn = tlsOpts.alpn;
+            }
+            if (tlsOpts?.allowInsecure) {
+                params.insecure = 1;
+            }
+        }
+
+        const query = this.buildQueryString(params);
+        const remark = encodeURIComponent(host.finalRemark);
+        const auth = encodeURIComponent(transportOpts.auth);
+
+        return `hy2://${auth}@${host.address}:${host.port}?${query}#${remark}`;
     }
 
     // ── VLESS ────────────────────────────────────────
