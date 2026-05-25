@@ -211,7 +211,7 @@ export class XrayGeneratorService {
         if (host.transportOptions.clientMtu) {
             params.mtu = host.transportOptions.clientMtu;
         }
-        if (host.transportOptions.clientTti !== null) {
+        if (host.transportOptions.clientTti) {
             params.tti = host.transportOptions.clientTti;
         }
     }
