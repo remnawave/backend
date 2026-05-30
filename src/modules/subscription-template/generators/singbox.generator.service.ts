@@ -22,6 +22,12 @@ interface OutboundConfig {
         enabled: boolean;
         version: number;
     };
+    up_mbps?: number;
+    down_mbps?: number;
+    obfs?: {
+        type: string;
+        password: string;
+    };
 }
 
 interface TlsConfig {
@@ -49,9 +55,9 @@ interface TransportConfig {
     type: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
-const PROXY_PROTOCOL_TYPES = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
-const SELECTOR_TYPES = new Set(['shadowsocks', 'trojan', 'urltest', 'vless']);
+const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
+const PROXY_PROTOCOL_TYPES = new Set(['hysteria', 'hysteria2', 'shadowsocks', 'trojan', 'vless']);
+const SELECTOR_TYPES = new Set(['hysteria2', 'shadowsocks', 'trojan', 'urltest', 'vless']);
 
 @Injectable()
 export class SingBoxGeneratorService {
@@ -86,7 +92,7 @@ export class SingBoxGeneratorService {
     private buildOutbound(host: ResolvedProxyConfig): OutboundConfig | null {
         try {
             const config: OutboundConfig = {
-                type: host.protocol,
+                type: host.protocol === 'hysteria' ? 'hysteria2' : host.protocol,
                 tag: host.finalRemark,
                 server: host.address,
                 server_port: host.port,
@@ -112,6 +118,32 @@ export class SingBoxGeneratorService {
 
                 if (host.protocolOptions.flow === 'xtls-rprx-vision') {
                     config.flow = host.protocolOptions.flow;
+                }
+                return true;
+
+            case 'hysteria':
+                config.password = (host.transportOptions as any).auth;
+                
+                if (host.streamOverrides.finalMask) {
+                    const finalMask = host.streamOverrides.finalMask as any;
+                    if (finalMask.quicParams) {
+                        if (finalMask.quicParams.brutalUp) {
+                            const up = parseInt(String(finalMask.quicParams.brutalUp), 10);
+                            if (!isNaN(up)) config.up_mbps = up;
+                        }
+                        if (finalMask.quicParams.brutalDown) {
+                            const down = parseInt(String(finalMask.quicParams.brutalDown), 10);
+                            if (!isNaN(down)) config.down_mbps = down;
+                        }
+                    }
+
+                    const obfsPassword = finalMask.udp?.find((m: any) => m?.type === 'salamander')?.settings?.password;
+                    if (obfsPassword) {
+                        config.obfs = {
+                            type: 'salamander',
+                            password: obfsPassword,
+                        };
+                    }
                 }
                 return true;
 
