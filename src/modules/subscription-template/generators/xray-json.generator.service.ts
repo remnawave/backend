@@ -122,10 +122,19 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
         tti: host.transportOptions.clientTti,
         congestion: host.transportOptions.congestion,
     }),
-    hysteria: (host) => ({
-        version: 2,
-        auth: host.transportOptions.auth,
-    }),
+    hysteria: (host) => {
+        const settings: any = {
+            version: 2,
+            auth: host.transportOptions.auth,
+        };
+        const finalMask = host.streamOverrides?.finalMask as any;
+        const obfsPassword = finalMask?.udp?.find((m: any) => m?.type === 'salamander')?.settings?.password;
+        if (obfsPassword) {
+            settings.obfs = 'salamander';
+            settings.obfsPassword = obfsPassword;
+        }
+        return settings;
+    },
 };
 
 function buildTcpSettings(host: ResolvedProxyConfig): Record<string, unknown> {
