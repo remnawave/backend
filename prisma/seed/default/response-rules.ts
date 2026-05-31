@@ -1,8 +1,7 @@
-// init: 0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4
-// next: 4761b7f5422b0e47df79e2208805f958472a680431f149ddfc1ad716d3f4d74d
+// prev: 4761b7f5422b0e47df79e2208805f958472a680431f149ddfc1ad716d3f4d74d
 
 export const PREV_SRR_CONFIG_HASH =
-    '0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4';
+    '4761b7f5422b0e47df79e2208805f958472a680431f149ddfc1ad716d3f4d74d';
 
 export const SRR_DEFAULT_CONFIG = {
     version: '1',
@@ -81,6 +80,21 @@ export const SRR_DEFAULT_CONFIG = {
                 },
             ],
             responseType: 'CLASH',
+        },
+        {
+            name: 'Surge Clients',
+            description: 'Response with generated Surge config (Surge Template)',
+            enabled: true,
+            operator: 'AND',
+            conditions: [
+                {
+                    headerName: 'user-agent',
+                    operator: 'REGEX',
+                    value: '^Surge',
+                    caseSensitive: false,
+                },
+            ],
+            responseType: 'SURGE',
         },
         {
             name: 'Fallback Base64',

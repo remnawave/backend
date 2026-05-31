@@ -60,6 +60,8 @@ export const RESPONSE_RULES_RESPONSE_TYPES_DESCRIPTION = {
         'Return **subscription** in Stash format. (Using `Stash` template)',
     [RESPONSE_RULES_RESPONSE_TYPES.CLASH]:
         'Return **subscription** in Clash format. (Using `Clash` template) Useful for client application that use Legacy Clash core.',
+    [RESPONSE_RULES_RESPONSE_TYPES.SURGE]:
+        'Return **subscription** in Surge format. (Using `Surge` template)',
     [RESPONSE_RULES_RESPONSE_TYPES.SINGBOX]:
         'Return **subscription** in Singbox format. (Using `Singbox` template) Format which is used by Singbox client application.',
     [RESPONSE_RULES_RESPONSE_TYPES.BROWSER]:

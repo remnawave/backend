@@ -13,6 +13,7 @@ import {
     DEFAULT_TEMPLATE_MIHOMO,
     DEFAULT_TEMPLATE_SINGBOX,
     DEFAULT_TEMPLATE_STASH,
+    DEFAULT_TEMPLATE_SURGE,
     DEFAULT_TEMPLATE_XRAY_JSON,
 } from './constants';
 import { SubscriptionTemplateRepository } from './repositories/subscription-template.repository';
@@ -79,7 +80,8 @@ export class SubscriptionTemplateService {
             const isYamlTemplate =
                 template.templateType === 'MIHOMO' ||
                 template.templateType === 'STASH' ||
-                template.templateType === 'CLASH';
+                template.templateType === 'CLASH' ||
+                template.templateType === 'SURGE';
 
             const isJsonTemplate =
                 template.templateType === 'XRAY_JSON' || template.templateType === 'SINGBOX';
@@ -216,6 +218,9 @@ export class SubscriptionTemplateService {
                 case 'STASH':
                     templateYaml = DEFAULT_TEMPLATE_STASH;
                     break;
+                case 'SURGE':
+                    templateYaml = DEFAULT_TEMPLATE_SURGE;
+                    break;
                 case 'SINGBOX':
                     templateJson = DEFAULT_TEMPLATE_SINGBOX;
                     break;
@@ -301,8 +306,8 @@ export class SubscriptionTemplateService {
     public async getCachedTemplateByType(
         type: TSubscriptionTemplateType,
         name: string = DEFAULT_TEMPLATE_NAME,
-    ): Promise<object> {
-        const cached = await this.rawCacheService.get<object>(
+    ): Promise<object | string> {
+        const cached = await this.rawCacheService.get<object | string>(
             CACHE_KEYS.SUBSCRIPTION_TEMPLATE(name, type),
         );
 
@@ -323,12 +328,15 @@ export class SubscriptionTemplateService {
 
             throw new Error('Template not found');
         }
-        let templateContent: object | null = null;
+        let templateContent: object | string | null = null;
         switch (template.templateType) {
             case 'MIHOMO':
             case 'STASH':
             case 'CLASH':
                 templateContent = yaml.parse(template.templateYaml!);
+                break;
+            case 'SURGE':
+                templateContent = template.templateYaml;
                 break;
             case 'SINGBOX':
             case 'XRAY_JSON':
