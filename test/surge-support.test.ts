@@ -63,6 +63,9 @@ if (!parsedDefaultSubpageConfig.success) {
 const defaultSubpageConfig = parsedDefaultSubpageConfig.data;
 assertEqual(typeof defaultSubpageConfig.svgLibrary.Surge, 'string');
 assertEqual(defaultSubpageConfig.svgLibrary.Surge.includes('<svg'), true);
+assertEqual((defaultSubpageConfig.svgLibrary.Surge.match(/<rect/g) ?? []).length, 5);
+assertEqual(defaultSubpageConfig.svgLibrary.Surge.includes('rx="20"'), true);
+assertEqual(defaultSubpageConfig.svgLibrary.Surge.includes('M27.1 5.3H14.9'), false);
 
 for (const platform of ['ios', 'macos'] as const) {
     const platformConfig = defaultSubpageConfig.platforms[platform];
