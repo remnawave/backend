@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.env.*
+.eslintcache
+.DS_Store
+node_modules
+dist
+coverage
+libs/contract/build
+*.log
+npm-debug.log*
