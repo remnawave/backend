@@ -153,6 +153,10 @@ function buildTlsSettings(host: ResolvedProxyConfig): Record<string, unknown> {
         settings.allowInsecure = true;
     }
 
+    if (host.securityOptions.pinnedPeerCertSha256) {
+        settings.pinnedPeerCertSha256 = host.securityOptions.pinnedPeerCertSha256;
+    }
+
     return settings;
 }
 
