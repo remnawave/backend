@@ -84,6 +84,18 @@ export namespace CreateHostCommand {
         vlessRouteId: z.optional(z.number().int().min(0).max(65535).nullable()),
         shuffleHost: z.optional(z.boolean().default(false)),
         mihomoX25519: z.optional(z.boolean().default(false)),
+        pinnedPeerCertSha256: z
+            .optional(
+                z
+                    .string()
+                    .max(64, {
+                        message: 'Pinned peer cert SHA256 must be less than 64 characters',
+                    })
+                    .nullable(),
+            )
+            .describe(
+                'Optional. SHA256 hash of the server certificate for certificate pinning. Used for self-signed certificates.',
+            ),
         nodes: z.optional(z.array(z.string().uuid())),
         xrayJsonTemplateUuid: z.optional(z.string().uuid().nullable()),
         excludedInternalSquads: z
