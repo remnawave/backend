@@ -389,6 +389,7 @@ export class ResolveProxyConfigService {
                         ),
                         echConfigList: tls?.echConfigList || null,
                         echForceQuery: tls?.echForceQuery || null,
+                        pinnedPeerCertSha256: inputHost.pinnedPeerCertSha256 || null,
                     },
                 };
             }
