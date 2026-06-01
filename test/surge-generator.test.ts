@@ -114,6 +114,15 @@ FINAL,Remnawave
                 id: '00000000-0000-0000-0000-000000000000',
             },
         }),
+        baseHost({
+            finalRemark: 'httpupgrade-node',
+            transport: 'httpupgrade',
+            transportOptions: {
+                path: '/upgrade',
+                host: 'upgrade.example.com',
+                headers: null,
+            },
+        }),
     ]);
 
     assertIncludes(subscription, 'trojan-node = trojan, example.com, 443');
@@ -129,4 +138,5 @@ FINAL,Remnawave
     );
     assertIncludes(subscription, 'Remnawave = select, trojan-node, ss-node, DIRECT');
     assertNotIncludes(subscription, 'vless-node');
+    assertNotIncludes(subscription, 'httpupgrade-node');
 })();

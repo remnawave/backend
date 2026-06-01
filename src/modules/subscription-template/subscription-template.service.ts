@@ -77,7 +77,7 @@ export class SubscriptionTemplateService {
                 return fail(ERRORS.RESERVED_TEMPLATE_NAME);
             }
 
-            const isYamlTemplate =
+            const isEncodedTextTemplate =
                 template.templateType === 'MIHOMO' ||
                 template.templateType === 'STASH' ||
                 template.templateType === 'CLASH' ||
@@ -86,7 +86,7 @@ export class SubscriptionTemplateService {
             const isJsonTemplate =
                 template.templateType === 'XRAY_JSON' || template.templateType === 'SINGBOX';
 
-            if (isYamlTemplate && templateJson !== undefined) {
+            if (isEncodedTextTemplate && templateJson !== undefined) {
                 return fail(ERRORS.TEMPLATE_JSON_NOT_ALLOWED_FOR_YAML_TEMPLATE);
             }
 

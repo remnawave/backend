@@ -7,7 +7,7 @@ import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 const PROXIES_MARKER = '#!remnawave-proxies';
 const PROXY_NAMES_MARKER = '#!remnawave-proxy-names';
 const UNSUPPORTED_PROTOCOLS = new Set(['vless']);
-const UNSUPPORTED_TRANSPORTS = new Set(['grpc', 'kcp', 'xhttp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['grpc', 'httpupgrade', 'kcp', 'xhttp']);
 
 @Injectable()
 export class SurgeGeneratorService {
@@ -77,7 +77,7 @@ export class SurgeGeneratorService {
             'udp-relay': true,
         };
 
-        if (host.transport === 'ws' || host.transport === 'httpupgrade') {
+        if (host.transport === 'ws') {
             params.ws = true;
 
             const path = host.transportOptions.path;
