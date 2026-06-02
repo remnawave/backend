@@ -2,9 +2,13 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { XRayConfig } from '@common/helpers/xray-config';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
+import { NodesQueuesService } from '@queue/_nodes';
+
+import { ConfigProfileRepository } from './repositories/config-profile.repository';
 import { SnippetsRepository } from './repositories/snippets.repository';
 import { GetSnippetsResponseModel } from './models';
 import { SnippetEntity } from './entities';
@@ -13,7 +17,45 @@ import { SnippetEntity } from './entities';
 export class SnippetsService {
     private readonly logger = new Logger(SnippetsService.name);
 
-    constructor(private readonly snippetsRepository: SnippetsRepository) {}
+    constructor(
+        private readonly snippetsRepository: SnippetsRepository,
+        private readonly configProfileRepository: ConfigProfileRepository,
+        private readonly nodesQueuesService: NodesQueuesService,
+    ) {}
+
+    private async restartNodesUsingSnippet(name: string, emitter: string): Promise<void> {
+        try {
+            const configProfiles = await this.configProfileRepository.getAllConfigProfiles();
+
+            for (const configProfile of configProfiles) {
+                let referencedSnippets: Set<string>;
+
+                try {
+                    referencedSnippets = new XRayConfig(
+                        configProfile.config as object,
+                    ).getReferencedSnippetNames();
+                } catch (error) {
+                    this.logger.error(
+                        `Failed to parse config of profile ${configProfile.uuid} while resolving snippet usage: ${error}`,
+                    );
+                    continue;
+                }
+
+                if (!referencedSnippets.has(name)) {
+                    continue;
+                }
+
+                await this.nodesQueuesService.startAllNodesByProfile({
+                    profileUuid: configProfile.uuid,
+                    emitter,
+                });
+            }
+        } catch (error) {
+            // The snippet mutation itself already succeeded, so a failure to
+            // enqueue node restarts must not fail the request.
+            this.logger.error(`Failed to restart nodes after snippet "${name}" change: ${error}`);
+        }
+    }
 
     public async getSnippets(): Promise<TResult<GetSnippetsResponseModel>> {
         try {
@@ -35,6 +77,8 @@ export class SnippetsService {
             }
 
             await this.snippetsRepository.deleteByName(name);
+
+            await this.restartNodesUsingSnippet(name, 'deleteSnippetByName');
 
             return await this.getSnippets();
         } catch (error) {
@@ -62,6 +106,8 @@ export class SnippetsService {
             });
 
             await this.snippetsRepository.create(snippetEntity);
+
+            await this.restartNodesUsingSnippet(name, 'createSnippet');
 
             return await this.getSnippets();
         } catch (error) {
@@ -106,6 +152,8 @@ export class SnippetsService {
             });
 
             await this.snippetsRepository.update(snippetEntity);
+
+            await this.restartNodesUsingSnippet(name, 'updateSnippet');
 
             return await this.getSnippets();
         } catch (error) {

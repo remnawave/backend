@@ -314,6 +314,29 @@ export class XRayConfig {
         }
     }
 
+    public getReferencedSnippetNames(): Set<string> {
+        const names = new Set<string>();
+
+        this.collectSnippetNames(this.config.outbounds, names);
+        this.collectSnippetNames(this.config.routing?.rules, names);
+        this.collectSnippetNames(this.config.routing?.balancers, names);
+
+        return names;
+    }
+
+    private collectSnippetNames(
+        array: RoutingRule[] | BalancingRule[] | undefined,
+        names: Set<string>,
+    ): void {
+        if (!array) return;
+
+        for (const item of array) {
+            if (typeof item.snippet === 'string') {
+                names.add(item.snippet);
+            }
+        }
+    }
+
     public replaceSnippets(snippets: Map<string, unknown>): void {
         if (this.config.outbounds) {
             this.replaceSnippetsInArray(this.config.outbounds, snippets);
