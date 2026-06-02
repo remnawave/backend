@@ -388,13 +388,17 @@ export class XrayGeneratorService {
     // ── Query String Builder ─────────────────────────
 
     private buildQueryString(params: Record<string, unknown>): string {
-        const stringParams: Record<string, string> = {};
+        const parts: string[] = [];
 
         for (const [key, value] of Object.entries(params)) {
             if (value === undefined || value === null) continue;
-            stringParams[key] = String(value);
+            // Use encodeURIComponent (RFC 3986) so a space becomes %20.
+            // URLSearchParams.toString() serializes as x-www-form-urlencoded,
+            // turning a space into '+', which iOS clients parse as a literal '+'
+            // in sni/host instead of a space — breaking the share link.
+            parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
         }
 
-        return new URLSearchParams(stringParams).toString();
+        return parts.join('&');
     }
 }
