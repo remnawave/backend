@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 import { Injectable, Logger } from '@nestjs/common';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
@@ -31,6 +33,7 @@ export class SurgeGeneratorService {
 
             const proxyLines: string[] = [];
             const proxyNames: string[] = [];
+            const alwaysRealIpDomains = new Set<string>();
 
             for (const host of hosts) {
                 if (host.metadata.excludeFromSubscriptionTypes.includes('SURGE')) continue;
@@ -43,9 +46,14 @@ export class SurgeGeneratorService {
 
                 proxyLines.push(proxyLine);
                 proxyNames.push(host.finalRemark);
+
+                const realIpDomain = this.getAlwaysRealIpDomain(host.address);
+                if (realIpDomain) {
+                    alwaysRealIpDomains.add(realIpDomain);
+                }
             }
 
-            return this.renderTemplate(template, proxyLines, proxyNames);
+            return this.renderTemplate(template, proxyLines, proxyNames, [...alwaysRealIpDomains]);
         } catch (error) {
             this.logger.error('Error generating Surge config:', error);
             return '';
@@ -180,7 +188,12 @@ export class SurgeGeneratorService {
         return value;
     }
 
-    private renderTemplate(template: string, proxyLines: string[], proxyNames: string[]): string {
+    private renderTemplate(
+        template: string,
+        proxyLines: string[],
+        proxyNames: string[],
+        alwaysRealIpDomains: string[],
+    ): string {
         const proxyText = proxyLines.join('\n');
         const groupText = proxyNames.length > 0 ? `${proxyNames.join(', ')}, DIRECT` : 'DIRECT';
 
@@ -189,8 +202,54 @@ export class SurgeGeneratorService {
             : this.insertIntoProxySection(template, proxyText);
 
         rendered = rendered.split(PROXY_NAMES_MARKER).join(groupText);
+        rendered = this.applyAlwaysRealIp(rendered, alwaysRealIpDomains);
 
         return `${rendered.trimEnd()}\n`;
+    }
+
+    private getAlwaysRealIpDomain(address: string): string | null {
+        const host = address.trim().replace(/^\[(.*)]$/, '$1');
+
+        if (!host || isIP(host)) {
+            return null;
+        }
+
+        return host;
+    }
+
+    private applyAlwaysRealIp(config: string, domains: string[]): string {
+        if (domains.length === 0) {
+            return config;
+        }
+
+        const uniqueDomains = [...new Set(domains)];
+        const alwaysRealIpPattern = /^always-real-ip\s*=\s*(.*)$/im;
+
+        if (alwaysRealIpPattern.test(config)) {
+            return config.replace(alwaysRealIpPattern, (_line, existing: string) => {
+                const entries = existing
+                    .split(',')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean);
+
+                for (const domain of uniqueDomains) {
+                    if (!entries.includes(domain)) {
+                        entries.push(domain);
+                    }
+                }
+
+                return `always-real-ip = ${entries.join(', ')}`;
+            });
+        }
+
+        const alwaysRealIpLine = `always-real-ip = ${uniqueDomains.join(', ')}\n`;
+        const generalSectionPattern = /\[General]\s*\n/i;
+
+        if (generalSectionPattern.test(config)) {
+            return config.replace(generalSectionPattern, (match) => `${match}${alwaysRealIpLine}`);
+        }
+
+        return `[General]\n${alwaysRealIpLine}\n${config}`;
     }
 
     private insertIntoProxySection(template: string, proxyText: string): string {

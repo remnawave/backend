@@ -132,6 +132,7 @@ FINAL,Remnawave
     assertIncludes(subscription, 'ws-headers=Host:edge.example.com');
     assertIncludes(subscription, 'skip-cert-verify=true');
     assertIncludes(subscription, 'sni=sni.example.com');
+    assertIncludes(subscription, 'always-real-ip = example.com');
     assertIncludes(
         subscription,
         'ss-node = ss, example.com, 443, encrypt-method=chacha20-ietf-poly1305, password=ss-secret, udp-relay=true',
