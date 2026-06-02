@@ -6,6 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
+import { AxiosService } from '@common/axios';
 import { mapDefined, wrapBigInt } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
 import { toNano } from '@common/utils/nano';
@@ -44,6 +45,7 @@ export class NodesService {
         private readonly nodesRepository: NodesRepository,
         private readonly eventEmitter: EventEmitter2,
         private readonly nodesQueuesService: NodesQueuesService,
+        private readonly axiosService: AxiosService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
         private readonly nodesSystemCacheService: NodesSystemCacheService,
@@ -200,6 +202,84 @@ export class NodesService {
             this.logger.error(JSON.stringify(error));
             return fail(ERRORS.RESET_NODE_TRAFFIC_ERROR);
         }
+    }
+
+    public async enableNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.enableWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Enable WARP error'));
+        }
+    }
+
+    public async disableNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.disableWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Disable WARP error'));
+        }
+    }
+
+    private async getNodeForWarpAction(uuid: string): Promise<TResult<NodesEntity>> {
+        const node = await this.nodesRepository.findByUUID(uuid);
+        if (!node) {
+            return fail(ERRORS.NODE_NOT_FOUND);
+        }
+
+        if (node.isDisabled) {
+            return fail(ERRORS.NODE_IS_DISABLED);
+        }
+
+        if (!node.isConnected) {
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Node is not connected'));
+        }
+
+        return ok(node);
+    }
+
+    private async getWarpActionNodeResponse(uuid: string): Promise<TResult<NodeResponseModel>> {
+        const node = await this.nodesRepository.findByUUID(uuid);
+        if (!node) {
+            return fail(ERRORS.NODE_NOT_FOUND);
+        }
+
+        return ok(
+            new NodeResponseModel(node, await this.nodesSystemCacheService.getOne(node.uuid)),
+        );
     }
 
     public async restartAllNodes(

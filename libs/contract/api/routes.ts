@@ -69,6 +69,20 @@ export const REST_API = {
                 `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.RESET_TRAFFIC(
                     uuid,
                 )}`,
+            WARP: {
+                ENABLE: (uuid: string) =>
+                    `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.WARP.ENABLE(
+                        uuid,
+                    )}`,
+                DISABLE: (uuid: string) =>
+                    `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.WARP.DISABLE(
+                        uuid,
+                    )}`,
+                STATUS: (uuid: string) =>
+                    `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.WARP.STATUS(
+                        uuid,
+                    )}`,
+            },
             REORDER: `${ROOT}/${CONTROLLERS.NODES_CONTROLLER}/${CONTROLLERS.NODES_ROUTES.ACTIONS.REORDER}`,
         },
 

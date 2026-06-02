@@ -15,6 +15,11 @@ export const NODES_ROUTES = {
         DISABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/disable`,
         RESTART: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/restart`,
         RESET_TRAFFIC: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/reset-traffic`,
+        WARP: {
+            ENABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/enable`,
+            DISABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/disable`,
+            STATUS: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/status`,
+        },
 
         RESTART_ALL: `${NODE_ACTIONS_ROUTE}/restart-all`,
         REORDER: `${NODE_ACTIONS_ROUTE}/reorder`,

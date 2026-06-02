@@ -4,3 +4,6 @@ export * from './reorder.command';
 export * from './reset-traffic.command';
 export * from './restart-all.command';
 export * from './restart.command';
+export * from './warp-disable.command';
+export * from './warp-enable.command';
+export * from './warp-status.command';

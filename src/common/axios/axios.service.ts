@@ -3,6 +3,7 @@ import { compress } from '@mongodb-js/zstd';
 import https from 'node:https';
 
 import { ERRORS } from '@contract/constants';
+import { TWarpStatus } from '@contract/models';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
@@ -35,6 +36,16 @@ import { prettyBytesUtil } from '@common/utils/bytes';
 import { GetNodeJwtCommand } from '@modules/keygen/commands/get-node-jwt';
 
 import { fail, ok, TResult } from '../types';
+
+const NODE_WARP_PATHS = {
+    STATUS: '/node/warp/status',
+    ENABLE: '/node/warp/enable',
+    DISABLE: '/node/warp/disable',
+} as const;
+
+type TNodeWarpResponse = {
+    response: TWarpStatus;
+};
 
 @Injectable()
 export class AxiosService {
@@ -191,6 +202,69 @@ export class AxiosService {
                     ),
                 );
             }
+        }
+    }
+
+    /*
+     * WARP MANAGEMENT
+     */
+
+    public async getWarpStatus(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        return this.requestWarp('get', NODE_WARP_PATHS.STATUS, url, port, 'getWarpStatus', 30_000);
+    }
+
+    public async enableWarp(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        return this.requestWarp('post', NODE_WARP_PATHS.ENABLE, url, port, 'enableWarp', 180_000);
+    }
+
+    public async disableWarp(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        return this.requestWarp('post', NODE_WARP_PATHS.DISABLE, url, port, 'disableWarp', 45_000);
+    }
+
+    private async requestWarp(
+        method: 'get' | 'post',
+        path: string,
+        url: string,
+        port: null | number,
+        operation: string,
+        timeout: number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        const nodeUrl = this.getNodeUrl(url, path, port);
+
+        try {
+            const response =
+                method === 'get'
+                    ? await this.axiosInstance.get<TNodeWarpResponse>(nodeUrl, { timeout })
+                    : await this.axiosInstance.post<TNodeWarpResponse>(nodeUrl, undefined, {
+                          timeout,
+                      });
+
+            return ok(response.data);
+        } catch (error) {
+            if (error instanceof AxiosError) {
+                const message = error.response?.data
+                    ? JSON.stringify(error.response.data)
+                    : JSON.stringify(error.message);
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(message));
+            }
+
+            this.logger.error(`Error in Axios ${operation}:`, error);
+
+            return fail(
+                ERRORS.NODE_ERROR_WITH_MSG.withMessage(
+                    JSON.stringify(error) ?? 'Unknown error',
+                ),
+            );
         }
     }
 
