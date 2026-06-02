@@ -8,10 +8,15 @@ import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entit
 import { UserEntity } from '@modules/users/entities';
 
 import { prettyBytesUtil } from '../bytes';
+import { fromNano } from '../nano';
 
 type TemplateValueGetter = () => string | number;
 type LazyTemplateValues = {
     [key in TemplateKeys]: TemplateValueGetter;
+};
+
+type HostTemplateValues = {
+    nodeConsumptionMultiplier?: bigint | null;
 };
 
 export class TemplateEngine {
@@ -38,8 +43,13 @@ export class TemplateEngine {
         subscriptionSettings: SubscriptionSettingsEntity,
         subPublicDomain: string,
         forHeader: boolean = false,
+        host?: HostTemplateValues,
     ): string {
         const trafficLeft = () => user.trafficLimitBytes - user.userTraffic.usedTrafficBytes;
+        const nodeMultiplier = () =>
+            host?.nodeConsumptionMultiplier !== null && host?.nodeConsumptionMultiplier !== undefined
+                ? fromNano(host.nodeConsumptionMultiplier)
+                : '';
 
         return this.replace(template, {
             DAYS_LEFT: () => Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
@@ -73,6 +83,7 @@ export class TemplateEngine {
                     ? user.hwidDeviceLimit
                     : (subscriptionSettings.hwidSettings.fallbackDeviceLimit ?? 0)
                 ).toString(),
+            NODE_MULTIPLIER: nodeMultiplier,
         });
     }
 }

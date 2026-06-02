@@ -215,6 +215,15 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 'configProfileInbounds.tag as inboundTag',
                 'subscriptionTemplates.templateJson as xrayJsonTemplate',
             ])
+            .select((eb) => [
+                eb
+                    .selectFrom('hostsToNodes')
+                    .innerJoin('nodes', 'nodes.uuid', 'hostsToNodes.nodeUuid')
+                    .select('nodes.consumptionMultiplier')
+                    .whereRef('hostsToNodes.hostUuid', '=', 'hosts.uuid')
+                    .limit(1)
+                    .as('nodeConsumptionMultiplier'),
+            ])
             .orderBy('hosts.viewPosition', 'asc')
             .execute();
 

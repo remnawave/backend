@@ -111,6 +111,10 @@ export class ResolveProxyConfigService {
                     user,
                     subscriptionSettings,
                     this.subPublicDomain,
+                    false,
+                    {
+                        nodeConsumptionMultiplier: inputHost.nodeConsumptionMultiplier,
+                    },
                 ),
                 knownRemarks,
             );
