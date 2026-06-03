@@ -1,9 +1,9 @@
 import { CACHE_KEYS, CACHE_KEYS_TTL } from '@contract/constants';
-import { TWarpStatus } from '@libs/contracts/models';
 
 import { Injectable } from '@nestjs/common';
 
 import { RawCacheService } from '@common/raw-cache';
+import { TWarpStatus } from '@libs/contracts/models';
 
 import { INodeHotCache, INodeSystem, INodeVersions } from './interfaces';
 

@@ -2,8 +2,8 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 import { compress } from '@mongodb-js/zstd';
 import https from 'node:https';
 
-import { ERRORS } from '@contract/constants';
 import { TWarpStatus } from '@contract/models';
+import { ERRORS } from '@contract/constants';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
@@ -216,10 +216,7 @@ export class AxiosService {
         return this.requestWarp('get', NODE_WARP_PATHS.STATUS, url, port, 'getWarpStatus', 30_000);
     }
 
-    public async enableWarp(
-        url: string,
-        port: null | number,
-    ): Promise<TResult<TNodeWarpResponse>> {
+    public async enableWarp(url: string, port: null | number): Promise<TResult<TNodeWarpResponse>> {
         return this.requestWarp('post', NODE_WARP_PATHS.ENABLE, url, port, 'enableWarp', 180_000);
     }
 
@@ -261,9 +258,7 @@ export class AxiosService {
             this.logger.error(`Error in Axios ${operation}:`, error);
 
             return fail(
-                ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                    JSON.stringify(error) ?? 'Unknown error',
-                ),
+                ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error) ?? 'Unknown error'),
             );
         }
     }

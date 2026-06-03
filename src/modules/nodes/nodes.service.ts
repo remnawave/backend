@@ -6,9 +6,9 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
-import { AxiosService } from '@common/axios';
 import { mapDefined, wrapBigInt } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
+import { AxiosService } from '@common/axios';
 import { toNano } from '@common/utils/nano';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
