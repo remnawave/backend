@@ -39,8 +39,10 @@ import { fail, ok, TResult } from '../types';
 
 const NODE_WARP_PATHS = {
     STATUS: '/node/warp/status',
+    INSTALL: '/node/warp/install',
     ENABLE: '/node/warp/enable',
     DISABLE: '/node/warp/disable',
+    UNINSTALL: '/node/warp/uninstall',
 } as const;
 
 type TNodeWarpResponse = {
@@ -216,6 +218,13 @@ export class AxiosService {
         return this.requestWarp('get', NODE_WARP_PATHS.STATUS, url, port, 'getWarpStatus', 30_000);
     }
 
+    public async installWarp(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        return this.requestWarp('post', NODE_WARP_PATHS.INSTALL, url, port, 'installWarp', 180_000);
+    }
+
     public async enableWarp(url: string, port: null | number): Promise<TResult<TNodeWarpResponse>> {
         return this.requestWarp('post', NODE_WARP_PATHS.ENABLE, url, port, 'enableWarp', 180_000);
     }
@@ -225,6 +234,20 @@ export class AxiosService {
         port: null | number,
     ): Promise<TResult<TNodeWarpResponse>> {
         return this.requestWarp('post', NODE_WARP_PATHS.DISABLE, url, port, 'disableWarp', 45_000);
+    }
+
+    public async uninstallWarp(
+        url: string,
+        port: null | number,
+    ): Promise<TResult<TNodeWarpResponse>> {
+        return this.requestWarp(
+            'post',
+            NODE_WARP_PATHS.UNINSTALL,
+            url,
+            port,
+            'uninstallWarp',
+            60_000,
+        );
     }
 
     private async requestWarp(

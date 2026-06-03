@@ -6,4 +6,6 @@ export * from './restart-all.command';
 export * from './restart.command';
 export * from './warp-disable.command';
 export * from './warp-enable.command';
+export * from './warp-install.command';
 export * from './warp-status.command';
+export * from './warp-uninstall.command';

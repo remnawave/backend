@@ -16,8 +16,10 @@ export const NODES_ROUTES = {
         RESTART: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/restart`,
         RESET_TRAFFIC: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/reset-traffic`,
         WARP: {
+            INSTALL: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/install`,
             ENABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/enable`,
             DISABLE: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/disable`,
+            UNINSTALL: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/uninstall`,
             STATUS: (uuid: string) => `${uuid}/${NODE_ACTIONS_ROUTE}/warp/status`,
         },
 
