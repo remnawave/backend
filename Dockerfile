@@ -99,7 +99,8 @@ COPY libs ./libs
 COPY ecosystem.config.js ./
 COPY docker-entrypoint.sh ./
 
-RUN npm install pm2 -g \
+RUN npm rebuild @mongodb-js/zstd \
+    && npm install pm2 -g \
     && npm link
 
 
