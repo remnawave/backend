@@ -5,6 +5,7 @@ export const REQUEST_TEMPLATE_TYPE = {
     XRAY_JSON: 'json',
     V2RAY_JSON: 'v2ray-json',
     CLASH: 'clash',
+    SURGE: 'surge',
 } as const;
 
 export type TRequestTemplateType = [keyof typeof REQUEST_TEMPLATE_TYPE][number];

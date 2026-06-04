@@ -562,7 +562,7 @@ model ExternalSquads {
 model ExternalSquadsTemplates {
   externalSquadUuid String @map("external_squad_uuid") @db.Uuid
   templateUuid      String @map("template_uuid") @db.Uuid
-  templateType      String @map("template_type") // ENUM: XRAY_JSON, MIHOMO, STASH, CLASH, SINGBOX
+  templateType      String @map("template_type") // ENUM: XRAY_JSON, MIHOMO, STASH, CLASH, SURGE, SINGBOX
 
   externalSquad ExternalSquads       @relation(fields: [externalSquadUuid], references: [uuid], onDelete: Cascade)
   template      SubscriptionTemplate @relation(fields: [templateUuid], references: [uuid], onDelete: Cascade)

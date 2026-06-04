@@ -10,6 +10,7 @@ import { XrayJsonGeneratorService } from './generators/xray-json.generator.servi
 import { SingBoxGeneratorService } from './generators/singbox.generator.service';
 import { MihomoGeneratorService } from './generators/mihomo.generator.service';
 import { ClashGeneratorService } from './generators/clash.generator.service';
+import { SurgeGeneratorService } from './generators/surge.generator.service';
 import { XrayGeneratorService } from './generators/xray.generator.service';
 import { SUBSCRIPTION_CONFIG_TYPES } from './constants/config-types';
 import { ResolvedProxyConfig } from './resolve-proxy/interfaces';
@@ -21,6 +22,7 @@ export class RenderTemplatesService {
         private readonly resolveProxyConfigService: ResolveProxyConfigService,
         private readonly mihomoGeneratorService: MihomoGeneratorService,
         private readonly clashGeneratorService: ClashGeneratorService,
+        private readonly surgeGeneratorService: SurgeGeneratorService,
         private readonly xrayGeneratorService: XrayGeneratorService,
         private readonly singBoxGeneratorService: SingBoxGeneratorService,
         private readonly xrayJsonGeneratorService: XrayJsonGeneratorService,
@@ -80,6 +82,15 @@ export class RenderTemplatesService {
                     contentType: SUBSCRIPTION_CONFIG_TYPES['SINGBOX'].CONTENT_TYPE,
                 };
 
+            case 'SURGE':
+                return {
+                    subscription: await this.surgeGeneratorService.generateConfig(
+                        formattedHosts,
+                        srrContext.overrideTemplateName,
+                    ),
+                    contentType: SUBSCRIPTION_CONFIG_TYPES['SURGE'].CONTENT_TYPE,
+                };
+
             case 'STASH':
                 return {
                     subscription: await this.mihomoGeneratorService.generateConfig(
@@ -103,7 +114,9 @@ export class RenderTemplatesService {
                 };
 
             default:
-                return { subscription: '', contentType: '' };
+                throw new Error(
+                    `Unsupported subscription response type: ${srrContext.matchedResponseType}`,
+                );
         }
     }
 
