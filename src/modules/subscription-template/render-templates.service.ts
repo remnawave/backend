@@ -114,7 +114,9 @@ export class RenderTemplatesService {
                 };
 
             default:
-                return { subscription: '', contentType: '' };
+                throw new Error(
+                    `Unsupported subscription response type: ${srrContext.matchedResponseType}`,
+                );
         }
     }
 
