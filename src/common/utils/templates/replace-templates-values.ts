@@ -71,7 +71,11 @@ export class TemplateEngine {
         subPublicDomain: string,
         forHeader: boolean = false,
     ): string {
-        const trafficLeft = () => user.trafficLimitBytes - user.userTraffic.usedTrafficBytes;
+        // trafficLimitBytes === 0n means Unlimited, so there is no traffic to subtract from.
+        const trafficLeft = (): bigint =>
+            user.trafficLimitBytes === 0n
+                ? 0n
+                : user.trafficLimitBytes - user.userTraffic.usedTrafficBytes;
 
         return this.replace(template, {
             DAYS_LEFT: () => Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
