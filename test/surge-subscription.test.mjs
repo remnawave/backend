@@ -57,6 +57,8 @@ describe('Surge subscription rendering', () => {
         assert.match(generator, /case 'trojan':/);
         assert.match(generator, /this\.buildLine\(name, 'trojan'/);
         assert.match(generator, /\['ws', true\]/);
+        assert.match(generator, /NODE_MULTIPLIER/);
+        assert.match(generator, /fromNano\(host\.metadata\.consumptionMultiplier/);
         assert.match(renderer, /surgeGeneratorService\.generateConfig/);
         assert.match(generatorIndex, /SurgeGeneratorService/);
         assert.match(configTypes, /RESPONSE_RULES_RESPONSE_TYPES\.SURGE/);

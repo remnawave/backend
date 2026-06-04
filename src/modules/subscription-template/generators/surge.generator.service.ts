@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { fromNano } from '@common/utils/nano';
+
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 const DEFAULT_GROUP = '🚀 节点选择';
@@ -54,7 +56,7 @@ export class SurgeGeneratorService {
     }
 
     private buildProxy(host: ResolvedProxyConfig): null | { line: string; name: string } {
-        const name = this.sanitizeName(host.finalRemark);
+        const name = this.sanitizeName(this.formatName(host));
 
         switch (host.protocol) {
             case 'trojan':
@@ -148,6 +150,12 @@ export class SurgeGeneratorService {
 
     private buildWsHeaders(host: string | null): string | null {
         return host ? `Host:${host}` : null;
+    }
+
+    private formatName(host: ResolvedProxyConfig): string {
+        const multiplier = fromNano(host.metadata.consumptionMultiplier ?? 1000000000n);
+
+        return host.finalRemark.replace(/\{\{NODE_MULTIPLIER\}\}/g, multiplier);
     }
 
     private sanitizeName(name: string): string {

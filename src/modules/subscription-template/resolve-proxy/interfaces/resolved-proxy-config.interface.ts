@@ -197,6 +197,7 @@ export interface IProxyEntryMetadata {
     remark: string;
     vlessRouteId: number | null;
     rawInbound: object | null;
+    consumptionMultiplier: bigint | null;
 }
 
 // ─── Resolved Proxy Config ───────────────────────────────
