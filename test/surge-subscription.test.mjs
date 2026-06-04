@@ -24,6 +24,7 @@ describe('Surge subscription rendering', () => {
         const renderer = readProjectFile(
             'src/modules/subscription-template/render-templates.service.ts',
         );
+        const seed = readProjectFile('prisma/seed/seeders/4_seed-subscription-template.ts');
 
         assert.match(requestTypes, /SURGE:\s*'surge'/);
         assert.match(templateTypes, /SURGE:\s*'SURGE'/);
@@ -32,6 +33,7 @@ describe('Surge subscription rendering', () => {
         assert.match(matcher, /SUBSCRIPTION_TEMPLATE_TYPE\.SURGE/);
         assert.match(renderer, /case 'SURGE':/);
         assert.doesNotMatch(renderer, /default:\s*return \{ subscription: '', contentType: '' \}/);
+        assert.match(seed, /case SUBSCRIPTION_TEMPLATE_TYPE\.SURGE:/);
     });
 
     it('generates Surge proxy sections instead of an empty body', () => {

@@ -96,6 +96,7 @@ export async function seedSubscriptionTemplate(prisma: PrismaClient) {
 
                 break;
             case SUBSCRIPTION_TEMPLATE_TYPE.XRAY_BASE64:
+            case SUBSCRIPTION_TEMPLATE_TYPE.SURGE:
                 break;
             default:
                 consola.error(`Unknown template type: ${templateType}`);
