@@ -30,6 +30,7 @@ describe('backend WARP node actions', () => {
         assert.match(actionsIndex, /warp-uninstall/);
         assert.match(schema, /WarpStatusSchema/);
         assert.match(schema, /HostConnectivitySchema/);
+        assert.match(schema, /countryCode: z\.string\(\)\.nullable\(\)/);
         assert.match(schema, /warp: z\.optional/);
         assert.match(schema, /host: z\.optional/);
     });
