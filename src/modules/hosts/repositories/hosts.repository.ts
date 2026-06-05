@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { sql } from 'kysely';
 
 import { IReorderHost } from 'src/modules/hosts/interfaces/reorder-host.interface';
 
@@ -214,6 +215,14 @@ export class HostsRepository implements ICrud<HostsEntity> {
                 'configProfileInbounds.rawInbound',
                 'configProfileInbounds.tag as inboundTag',
                 'subscriptionTemplates.templateJson as xrayJsonTemplate',
+                sql<bigint | null>`(
+                    SELECT nodes.consumption_multiplier
+                    FROM hosts_to_nodes
+                    INNER JOIN nodes ON nodes.uuid = hosts_to_nodes.node_uuid
+                    WHERE hosts_to_nodes.host_uuid = hosts.uuid
+                    ORDER BY nodes.view_position ASC, nodes.name ASC
+                    LIMIT 1
+                )`.as('consumptionMultiplier'),
             ])
             .orderBy('hosts.viewPosition', 'asc')
             .execute();

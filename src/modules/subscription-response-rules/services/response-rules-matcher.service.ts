@@ -197,6 +197,9 @@ export class ResponseRulesMatcherService {
             case REQUEST_TEMPLATE_TYPE.CLASH:
                 matchedResponse.responseType = SUBSCRIPTION_TEMPLATE_TYPE.CLASH;
                 break;
+            case REQUEST_TEMPLATE_TYPE.SURGE:
+                matchedResponse.responseType = SUBSCRIPTION_TEMPLATE_TYPE.SURGE;
+                break;
             default:
                 matchedResponse.responseType = 'BLOCK';
                 break;

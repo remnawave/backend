@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import { ERRORS, EVENTS, NODES_BULK_ACTIONS } from '@contract/constants';
+import { TWarpStatus } from '@contract/models';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Injectable, Logger } from '@nestjs/common';
@@ -8,6 +9,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 import { mapDefined, wrapBigInt } from '@common/utils';
 import { fail, ok, TResult } from '@common/types';
+import { AxiosService } from '@common/axios';
 import { toNano } from '@common/utils/nano';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
@@ -44,6 +46,7 @@ export class NodesService {
         private readonly nodesRepository: NodesRepository,
         private readonly eventEmitter: EventEmitter2,
         private readonly nodesQueuesService: NodesQueuesService,
+        private readonly axiosService: AxiosService,
         private readonly queryBus: QueryBus,
         private readonly commandBus: CommandBus,
         private readonly nodesSystemCacheService: NodesSystemCacheService,
@@ -200,6 +203,162 @@ export class NodesService {
             this.logger.error(JSON.stringify(error));
             return fail(ERRORS.RESET_NODE_TRAFFIC_ERROR);
         }
+    }
+
+    public async enableNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.enableWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Enable WARP error'));
+        }
+    }
+
+    public async installNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.installWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Install WARP error'));
+        }
+    }
+
+    public async disableNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.disableWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Disable WARP error'));
+        }
+    }
+
+    public async uninstallNodeWarp(uuid: string): Promise<TResult<NodeResponseModel>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return nodeResult;
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.uninstallWarp(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return await this.getWarpActionNodeResponse(node.uuid);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Uninstall WARP error'));
+        }
+    }
+
+    public async getNodeWarpStatus(uuid: string): Promise<TResult<TWarpStatus>> {
+        try {
+            const nodeResult = await this.getNodeForWarpAction(uuid);
+            if (!nodeResult.isOk) {
+                return fail({
+                    code: nodeResult.code ?? ERRORS.NODE_NOT_FOUND.code,
+                    message: nodeResult.message ?? ERRORS.NODE_NOT_FOUND.message,
+                });
+            }
+
+            const node = nodeResult.response;
+            const warpResult = await this.axiosService.getWarpStatus(node.address, node.port);
+            if (!warpResult.isOk) {
+                return warpResult;
+            }
+
+            await this.nodesSystemCacheService.mergeWarpStatus(
+                node.uuid,
+                warpResult.response.response,
+            );
+
+            return ok(warpResult.response.response);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Get WARP status error'));
+        }
+    }
+
+    private async getNodeForWarpAction(uuid: string): Promise<TResult<NodesEntity>> {
+        const node = await this.nodesRepository.findByUUID(uuid);
+        if (!node) {
+            return fail(ERRORS.NODE_NOT_FOUND);
+        }
+
+        if (node.isDisabled) {
+            return fail(ERRORS.NODE_IS_DISABLED);
+        }
+
+        if (!node.isConnected) {
+            return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage('Node is not connected'));
+        }
+
+        return ok(node);
+    }
+
+    private async getWarpActionNodeResponse(uuid: string): Promise<TResult<NodeResponseModel>> {
+        const node = await this.nodesRepository.findByUUID(uuid);
+        if (!node) {
+            return fail(ERRORS.NODE_NOT_FOUND);
+        }
+
+        return ok(
+            new NodeResponseModel(node, await this.nodesSystemCacheService.getOne(node.uuid)),
+        );
     }
 
     public async restartAllNodes(

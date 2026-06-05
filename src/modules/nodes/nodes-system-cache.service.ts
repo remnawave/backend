@@ -1,8 +1,9 @@
-import { CACHE_KEYS } from '@contract/constants';
+import { CACHE_KEYS, CACHE_KEYS_TTL } from '@contract/constants';
 
 import { Injectable } from '@nestjs/common';
 
 import { RawCacheService } from '@common/raw-cache';
+import { TWarpStatus } from '@libs/contracts/models';
 
 import { INodeHotCache, INodeSystem, INodeVersions } from './interfaces';
 
@@ -81,6 +82,25 @@ export class NodesSystemCacheService {
         }
 
         return { system, versions, xrayUptime, onlineUsers };
+    }
+
+    async mergeWarpStatus(uuid: string, warp: TWarpStatus): Promise<void> {
+        const stats = await this.rawCacheService.get<INodeSystem['stats']>(
+            CACHE_KEYS.NODE_SYSTEM_STATS(uuid),
+        );
+
+        if (!stats) {
+            return;
+        }
+
+        await this.rawCacheService.set(
+            CACHE_KEYS.NODE_SYSTEM_STATS(uuid),
+            {
+                ...stats,
+                warp,
+            },
+            CACHE_KEYS_TTL.NODE_SYSTEM_STATS,
+        );
     }
 
     async delete(uuid: string): Promise<void> {

@@ -19,8 +19,12 @@ import { Roles } from '@common/decorators/roles/roles';
 import {
     CreateNodeCommand,
     DeleteNodeCommand,
+    DisableNodeWarpCommand,
     DisableNodeCommand,
+    EnableNodeWarpCommand,
     EnableNodeCommand,
+    GetNodeWarpStatusCommand,
+    InstallNodeWarpCommand,
     GetAllNodesCommand,
     GetAllNodesTagsCommand,
     GetOneNodeCommand,
@@ -30,6 +34,7 @@ import {
     RestartAllNodesCommand,
     RestartNodeCommand,
     UpdateNodeCommand,
+    UninstallNodeWarpCommand,
     BulkNodesActionsCommand,
     BulkNodesUpdateCommand,
 } from '@libs/contracts/commands';
@@ -43,9 +48,18 @@ import {
     CreateNodeResponseDto,
     DeleteNodeRequestParamDto,
     DeleteNodeResponseDto,
+    DisableNodeWarpRequestParamDto,
+    DisableNodeWarpResponseDto,
     DisableNodeRequestParamDto,
     DisableNodeResponseDto,
+    EnableNodeWarpRequestParamDto,
+    EnableNodeWarpResponseDto,
+    EnableNodeRequestParamDto,
     EnableNodeResponseDto,
+    GetNodeWarpStatusRequestParamDto,
+    GetNodeWarpStatusResponseDto,
+    InstallNodeWarpRequestParamDto,
+    InstallNodeWarpResponseDto,
     GetAllNodesResponseDto,
     GetAllNodesTagsResponseDto,
     GetOneNodeRequestParamDto,
@@ -62,9 +76,10 @@ import {
     RestartNodeResponseDto,
     UpdateNodeRequestDto,
     UpdateNodeResponseDto,
+    UninstallNodeWarpRequestParamDto,
+    UninstallNodeWarpResponseDto,
 } from './dtos';
 import { GetAllNodesTagsResponseModel } from './models';
-import { EnableNodeRequestParamDto } from './dtos';
 import { NodesService } from './nodes.service';
 
 @ApiBearerAuth('Authorization')
@@ -171,6 +186,101 @@ export class NodesController {
     })
     async disableNode(@Param() uuid: DisableNodeRequestParamDto): Promise<DisableNodeResponseDto> {
         const res = await this.nodesService.disableNode(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: EnableNodeWarpResponseDto,
+        description: 'Node WARP enabled',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: EnableNodeWarpCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async enableNodeWarp(
+        @Param() uuid: EnableNodeWarpRequestParamDto,
+    ): Promise<EnableNodeWarpResponseDto> {
+        const res = await this.nodesService.enableNodeWarp(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: InstallNodeWarpResponseDto,
+        description: 'Node WARP installed',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: InstallNodeWarpCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async installNodeWarp(
+        @Param() uuid: InstallNodeWarpRequestParamDto,
+    ): Promise<InstallNodeWarpResponseDto> {
+        const res = await this.nodesService.installNodeWarp(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: GetNodeWarpStatusResponseDto,
+        description: 'Node WARP status fetched',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: GetNodeWarpStatusCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getNodeWarpStatus(
+        @Param() uuid: GetNodeWarpStatusRequestParamDto,
+    ): Promise<GetNodeWarpStatusResponseDto> {
+        const res = await this.nodesService.getNodeWarpStatus(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: DisableNodeWarpResponseDto,
+        description: 'Node WARP disabled',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: DisableNodeWarpCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async disableNodeWarp(
+        @Param() uuid: DisableNodeWarpRequestParamDto,
+    ): Promise<DisableNodeWarpResponseDto> {
+        const res = await this.nodesService.disableNodeWarp(uuid.uuid);
+        const data = errorHandler(res);
+        return {
+            response: data,
+        };
+    }
+
+    @ApiOkResponse({
+        type: UninstallNodeWarpResponseDto,
+        description: 'Node WARP uninstalled',
+    })
+    @ApiParam({ name: 'uuid', type: String, description: 'Node UUID' })
+    @Endpoint({
+        command: UninstallNodeWarpCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async uninstallNodeWarp(
+        @Param() uuid: UninstallNodeWarpRequestParamDto,
+    ): Promise<UninstallNodeWarpResponseDto> {
+        const res = await this.nodesService.uninstallNodeWarp(uuid.uuid);
         const data = errorHandler(res);
         return {
             response: data,

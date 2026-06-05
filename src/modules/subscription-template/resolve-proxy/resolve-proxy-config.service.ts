@@ -575,6 +575,7 @@ export class ResolveProxyConfigService {
                 remark: inputHost.remark,
                 vlessRouteId: inputHost.vlessRouteId,
                 rawInbound: inputHost.rawInbound,
+                consumptionMultiplier: inputHost.consumptionMultiplier,
             },
             ...protocol,
             ...security,
@@ -687,6 +688,7 @@ export class ResolveProxyConfigService {
                         remark: remark,
                         vlessRouteId: null,
                         rawInbound: null,
+                        consumptionMultiplier: null,
                     },
                 }) satisfies ResolvedProxyConfig,
         );

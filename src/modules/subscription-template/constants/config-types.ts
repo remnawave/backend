@@ -15,6 +15,10 @@ export const SUBSCRIPTION_CONFIG_TYPES: Record<
         CONTENT_TYPE: 'text/yaml',
         isBase64: false,
     },
+    [RESPONSE_RULES_RESPONSE_TYPES.SURGE]: {
+        CONTENT_TYPE: 'text/plain',
+        isBase64: false,
+    },
     [RESPONSE_RULES_RESPONSE_TYPES.STASH]: {
         CONTENT_TYPE: 'text/yaml',
         isBase64: false,

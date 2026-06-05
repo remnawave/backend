@@ -200,7 +200,7 @@ export class SubscriptionTemplateService {
                 return fail(ERRORS.RESERVED_TEMPLATE_NAME);
             }
 
-            if (templateType === 'XRAY_BASE64') {
+            if (templateType === 'XRAY_BASE64' || templateType === 'SURGE') {
                 return fail(ERRORS.TEMPLATE_TYPE_NOT_ALLOWED);
             }
 
