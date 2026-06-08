@@ -85,6 +85,7 @@
     "@stablelib/base64": "^2.0.1",
     "@stablelib/x25519": "^2.0.1",
     "@willsoto/nestjs-prometheus": "^6.1.0",
+    "age-encryption": "^1.0.0",
     "arctic": "^3.7.0",
     "axios": "^1.16.1",
     "bullmq": "5.77.6",

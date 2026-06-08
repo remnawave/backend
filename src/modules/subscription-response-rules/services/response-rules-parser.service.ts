@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Encrypter } from 'age-encryption';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -19,7 +20,7 @@ export class ResponseRulesParserService {
                 );
             }
 
-            this.validateRules(config.data);
+            await this.validateRules(config.data);
 
             return config.data;
         } catch (error) {
@@ -43,7 +44,7 @@ export class ResponseRulesParserService {
         }
     }
 
-    private validateRules(config: TResponseRulesConfig): void {
+    private async validateRules(config: TResponseRulesConfig): Promise<void> {
         for (const rule of config.rules) {
             for (const condition of rule.conditions) {
                 if (condition.operator === 'REGEX' || condition.operator === 'NOT_REGEX') {
@@ -65,6 +66,22 @@ export class ResponseRulesParserService {
                     } catch {
                         throw new Error(`Invalid regex in rule "${rule.name}": ${regex}`);
                     }
+                }
+            }
+
+            if (rule.responseModifications?.agePublicKey) {
+                if (rule.responseType !== 'MIHOMO') {
+                    throw new Error(
+                        `Rule "${rule.name}": agePublicKey is only supported for responseType "MIHOMO"`,
+                    );
+                }
+                try {
+                    const enc = new Encrypter();
+                    enc.addRecipient(rule.responseModifications.agePublicKey);
+                } catch {
+                    throw new Error(
+                        `Rule "${rule.name}": invalid agePublicKey — cannot create age recipient`,
+                    );
                 }
             }
         }

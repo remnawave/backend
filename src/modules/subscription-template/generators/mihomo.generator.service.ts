@@ -1,5 +1,6 @@
 import yaml from 'yaml';
 import _ from 'lodash';
+import { Encrypter, armor } from 'age-encryption';
 
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -112,6 +113,7 @@ export class MihomoGeneratorService {
         isStash = false,
         isExtendedClient = false,
         overrideTemplateName?: string,
+        agePublicKey?: string,
     ): Promise<string> {
         try {
             const yamlConfigDb = await this.subscriptionTemplateService.getCachedTemplateByType(
@@ -145,9 +147,27 @@ export class MihomoGeneratorService {
                 proxyRemarks.push(host.finalRemark);
             }
 
-            return await this.renderConfig(data, proxyRemarks, cleanConfig);
+            const yamlOutput = await this.renderConfig(data, proxyRemarks, cleanConfig);
+
+            if (agePublicKey && yamlOutput) {
+                return await this.encryptWithAge(yamlOutput, agePublicKey);
+            }
+
+            return yamlOutput;
         } catch (error) {
             this.logger.error('Error generating clash config:', error);
+            return '';
+        }
+    }
+
+    private async encryptWithAge(content: string, publicKey: string): Promise<string> {
+        try {
+            const enc = new Encrypter();
+            enc.addRecipient(publicKey);
+            const encrypted = await enc.encrypt(content);
+            return armor.encode(encrypted);
+        } catch (error) {
+            this.logger.error('Error encrypting MIHOMO config with age:', error);
             return '';
         }
     }

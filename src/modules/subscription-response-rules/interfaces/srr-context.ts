@@ -14,4 +14,5 @@ export interface ISRRContext {
     ignoreHostXrayJsonTemplate?: boolean;
     headersToApply?: Record<string, string>;
     ignoreServeJsonAtBaseSubscription?: boolean;
+    agePublicKey?: string;
 }

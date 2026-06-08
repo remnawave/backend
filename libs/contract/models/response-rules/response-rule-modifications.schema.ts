@@ -108,6 +108,27 @@ export const ResponseRuleModificationsSchema = z
                         '**Example:** `["^MyClient/", "^CustomApp\\\\/v2"]`',
                 }),
             ),
+        agePublicKey: z
+            .string()
+            .regex(
+                /^age1[a-z0-9]+$/,
+                'Invalid age public key. Must start with "age1" (x25519) or "age1pq1" (post-quantum).',
+            )
+            .optional()
+            .describe(
+                JSON.stringify({
+                    markdownDescription:
+                        '**Age public key (recipient)** for encrypting the MIHOMO response.\n\n' +
+                        '**Only works when `responseType` is `MIHOMO`.**\n\n' +
+                        '**Server:** encrypts YAML config with this public key.\n\n' +
+                        '**Client (v1.19.27 core):** must have the corresponding ' +
+                        '`AGE-SECRET-KEY-1...` in its `age-secret-key` field to decrypt.\n\n' +
+                        '**Key generation:**\n' +
+                        '- x25519: `mihomo age keygen` → public key starts with `age1`\n' +
+                        '- Post-quantum: `mihomo age keygen-pq` → public key starts with `age1pq1`\n\n' +
+                        '**Format:** `age1<bech32>` or `age1pq1<bech32>`',
+                }),
+            ),
     })
     .optional()
     .describe(

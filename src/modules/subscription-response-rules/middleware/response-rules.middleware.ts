@@ -113,6 +113,12 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 if (mods.ignoreServeJsonAtBaseSubscription) {
                     ssrContext.ignoreServeJsonAtBaseSubscription = true;
                 }
+                if (
+                    mods.agePublicKey &&
+                    ssrContext.matchedResponseType === RESPONSE_RULES_RESPONSE_TYPES.MIHOMO
+                ) {
+                    ssrContext.agePublicKey = mods.agePublicKey;
+                }
             }
 
             switch (ssrContext.matchedResponseType) {
