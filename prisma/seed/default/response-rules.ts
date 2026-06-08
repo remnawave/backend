@@ -54,7 +54,7 @@ export const SRR_DEFAULT_CONFIG = {
         },
         {
             name: 'Sing-box clients',
-            description: 'Resonse with generated JSON config (Singbox template)',
+            description: 'Response with generated JSON config (Singbox template)',
             enabled: true,
             operator: 'AND',
             conditions: [
