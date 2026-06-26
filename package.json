@@ -50,6 +50,7 @@
     "@bull-board/api": "8.0.1",
     "@bull-board/express": "8.0.1",
     "@bull-board/nestjs": "8.0.1",
+    "@incy/link-encoder": "^1.0.1",
     "@kastov/cryptohapp": "^1.1.2",
     "@kastov/nestjs-prisma-kysely": "0.1.2",
     "@kastov/request-ip": "^0.0.5",

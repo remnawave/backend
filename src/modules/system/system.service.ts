@@ -1,4 +1,5 @@
 import { ERRORS, INTERNAL_CACHE_KEYS } from '@contract/constants';
+import { encryptLink } from '@incy/link-encoder';
 import { createHappCryptoLink } from '@kastov/cryptohapp';
 import { encodeURLSafe } from '@stablelib/base64';
 import { generateKeyPair } from '@stablelib/x25519';
@@ -274,6 +275,16 @@ export class SystemService implements OnApplicationBootstrap {
 
     public async encryptHappCryptoLink(linkToEncrypt: string): Promise<TResult<string>> {
         const encryptedLink = createHappCryptoLink(linkToEncrypt, 'v4', true);
+
+        if (!encryptedLink) {
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+
+        return ok(encryptedLink);
+    }
+
+    public async encryptIncyCryptoLink(linkToEncrypt: string): Promise<TResult<string>> {
+        const encryptedLink = encryptLink(linkToEncrypt);
 
         if (!encryptedLink) {
             return fail(ERRORS.INTERNAL_SERVER_ERROR);

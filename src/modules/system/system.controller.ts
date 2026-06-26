@@ -29,6 +29,7 @@ import { errorHandler } from '@common/helpers/error-handler.helper';
 import { CONTROLLERS_INFO, SYSTEM_CONTROLLER } from '@libs/contracts/api';
 import {
     EncryptHappCryptoLinkCommand,
+    EncryptIncyCryptoLinkCommand,
     GenerateX25519Command,
     GetBandwidthStatsCommand,
     GetMetadataCommand,
@@ -51,12 +52,14 @@ import {
     GenerateX25519ResponseDto,
     EncryptHappCryptoLinkResponseDto,
     EncryptHappCryptoLinkRequestDto,
+    EncryptIncyCryptoLinkResponseDto,
+    EncryptIncyCryptoLinkRequestDto,
     DebugSrrMatcherRequestDto,
     DebugSrrMatcherResponseDto,
     GetMetadataResponseDto,
     GetRecapResponseDto,
 } from './dtos';
-import { EncryptHappCryptoLinkResponseModel } from './models';
+import { EncryptHappCryptoLinkResponseModel, EncryptIncyCryptoLinkResponseModel } from './models';
 import { SystemService } from './system.service';
 
 @ApiBearerAuth('Authorization')
@@ -214,6 +217,26 @@ export class SystemController {
         const data = errorHandler(result);
         return {
             response: new EncryptHappCryptoLinkResponseModel(data),
+        };
+    }
+
+    @ApiOkResponse({
+        type: EncryptIncyCryptoLinkResponseDto,
+        description: 'Returns encrypted Incy crypto link',
+    })
+    @Endpoint({
+        command: EncryptIncyCryptoLinkCommand,
+        httpCode: HttpStatus.OK,
+        apiBody: EncryptIncyCryptoLinkRequestDto,
+    })
+    async encryptIncyCryptoLink(
+        @Body() body: EncryptIncyCryptoLinkRequestDto,
+    ): Promise<EncryptIncyCryptoLinkResponseDto> {
+        const result = await this.systemService.encryptIncyCryptoLink(body.linkToEncrypt);
+
+        const data = errorHandler(result);
+        return {
+            response: new EncryptIncyCryptoLinkResponseModel(data),
         };
     }
 
