@@ -51,17 +51,12 @@ export function isSS2022MethodFromMethod(method: string | undefined): boolean {
     return method === ShadowsocksMethod.SS2022_BLAKE3_AES_256_GCM;
 }
 
-const SS2022_KEY_SIZES: Partial<Record<ShadowsocksMethod, number>> = {
-    [ShadowsocksMethod.SS2022_BLAKE3_AES_256_GCM]: 32,
-};
-
-export function getSS2022KeySize(method: string | undefined): number | undefined {
-    if (!method) return undefined;
-    return SS2022_KEY_SIZES[method as ShadowsocksMethod];
-}
-
 export function getDecodedKeySize(password: string): number {
-    return Buffer.from(password, 'base64').length;
+    try {
+        return Buffer.from(password, 'base64').length;
+    } catch {
+        return 0;
+    }
 }
 
 export function encodeSS2022Password(password: string): string {

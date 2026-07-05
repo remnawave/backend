@@ -20,7 +20,6 @@ import { UserForConfigEntity } from '@modules/users/entities/users-for-config';
 
 import {
     getDecodedKeySize,
-    getSS2022KeySize,
     getSsPassword,
     isSS2022MethodFromMethod,
     SHADOWSOCKS_METHODS,
@@ -452,16 +451,11 @@ export class XRayConfig {
                         '(inbound → settings → password – generate with: openssl rand -base64 32)',
                 );
             }
-            const keySize = getSS2022KeySize(method);
-            if (!keySize) {
+            // https://xtls.github.io/config/inbounds/shadowsocks.html#inboundconfigurationobject
+            if (getDecodedKeySize(settings.password) !== 32) {
                 throw new Error(
-                    `No key size defined for Shadowsocks method "${method}". This is a bug, please report it.`,
-                );
-            }
-            if (getDecodedKeySize(settings.password) !== keySize) {
-                throw new Error(
-                    `Shadowsocks password for "${method}" must be a base64 string that decodes to exactly ${keySize} bytes. ` +
-                        `(inbound → settings → password – generate with: openssl rand -base64 ${keySize})`,
+                    `Shadowsocks password for "${method}" must be a base64 string that decodes to exactly 32 bytes. ` +
+                        `(inbound → settings → password – generate with: openssl rand -base64 32)`,
                 );
             }
         }
