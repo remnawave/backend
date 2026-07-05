@@ -18,7 +18,13 @@ import { getVlessFlow } from '@common/utils/flow/get-vless-flow';
 
 import { UserForConfigEntity } from '@modules/users/entities/users-for-config';
 
-import { getSsPassword, isSS2022MethodFromMethod, SHADOWSOCKS_METHODS } from './ss-cipher';
+import {
+    getDecodedKeySize,
+    getSS2022KeySize,
+    getSsPassword,
+    isSS2022MethodFromMethod,
+    SHADOWSOCKS_METHODS,
+} from './ss-cipher';
 
 const MANAGED_CLIENT_PROTOCOLS = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
 type ManagedInboundSettings = VLessInboundConfig | TrojanInboundConfig | ShadowsocksInboundConfig;
@@ -446,10 +452,11 @@ export class XRayConfig {
                         '(inbound → settings → password – generate with: openssl rand -base64 32)',
                 );
             }
-            if (settings.password.length < 32) {
+            const keySize = getSS2022KeySize(method);
+            if (keySize && getDecodedKeySize(settings.password) !== keySize) {
                 throw new Error(
-                    'Shadowsocks password must be at least 32 characters long for 2022-blake3-* methods. ' +
-                        '(inbound → settings → password – generate with: openssl rand -base64 32)',
+                    `Shadowsocks password for "${method}" must be a base64 string that decodes to exactly ${keySize} bytes. ` +
+                        `(inbound → settings → password – generate with: openssl rand -base64 ${keySize})`,
                 );
             }
         }
