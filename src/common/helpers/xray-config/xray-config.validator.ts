@@ -453,7 +453,12 @@ export class XRayConfig {
                 );
             }
             const keySize = getSS2022KeySize(method);
-            if (keySize && getDecodedKeySize(settings.password) !== keySize) {
+            if (!keySize) {
+                throw new Error(
+                    `No key size defined for Shadowsocks method "${method}". This is a bug, please report it.`,
+                );
+            }
+            if (getDecodedKeySize(settings.password) !== keySize) {
                 throw new Error(
                     `Shadowsocks password for "${method}" must be a base64 string that decodes to exactly ${keySize} bytes. ` +
                         `(inbound → settings → password – generate with: openssl rand -base64 ${keySize})`,
