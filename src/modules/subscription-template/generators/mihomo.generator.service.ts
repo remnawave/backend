@@ -43,7 +43,7 @@ interface Hysteria2FinalMask {
     };
     udp?: Array<{
         type?: string;
-        settings?: { password?: string };
+        settings?: { packetSize?: string | number; password?: string };
     }>;
 }
 
@@ -647,12 +647,43 @@ export class MihomoGeneratorService {
     private buildHysteria2ObfsFields(
         finalMask: Record<string, unknown> | null,
     ): Record<string, unknown> {
-        const password = (finalMask as Hysteria2FinalMask | null)?.udp?.find(
-            (m) => m?.type === 'salamander',
-        )?.settings?.password;
+        const mask = (finalMask as Hysteria2FinalMask | null)?.udp?.find(
+            (m) => m?.type === 'salamander' || m?.type === 'gecko',
+        );
+        const password = mask?.settings?.password;
 
-        if (!password) return {};
-        return { obfs: 'salamander', 'obfs-password': password };
+        if (!mask || !password) return {};
+
+        const packetSizeFields = this.buildHysteria2PacketSizeFields(mask.settings?.packetSize);
+
+        if (mask.type !== 'gecko' && Object.keys(packetSizeFields).length === 0) {
+            return { obfs: 'salamander', 'obfs-password': password };
+        }
+
+        return {
+            obfs: 'gecko',
+            'obfs-password': password,
+            ...packetSizeFields,
+        };
+    }
+
+    private buildHysteria2PacketSizeFields(packetSize?: string | number): Record<string, unknown> {
+        if (!packetSize) return {};
+
+        const parts = String(packetSize).split('-', 2);
+        const [min, max] = parts;
+        const effectiveMax = parts.length === 1 ? min : max;
+        const minPacketSize = Number(min);
+        const maxPacketSize = Number(effectiveMax);
+
+        return {
+            ...(min && Number.isFinite(minPacketSize) && minPacketSize > 0 && {
+                'obfs-min-packet-size': minPacketSize,
+            }),
+            ...(effectiveMax && Number.isFinite(maxPacketSize) && maxPacketSize > 0 && {
+                'obfs-max-packet-size': maxPacketSize,
+            }),
+        };
     }
 
     private buildHysteria2TlsFields(host: ResolvedProxyConfig): Record<string, unknown> {
