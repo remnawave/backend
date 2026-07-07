@@ -6,3 +6,4 @@ export * from './mask-string';
 export * from './md5';
 export * from './superjson';
 export * from './truncate-header.util';
+export * from './parse-int-range.util';

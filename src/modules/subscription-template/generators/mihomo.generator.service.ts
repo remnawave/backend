@@ -3,7 +3,7 @@ import yaml from 'yaml';
 
 import { Injectable, Logger } from '@nestjs/common';
 
-import { isNonEmptyObject } from '@common/utils';
+import { isNonEmptyObject, parseIntRangeUtil } from '@common/utils';
 import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
@@ -41,11 +41,24 @@ interface Hysteria2FinalMask {
         bbrProfile?: string;
         congestion?: string;
     };
-    udp?: Array<{
-        type?: string;
-        settings?: { packetSize?: string | number; password?: string };
-    }>;
 }
+
+interface Hysteria2Mask {
+    type: 'salamander';
+    settings: {
+        packetSize?: string | number;
+        password: string;
+    };
+}
+
+interface Hysteria2PacketSizeFields {
+    'obfs-max-packet-size': number;
+    'obfs-min-packet-size': number;
+}
+
+type Hysteria2ObfsFields =
+    | ({ obfs: 'gecko'; 'obfs-password': string } & Partial<Hysteria2PacketSizeFields>)
+    | { obfs: 'salamander'; 'obfs-password': string };
 
 interface ProxyNode {
     [key: string]: unknown;
@@ -646,43 +659,24 @@ export class MihomoGeneratorService {
 
     private buildHysteria2ObfsFields(
         finalMask: Record<string, unknown> | null,
-    ): Record<string, unknown> {
-        const mask = (finalMask as Hysteria2FinalMask | null)?.udp?.find(
-            (m) => m?.type === 'salamander' || m?.type === 'gecko',
-        );
-        const password = mask?.settings?.password;
+    ): Hysteria2ObfsFields | Record<string, never> {
+        const mask = this.findHysteria2Mask(finalMask);
 
-        if (!mask || !password) return {};
+        if (!mask) return {};
 
-        const packetSizeFields = this.buildHysteria2PacketSizeFields(mask.settings?.packetSize);
+        const { password, packetSize } = mask.settings;
 
-        if (mask.type !== 'gecko' && Object.keys(packetSizeFields).length === 0) {
+        if (!packetSize) {
             return { obfs: 'salamander', 'obfs-password': password };
         }
+
+        const { from, to } = parseIntRangeUtil(packetSize);
 
         return {
             obfs: 'gecko',
             'obfs-password': password,
-            ...packetSizeFields,
-        };
-    }
-
-    private buildHysteria2PacketSizeFields(packetSize?: string | number): Record<string, unknown> {
-        if (!packetSize) return {};
-
-        const parts = String(packetSize).split('-', 2);
-        const [min, max] = parts;
-        const effectiveMax = parts.length === 1 ? min : max;
-        const minPacketSize = Number(min);
-        const maxPacketSize = Number(effectiveMax);
-
-        return {
-            ...(min && Number.isFinite(minPacketSize) && minPacketSize > 0 && {
-                'obfs-min-packet-size': minPacketSize,
-            }),
-            ...(effectiveMax && Number.isFinite(maxPacketSize) && maxPacketSize > 0 && {
-                'obfs-max-packet-size': maxPacketSize,
-            }),
+            ...(from && { 'obfs-min-packet-size': from }),
+            ...(to && { 'obfs-max-packet-size': to }),
         };
     }
 
@@ -708,5 +702,44 @@ export class MihomoGeneratorService {
                 target[dst] = asString ? String(source[src]) : source[src];
             }
         }
+    }
+
+    private findHysteria2Mask(finalMask: Record<string, unknown> | null): Hysteria2Mask | null {
+        const udp = finalMask?.udp;
+
+        if (!Array.isArray(udp)) return null;
+
+        return udp.find((mask): mask is Hysteria2Mask => this.isHysteria2Mask(mask)) ?? null;
+    }
+
+    private isHysteria2Mask(value: unknown): value is Hysteria2Mask {
+        if (
+            typeof value !== 'object' ||
+            value === null ||
+            !('type' in value) ||
+            !('settings' in value)
+        ) {
+            return false;
+        }
+
+        if (value.type !== 'salamander') {
+            return false;
+        }
+
+        const settings: unknown = value.settings;
+        if (typeof settings !== 'object' || settings === null || !('password' in settings)) {
+            return false;
+        }
+
+        if (typeof settings.password !== 'string' || settings.password.length === 0) {
+            return false;
+        }
+
+        const packetSize: unknown = 'packetSize' in settings ? settings.packetSize : undefined;
+        return (
+            packetSize === undefined ||
+            typeof packetSize === 'string' ||
+            typeof packetSize === 'number'
+        );
     }
 }
