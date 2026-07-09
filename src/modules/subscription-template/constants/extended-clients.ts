@@ -4,6 +4,7 @@ export const EXTENDED_CLIENTS_REGEXES = [
     /^prizrak-box\//,
     /^koala-clash\//,
     /^Happ\//,
+    /^InHive\//,
     /^INCY\//,
 ] as const;
 
@@ -14,6 +15,7 @@ export function isExtendedClient(userAgent: string): boolean {
 export const JSON_SUBSCRIPTION_FALLBACK_CLIENTS = [
     /^[Ss]treisand/,
     /^Happ\//,
+    /^InHive\//,
     /^INCY\//,
     /^ktor-client/,
     /^V2Box/,

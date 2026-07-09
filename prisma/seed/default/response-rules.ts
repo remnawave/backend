@@ -62,7 +62,7 @@ export const SRR_DEFAULT_CONFIG = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: '^sfa|sfi|sfm|sft|karing|singbox|inhive',
+                    value: '^sfa|sfi|sfm|sft|karing|singbox',
                     caseSensitive: false,
                 },
             ],
