@@ -2,6 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
+interface Hysteria2FinalMask {
+    udp?: Array<{
+        type?: string;
+        settings?: { password?: string };
+    }>;
+}
+
 /**
  * Generates VLESS/Trojan/Shadowsocks share links per the standard:
  * https://github.com/XTLS/Xray-core/discussions/716
@@ -143,6 +150,16 @@ export class XrayGeneratorService {
             }
         }
 
+        // Salamander obfs — standard hysteria2 URI params (mirrors the mihomo
+        // generator). Emitted IN ADDITION to the proprietary `fm` param so that
+        // standard (non-Happ) hysteria2 clients can connect to salamander-obfs
+        // nodes. See https://v2.hysteria.network/docs/developers/URI-Scheme/
+        const obfsPassword = this.parseSalamanderPassword(host.streamOverrides.finalMask);
+        if (obfsPassword) {
+            params.obfs = 'salamander';
+            params['obfs-password'] = obfsPassword;
+        }
+
         if (host.streamOverrides.finalMask) {
             params.fm = JSON.stringify(host.streamOverrides.finalMask);
         }
@@ -153,6 +170,16 @@ export class XrayGeneratorService {
         const queryPart = query ? `?${query}` : '';
 
         return `hysteria2://${auth}@${host.address}:${host.port}/${queryPart}#${remark}`;
+    }
+
+    // Parses the salamander obfs password out of finalMask.udp[] — the same
+    // shape the mihomo generator reads in buildHysteria2ObfsFields.
+    private parseSalamanderPassword(
+        finalMask: Record<string, unknown> | null,
+    ): string | undefined {
+        return (finalMask as Hysteria2FinalMask | null)?.udp?.find(
+            (m) => m?.type === 'salamander',
+        )?.settings?.password;
     }
 
     // ── Transport Params ─────────────────────────────
