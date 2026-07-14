@@ -1091,11 +1091,15 @@ export class AuthService {
         isPocketId: boolean = false,
     ): Promise<arctic.OAuth2Client> {
         if (isPocketId) {
-            const { clientId, clientSecret } = settings.oauth2Settings.pocketid;
+            const { clientId, clientSecret, frontendDomain } = settings.oauth2Settings.pocketid;
             if (!clientId || !clientSecret) {
                 throw new Error('PocketID OAuth2 clientId or clientSecret not configured.');
             }
-            return new arctic.OAuth2Client(clientId, clientSecret, null);
+            if (!frontendDomain) {
+                throw new Error('PocketID OAuth2 frontendDomain not configured.');
+            }
+            const redirectUrl = `https://${frontendDomain}/${AUTH_ROUTES.OAUTH2.CALLBACK}/${OAUTH2_PROVIDERS.POCKETID}`;
+            return new arctic.OAuth2Client(clientId, clientSecret, redirectUrl);
         } else {
             const { clientId, clientSecret, frontendDomain } = settings.oauth2Settings.generic;
             if (!clientId || !clientSecret || !frontendDomain) {

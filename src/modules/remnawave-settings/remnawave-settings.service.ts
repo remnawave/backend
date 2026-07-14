@@ -132,11 +132,12 @@ export class RemnawaveSettingsService {
             // Test 4: Check up required fields for PocketID authentication
             if (
                 settings.oauth2Settings.pocketid.enabled &&
-                !settings.oauth2Settings.pocketid.plainDomain
+                (!settings.oauth2Settings.pocketid.plainDomain ||
+                    !settings.oauth2Settings.pocketid.frontendDomain)
             ) {
                 return {
                     valid: false,
-                    error: '[PocketID] Plain domain must be set in order to use PocketID authentication.',
+                    error: '[PocketID] Plain domain and frontend domain must be set in order to use PocketID authentication.',
                 };
             }
 

@@ -31,6 +31,7 @@ export async function seedRemnawaveSettings(prisma: PrismaClient) {
             clientId: null,
             clientSecret: null,
             plainDomain: null,
+            frontendDomain: null,
             allowedEmails: [],
         },
         yandex: {
