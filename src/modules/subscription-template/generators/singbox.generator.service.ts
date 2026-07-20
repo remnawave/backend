@@ -13,6 +13,7 @@ interface OutboundConfig {
     network?: string;
     outbounds?: string[];
     password?: string;
+    remnawave?: { includeProxies?: boolean };
     server: string;
     server_port: number;
     tag: string;
@@ -307,13 +308,18 @@ export class SingBoxGeneratorService {
             .map((o) => o.tag);
 
         const finalOutbounds = allOutbounds.map((outbound) => {
-            if (outbound.type === 'urltest') {
-                return { ...outbound, outbounds: urltestTags };
+            const { remnawave, ...cleanOutbound } = outbound;
+
+            if (remnawave?.includeProxies === false) {
+                return cleanOutbound;
             }
-            if (outbound.type === 'selector') {
-                return { ...outbound, outbounds: selectorTags };
+            if (cleanOutbound.type === 'urltest') {
+                return { ...cleanOutbound, outbounds: urltestTags };
             }
-            return outbound;
+            if (cleanOutbound.type === 'selector') {
+                return { ...cleanOutbound, outbounds: selectorTags };
+            }
+            return cleanOutbound;
         });
 
         return JSON.stringify({ ...template, outbounds: finalOutbounds }, null, 0);
