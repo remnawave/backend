@@ -109,11 +109,11 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                         },
                     );
 
-                    if (!ipsListResponse.isOk || !ipsListResponse.response.response.ips.length) {
+                    if (!ipsListResponse.isOk || !ipsListResponse.response.ips.length) {
                         return;
                     }
 
-                    const ips = ipsListResponse.response.response.ips;
+                    const ips = ipsListResponse.response.ips;
                     let formattedIps: { ip: string; lastSeen: Date }[] = [];
 
                     if (ips.length > 0 && typeof ips[0] === 'string') {
@@ -205,7 +205,7 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
             return {
                 success: true,
                 nodeUuid: job.data.nodeUuid,
-                users: result.response.response.users
+                users: result.response.users
                     .map((user) => ({ ...user, userId: Number(user.userId) }))
                     .filter((user) => Number.isFinite(user.userId))
                     .sort((a, b) => a.userId - b.userId),
@@ -240,7 +240,7 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                 proxyUrl: nodeResult.response.proxyUrl,
             });
 
-            if (!result.isOk || !result.response.response.users.length) {
+            if (!result.isOk || !result.response.users.length) {
                 return;
             }
 
@@ -251,7 +251,7 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                     v: NODE_CONNECTIONS_STREAM_MESSAGE_VERSION,
                     nodeId: nodeResult.response.id.toString(),
                     ts: new Date().toISOString(),
-                    users: JSON.stringify(result.response.response.users),
+                    users: JSON.stringify(result.response.users),
                 },
             );
         } catch (error) {

@@ -1,7 +1,14 @@
 import { ERRORS } from '@contract/constants';
-import { compress } from '@mongodb-js/zstd';
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import axios, {
+    AxiosError,
+    AxiosInstance,
+    AxiosRequestConfig,
+    AxiosResponse,
+    RawAxiosRequestHeaders,
+} from 'axios';
 import https from 'node:https';
+import { promisify } from 'node:util';
+import { constants as zlibConstants, zstdCompress, ZstdOptions } from 'node:zlib';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { CommandBus } from '@nestjs/cqrs';
@@ -34,8 +41,22 @@ import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 import { GetNodeJwtCommand } from '@modules/keygen/commands/get-node-jwt';
 
 import { fail, ok, TResult } from '../types';
-import { INodeConnectionOpts, IMtlsOptions } from './axios.interfaces';
+import { INodeConnectionOpts, INodeRequestOpts, IMtlsOptions } from './axios.interfaces';
 import { MtlsSocksProxyAgent } from './mtls-agent';
+
+const EMPTY_BODY: Readonly<Record<string, never>> = {};
+const ZSTD_HEADERS: RawAxiosRequestHeaders = { 'Content-Encoding': 'zstd' };
+
+const zstdCompressAsync = promisify(zstdCompress);
+
+const ZSTD_OPTIONS: ZstdOptions = {
+    params: {
+        [zlibConstants.ZSTD_c_compressionLevel]: 1,
+        [zlibConstants.ZSTD_c_enableLongDistanceMatching]: 1,
+        [zlibConstants.ZSTD_c_windowLog]: 25,
+    },
+    chunkSize: 1024 * 1024,
+};
 
 @Injectable()
 export class AxiosService {
@@ -92,35 +113,96 @@ export class AxiosService {
         }
     }
 
-    private resolveAgentAndUrl(
-        path: string,
-        opts: INodeConnectionOpts,
-    ): { httpsAgent: https.Agent; url: string } {
-        const url = this.getNodeUrl(opts.address, path, opts.port);
-        if (!opts.proxyUrl) {
-            return {
-                httpsAgent: this.axiosInstance.defaults.httpsAgent as https.Agent,
-                url,
-            };
+    private resolveAgent(proxyUrl: null | string): https.Agent {
+        if (!proxyUrl) {
+            return this.axiosInstance.defaults.httpsAgent as https.Agent;
         }
 
-        const cached = this.socksAgentCache.get(opts.proxyUrl);
-        if (cached)
-            return {
-                httpsAgent: cached,
-                url,
-            };
+        const cached = this.socksAgentCache.get(proxyUrl);
+        if (cached) return cached;
 
-        const httpsAgent = new MtlsSocksProxyAgent(opts.proxyUrl, this.mtlsOptions);
-        this.socksAgentCache.set(opts.proxyUrl, httpsAgent);
-        return { httpsAgent, url };
+        const httpsAgent = new MtlsSocksProxyAgent(proxyUrl, this.mtlsOptions);
+        this.socksAgentCache.set(proxyUrl, httpsAgent);
+
+        return httpsAgent;
     }
 
     private getNodeUrl(url: string, path: string, port: null | number): string {
-        const protocol = 'https';
-        const portSuffix = port ? `:${port}` : '';
+        return port ? `https://${url}:${port}${path}` : `https://${url}${path}`;
+    }
 
-        return `${protocol}://${url}${portSuffix}${path}`;
+    private async request<TResponse extends { response: unknown }>(
+        params: INodeRequestOpts,
+    ): Promise<TResult<TResponse['response']>> {
+        const {
+            label,
+            opts,
+            path,
+            data,
+            compress: useCompression = false,
+            handle500 = false,
+            internalError = false,
+            logAxiosError = true,
+            method = 'post',
+            timeout,
+        } = params;
+
+        const url = this.getNodeUrl(opts.address, path, opts.port);
+        const httpsAgent = this.resolveAgent(opts.proxyUrl);
+
+        try {
+            let body: unknown = EMPTY_BODY;
+            let headers: RawAxiosRequestHeaders | undefined;
+
+            if (method === 'post') {
+                body = data ?? EMPTY_BODY;
+
+                if (useCompression) {
+                    const startTime = getTime();
+                    const { buffer: compressedData, size } = await this.compressData(data);
+
+                    this.logger.log(
+                        `[ZSTD] [${label}] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(size)} -> ${prettyBytesUtil(compressedData.length)}`,
+                    );
+
+                    body = compressedData;
+                    headers = ZSTD_HEADERS;
+                }
+            }
+
+            const config: AxiosRequestConfig = { headers, httpsAgent, timeout };
+
+            const response: AxiosResponse<TResponse> =
+                method === 'get'
+                    ? await this.axiosInstance.get<TResponse>(url, config)
+                    : await this.axiosInstance.post<TResponse>(url, body, config);
+
+            return ok(response.data.response);
+        } catch (error) {
+            if (internalError) {
+                return this.failWithInternalError(label, error);
+            }
+
+            if (error instanceof AxiosError) {
+                if (logAxiosError) {
+                    this.logger.error(`Error in Axios ${label} request: ${error.message}`);
+                }
+
+                if (handle500 && error.code === '500') {
+                    return fail(
+                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
+                    );
+                }
+
+                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
+            }
+
+            this.logger.error(`Error in ${label}: ${error}`);
+
+            return fail(
+                ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error) ?? 'Unknown error'),
+            );
+        }
     }
 
     /*
@@ -130,101 +212,40 @@ export class AxiosService {
     public async startXray(
         data: StartXrayCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<StartXrayCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(StartXrayCommand.url, opts);
-
-        try {
-            const startTime = getTime();
-            const compressedData = await this.compressData(data);
-
-            this.logger.log(
-                `[ZSTD] [START XRAY] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
-            );
-
-            const response = await this.axiosInstance.post<StartXrayCommand.Response>(
-                url,
-                compressedData,
-                {
-                    timeout: 60_000,
-                    headers: {
-                        'Content-Encoding': 'zstd',
-                    },
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                // this.logger.error(
-                //     'Error in Axios StartXray Request:',
-                //     JSON.stringify(error.message),
-                // );
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in Axios StartXray Request:', error);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error)));
-            }
-        }
+    ): Promise<TResult<StartXrayCommand.Response['response']>> {
+        return this.request<StartXrayCommand.Response>({
+            label: 'START XRAY',
+            path: StartXrayCommand.url,
+            opts,
+            data,
+            compress: true,
+            logAxiosError: false,
+            timeout: 60_000,
+        });
     }
 
-    public async stopXray(opts: INodeConnectionOpts): Promise<TResult<StopXrayCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(StopXrayCommand.url, opts);
-        try {
-            const response = await this.axiosInstance.get<StopXrayCommand.Response>(url, {
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(
-                    'Error in Axios StopXray Request:',
-                    JSON.stringify(error.message),
-                );
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in Axios StopXray Request:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    public async stopXray(
+        opts: INodeConnectionOpts,
+    ): Promise<TResult<StopXrayCommand.Response['response']>> {
+        return this.request<StopXrayCommand.Response>({
+            label: 'STOP XRAY',
+            path: StopXrayCommand.url,
+            opts,
+            method: 'get',
+        });
     }
 
     public async getNodeHealth(
         opts: INodeConnectionOpts,
     ): Promise<TResult<GetNodeHealthCheckCommand.Response['response']>> {
-        try {
-            const { url, httpsAgent } = this.resolveAgentAndUrl(
-                GetNodeHealthCheckCommand.url,
-                opts,
-            );
-            const { data } = await this.axiosInstance.get<GetNodeHealthCheckCommand.Response>(url, {
-                timeout: 15_000,
-                httpsAgent,
-            });
-
-            return ok(data.response);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in Axios getNodeHealth:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+        return this.request<GetNodeHealthCheckCommand.Response>({
+            label: 'GET NODE HEALTH',
+            path: GetNodeHealthCheckCommand.url,
+            opts,
+            method: 'get',
+            logAxiosError: false,
+            timeout: 15_000,
+        });
     }
 
     /*
@@ -234,172 +255,69 @@ export class AxiosService {
     public async getUsersStats(
         data: GetUsersStatsCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<GetUsersStatsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(GetUsersStatsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<GetUsersStatsCommand.Response>(
-                url,
-                data,
-                {
-                    timeout: 15_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(
-                    `Error in Axios getUsersStats: ${error.message}, JSON: ${JSON.stringify(error.response?.data)}`,
-                );
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in getUsersStats:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<GetUsersStatsCommand.Response['response']>> {
+        return this.request<GetUsersStatsCommand.Response>({
+            label: 'GET USERS STATS',
+            path: GetUsersStatsCommand.url,
+            opts,
+            data,
+            timeout: 15_000,
+        });
     }
 
     public async getIpsList(
         data: GetUserIpListCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<GetUserIpListCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(GetUserIpListCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<GetUserIpListCommand.Response>(
-                url,
-                data,
-                {
-                    timeout: 5_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in getIpsList:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<GetUserIpListCommand.Response['response']>> {
+        return this.request<GetUserIpListCommand.Response>({
+            label: 'GET IPS LIST',
+            path: GetUserIpListCommand.url,
+            opts,
+            data,
+            logAxiosError: false,
+            timeout: 5_000,
+        });
     }
 
     public async getUsersIpsList(
         opts: INodeConnectionOpts,
-    ): Promise<TResult<GetUsersIpListCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(GetUsersIpListCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.get<GetUsersIpListCommand.Response>(
-                url,
-
-                {
-                    timeout: 10_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in getUsersIpsList:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<GetUsersIpListCommand.Response['response']>> {
+        return this.request<GetUsersIpListCommand.Response>({
+            label: 'GET USERS IPS LIST',
+            path: GetUsersIpListCommand.url,
+            opts,
+            method: 'get',
+            logAxiosError: false,
+            timeout: 10_000,
+        });
     }
 
     public async getSystemStats(
         opts: INodeConnectionOpts,
-    ): Promise<TResult<GetSystemStatsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(GetSystemStatsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.get<GetSystemStatsCommand.Response>(url, {
-                timeout: 15_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                // this.logger.error(`Error in axios request: ${JSON.stringify(error.message)}`);
-
-                if (error.code === '500') {
-                    return fail(
-                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                    );
-                }
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in getSystemStats:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<GetSystemStatsCommand.Response['response']>> {
+        return this.request<GetSystemStatsCommand.Response>({
+            label: 'GET SYSTEM STATS',
+            path: GetSystemStatsCommand.url,
+            opts,
+            method: 'get',
+            handle500: true,
+            logAxiosError: false,
+            timeout: 15_000,
+        });
     }
 
     public async getCombinedStats(
         data: GetCombinedStatsCommand.Request,
         opts: INodeConnectionOpts,
     ): Promise<TResult<GetCombinedStatsCommand.Response['response']>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(GetCombinedStatsCommand.url, opts);
-
-        try {
-            const nodeResult = await this.axiosInstance.post<GetCombinedStatsCommand.Response>(
-                url,
-                data,
-                {
-                    httpsAgent,
-                },
-            );
-
-            return ok(nodeResult.data.response);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                if (error.code === '500') {
-                    return fail(
-                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
-                    );
-                }
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in getAllInboundStats:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+        return this.request<GetCombinedStatsCommand.Response>({
+            label: 'GET COMBINED STATS',
+            path: GetCombinedStatsCommand.url,
+            opts,
+            data,
+            handle500: true,
+            logAxiosError: false,
+        });
     }
 
     /*
@@ -409,362 +327,171 @@ export class AxiosService {
     public async addUser(
         data: AddUserCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<AddUserCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(AddUserCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<AddUserCommand.Response>(url, data, {
-                timeout: 20_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in addUser:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<AddUserCommand.Response['response']>> {
+        return this.request<AddUserCommand.Response>({
+            label: 'ADD USER',
+            path: AddUserCommand.url,
+            opts,
+            data,
+            timeout: 20_000,
+        });
     }
 
     public async deleteUser(
         data: RemoveUserCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<RemoveUserCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(RemoveUserCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<RemoveUserCommand.Response>(url, data, {
-                timeout: 20_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in deleteUser:', error.response?.data);
-            } else {
-                this.logger.error('Error in deleteUser:', error);
-            }
-
-            return fail(ERRORS.INTERNAL_SERVER_ERROR);
-        }
+    ): Promise<TResult<RemoveUserCommand.Response['response']>> {
+        return this.request<RemoveUserCommand.Response>({
+            label: 'DELETE USER',
+            path: RemoveUserCommand.url,
+            opts,
+            data,
+            internalError: true,
+            timeout: 20_000,
+        });
     }
 
     public async addUsers(
         data: AddUsersCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<AddUsersCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(AddUsersCommand.url, opts);
-
-        try {
-            const startTime = getTime();
-            const compressedData = await this.compressData(data);
-
-            this.logger.log(
-                `[ZSTD] [ADD USERS] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
-            );
-
-            const response = await this.axiosInstance.post<AddUsersCommand.Response>(
-                url,
-                compressedData,
-                {
-                    timeout: 20_000,
-                    headers: {
-                        'Content-Encoding': 'zstd',
-                    },
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in addUser:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<AddUsersCommand.Response['response']>> {
+        return this.request<AddUsersCommand.Response>({
+            label: 'ADD USERS',
+            path: AddUsersCommand.url,
+            opts,
+            data,
+            compress: true,
+            timeout: 20_000,
+        });
     }
 
     public async deleteUsers(
         data: RemoveUsersCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<RemoveUsersCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(RemoveUsersCommand.url, opts);
-
-        try {
-            const startTime = getTime();
-            const compressedData = await this.compressData(data);
-
-            this.logger.log(
-                `[ZSTD] [DELETE USERS] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
-            );
-
-            const response = await this.axiosInstance.post<RemoveUsersCommand.Response>(
-                url,
-                compressedData,
-                {
-                    timeout: 20_000,
-                    headers: {
-                        'Content-Encoding': 'zstd',
-                    },
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error('Error in deleteUser:', error.response?.data);
-            } else {
-                this.logger.error('Error in deleteUser:', error);
-            }
-
-            return fail(ERRORS.INTERNAL_SERVER_ERROR);
-        }
+    ): Promise<TResult<RemoveUsersCommand.Response['response']>> {
+        return this.request<RemoveUsersCommand.Response>({
+            label: 'DELETE USERS',
+            path: RemoveUsersCommand.url,
+            opts,
+            data,
+            compress: true,
+            internalError: true,
+            timeout: 20_000,
+        });
     }
 
     public async dropUsersConnections(
         data: DropUsersConnectionsCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<DropUsersConnectionsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(DropUsersConnectionsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<DropUsersConnectionsCommand.Response>(
-                url,
-                data,
-                {
-                    timeout: 10_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios dropUsersConnections request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in dropUsersConnections:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<DropUsersConnectionsCommand.Response['response']>> {
+        return this.request<DropUsersConnectionsCommand.Response>({
+            label: 'DROP USERS CONNECTIONS',
+            path: DropUsersConnectionsCommand.url,
+            opts,
+            data,
+            timeout: 10_000,
+        });
     }
 
     public async dropIpsConnections(
         data: DropIpsCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<DropIpsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(DropIpsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<DropIpsCommand.Response>(url, data, {
-                timeout: 10_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios dropIpsConnections request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in dropIpsConnections:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<DropIpsCommand.Response['response']>> {
+        return this.request<DropIpsCommand.Response>({
+            label: 'DROP IPS CONNECTIONS',
+            path: DropIpsCommand.url,
+            opts,
+            data,
+            timeout: 10_000,
+        });
     }
 
     public async syncNodePlugins(
         data: SyncCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<SyncCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(SyncCommand.url, opts);
-
-        try {
-            const startTime = getTime();
-            const compressedData = await this.compressData(data);
-
-            this.logger.log(
-                `[ZSTD] [SYNC-NODE-PLUGINS] ${formatExecutionTime(startTime)} | ${prettyBytesUtil(compressedData.length)}`,
-            );
-
-            const response = await this.axiosInstance.post<SyncCommand.Response>(
-                url,
-                compressedData,
-                {
-                    timeout: 10_000,
-                    headers: {
-                        'Content-Encoding': 'zstd',
-                    },
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in Axios SyncNodePlugins Request:', error);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error)));
-            }
-        }
+    ): Promise<TResult<SyncCommand.Response['response']>> {
+        return this.request<SyncCommand.Response>({
+            label: 'SYNC-NODE-PLUGINS',
+            path: SyncCommand.url,
+            opts,
+            data,
+            compress: true,
+            logAxiosError: false,
+            timeout: 10_000,
+        });
     }
 
     public async collectTorrentBlockerReports(
         opts: INodeConnectionOpts,
     ): Promise<TResult<CollectReportsCommand.Response['response']>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(CollectReportsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<CollectReportsCommand.Response>(
-                url,
-                {},
-                {
-                    timeout: 20_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data.response);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in Axios CollectTorrentBlockerReports Request:', error);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error)));
-            }
-        }
+        return this.request<CollectReportsCommand.Response>({
+            label: 'COLLECT TORRENT BLOCKER REPORTS',
+            path: CollectReportsCommand.url,
+            opts,
+            logAxiosError: false,
+            timeout: 20_000,
+        });
     }
 
     public async blockIps(
         data: BlockIpsCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<BlockIpsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(BlockIpsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<BlockIpsCommand.Response>(url, data, {
-                timeout: 10_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios blockIps request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in blockIps:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<BlockIpsCommand.Response['response']>> {
+        return this.request<BlockIpsCommand.Response>({
+            label: 'BLOCK IPS',
+            path: BlockIpsCommand.url,
+            opts,
+            data,
+            timeout: 10_000,
+        });
     }
 
     public async unblockIps(
         data: UnblockIpsCommand.Request,
         opts: INodeConnectionOpts,
-    ): Promise<TResult<UnblockIpsCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(UnblockIpsCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<UnblockIpsCommand.Response>(url, data, {
-                timeout: 10_000,
-                httpsAgent,
-            });
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios unblockIps request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in unblockIps:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<UnblockIpsCommand.Response['response']>> {
+        return this.request<UnblockIpsCommand.Response>({
+            label: 'UNBLOCK IPS',
+            path: UnblockIpsCommand.url,
+            opts,
+            data,
+            timeout: 10_000,
+        });
     }
 
     public async recreateTables(
         opts: INodeConnectionOpts,
-    ): Promise<TResult<RecreateTablesCommand.Response>> {
-        const { url, httpsAgent } = this.resolveAgentAndUrl(RecreateTablesCommand.url, opts);
-
-        try {
-            const response = await this.axiosInstance.post<RecreateTablesCommand.Response>(
-                url,
-                {},
-                {
-                    timeout: 10_000,
-                    httpsAgent,
-                },
-            );
-
-            return ok(response.data);
-        } catch (error) {
-            if (error instanceof AxiosError) {
-                this.logger.error(`Error in axios recreateTables request: ${error.message}`);
-
-                return fail(ERRORS.NODE_ERROR_WITH_MSG.withMessage(JSON.stringify(error.message)));
-            } else {
-                this.logger.error('Error in recreateTables:', error);
-
-                return fail(
-                    ERRORS.NODE_ERROR_WITH_MSG.withMessage(
-                        JSON.stringify(error) ?? 'Unknown error',
-                    ),
-                );
-            }
-        }
+    ): Promise<TResult<RecreateTablesCommand.Response['response']>> {
+        return this.request<RecreateTablesCommand.Response>({
+            label: 'RECREATE TABLES',
+            path: RecreateTablesCommand.url,
+            opts,
+            timeout: 10_000,
+        });
     }
 
-    private async compressData(data: any): Promise<Buffer> {
-        return await compress(Buffer.from(JSON.stringify(data)), 1);
+    private failWithInternalError<T>(label: string, error: unknown): TResult<T> {
+        if (error instanceof AxiosError) {
+            this.logger.error(`Error in ${label}: ${error.response?.data}`);
+        } else {
+            this.logger.error(`Error in ${label}: ${error}`);
+        }
+
+        return fail(ERRORS.INTERNAL_SERVER_ERROR);
+    }
+
+    private async compressData(data: unknown): Promise<{
+        buffer: Buffer;
+        size: number;
+    }> {
+        const buffer = Buffer.from(JSON.stringify(data));
+
+        return {
+            buffer: await zstdCompressAsync(buffer, {
+                ...ZSTD_OPTIONS,
+                pledgedSrcSize: buffer.length,
+            }),
+            size: buffer.length,
+        };
     }
 }

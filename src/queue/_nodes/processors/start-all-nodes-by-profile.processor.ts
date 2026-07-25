@@ -322,7 +322,7 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
 
                         return;
                     case true:
-                        const nodeResponse = startXrayResponse.response.response;
+                        const nodeResponse = startXrayResponse.response;
 
                         await this.rawCacheService.setMany([
                             {

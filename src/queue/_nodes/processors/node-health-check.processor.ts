@@ -54,7 +54,7 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
                             connectionOpts,
                             nodeUuid,
                             isConnected,
-                            statResult.response.response,
+                            statResult.response,
                         );
                     case false:
                         message = statResult.message ?? 'Unknown error';

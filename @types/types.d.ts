@@ -21,3 +21,9 @@ declare module 'parse-prometheus-text-format' {
     function parsePrometheusTextFormat(text: string): any;
     export = parsePrometheusTextFormat;
 }
+
+declare module 'zlib' {
+    interface ZstdOptions {
+        pledgedSrcSize?: number | undefined;
+    }
+}
