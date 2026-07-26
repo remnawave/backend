@@ -768,13 +768,8 @@ export class UsersRepository {
                         'tags',
                     ),
                 ])
-                .groupBy([
-                    'users.id',
-                    'users.trojanPassword',
-                    'users.vlessUuid',
-                    'users.ssPassword',
-                ])
-                .orderBy(sql<string>`users.id asc`)
+                .groupBy(['users.id'])
+                .orderBy('users.id', 'asc')
                 .limit(BATCH_SIZE);
 
             const startTime = getTime();
