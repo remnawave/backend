@@ -1,20 +1,9 @@
-process.env.DATABASE_URL = 'postgresql://postgres:postgres@remnawave-db:5432/postgres';
-process.env.APP_SECRET = 'mock';
-process.env.FRONT_END_DOMAIN = 'mock';
-process.env.METRICS_USER = 'mock';
-process.env.METRICS_PASS = 'mock';
-process.env.SUB_PUBLIC_DOMAIN = 'mock';
-process.env.REDIS_HOST = 'localhost';
-process.env.REDIS_PORT = '6379';
-process.env.INSTANCE_TYPE = 'api';
-
 import { ROOT } from '@contract/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
-import { ZodValidationPipe } from 'nestjs-zod';
 import { createLogger } from 'winston';
 import * as winston from 'winston';
 
@@ -63,13 +52,9 @@ async function bootstrap(): Promise<void> {
 
     app.setGlobalPrefix(ROOT);
 
-    ghActionsDocs(app);
+    await ghActionsDocs(app);
 
-    app.useGlobalPipes(new ZodValidationPipe());
-
-    app.enableShutdownHooks();
-
-    await app.init();
+    process.exit(0);
 }
 bootstrap().catch(() => {
     process.exit(0);

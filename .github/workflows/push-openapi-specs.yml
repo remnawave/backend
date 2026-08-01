@@ -41,6 +41,16 @@ jobs:
         run: npm ci
 
       - name: Generate OpenAPI JSON
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@remnawave-db:5432/postgres'
+          APP_SECRET: 'mock'
+          FRONT_END_DOMAIN: 'mock'
+          METRICS_USER: 'mock'
+          METRICS_PASS: 'mock'
+          SUB_PUBLIC_DOMAIN: 'mock'
+          REDIS_HOST: 'localhost'
+          REDIS_PORT: '6379'
+          INSTANCE_TYPE: 'api'
         run: npm run generate:openapi
 
       - uses: ryand56/r2-upload-action@latest
