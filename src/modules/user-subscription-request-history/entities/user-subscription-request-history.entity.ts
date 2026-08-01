@@ -7,6 +7,9 @@ export class UserSubscriptionRequestHistoryEntity implements UserSubscriptionReq
     userAgent: string | null;
     requestAt: Date;
 
+    srrRuleName: string | null;
+    srrResponseType: string;
+
     constructor(history: Partial<UserSubscriptionRequestHistory>) {
         Object.assign(this, history);
         return this;

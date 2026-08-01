@@ -21,6 +21,8 @@ const entityToModel = (
         requestIp: entity.requestIp,
         userAgent: entity.userAgent,
         requestAt: entity.requestAt,
+        srrRuleName: entity.srrRuleName,
+        srrResponseType: entity.srrResponseType,
     };
 };
 

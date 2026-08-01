@@ -18,6 +18,8 @@ const SUB_HISTORY_FILTER_COLUMN_MAP = {
     requestAt: sql.ref('user_subscription_request_history.request_at'),
     requestIp: sql.ref('user_subscription_request_history.request_ip'),
     userAgent: sql.ref('user_subscription_request_history.user_agent'),
+    srrRuleName: sql.ref('user_subscription_request_history.srr_rule_name'),
+    srrResponseType: sql.ref('user_subscription_request_history.srr_response_type'),
 } as const;
 
 type AllowedSubHistoryFilterId = keyof typeof SUB_HISTORY_FILTER_COLUMN_MAP;

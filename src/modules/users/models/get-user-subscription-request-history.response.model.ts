@@ -4,6 +4,8 @@ interface IUserSubscriptionRequestHistoryRecord {
     requestAt: Date;
     requestIp: string | null;
     userAgent: string | null;
+    srrRuleName: string | null;
+    srrResponseType: string;
 }
 export class GetUserSubscriptionRequestHistoryResponseModel {
     public readonly total: number;

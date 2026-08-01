@@ -755,6 +755,8 @@ export class UsersService {
                         requestAt: history.requestAt,
                         requestIp: history.requestIp,
                         userAgent: history.userAgent,
+                        srrRuleName: history.srrRuleName,
+                        srrResponseType: history.srrResponseType,
                     })),
                 ),
             );

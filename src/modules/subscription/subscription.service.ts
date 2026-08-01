@@ -42,7 +42,12 @@ import { UsersQueuesService } from '@queue/_users/users-queues.service';
 
 import { GetHostsForUserQuery } from '../hosts/queries/get-hosts-for-user';
 import { GetSubscriptionsQueryDto } from './dto';
-import { ISubscriptionHeaders, IGetSubscriptionInfo, IHwidCheckupResult } from './interfaces';
+import {
+    ISubscriptionHeaders,
+    IGetSubscriptionInfo,
+    IHwidCheckupResult,
+    ISubscriptionRequest,
+} from './interfaces';
 import {
     ConnectionKeysResponseModel,
     RawSubscriptionWithHostsResponse,
@@ -79,7 +84,7 @@ export class SubscriptionService {
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
         try {
-            const { userAgent, hwidHeaders, matchedResponseType } = srrContext;
+            const { userAgent, hwidHeaders, matchedResponseType, matchedRuleName } = srrContext;
 
             if (matchedResponseType === 'BROWSER') {
                 const subscriptionInfo = await this.getSubscriptionInfo({
@@ -247,11 +252,13 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
-            void this.updateAndReportSubscriptionRequest(
-                user.response.id,
-                userAgent,
-                srrContext.ip,
-            );
+            void this.updateAndReportSubscriptionRequest({
+                userId: user.response.id,
+                userAgent: userAgent,
+                requestIp: srrContext.ip,
+                matchedRuleName: matchedRuleName,
+                matchedResponseType: matchedResponseType,
+            });
 
             const subscription = await this.renderTemplatesService.generateSubscription({
                 srrContext,
@@ -863,17 +870,15 @@ export class SubscriptionService {
         return `https://${this.subPublicDomain}/${shortUuid}`;
     }
 
-    private async updateAndReportSubscriptionRequest(
-        userId: bigint,
-        userAgent: string,
-        requestIp?: string,
-    ): Promise<void> {
+    private async updateAndReportSubscriptionRequest(args: ISubscriptionRequest): Promise<void> {
         try {
             await this.usersQueuesService.addSubscriptionRequestRecord({
-                userId: userId.toString(),
+                userId: args.userId.toString(),
                 requestAt: new Date(),
-                requestIp,
-                userAgent,
+                requestIp: args.requestIp,
+                userAgent: args.userAgent,
+                srrRuleName: args.matchedRuleName,
+                srrResponseType: args.matchedResponseType,
             });
 
             return;

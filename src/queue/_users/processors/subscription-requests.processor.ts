@@ -81,7 +81,14 @@ export class SubscriptionRequestsQueueProcessor
                 return;
             }
 
-            const { userId: userIdString, requestIp, userAgent, requestAt } = job.data;
+            const {
+                userId: userIdString,
+                requestIp,
+                userAgent,
+                requestAt,
+                srrRuleName,
+                srrResponseType,
+            } = job.data;
             const userId = BigInt(userIdString);
 
             if (!this.disableSrhRecords) {
@@ -92,6 +99,8 @@ export class SubscriptionRequestsQueueProcessor
                             requestIp,
                             userAgent,
                             requestAt,
+                            srrRuleName,
+                            srrResponseType,
                         }),
                     ),
                 );
@@ -102,7 +111,14 @@ export class SubscriptionRequestsQueueProcessor
             }
 
             if (this.exportToStreamEnabled) {
-                await this.exportToStream({ userId, requestIp, userAgent, requestAt });
+                await this.exportToStream({
+                    userId,
+                    srrResponseType,
+                    requestIp,
+                    userAgent,
+                    requestAt,
+                    srrRuleName,
+                });
             }
 
             return;
@@ -142,14 +158,17 @@ export class SubscriptionRequestsQueueProcessor
 
     private async exportToStream(payload: {
         userId: bigint;
+        srrResponseType: string;
+        requestAt: Date;
         requestIp: string | undefined;
         userAgent: string | undefined;
-        requestAt: Date;
+        srrRuleName: string | undefined;
     }): Promise<void> {
         try {
             const fields: Record<string, string> = {
                 v: SUBSCRIPTION_REQUEST_STREAM_MESSAGE_VERSION,
                 userId: payload.userId.toString(),
+                ssrResponseType: payload.srrResponseType,
                 requestAt: new Date(payload.requestAt).toISOString(),
             };
 
@@ -158,6 +177,10 @@ export class SubscriptionRequestsQueueProcessor
             }
             if (payload.userAgent) {
                 fields.userAgent = payload.userAgent;
+            }
+
+            if (payload.srrRuleName) {
+                fields.srrRuleName = payload.srrRuleName;
             }
 
             await this.rawCacheService.xaddTrimmed(

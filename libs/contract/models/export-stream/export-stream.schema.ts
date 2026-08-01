@@ -63,6 +63,8 @@ export const RemnawaveSubscriptionRequestStreamMessageSchema = z
             .describe('Time of the subscription request (ISO 8601, UTC).'),
         requestIp: z.string().optional().describe('Client IP address, omitted if unknown.'),
         userAgent: z.string().optional().describe('Client User-Agent, omitted if unknown.'),
+        srrRuleName: z.string().optional().describe('SRR rule name, omitted if unknown.'),
+        srrResponseType: z.string().describe('SRR response type.'),
     })
     .meta({
         description: `A single message of the "${SUBSCRIPTION_REQUESTS_STREAM_KEY}" Redis Stream (EXPORT_TO_STREAM_ENABLED).`,

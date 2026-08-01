@@ -84,6 +84,7 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                     result.matchedRule?.responseModifications?.additionalExtendedClientsRegex,
                 ),
                 matchedResponseType: result.responseType,
+                matchedRuleName: result.matchedRule?.name,
                 ip: req.clientIp,
                 subscriptionSettings: settingsEntity,
             };
