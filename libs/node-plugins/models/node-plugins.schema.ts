@@ -107,6 +107,46 @@ export const EgressFilterPluginSchema = z.object({
         }),
 });
 
+const cleanupPathSchema = z
+    .string()
+    .trim()
+    .min(1, { message: 'Path must not be empty' })
+    .refine((v) => v.startsWith('/'), {
+        message: 'Path must be absolute (start with "/")',
+    })
+    .refine((v) => !v.includes('\0'), {
+        message: 'Path must not contain null bytes',
+    });
+
+export const preStartPluginSchema = z.object({
+    enabled: z
+        .boolean()
+        .default(false)
+        .meta({
+            title: 'Enabled',
+            markdownDescription: `Enables the pre-start stage. All enabled sections below run every time before the Xray-Core process starts — on node startup, on core restart, and after any configuration change that triggers a core reload. If a section fails, the failure is logged and the core still starts.${DOCS_LINK}`,
+        }),
+    cleanupSockets: z
+        .object({
+            enabled: z.boolean().meta({
+                title: 'Enable socket cleanup',
+                markdownDescription: `Removes stale unix socket files left behind by a previous core process that did not shut down cleanly. Such leftovers make Xray-Core fail to bind with \`address already in use\`. Only entries that are actually unix sockets are removed — regular files, directories and symlinks are always skipped.${DOCS_LINK}`,
+            }),
+            files: z
+                .array(cleanupPathSchema)
+                .max(64, { message: 'No more than 64 entries allowed' })
+                .meta({
+                    title: 'Files',
+                    markdownDescription: `Absolute paths to socket files. Glob patterns are supported (\`*\`, \`?\`, \`[…]\`), for example \`/dev/shm/*.sock\`. Paths that do not exist are skipped silently.${DOCS_LINK}`,
+                }),
+        })
+        .optional()
+        .meta({
+            title: 'Cleanup Sockets',
+            markdownDescription: `Stale unix socket removal before the core starts.${DOCS_LINK}`,
+        }),
+});
+
 export const NodePluginSchema = z.object({
     sharedLists: z
         .array(SharedListSchema)
@@ -131,6 +171,10 @@ export const NodePluginSchema = z.object({
     connectionDrop: ConnectionDropPluginSchema.optional().meta({
         title: 'Connection Drop',
         markdownDescription: `Connection Drop Plugin configuration. Optional.${DOCS_LINK}`,
+    }),
+    preStart: preStartPluginSchema.optional().meta({
+        title: 'Pre-Start',
+        markdownDescription: `Pre-Start Plugin configuration. Optional.${DOCS_LINK}`,
     }),
 });
 

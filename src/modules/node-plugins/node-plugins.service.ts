@@ -81,15 +81,14 @@ export class NodePluginService {
                 const validatedConfig = await NodePluginSchema.safeParseAsync(inputConfig);
 
                 if (!validatedConfig.success) {
-                    this.logger.error(
-                        validatedConfig.error.issues
-                            .map(
-                                (err) =>
-                                    `${err.path.length ? `${err.path.join('.')}: ` : ''}${err.message}`,
-                            )
-                            .join(', '),
-                    );
-                    return fail(ERRORS.INVALID_NODE_PLUGIN_CONFIG);
+                    const errorMessage = validatedConfig.error.issues
+                        .map(
+                            (err) =>
+                                `${err.path.length ? `${err.path.join('.')}: ` : ''}${err.message}`,
+                        )
+                        .join(', ');
+                    this.logger.error(errorMessage);
+                    return fail(ERRORS.INVALID_NODE_PLUGIN_CONFIG.withMessage(errorMessage));
                 }
 
                 inputConfig = validatedConfig.data;

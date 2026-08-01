@@ -1103,6 +1103,11 @@ export const ERRORS = {
         code: 'A222',
         message: 'Invalid node plugin config',
         httpCode: 400,
+        withMessage: (message: string) => ({
+            code: 'A222',
+            message,
+            httpCode: 400,
+        }),
     },
     NODE_PLUGIN_NAME_ALREADY_EXISTS: {
         code: 'A223',
