@@ -8,6 +8,7 @@ import { INodeHotCache, INodeSystem, INodeVersions } from '../interfaces';
 
 export class NodeResponseModel {
     public uuid: string;
+    public id: number;
     public name: string;
     public address: string;
     public port: null | number;
@@ -46,6 +47,7 @@ export class NodeResponseModel {
 
     constructor(data: NodesEntity, hotCache: INodeHotCache) {
         this.uuid = data.uuid;
+        this.id = Number(data.id);
         this.name = data.name;
         this.address = data.address;
         this.port = data.port;

@@ -6,6 +6,7 @@ import { NodeSystemSchema } from './node-system.schema';
 
 export const NodesSchema = z.object({
     uuid: z.uuid(),
+    id: z.number(),
     name: z.string(),
     address: z.string(),
     port: z.nullable(z.int()),
@@ -13,10 +14,7 @@ export const NodesSchema = z.object({
     isConnected: z.boolean(),
     isDisabled: z.boolean(),
     isConnecting: z.boolean(),
-    lastStatusChange: z.nullable(
-        z.iso.datetime()
-            .transform((str) => new Date(str)),
-    ),
+    lastStatusChange: z.nullable(z.iso.datetime().transform((str) => new Date(str))),
     lastStatusMessage: z.nullable(z.string()),
     isTrafficTrackingActive: z.boolean(),
     trafficResetDay: z.nullable(z.int()),
@@ -29,10 +27,8 @@ export const NodesSchema = z.object({
     nodeConsumptionMultiplier: z.number(),
     tags: z.array(z.string()),
 
-    createdAt: z.iso.datetime()
-        .transform((str) => new Date(str)),
-    updatedAt: z.iso.datetime()
-        .transform((str) => new Date(str)),
+    createdAt: z.iso.datetime().transform((str) => new Date(str)),
+    updatedAt: z.iso.datetime().transform((str) => new Date(str)),
 
     configProfile: z.object({
         activeConfigProfileUuid: z.nullable(z.uuid()),
