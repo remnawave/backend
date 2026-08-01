@@ -99,6 +99,7 @@ export class AuthService {
                     userAgent,
                     'Login is not allowed.',
                 );
+                this.logger.error('Login is not allowed.');
                 return fail(ERRORS.FORBIDDEN);
             }
 
@@ -112,6 +113,9 @@ export class AuthService {
                     password,
                     ip,
                     userAgent,
+                    'Someone tried to login with password authentication, but it is disabled.',
+                );
+                this.logger.error(
                     'Someone tried to login with password authentication, but it is disabled.',
                 );
                 return fail(ERRORS.FORBIDDEN);
@@ -130,6 +134,7 @@ export class AuthService {
                     userAgent,
                     'Admin is not found in database.',
                 );
+                this.logger.error('Admin is not found in database.');
                 return fail(ERRORS.FORBIDDEN);
             }
 
@@ -146,6 +151,7 @@ export class AuthService {
                     userAgent,
                     'Invalid password.',
                 );
+                this.logger.error('Invalid password.');
                 return fail(ERRORS.FORBIDDEN);
             }
 
