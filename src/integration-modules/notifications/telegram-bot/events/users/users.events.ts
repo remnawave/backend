@@ -46,8 +46,8 @@ export class UsersEvents implements OnApplicationBootstrap {
                 continue;
             }
 
-            this.eventEmitter.on(eventName, async (event: UserEvent) => {
-                await this.handleEvent(event, template);
+            this.eventEmitter.on(eventName, (event: UserEvent) => {
+                this.handleEvent(event, template).catch((error) => this.logger.error(error));
             });
         }
     }

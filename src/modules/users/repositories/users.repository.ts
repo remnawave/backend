@@ -791,9 +791,9 @@ export class UsersRepository {
         }
     }
 
-    public async deleteManyByUserIds(userIds: number[]): Promise<number> {
+    public async deleteManyByUserIds(userIds: bigint[]): Promise<number> {
         const result = await this.prisma.tx.users.deleteMany({
-            where: { id: { in: userIds.map((userId) => BigInt(userId)) } },
+            where: { id: { in: userIds } },
         });
 
         return result.count;
@@ -1024,21 +1024,21 @@ export class UsersRepository {
         return result.map((user) => user.id);
     }
 
-    public async getIdsAndHashesByUserIds(userIds: number[]): Promise<
-        {
-            id: bigint;
-            vlessUuid: string;
-        }[]
-    > {
-        return await this.qb.kysely
+    public async getUsersByUserIds(userIds: number[]): Promise<UserEntity[]> {
+        const result = await this.qb.kysely
             .selectFrom('users')
-            .select(['id', 'vlessUuid'])
+            .innerJoin('userTraffic', 'userTraffic.id', 'users.id')
+            .selectAll()
             .where(
-                'id',
+                'users.id',
                 'in',
                 userIds.map((userId) => BigInt(userId)),
             )
+            .select((eb) => this.includeActiveInternalSquads(eb))
+            .orderBy('users.id', 'asc')
             .execute();
+
+        return result.map((user) => new UserEntity(user));
     }
 
     public async addUserToInternalSquads(

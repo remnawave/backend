@@ -575,16 +575,30 @@ export class UsersService {
                 return ok(true);
             }
 
-            const usersIdsAndHashes = await this.userRepository.getIdsAndHashesByUserIds(userIds);
+            const users = await this.userRepository.getUsersByUserIds(userIds);
 
-            await this.userRepository.deleteManyByUserIds(userIds);
+            await this.userRepository.deleteManyByUserIds(users.map((user) => user.id));
 
-            await this.eventBus.publish(new RemoveUsersFromNodeEvent(usersIdsAndHashes));
+            await this.eventBus.publish(
+                new RemoveUsersFromNodeEvent(
+                    users.map((user) => ({ id: user.id, vlessUuid: user.vlessUuid })),
+                ),
+            );
+
+            for (const user of users) {
+                this.eventEmitter.emit(
+                    EVENTS.USER.DELETED,
+                    new UserEvent({
+                        user,
+                        event: EVENTS.USER.DELETED,
+                    }),
+                );
+            }
 
             return ok(true);
         } catch (error) {
             this.logger.error(error);
-            return fail(ERRORS.BULK_DELETE_USERS_BY_UUID_ERROR);
+            return fail(ERRORS.BULK_DELETE_USERS_BY_USER_IDS_ERROR);
         }
     }
 
