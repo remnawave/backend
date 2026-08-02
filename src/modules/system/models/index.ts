@@ -8,3 +8,4 @@ export * from './get-stats-digest.response.model';
 export * from './get-remnawave-health.response.model';
 export * from './get-stats.response.model';
 export * from './get-http-stats.response.model';
+export * from './get-configuration.response.model';

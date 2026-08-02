@@ -33,6 +33,7 @@ import {
     GetStatsDigestCommand,
     GetHttpStatsCommand,
     TestSrrMatcherCommand,
+    GetConfigurationCommand,
 } from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
@@ -51,6 +52,7 @@ import {
     GetHttpStatsResponseDto,
     GetStatsDigestQueryDto,
     GetStatsDigestResponseDto,
+    GetConfigurationResponseDto,
 } from './dtos';
 import { RouteCounterService } from './route-counter.service';
 import { SystemService } from './system.service';
@@ -75,6 +77,20 @@ export class SystemController {
     })
     async getMetadata(): Promise<GetMetadataResponseDto> {
         const result = await this.systemService.getMetadata();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        command: GetConfigurationCommand,
+        httpCode: HttpStatus.OK,
+        type: GetConfigurationResponseDto,
+    })
+    async getConfiguration(): Promise<GetConfigurationResponseDto> {
+        const result = await this.systemService.getConfiguration();
 
         const data = errorHandler(result);
         return {

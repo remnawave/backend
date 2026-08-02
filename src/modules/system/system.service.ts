@@ -49,6 +49,7 @@ import { InboundStats, Metric, NodeMetrics, OutboundStats } from './interfaces';
 import {
     GenerateX25519ResponseModel,
     GetBandwidthStatsResponseModel,
+    GetConfigurationResponseModel,
     GetMetadataResponseModel,
     GetNodesStatisticsResponseModel,
     GetNodesStatsResponseModel,
@@ -101,6 +102,50 @@ export class SystemService implements OnApplicationBootstrap {
             );
         } catch (error) {
             this.logger.error('Error getting system metadata:', error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    public async getConfiguration(): Promise<TResult<GetConfigurationResponseModel>> {
+        try {
+            const config = this.configService;
+
+            return ok(
+                new GetConfigurationResponseModel({
+                    notifications: {
+                        webhook: config.getOrThrow('WEBHOOK_ENABLED'),
+                        bandwidthUsage: config.getIfEnabled(
+                            'BANDWIDTH_USAGE_NOTIFICATIONS_ENABLED',
+                            'BANDWIDTH_USAGE_NOTIFICATIONS_THRESHOLD',
+                        ),
+                        notConnectedAfter: config.getIfEnabled(
+                            'NOT_CONNECTED_USERS_NOTIFICATIONS_ENABLED',
+                            'NOT_CONNECTED_USERS_NOTIFICATIONS_AFTER_HOURS',
+                        ),
+                        expirationNotifications: config.getIfEnabled(
+                            'EXPIRATION_NOTIFICATIONS_ENABLED',
+                            'EXPIRATION_NOTIFICATIONS',
+                        ),
+                    },
+                    service: {
+                        cleanUsageHistory: config.getOrThrow('SERVICE_CLEAN_USAGE_HISTORY'),
+                        disableUserUsageRecords: config.getOrThrow(
+                            'SERVICE_DISABLE_USER_USAGE_RECORDS',
+                        ),
+                        disableSrhRecords: config.getOrThrow('SERVICE_DISABLE_SRH_RECORDS'),
+                        exportToRedisStream: config.getOrThrow('EXPORT_TO_STREAM_ENABLED'),
+                    },
+                    misc: {
+                        shortUuidLength: config.getOrThrow('SHORT_UUID_LENGTH'),
+                        userUsageIgnoreBelowBytes: Number(
+                            config.getOrThrow('USER_USAGE_IGNORE_BELOW_BYTES'),
+                        ),
+                        subPublicDomain: config.getOrThrow('SUB_PUBLIC_DOMAIN'),
+                    },
+                }),
+            );
+        } catch (error) {
+            this.logger.error('Error getting system configuration:', error);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }

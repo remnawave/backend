@@ -9,3 +9,4 @@ export * from './get-stats.command';
 export * from './testers';
 export * from './tools';
 export * from './get-http-stats.command';
+export * from './get-configuration.command';

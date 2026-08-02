@@ -9,3 +9,4 @@ export * from './get-stats-digest.dto';
 export * from './get-remnawave-health.dto';
 export * from './get-stats.dto';
 export * from './get-http-stats.dto';
+export * from './get-configuration.dto';
