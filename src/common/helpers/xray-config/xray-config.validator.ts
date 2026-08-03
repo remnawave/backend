@@ -336,6 +336,12 @@ export class XRayConfig {
         }
     }
 
+    public validateOutbounds(): void {
+        if (!this.config.outbounds || this.config.outbounds.length === 0) {
+            throw new Error("Config doesn't have outbounds.");
+        }
+    }
+
     private replaceSnippetsInArray(
         array: RoutingRule[] | BalancingRule[] | undefined,
         snippetsMap: Map<string, unknown>,
@@ -379,10 +385,6 @@ export class XRayConfig {
     private validate(): void {
         if (!this.config.inbounds || this.config.inbounds.length === 0) {
             throw new Error("Config doesn't have inbounds.");
-        }
-
-        if (!this.config.outbounds || this.config.outbounds.length === 0) {
-            throw new Error("Config doesn't have outbounds.");
         }
 
         const seenTags = new Set<string>();
