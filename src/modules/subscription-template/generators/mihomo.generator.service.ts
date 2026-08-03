@@ -320,13 +320,18 @@ export class MihomoGeneratorService {
 
         switch (host.transport) {
             case 'ws':
-                netOpts = this.buildWsOpts(host.transportOptions.path, host.transportOptions.host);
+                netOpts = this.buildWsOpts(
+                    host.transportOptions.path,
+                    host.transportOptions.host,
+                    host.transportOptions.headers,
+                );
                 break;
 
             case 'httpupgrade':
                 netOpts = this.buildWsOpts(
                     host.transportOptions.path,
                     host.transportOptions.host,
+                    host.transportOptions.headers,
                     true,
                 );
                 break;
@@ -358,6 +363,7 @@ export class MihomoGeneratorService {
     private buildWsOpts(
         rawPath: string | null,
         host: string | null,
+        headers: Record<string, string> | null,
         isHttpUpgrade = false,
     ): NetworkConfig {
         const config: NetworkConfig = {};
@@ -379,6 +385,13 @@ export class MihomoGeneratorService {
         }
 
         config.headers = host ? { Host: host } : {};
+
+        if (headers !== null) {
+            config.headers = {
+                ...config.headers,
+                ...headers,
+            };
+        }
 
         if (maxEarlyData !== undefined) {
             config['max-early-data'] = maxEarlyData;
