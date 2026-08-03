@@ -184,14 +184,12 @@ export class SubscriptionService {
                         hwidCheckup.maxDeviceReached &&
                         subscriptionSettings.hwidSettings.maxDevicesAnnounce
                     ) {
-                        response.headers.announce = `base64:${Buffer.from(
-                            TemplateEngine.formatWithUser(
-                                subscriptionSettings.hwidSettings.maxDevicesAnnounce,
-                                user.response,
-                                subscriptionSettings,
-                                this.subPublicDomain,
-                            ),
-                        ).toString('base64')}`;
+                        response.headers.announce = TemplateEngine.formatWithUser(
+                            `rwEncodeBase64:${subscriptionSettings.hwidSettings.maxDevicesAnnounce}`,
+                            user.response,
+                            subscriptionSettings,
+                            this.subPublicDomain,
+                        );
                     }
 
                     if (
@@ -607,14 +605,14 @@ export class SubscriptionService {
         }
 
         if (settings.customResponseHeaders) {
+            const userValueMap = TemplateEngine.createUserValueMap(
+                user,
+                settings,
+                this.subPublicDomain,
+            );
+
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.formatWithUser(
-                    value,
-                    user,
-                    settings,
-                    this.subPublicDomain,
-                    true,
-                );
+                headers[key] = TemplateEngine.replace(value, userValueMap);
             }
         }
 

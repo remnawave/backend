@@ -669,9 +669,12 @@ export class ResolveProxyConfigService {
         user: UserEntity,
         settings: SubscriptionSettingsEntity,
     ): string[] {
-        return remarks.map((remark) =>
-            TemplateEngine.formatWithUser(remark, user, settings, this.subPublicDomain),
+        const userValueMap = TemplateEngine.createUserValueMap(
+            user,
+            settings,
+            this.subPublicDomain,
         );
+        return remarks.map((remark) => TemplateEngine.replace(remark, userValueMap));
     }
 
     private parseResolvedProxyConfigFromRemark(remark: string): ResolvedProxyConfig | null {

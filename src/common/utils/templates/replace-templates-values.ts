@@ -1,75 +1,28 @@
 import dayjs from 'dayjs';
-import { transliterate } from 'transliteration';
 
-import { USER_STATUSES_TEMPLATE } from '@libs/contracts/constants';
-import { TemplateKeys } from '@libs/contracts/constants/templates/template-keys';
+import { TUsersStatus, USERS_STATUS_VALUES } from '@libs/contracts/constants';
 
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities';
 import { UserEntity } from '@modules/users/entities';
 
 import { prettyBytesUtil } from '../bytes';
+import { parseTemplate, renderTemplate } from './template-parser';
+import { TemplateResolvers } from './template-variables';
 
-type TemplateValueGetter = () => string | number;
-type LazyTemplateValues = {
-    [key in TemplateKeys]: TemplateValueGetter;
-};
-
-type TemplateTransform = (input: string) => string;
+const USER_STATUS_LABELS = Object.fromEntries(
+    USERS_STATUS_VALUES.map((status) => [status, status.charAt(0) + status.slice(1).toLowerCase()]),
+) as Record<TUsersStatus, string>;
 
 export class TemplateEngine {
-    private static readonly TEMPLATE_REGEX = /\{\{(\w+)\}\}/g;
-    private static readonly BASE64_RESULT_PREFIX = 'base64:';
-
-    private static readonly TRANSFORMATIONS: ReadonlyArray<{
-        prefix: string;
-        transform: TemplateTransform;
-    }> = [
-        {
-            prefix: 'rwEncodeBase64:',
-            transform: (input) =>
-                TemplateEngine.BASE64_RESULT_PREFIX + Buffer.from(input, 'utf8').toString('base64'),
-        },
-    ];
-
-    static replace(template: string, values: LazyTemplateValues): string {
-        const { body, transform } = this.parseTransform(template);
-
-        let hasReplacement = false;
-
-        const result = body.replace(this.TEMPLATE_REGEX, (match, key: TemplateKeys) => {
-            const getter = values[key];
-            if (getter !== undefined) {
-                hasReplacement = true;
-                return getter()?.toString() ?? '';
-            }
-            return match;
-        });
-
-        if (transform) {
-            return transform(hasReplacement ? result : body);
-        }
-
-        return hasReplacement ? result : template;
-    }
-
-    private static parseTransform(template: string): {
-        body: string;
-        transform: TemplateTransform | null;
-    } {
-        for (const { prefix, transform } of this.TRANSFORMATIONS) {
-            if (template.startsWith(prefix)) {
-                return { body: template.slice(prefix.length), transform };
-            }
-        }
-        return { body: template, transform: null };
+    static replace(template: string, resolvers: TemplateResolvers): string {
+        return renderTemplate(parseTemplate(template), resolvers);
     }
 
     static createUserValueMap(
         user: UserEntity,
         subscriptionSettings: SubscriptionSettingsEntity,
         subPublicDomain: string,
-        forHeader: boolean = false,
-    ): LazyTemplateValues {
+    ): TemplateResolvers {
         const trafficLeft = (): bigint =>
             user.trafficLimitBytes === 0n
                 ? 0n
@@ -80,10 +33,7 @@ export class TemplateEngine {
             TRAFFIC_USED: () => prettyBytesUtil(user.userTraffic.usedTrafficBytes, true, 3),
             TRAFFIC_LEFT: () => prettyBytesUtil(trafficLeft(), true, 3),
             TOTAL_TRAFFIC: () => prettyBytesUtil(user.trafficLimitBytes, true, 3),
-            STATUS: () =>
-                forHeader
-                    ? transliterate(USER_STATUSES_TEMPLATE[user.status])
-                    : USER_STATUSES_TEMPLATE[user.status],
+            STATUS: (args) => args[user.status] ?? USER_STATUS_LABELS[user.status],
             USERNAME: () => user.username,
             EMAIL: () => user.email || '',
             TELEGRAM_ID: () => user.telegramId?.toString() || '',
@@ -95,7 +45,7 @@ export class TemplateEngine {
             TRAFFIC_USED_BYTES: () => user.userTraffic.usedTrafficBytes.toString(),
             TRAFFIC_LEFT_BYTES: () => trafficLeft().toString(),
             TOTAL_TRAFFIC_BYTES: () => user.trafficLimitBytes.toString(),
-            RESET_STRATEGY: () => user.trafficLimitStrategy,
+            RESET_STRATEGY: (args) => args[user.trafficLimitStrategy] ?? user.trafficLimitStrategy,
             LIFETIME_USED_BYTES: () => user.userTraffic.lifetimeUsedTrafficBytes.toString(),
             CREATED_AT_UNIX: () => dayjs(user.createdAt).unix(),
             LAST_TRAFFIC_RESET_AT_UNIX: () =>
@@ -114,11 +64,10 @@ export class TemplateEngine {
         user: UserEntity,
         subscriptionSettings: SubscriptionSettingsEntity,
         subPublicDomain: string,
-        forHeader: boolean = false,
     ): string {
         return this.replace(
             template,
-            this.createUserValueMap(user, subscriptionSettings, subPublicDomain, forHeader),
+            this.createUserValueMap(user, subscriptionSettings, subPublicDomain),
         );
     }
 }
