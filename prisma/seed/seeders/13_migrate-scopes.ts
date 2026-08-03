@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import consola from 'consola';
+import z from 'zod';
 
 // old scope → new
 const SCOPE_MIGRATION_MAP: [string, string][] = [
@@ -15,7 +16,25 @@ const SCOPE_MIGRATION_MAP: [string, string][] = [
     ['subscriptions:by-uuid', 'subscriptions:by-id'],
 ];
 
+const uuidSchema = z.uuid();
+
 export async function migrateScopes(prisma: PrismaClient) {
+    const allTokens = await prisma.apiTokens.findMany();
+    if (allTokens.length > 0) {
+        for (const token of allTokens) {
+            const uuid = uuidSchema.safeParse(token.uuid);
+            if (!uuid.success) {
+                consola.warn(
+                    `Invalid UUID for API token "${token.name}": ${token.uuid}. Deleting token...`,
+                );
+
+                await prisma.apiTokens.delete({
+                    where: { uuid: token.uuid },
+                });
+            }
+        }
+    }
+
     const migrationMap = new Map(SCOPE_MIGRATION_MAP);
     const legacyScopes = SCOPE_MIGRATION_MAP.map(([oldScope]) => oldScope);
 
