@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { NODES_ROUTES, REST_API } from '../../api';
 import { getEndpointDetails } from '../../constants';
+import { NodeIpsSchema } from '../../models';
 import { NodeResponseSchema } from './node.response';
 export namespace CreateNodeCommand {
     export const url = REST_API.NODES.CREATE;
@@ -66,6 +67,7 @@ export namespace CreateNodeCommand {
         ),
         activePluginUuid: z.optional(z.nullable(z.uuid())),
         note: z.optional(z.string().max(255, 'Note must be less than 255 characters')),
+        ips: z.optional(NodeIpsSchema),
     });
 
     export const ResponseSchema = NodeResponseSchema;

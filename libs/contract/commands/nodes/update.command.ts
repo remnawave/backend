@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { NODES_ROUTES, REST_API } from '../../api';
 import { getEndpointDetails } from '../../constants';
-import { NodesSchema } from '../../models';
+import { NodeIpsSchema, NodesSchema } from '../../models';
 import { NodeResponseSchema } from './node.response';
 
 export namespace UpdateNodeCommand {
@@ -69,6 +69,7 @@ export namespace UpdateNodeCommand {
         ),
         activePluginUuid: z.uuid().nullish(),
         note: z.optional(z.string().max(255).nullable()),
+        ips: z.optional(NodeIpsSchema),
     });
 
     export const ResponseSchema = NodeResponseSchema;

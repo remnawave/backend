@@ -1,5 +1,7 @@
 import { Nodes } from '@prisma/client';
 
+import { TNodeIps } from '@libs/contracts/models';
+
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { InfraProviderEntity } from '@modules/infra-billing/entities';
 
@@ -27,6 +29,7 @@ export class NodesEntity implements Nodes {
     public viewPosition: number;
     public countryCode: string;
     public tags: string[];
+    public ips: TNodeIps;
     public consumptionMultiplier: bigint;
     public nodeConsumptionMultiplier: bigint;
     public createdAt: Date;

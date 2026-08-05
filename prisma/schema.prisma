@@ -183,11 +183,13 @@ model Nodes {
   consumptionMultiplier     BigInt @default(1000000000) @map("consumption_multiplier")
   nodeConsumptionMultiplier BigInt @default(1000000000) @map("node_consumption_multiplier")
 
-  isTrafficTrackingActive Boolean @default(false) @map("is_traffic_tracking_active")
-  trafficResetDay         Int?    @default(1) @map("traffic_reset_day")
-  trafficLimitBytes       BigInt? @default(0) @map("traffic_limit_bytes")
-  trafficUsedBytes        BigInt? @default(0) @map("traffic_used_bytes")
-  notifyPercent           Int?    @default(0) @map("notify_percent")
+  isTrafficTrackingActive Boolean  @default(false) @map("is_traffic_tracking_active")
+  trafficResetDay         Int?     @default(1) @map("traffic_reset_day")
+  trafficLimitBytes       BigInt?  @default(0) @map("traffic_limit_bytes")
+  trafficUsedBytes        BigInt?  @default(0) @map("traffic_used_bytes")
+  notifyPercent           Int?     @default(0) @map("notify_percent")
+  /// [NodeIps]
+  ips                     Json     @default("[]") @map("ips")
 
   providerUuid String? @map("provider_uuid") @db.Uuid
 

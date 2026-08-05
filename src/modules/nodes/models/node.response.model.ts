@@ -1,4 +1,5 @@
 import { fromNanoToNumber } from '@common/utils/nano';
+import { TNodeIps } from '@libs/contracts/models';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { InfraProviderEntity } from '@modules/infra-billing/entities';
@@ -29,6 +30,7 @@ export class NodeResponseModel {
     public viewPosition: number;
     public countryCode: string;
     public tags: string[];
+    public ips: TNodeIps;
     public createdAt: Date;
     public updatedAt: Date;
 
@@ -66,6 +68,7 @@ export class NodeResponseModel {
         this.consumptionMultiplier = fromNanoToNumber(data.consumptionMultiplier);
         this.nodeConsumptionMultiplier = fromNanoToNumber(data.nodeConsumptionMultiplier);
         this.tags = data.tags;
+        this.ips = data.ips;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
 
