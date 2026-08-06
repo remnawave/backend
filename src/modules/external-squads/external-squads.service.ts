@@ -101,7 +101,7 @@ export class ExternalSquadService {
         } = dto;
 
         try {
-            const externalSquad = await this.externalSquadRepository.findByUUID(uuid);
+            const externalSquad = await this.externalSquadRepository.getExternalSquadByUuid(uuid);
 
             if (!externalSquad) {
                 return fail(ERRORS.EXTERNAL_SQUAD_NOT_FOUND);
@@ -146,6 +146,15 @@ export class ExternalSquadService {
                 customRemarks: customRemarks,
                 subpageConfigUuid: subpageConfigUuid,
             });
+
+            for (const template of externalSquad.templates) {
+                await this.rawCacheService.del(
+                    CACHE_KEYS.EXTERNAL_SQUAD_TEMPLATE_NAME(
+                        externalSquad.uuid,
+                        template.templateType,
+                    ),
+                );
+            }
 
             if (templates !== undefined) {
                 await this.syncExternalSquadTemplates(externalSquad, templates);
