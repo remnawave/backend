@@ -5,6 +5,8 @@ import { Counter } from 'prom-client';
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
+import { TypedConfigService } from '@common/config/app-config';
+import { getRedisChannelName } from '@common/utils';
 import { METRIC_NAMES } from '@libs/contracts/constants';
 
 import { INodeMetrics, NODE_METRICS_MESSAGE_CHANNEL } from './node-metrics.message.interface';
@@ -13,10 +15,13 @@ import { INodeMetrics, NODE_METRICS_MESSAGE_CHANNEL } from './node-metrics.messa
 export class NodeMetricsSubscriber implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(NodeMetricsSubscriber.name);
 
+    private readonly channel: string;
+
     private subscriber: Redis;
 
     constructor(
         @InjectRedis() private readonly redis: Redis,
+        configService: TypedConfigService,
         @InjectMetric(METRIC_NAMES.NODE_INBOUND_UPLOAD_BYTES)
         public nodeInboundUploadBytes: Counter<string>,
         @InjectMetric(METRIC_NAMES.NODE_INBOUND_DOWNLOAD_BYTES)
@@ -25,7 +30,9 @@ export class NodeMetricsSubscriber implements OnModuleInit, OnModuleDestroy {
         public nodeOutboundUploadBytes: Counter<string>,
         @InjectMetric(METRIC_NAMES.NODE_OUTBOUND_DOWNLOAD_BYTES)
         public nodeOutboundDownloadBytes: Counter<string>,
-    ) {}
+    ) {
+        this.channel = getRedisChannelName(configService, NODE_METRICS_MESSAGE_CHANNEL);
+    }
 
     async onModuleInit() {
         this.subscriber = this.redis.duplicate();
@@ -38,10 +45,8 @@ export class NodeMetricsSubscriber implements OnModuleInit, OnModuleDestroy {
             void this.handleNodeMetricsMessage(message);
         });
 
-        const count = await this.subscriber.subscribe(NODE_METRICS_MESSAGE_CHANNEL);
-        this.logger.log(
-            `Subscribed to ${NODE_METRICS_MESSAGE_CHANNEL} (active subscriptions: ${count})`,
-        );
+        const count = await this.subscriber.subscribe(this.channel);
+        this.logger.log(`Subscribed to ${this.channel} (active subscriptions: ${count})`);
     }
 
     private handleNodeMetricsMessage(value: string) {

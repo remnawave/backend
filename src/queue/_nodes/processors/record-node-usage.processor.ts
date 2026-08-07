@@ -7,7 +7,9 @@ import { CommandBus } from '@nestjs/cqrs';
 import { GetCombinedStatsCommand } from '@remnawave/node-contract';
 
 import { AxiosService } from '@common/axios';
+import { TypedConfigService } from '@common/config/app-config';
 import { RawCacheService } from '@common/raw-cache';
+import { getRedisChannelName } from '@common/utils';
 import { multiplyConsumption } from '@common/utils/nano';
 
 import { NodesUsageHistoryEntity } from '@modules/nodes-usage-history';
@@ -30,12 +32,17 @@ import { IRecordNodeUsagePayload } from '../interfaces';
 export class RecordNodeUsageQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(RecordNodeUsageQueueProcessor.name);
 
+    private readonly nodeMetricsChannel: string;
+
     constructor(
         private readonly commandBus: CommandBus,
         private readonly axios: AxiosService,
         private readonly rawCacheService: RawCacheService,
+        configService: TypedConfigService,
     ) {
         super();
+
+        this.nodeMetricsChannel = getRedisChannelName(configService, NODE_METRICS_MESSAGE_CHANNEL);
     }
 
     async process(job: Job<IRecordNodeUsagePayload>) {
@@ -147,7 +154,7 @@ export class RecordNodeUsageQueueProcessor extends WorkerHost {
         nodeOutboundsMetrics: Map<string, { downlink: string; uplink: string }>;
         nodeInboundsMetrics: Map<string, { downlink: string; uplink: string }>;
     }): void {
-        this.rawCacheService.publishSafe(NODE_METRICS_MESSAGE_CHANNEL, {
+        this.rawCacheService.publishSafe(this.nodeMetricsChannel, {
             nodeUuid: dto.nodeUuid,
             inbounds: Array.from(dto.nodeInboundsMetrics.entries()).map(([tag, metrics]) => ({
                 tag,

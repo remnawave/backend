@@ -4,6 +4,9 @@ import { LRUCache } from 'lru-cache';
 
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
+import { TypedConfigService } from '@common/config/app-config';
+import { getRedisChannelName } from '@common/utils';
+
 @Injectable()
 export class MemoryCacheService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(MemoryCacheService.name);
@@ -14,10 +17,17 @@ export class MemoryCacheService implements OnModuleInit, OnModuleDestroy {
         ttl: 30 * 60 * 1000,
     });
 
+    private readonly channel: string;
+
     private subscriber: Redis;
     private everConnected = false;
 
-    constructor(@InjectRedis() private readonly redis: Redis) {}
+    constructor(
+        @InjectRedis() private readonly redis: Redis,
+        configService: TypedConfigService,
+    ) {
+        this.channel = getRedisChannelName(configService, MemoryCacheService.CHANNEL);
+    }
 
     async onModuleInit() {
         this.subscriber = this.redis.duplicate();
@@ -33,7 +43,7 @@ export class MemoryCacheService implements OnModuleInit, OnModuleDestroy {
             else this.cache.delete(key);
         });
 
-        await this.subscriber.subscribe(MemoryCacheService.CHANNEL);
+        await this.subscriber.subscribe(this.channel);
     }
 
     get<T>(key: string): T | undefined {
@@ -46,12 +56,12 @@ export class MemoryCacheService implements OnModuleInit, OnModuleDestroy {
 
     async invalidate(key: string): Promise<void> {
         this.cache.delete(key);
-        await this.redis.publish(MemoryCacheService.CHANNEL, key);
+        await this.redis.publish(this.channel, key);
     }
 
     async invalidateMany(keys: string[]): Promise<void> {
         for (const key of keys) this.cache.delete(key);
-        await Promise.all(keys.map((key) => this.redis.publish(MemoryCacheService.CHANNEL, key)));
+        await Promise.all(keys.map((key) => this.redis.publish(this.channel, key)));
     }
 
     async onModuleDestroy() {
