@@ -17,7 +17,7 @@ export const UsersSchema = z.object({
     hwidDeviceLimit: z.nullable(z.int()),
     externalSquadUuid: z.nullable(z.uuid()),
     trojanPassword: z.string(),
-    vlessUuid: z.uuid(),
+    vlessUuid: z.guid(),
     ssPassword: z.string(),
     lastTriggeredThreshold: z.int(),
     subRevokedAt: z.nullable(z.iso.datetime().transform((str) => new Date(str))),

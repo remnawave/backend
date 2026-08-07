@@ -40,7 +40,7 @@ export namespace CreateUserCommand {
             .optional()
             .describe('Optional. Password for Trojan protocol. Must be 8-32 characters.'),
         vlessUuid: z
-            .uuid('Invalid Vless UUID format')
+            .guid('Invalid Vless UUID format')
             .optional()
             .describe('Optional. UUID for VLESS protocol. Must be a valid UUID format.'),
         ssPassword: z
