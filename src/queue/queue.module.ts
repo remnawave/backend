@@ -73,6 +73,7 @@ const bullBoard = [
             imports: [ConfigModule],
             useFactory: (configService: TypedConfigService) => {
                 return {
+                    prefix: `${configService.get('REDIS_KEY_PREFIX') ?? ''}bull`,
                     connection: {
                         ...getRedisConnectionOptions(
                             configService.get('REDIS_SOCKET'),
@@ -81,6 +82,7 @@ const bullBoard = [
                             'ioredis',
                         ),
                         db: configService.getOrThrow('REDIS_DB'),
+                        username: configService.get('REDIS_USER'),
                         password: configService.get('REDIS_PASSWORD'),
                     },
                     defaultJobOptions: {

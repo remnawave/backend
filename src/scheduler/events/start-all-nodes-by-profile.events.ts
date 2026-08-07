@@ -2,6 +2,7 @@ import { QueueEvents } from 'bullmq';
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 
+import { TypedConfigService } from '@common/config/app-config';
 import { sleep } from '@common/utils/sleep';
 
 import { NodesQueuesService } from '@queue/_nodes';
@@ -14,13 +15,17 @@ export class StartAllNodesByProfileQueueEvents implements OnModuleInit {
 
     private queueEvents: QueueEvents;
 
-    constructor(private readonly nodesQueuesService: NodesQueuesService) {}
+    constructor(
+        private readonly nodesQueuesService: NodesQueuesService,
+        private readonly configService: TypedConfigService,
+    ) {}
 
     async onModuleInit() {
         this.logger.log('Initializing deduplication event listener.');
 
         this.queueEvents = new QueueEvents(QUEUES_NAMES.NODES.START_ALL_BY_PROFILE, {
             connection: this.nodesQueuesService.queues.startAllNodesByProfile.opts.connection,
+            prefix: `${this.configService.get('REDIS_KEY_PREFIX') ?? ''}bull`,
         });
 
         this.queueEvents.on('deduplicated', async (event) => {
