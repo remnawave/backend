@@ -15,6 +15,13 @@ import {
     XrayJsonConfig,
 } from './interfaces/xray-json-config.interface';
 
+interface Hysteria2FinalMask {
+    udp?: Array<{
+        type?: string;
+        settings?: { password?: string };
+    }>;
+}
+
 type VlessConfig = Extract<ResolvedProxyConfig, { protocol: 'vless' }>;
 type TrojanConfig = Extract<ResolvedProxyConfig, { protocol: 'trojan' }>;
 type ShadowsocksConfig = Extract<ResolvedProxyConfig, { protocol: 'shadowsocks' }>;
@@ -121,10 +128,17 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
         tti: host.transportOptions.clientTti,
         congestion: host.transportOptions.congestion,
     }),
-    hysteria: (host) => ({
-        version: 2,
-        auth: host.transportOptions.auth,
-    }),
+    hysteria: (host) => {
+        const finalMask = host.streamOverrides.finalMask as Hysteria2FinalMask | null;
+        const obfsPassword = finalMask?.udp?.find((mask) => mask?.type === 'salamander')?.settings
+            ?.password;
+
+        return {
+            version: 2,
+            auth: host.transportOptions.auth,
+            ...(obfsPassword && { obfs: { type: 'salamander', password: obfsPassword } }),
+        };
+    },
 };
 
 function buildTcpSettings(host: ResolvedProxyConfig): Record<string, unknown> {
