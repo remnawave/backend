@@ -285,6 +285,7 @@ export class HwidUserDevicesRepository implements Omit<
             .select(['u.id as id', 'u.username', (eb) => eb.fn.count('d.hwid').as('devicesCount')])
             .groupBy(['u.id', 'u.username'])
             .orderBy('devicesCount', 'desc')
+            .orderBy('u.id', 'asc')
             .offset(start)
             .limit(size);
 
