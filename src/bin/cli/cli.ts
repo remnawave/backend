@@ -45,6 +45,7 @@ const redisOptions = getRedisConnectionOptions(
 const redis = new Redis({
     ...redisOptions,
     password: process.env.REDIS_PASSWORD,
+    username: process.env.REDIS_USERNAME,
     db: parseInt(process.env.REDIS_DB ?? '1'),
     keyPrefix: 'rmnwv:',
 });

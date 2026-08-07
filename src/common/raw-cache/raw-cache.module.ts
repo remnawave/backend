@@ -24,6 +24,7 @@ import { RawCacheService } from './raw-cache.service';
                         ),
                         db: configService.getOrThrow<number>('REDIS_DB'),
                         password: configService.get<string | undefined>('REDIS_PASSWORD'),
+                        username: configService.get<string | undefined>('REDIS_USERNAME'),
                         keyPrefix: 'ioraw:',
                     },
                 } satisfies RedisModuleOptions;

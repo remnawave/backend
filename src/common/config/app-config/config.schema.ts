@@ -73,6 +73,7 @@ export const configSchema = z
                 'Port must be between 1 and 65535',
             ),
         REDIS_SOCKET: z.string().optional(),
+        REDIS_USERNAME: z.optional(z.string()),
         REDIS_PASSWORD: z.optional(z.string()),
         REDIS_DB: z
             .string()

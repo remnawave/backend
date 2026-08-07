@@ -82,6 +82,7 @@ const bullBoard = [
                         ),
                         db: configService.getOrThrow('REDIS_DB'),
                         password: configService.get('REDIS_PASSWORD'),
+                        username: configService.get('REDIS_USERNAME'),
                     },
                     defaultJobOptions: {
                         removeOnComplete: 500,
