@@ -60,6 +60,10 @@ export const TorrentBlockerPluginSchema = z.object({
         title: 'Include Rule Tags',
         markdownDescription: `By default, Torrent Blocker creates a dedicated rule and injects it as **routing.rules[0]**. Specify an array of **ruleTag** values here if you want to block IPs matched by other routing rules as well.${DOCS_LINK}`,
     }),
+    webhookUrl: z.optional(z.url()).meta({
+        title: 'Webhook URL',
+        markdownDescription: `Optional. Additional webhook URL to send to when a block is triggered.${DOCS_LINK}`,
+    }),
 });
 
 export const ConnectionDropPluginSchema = z.object({
