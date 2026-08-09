@@ -7,9 +7,14 @@ import { Logger, Scope } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 import { AxiosService } from '@common/axios/axios.service';
+import {
+    getCertificatesFingerprint,
+    injectNodeCertificates,
+} from '@common/helpers/xray-config/inject-node-certificates';
 import { RawCacheService } from '@common/raw-cache';
 import { CACHE_KEYS, CACHE_KEYS_TTL } from '@libs/contracts/constants';
 
+import { GetCertificatesForNodeQuery } from '@modules/acme/queries/get-certificates-for-node';
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 import { NodePluginEntity } from '@modules/node-plugins/entities';
 import { GetAllPluginsQuery } from '@modules/node-plugins/queries/get-all-plugins';
@@ -283,19 +288,39 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                     (inbound) => activeNodeInboundsTags.has(inbound.tag),
                 );
 
+                let nodeConfig = {
+                    ...config.response.config,
+                    inbounds: config.response.config.inbounds!.filter(
+                        (inbound) =>
+                            activeNodeInboundsTags.has(inbound.tag!) ||
+                            this.isUnsecureInbound(inbound.protocol),
+                    ),
+                };
+
+                let emptyConfigHash = config.response.hashesPayload.emptyConfig;
+
+                const certificates = await this.queryBus.execute(
+                    new GetCertificatesForNodeQuery(node.uuid),
+                );
+
+                if (certificates.isOk && certificates.response.length > 0) {
+                    // The config above is built once per profile and only shallow
+                    // copied per node, so the inbound objects are shared. Injecting
+                    // into them directly would deliver this node's private key to
+                    // every other node on the profile.
+                    nodeConfig = structuredClone(nodeConfig);
+
+                    injectNodeCertificates(nodeConfig, certificates.response);
+
+                    emptyConfigHash = `${emptyConfigHash}:${getCertificatesFingerprint(certificates.response)}`;
+                }
+
                 const startXrayResponse = await this.axios.startXray(
                     {
-                        xrayConfig: {
-                            ...config.response.config,
-                            inbounds: config.response.config.inbounds!.filter(
-                                (inbound) =>
-                                    activeNodeInboundsTags.has(inbound.tag!) ||
-                                    this.isUnsecureInbound(inbound.protocol),
-                            ),
-                        } as unknown as Record<string, unknown>,
+                        xrayConfig: nodeConfig as unknown as Record<string, unknown>,
                         internals: {
                             hashes: {
-                                emptyConfig: config.response.hashesPayload.emptyConfig,
+                                emptyConfig: emptyConfigHash,
                                 inbounds: filteredInboundsHashes,
                             },
                             forceRestart: payload.force ?? false,

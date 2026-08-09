@@ -1,3 +1,4 @@
+export * from './acme.schema';
 export * from './api-tokens.schema';
 export * from './auth.schema';
 export * from './base-internal-squad.schema';

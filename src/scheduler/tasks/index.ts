@@ -1,3 +1,4 @@
+import { AcmeRenewTask } from './acme-renew/acme-renew.task';
 import { InfraBillingNodesNotificationsTask } from './crm/infra-billing-nodes-notifications/infra-billing-nodes-notifications.task';
 import { ExportMetricsTask } from './export-metrics/export-metrics.task';
 import { SyncMetricsTask } from './export-metrics/sync-metrics.task';
@@ -10,4 +11,5 @@ export const JOBS_SERVICES = [
     ExportMetricsTask,
     SyncMetricsTask,
     InfraBillingNodesNotificationsTask,
+    AcmeRenewTask,
 ];

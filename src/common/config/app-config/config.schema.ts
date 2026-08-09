@@ -39,6 +39,21 @@ export const configSchema = z
             .string()
             .default('12')
             .transform((val) => parseInt(val, 10)),
+        /**
+         * Key for the ACME module's secrets at rest: DNS credentials, ACME account
+         * keys and certificate private keys. 32 bytes, base64.
+         *
+         * Optional so that panels not using ACME start unchanged; the module
+         * refuses to work without it rather than storing secrets in the clear.
+         * Generate one with "cli generate-acme-key".
+         */
+        ACME_SECRET_KEY: z
+            .string()
+            .optional()
+            .refine(
+                (val) => val === undefined || val === '' || Buffer.from(val, 'base64').length === 32,
+                'ACME_SECRET_KEY must be 32 bytes encoded as base64',
+            ),
         IS_TELEGRAM_NOTIFICATIONS_ENABLED: booleanString('false'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
         TELEGRAM_BOT_API_ROOT: z.string().default('https://api.telegram.org'),

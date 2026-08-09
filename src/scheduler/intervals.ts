@@ -21,6 +21,10 @@ export const JOBS_INTERVALS = {
     RESET_NODE_TRAFFIC: CronExpression.EVERY_DAY_AT_1AM,
     REVIEW_NODES: CronExpression.EVERY_HOUR,
 
+    // Certificates are renewed weeks before they expire, so an hourly check is
+    // frequent enough; it also paces retries after a failed order.
+    ACME_RENEW: CronExpression.EVERY_HOUR,
+
     RECORD_USER_USAGE: EVERY_15_SECONDS,
 
     EXPORT_NODE_CONNECTIONS: CronExpression.EVERY_5_MINUTES,

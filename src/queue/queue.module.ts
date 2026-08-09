@@ -10,6 +10,7 @@ import { getRedisConnectionOptions } from '@common/utils';
 import { useBullBoard } from '@common/utils/startup-app';
 import { BULLBOARD_ROOT } from '@libs/contracts/api';
 
+import { AcmeQueueModule } from './_acme/acme-queue.module';
 import { NodesQueuesModule } from './_nodes/nodes-queues.module';
 import { SquadsQueueModule } from './_squads/squads-queue.module';
 import { UsersQueuesModule } from './_users/users-queues.module';
@@ -22,6 +23,7 @@ const queueModules = [
     UsersQueuesModule,
     PushFromRedisQueueModule,
     SquadsQueueModule,
+    AcmeQueueModule,
 
     ServiceQueueModule,
 
