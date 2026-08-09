@@ -1,4 +1,9 @@
 export const CONTROLLERS_INFO = {
+    ACME: {
+        tag: 'ACME Controller',
+        description: 'Certificates issued by the panel and delivered to nodes.',
+        resource: 'acme',
+    },
     USERS: {
         tag: 'Users Controller',
         description: 'Manage users, change their status, reset traffic, etc.',

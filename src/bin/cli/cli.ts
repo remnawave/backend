@@ -14,6 +14,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import Redis from 'ioredis';
+import { randomBytes } from 'node:crypto';
 
 import { getRedisConnectionOptions } from '@common/utils';
 import { generateNodeCert } from '@common/utils/certs';
@@ -54,6 +55,7 @@ const enum CLI_ACTIONS {
     DELETE_USERS_USAGE_BY_DATE_RANGE = 'delete-users-usage-by-date-range',
     ENABLE_PASSWORD_AUTH = 'enable-password-auth',
     EXIT = 'exit',
+    GENERATE_ACME_KEY = 'generate-acme-key',
     GENERATE_ENCRYPTION_KEYS = 'generate-encryption-keys',
     GET_SECRET_KEY_FOR_NODE = 'get-secret-key-for-node',
     RESET_CERTS = 'reset-certs',
@@ -625,6 +627,19 @@ async function generateEncryptionKeys() {
     }
 }
 
+function generateAcmeKey() {
+    const key = randomBytes(32).toString('base64');
+
+    consola.success('✅ ACME secret key generated.');
+    consola.info(
+        `\nPut it into the panel environment and restart:\nACME_SECRET_KEY=${key}\n\n` +
+            'It encrypts DNS credentials, ACME account keys and certificate private keys.\n' +
+            'Changing it later makes everything already stored unreadable — certificates would have to be re-issued.',
+    );
+
+    process.exit(0);
+}
+
 async function main() {
     consola.box('Remnawave Rescue CLI v0.4');
 
@@ -662,6 +677,11 @@ async function main() {
                 value: CLI_ACTIONS.GENERATE_ENCRYPTION_KEYS,
                 label: 'Generate keypairs',
                 hint: 'Generate keypairs for response rules encryption',
+            },
+            {
+                value: CLI_ACTIONS.GENERATE_ACME_KEY,
+                label: 'Generate ACME secret key',
+                hint: 'Generate ACME_SECRET_KEY for encrypting ACME secrets at rest',
             },
             {
                 value: CLI_ACTIONS.TRUNCATE_HWID_USER_DEVICES,
@@ -713,6 +733,9 @@ async function main() {
             break;
         case CLI_ACTIONS.GENERATE_ENCRYPTION_KEYS:
             await generateEncryptionKeys();
+            break;
+        case CLI_ACTIONS.GENERATE_ACME_KEY:
+            generateAcmeKey();
             break;
         case CLI_ACTIONS.ENABLE_PASSWORD_AUTH:
             await enablePasswordAuth();

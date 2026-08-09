@@ -208,6 +208,7 @@ model Nodes {
   connectedUsers               UserTraffic[]
   nodeMetas                    NodeMeta[]
   torrentBlockerReports        TorrentBlockerReports[]
+  acmeCertificates             AcmeCertificateNodes[]
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
@@ -630,4 +631,122 @@ model TorrentBlockerReports {
   node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@map("torrent_blocker_reports")
+}
+
+// A reusable way to answer a DNS challenge: an acme-proxy instance, a DNS
+// provider token, or nothing at all when the operator publishes records by hand.
+model AcmeCredentials {
+  uuid     String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name     String @unique @map("name")
+  provider String @map("provider") // ACME_PROXY | CLOUDFLARE | MANUAL
+
+  // AES-256-GCM ciphertext of a provider-specific JSON payload. Nullable
+  // because MANUAL has nothing to store.
+  payloadEncrypted String? @map("payload_encrypted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  certificates AcmeCertificates[]
+
+  @@map("acme_credentials")
+}
+
+// An ACME account. Kept apart from certificates so that many certificates share
+// one registration: CAs rate-limit accounts, and dns-persist-01 authorizations
+// are bound to the account URI.
+model AcmeAccounts {
+  uuid         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  directoryUrl String  @map("directory_url")
+  email        String  @map("email")
+  accountUrl   String? @map("account_url")
+
+  accountKeyEncrypted String  @map("account_key_encrypted")
+  eabKid              String? @map("eab_kid")
+  eabHmacEncrypted    String? @map("eab_hmac_encrypted")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  certificates AcmeCertificates[]
+
+  @@unique([directoryUrl, email])
+  @@map("acme_accounts")
+}
+
+model AcmeCertificates {
+  uuid    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name    String   @unique @map("name")
+  domains String[] @map("domains")
+
+  // ACME: the panel orders and renews it. IMPORTED: the material was uploaded,
+  // and the panel only stores and delivers it — there is nothing to renew.
+  source String @default("ACME") @map("source")
+
+  challengeType   String  @default("DNS_01") @map("challenge_type") // DNS_01 | DNS_PERSIST_01
+  keyType         String  @default("ECDSA_P256") @map("key_type") // ECDSA_P256 | ECDSA_P384 | RSA_2048 | RSA_4096
+  renewBeforeDays Int     @default(30) @map("renew_before_days")
+  isEnabled       Boolean @default(true) @map("is_enabled")
+
+  // Null for imported certificates: they have no CA and no account behind them.
+  directoryUrl String? @map("directory_url")
+  email        String? @map("email")
+  eabKid       String? @map("eab_kid")
+
+  status      String    @default("PENDING") @map("status") // PENDING | AWAITING_DNS | ISSUING | ACTIVE | ERROR
+  lastError   String?   @map("last_error")
+  issuedAt    DateTime? @map("issued_at")
+  expiresAt   DateTime? @map("expires_at")
+  fingerprint String?   @map("fingerprint")
+  failCount   Int       @default(0) @map("fail_count")
+  nextRetryAt DateTime? @map("next_retry_at")
+
+  fullchainPem String? @map("fullchain_pem")
+  keyEncrypted String? @map("key_encrypted")
+
+  credentialUuid String? @map("credential_uuid") @db.Uuid
+  accountUuid    String? @map("account_uuid") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  credential AcmeCredentials? @relation(fields: [credentialUuid], references: [uuid], onDelete: Restrict)
+  account    AcmeAccounts?    @relation(fields: [accountUuid], references: [uuid], onDelete: SetNull)
+
+  nodes  AcmeCertificateNodes[]
+  events AcmeEvents[]
+
+  @@index([isEnabled, source, expiresAt])
+  @@map("acme_certificates")
+}
+
+// Which nodes get a certificate, and on which inbounds. An empty inboundTags
+// means every TLS inbound the node runs. Binding to the node rather than to the
+// config profile is what keeps a private key off nodes that share the profile
+// but not the name.
+model AcmeCertificateNodes {
+  certificateUuid String   @map("certificate_uuid") @db.Uuid
+  nodeUuid        String   @map("node_uuid") @db.Uuid
+  inboundTags     String[] @default([]) @map("inbound_tags")
+
+  certificate AcmeCertificates @relation(fields: [certificateUuid], references: [uuid], onDelete: Cascade)
+  node        Nodes            @relation(fields: [nodeUuid], references: [uuid], onDelete: Cascade)
+
+  @@id([certificateUuid, nodeUuid])
+  @@index([nodeUuid])
+  @@map("acme_certificate_nodes")
+}
+
+model AcmeEvents {
+  id              BigInt  @id @default(autoincrement())
+  certificateUuid String? @map("certificate_uuid") @db.Uuid
+  level           String  @map("level") // INFO | ERROR
+  message         String  @map("message")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  certificate AcmeCertificates? @relation(fields: [certificateUuid], references: [uuid], onDelete: Cascade)
+
+  @@index([certificateUuid, createdAt(sort: Desc)])
+  @@map("acme_events")
 }
