@@ -418,6 +418,7 @@ export class ResolveProxyConfigService {
                         echSockopt: toNonEmptyRecord(tls?.echSockopt),
                         pinnedPeerCertSha256: inputHost.pinnedPeerCertSha256,
                         verifyPeerCertByName: inputHost.verifyPeerCertByName,
+                        cipherSuites: tls?.cipherSuites || null,
                     },
                 };
             }

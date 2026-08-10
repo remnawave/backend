@@ -80,6 +80,7 @@ export interface ITlsSecurityOptions {
     echConfigList: string | null;
     echForceQuery: string | null;
     echSockopt: Record<string, unknown> | null;
+    cipherSuites: string | null;
 }
 
 export interface IRealitySecurityOptions {

@@ -353,6 +353,11 @@ export class XrayGeneratorService {
         if (opts.verifyPeerCertByName) {
             params.vcn = opts.verifyPeerCertByName;
         }
+
+        // https://github.com/XTLS/Xray-core/discussions/716#discussioncomment-17851670
+        if (opts.cipherSuites) {
+            params.cs = opts.cipherSuites;
+        }
     }
 
     // 4.4 REALITY: sni, fp, pbk, sid, pqv, spx
