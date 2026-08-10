@@ -2,10 +2,19 @@ import { z } from 'zod';
 
 const DOCS_LINK = `\n\n[📖 Documentation](https://docs.rw/docs/learn/node-plugins)`;
 
+// https://github.com/colinhacks/zod/issues/5944
+const IPV6 = z.regexes.ipv6.source.slice(1, -1);
+
+const ipv6 = () => z.string().regex(new RegExp(`^(${IPV6})$`), { error: 'Invalid IPv6 address' });
+const cidrv6 = () =>
+    z.string().regex(new RegExp(`^(${IPV6})\\/(12[0-8]|1[01][0-9]|[1-9]?[0-9])$`), {
+        error: 'Invalid IPv6 CIDR range',
+    });
+
 const IpCidrOrExtSchema = z
     .union([
-        z.union([z.cidrv4(), z.cidrv6()]),
-        z.union([z.ipv4(), z.ipv6()]),
+        z.union([z.cidrv4(), cidrv6()]),
+        z.union([z.ipv4(), ipv6()]),
         z.string().startsWith('ext:'),
     ])
     .meta({
@@ -17,7 +26,7 @@ export const SharedListSchema = z.discriminatedUnion('type', [
     z.object({
         name: z.string().startsWith('ext:'),
         type: z.literal('ipList'),
-        items: z.array(z.union([z.cidrv4(), z.cidrv6(), z.union([z.ipv4(), z.ipv6()])])),
+        items: z.array(z.union([z.cidrv4(), cidrv6(), z.union([z.ipv4(), ipv6()])])),
     }),
     z.object({
         name: z.string().startsWith('ext:'),
@@ -38,7 +47,7 @@ export const TorrentBlockerPluginSchema = z.object({
     ignoreLists: z
         .object({
             ip: z
-                .array(z.union([z.union([z.ipv4(), z.ipv6()]), z.string().startsWith('ext:')]))
+                .array(z.union([z.union([z.ipv4(), ipv6()]), z.string().startsWith('ext:')]))
                 .optional()
                 .meta({
                     title: 'IP',
@@ -72,7 +81,7 @@ export const ConnectionDropPluginSchema = z.object({
         markdownDescription: `Controls whether IP addresses from the **whitelistIps** object will be used.${DOCS_LINK}`,
     }),
     whitelistIps: z
-        .array(z.union([z.union([z.ipv4(), z.ipv6()]), z.string().startsWith('ext:')]))
+        .array(z.union([z.union([z.ipv4(), ipv6()]), z.string().startsWith('ext:')]))
         .meta({
             title: 'Whitelist IPs',
             markdownDescription: `List of IP addresses, for which the connection drop will not be applied, which is enabled by default for all IP addresses. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**. Please note that this field only supports IP addresses ranges, not CIDR ranges.${DOCS_LINK}`,
