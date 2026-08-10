@@ -5,15 +5,22 @@ import { Injectable, Logger } from '@nestjs/common';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
+import { NodesQueuesService } from '@queue/_nodes';
+
 import { SnippetEntity } from './entities';
 import { GetSnippetsResponseModel } from './models';
+import { ConfigProfileRepository } from './repositories/config-profile.repository';
 import { SnippetsRepository } from './repositories/snippets.repository';
 
 @Injectable()
 export class SnippetsService {
     private readonly logger = new Logger(SnippetsService.name);
 
-    constructor(private readonly snippetsRepository: SnippetsRepository) {}
+    constructor(
+        private readonly snippetsRepository: SnippetsRepository,
+        private readonly configProfilesRepository: ConfigProfileRepository,
+        private readonly nodesQueuesService: NodesQueuesService,
+    ) {}
 
     public async getSnippets(): Promise<TResult<GetSnippetsResponseModel>> {
         try {
@@ -125,5 +132,32 @@ export class SnippetsService {
 
             return fail(ERRORS.UPDATE_SNIPPET_ERROR);
         }
+    }
+
+    public async syncSnippet(name: string): Promise<TResult<boolean>> {
+        try {
+            const affectedProfiles = await this.resolveAffectedProfiles(name);
+
+            for (const profileUuid of affectedProfiles) {
+                await this.nodesQueuesService.startAllNodesByProfile({
+                    profileUuid,
+                    emitter: 'syncSnippet',
+                    force: true,
+                });
+            }
+
+            this.logger.log(
+                `Snippet "${name}" sync queued for ${affectedProfiles.length} config profile(s)`,
+            );
+
+            return ok(true);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.SYNC_SNIPPET_ERROR);
+        }
+    }
+
+    private async resolveAffectedProfiles(name: string): Promise<string[]> {
+        return await this.configProfilesRepository.getUuidsBySnippetName(name);
     }
 }

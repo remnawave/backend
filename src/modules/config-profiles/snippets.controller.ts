@@ -14,6 +14,7 @@ import {
     CreateSnippetCommand,
     DeleteSnippetCommand,
     GetSnippetsCommand,
+    SyncSnippetCommand,
     UpdateSnippetCommand,
 } from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
@@ -23,6 +24,7 @@ import {
     CreateSnippetResponseDto,
     DeleteSnippetBodyDto,
     GetSnippetsResponseDto,
+    SyncSnippetBodyDto,
     UpdateSnippetBodyDto,
     UpdateSnippetResponseDto,
 } from './dtos';
@@ -50,6 +52,17 @@ export class SnippetsController {
         return {
             response: data,
         };
+    }
+
+    @Endpoint({
+        command: SyncSnippetCommand,
+        httpCode: HttpStatus.ACCEPTED,
+    })
+    async syncSnippet(@Body() syncSnippetDto: SyncSnippetBodyDto) {
+        const result = await this.snippetsService.syncSnippet(syncSnippetDto.name);
+
+        errorHandler(result);
+        return;
     }
 
     @Endpoint({

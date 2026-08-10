@@ -1184,4 +1184,9 @@ export const ERRORS = {
         message: 'Get stats digest error',
         httpCode: 500,
     },
+    SYNC_SNIPPET_ERROR: {
+        code: 'A237',
+        message: 'Sync snippet error',
+        httpCode: 500,
+    },
 } as const;

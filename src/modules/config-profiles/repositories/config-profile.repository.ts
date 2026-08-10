@@ -17,6 +17,13 @@ import { ConfigProfileInboundEntity } from '../entities/config-profile-inbound.e
 import { ConfigProfileWithInboundsAndNodesEntity } from '../entities/config-profile-with-inbounds-and-nodes.entity';
 import { ConfigProfileEntity } from '../entities/config-profile.entity';
 
+const SNIPPET_USAGE_JSONPATH = `$ ? (
+    @.snippets[*] == $name
+    || @.outbounds[*].snippet == $name
+    || @.routing.rules[*].snippet == $name
+    || @.routing.balancers[*].snippet == $name
+)`;
+
 @Injectable()
 export class ConfigProfileRepository {
     constructor(
@@ -121,6 +128,23 @@ export class ConfigProfileRepository {
             .execute();
 
         return result.map((item) => new ConfigProfileWithInboundsAndNodesEntity(item));
+    }
+
+    public async getUuidsBySnippetName(name: string): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('configProfiles')
+            .select('configProfiles.uuid')
+            .where(
+                sql<boolean>`jsonb_path_exists(
+                    ${sql.ref('config_profiles.config')},
+                    ${SNIPPET_USAGE_JSONPATH}::jsonpath,
+                    jsonb_build_object('name', ${name}::text)
+                )`,
+            )
+            .orderBy('configProfiles.viewPosition', 'asc')
+            .execute();
+
+        return result.map((row) => row.uuid);
     }
 
     public async getConfigProfileByUUID(
