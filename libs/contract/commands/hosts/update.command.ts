@@ -8,7 +8,7 @@ import {
     SUBSCRIPTION_TEMPLATE_TYPE,
     MIHOMO_IP_VERSION,
 } from '../../constants';
-import { HostsSchema } from '../../models';
+import { HostMapperSchema, HostsSchema } from '../../models';
 import { HostResponseSchema } from './host.response';
 
 export namespace UpdateHostCommand {
@@ -76,6 +76,7 @@ export namespace UpdateHostCommand {
         excludeFromSubscriptionTypes: z
             .optional(z.array(z.enum(SUBSCRIPTION_TEMPLATE_TYPE)))
             .describe('Optional. Subscription types from which the host will be excluded from.'),
+        mapper: HostMapperSchema.optional(),
     });
 
     export const ResponseSchema = HostResponseSchema;

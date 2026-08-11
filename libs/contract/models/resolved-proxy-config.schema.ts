@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { MIHOMO_IP_VERSION, SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
+import { HostMapperSchema } from './host-mapper';
 
 export const VlessProtocolOptionsSchema = z.object({
     encryption: z.string(),
@@ -259,6 +260,7 @@ export const ResolvedProxyConfigSchema = z.object({
         mihomoIpVersion: z.enum(MIHOMO_IP_VERSION).nullable(),
         serverDescription: z.string().nullable(),
         xrayJsonTemplate: z.nullable(z.unknown()),
+        mapper: HostMapperSchema,
     }),
 
     metadata: ProxyEntryMetadataSchema,

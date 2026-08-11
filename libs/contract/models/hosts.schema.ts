@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
 import { ALPN, MIHOMO_IP_VERSION, SECURITY_LAYERS } from '../constants/hosts';
+import { HostMapperSchema } from './host-mapper';
 
 export const HostsSchema = z.object({
     uuid: z.uuid(),
@@ -42,4 +43,5 @@ export const HostsSchema = z.object({
     xrayJsonTemplateUuid: z.uuid().nullable(),
     excludedInternalSquads: z.array(z.uuid()),
     excludeFromSubscriptionTypes: z.array(z.enum(SUBSCRIPTION_TEMPLATE_TYPE)),
+    mapper: HostMapperSchema,
 });

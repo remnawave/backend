@@ -6,6 +6,8 @@ import {
 } from '@contract/constants';
 import { Hosts } from '@prisma/client';
 
+import { THostMapper } from '@libs/contracts/models';
+
 export class HostsEntity implements Hosts {
     uuid: string;
     viewPosition: number;
@@ -49,6 +51,8 @@ export class HostsEntity implements Hosts {
     excludedInternalSquads: {
         squadUuid: string;
     }[];
+
+    mapper: THostMapper;
 
     constructor(data: Partial<Hosts>) {
         Object.assign(this, data);

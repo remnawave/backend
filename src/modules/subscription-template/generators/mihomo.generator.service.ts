@@ -8,6 +8,7 @@ import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
+import { applyHostMapper } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 export interface MihomoData {
@@ -172,6 +173,17 @@ export class MihomoGeneratorService {
     }
 
     private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
+        const node = this.buildBaseProxyNode(host, isExtendedClient);
+
+        if (!node) return null;
+
+        return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host.metadata.rawInbound);
+    }
+
+    private buildBaseProxyNode(
+        host: ResolvedProxyConfig,
+        isExtendedClient: boolean,
+    ): ProxyNode | null {
         if (host.protocol === 'hysteria') {
             return this.buildHysteria2Node(host, isExtendedClient);
         }

@@ -119,6 +119,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             | 'excludeFromSubscriptionTypes'
             | 'finalMask'
             | 'tags'
+            | 'mapper'
         >,
     ): Promise<HostsEntity[]> {
         const list = await this.prisma.tx.hosts.findMany({

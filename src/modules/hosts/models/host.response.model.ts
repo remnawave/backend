@@ -4,6 +4,7 @@ import {
     TSecurityLayers,
     TSubscriptionTemplateType,
 } from '@libs/contracts/constants';
+import { THostMapper } from '@libs/contracts/models';
 
 import { HostsEntity } from '../entities/hosts.entity';
 
@@ -50,6 +51,7 @@ export class HostResponseModel {
 
     public excludedInternalSquads: string[];
     public excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
+    public mapper: THostMapper;
 
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
@@ -95,5 +97,6 @@ export class HostResponseModel {
 
         this.xrayJsonTemplateUuid = data.xrayJsonTemplateUuid;
         this.excludeFromSubscriptionTypes = data.excludeFromSubscriptionTypes;
+        this.mapper = data.mapper;
     }
 }

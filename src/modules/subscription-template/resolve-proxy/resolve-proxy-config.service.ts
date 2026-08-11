@@ -591,6 +591,7 @@ export class ResolveProxyConfigService {
                     ? Buffer.from(inputHost.serverDescription).toString('base64')
                     : null,
                 xrayJsonTemplate: inputHost.xrayJsonTemplate,
+                mapper: inputHost.mapper,
             },
             metadata: {
                 uuid: inputHost.uuid,
@@ -720,6 +721,7 @@ export class ResolveProxyConfigService {
                         serverDescription: null,
                         xrayJsonTemplate: null,
                         mihomoIpVersion: null,
+                        mapper: {},
                     },
                     metadata: {
                         uuid: '00000000-0000-0000-0000-000000000000',

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { applyHostMapper } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 interface Hysteria2FinalMask {
@@ -101,7 +102,7 @@ export class XrayGeneratorService {
             params.fm = JSON.stringify(host.streamOverrides.finalMask);
         }
 
-        const query = this.buildQueryString(params);
+        const query = this.buildQueryString(params, host);
         const remark = encodeURIComponent(host.finalRemark);
 
         return `vless://${host.protocolOptions.id}@${host.address}:${host.port}?${query}#${remark}`;
@@ -119,7 +120,7 @@ export class XrayGeneratorService {
         // Security (4.3.1 + 4.4)
         this.applySecurityParams(params, host);
 
-        const query = this.buildQueryString(params);
+        const query = this.buildQueryString(params, host);
         const remark = encodeURIComponent(host.finalRemark);
         const password = encodeURIComponent(host.protocolOptions.password);
 
@@ -174,7 +175,7 @@ export class XrayGeneratorService {
             params.fm = JSON.stringify(host.streamOverrides.finalMask);
         }
 
-        const query = this.buildQueryString(params);
+        const query = this.buildQueryString(params, host);
         const remark = encodeURIComponent(host.finalRemark);
         const auth = encodeURIComponent(host.transportOptions.auth);
         const queryPart = query ? `?${query}` : '';
@@ -398,10 +399,17 @@ export class XrayGeneratorService {
 
     // ── Query String Builder ─────────────────────────
 
-    private buildQueryString(params: Record<string, unknown>): string {
+    private buildQueryString(params: Record<string, unknown>, host: ResolvedProxyConfig): string {
         const parts: string[] = [];
 
-        for (const [key, value] of Object.entries(params)) {
+        const mapped = applyHostMapper(
+            params,
+            host.clientOverrides.mapper.base64,
+            host.metadata.rawInbound,
+            true,
+        );
+
+        for (const [key, value] of Object.entries(mapped)) {
             if (value === undefined || value === null) continue;
             parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
         }
