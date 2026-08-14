@@ -164,7 +164,6 @@ export async function getDocs(app: INestApplication<unknown>) {
                 'okhttp',
                 'unirest',
                 'nsurlsession',
-                'httr',
                 'native',
                 'libcurl',
                 'httpclient',
