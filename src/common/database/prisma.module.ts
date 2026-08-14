@@ -1,11 +1,10 @@
 import { NestJsPrismaKyselyModule } from '@kastov/nestjs-prisma-kysely';
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { CamelCasePlugin } from 'kysely';
-
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { CustomCamelCasePlugin, JSON_COLUMNS } from './camel-case.plugin';
 import { PrismaService } from './prisma.service';
 import { TxKyselyService } from './tx-kysely.service';
 
@@ -15,7 +14,7 @@ import { TxKyselyService } from './tx-kysely.service';
         ConfigModule,
         NestJsPrismaKyselyModule.forRoot({
             transactionHostToken: TransactionHost<TransactionalAdapterPrisma>,
-            plugins: [new CamelCasePlugin()],
+            plugins: [new CustomCamelCasePlugin({ excludeColumns: JSON_COLUMNS })],
             // log: 'query',
         }),
     ],
