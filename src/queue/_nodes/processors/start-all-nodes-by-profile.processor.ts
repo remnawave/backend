@@ -299,6 +299,13 @@ export class StartAllNodesByProfileQueueProcessor extends WorkerHost {
                                 inbounds: filteredInboundsHashes,
                             },
                             forceRestart: payload.force ?? false,
+                            metadata: {
+                                uuid: node.uuid,
+                                name: node.name,
+                                countryCode: node.countryCode,
+                                id: Number(node.id),
+                                tags: node.tags,
+                            },
                         },
                     },
                     {

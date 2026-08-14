@@ -210,6 +210,13 @@ export class StartNodeProcessor extends WorkerHost {
                     internals: {
                         hashes: config.response.hashesPayload,
                         forceRestart: force ?? false,
+                        metadata: {
+                            uuid: node.uuid,
+                            name: node.name,
+                            countryCode: node.countryCode,
+                            id: Number(node.id),
+                            tags: node.tags,
+                        },
                     },
                 },
                 {

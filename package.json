@@ -61,7 +61,7 @@
     "@peculiar/x509": "2.0.0",
     "@prisma/client": "6.19.3",
     "@remnawave/hashed-set": "^0.0.4",
-    "@remnawave/node-contract": "2.9.0",
+    "@remnawave/node-contract": "2.9.1",
     "@scalar/nestjs-api-reference": "^1.2.11",
     "@simplewebauthn/server": "^13.3.2",
     "@songkeys/nestjs-redis": "^11.0.0",
@@ -110,7 +110,7 @@
     "ufo": "^1.6.4",
     "winston": "^3.19.0",
     "xbytes": "^1.9.1",
-    "xray-typed": "^1.2.1",
+    "xray-typed": "^1.2.2",
     "zod": "4.4.3"
   },
   "devDependencies": {

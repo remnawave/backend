@@ -118,8 +118,14 @@ export class XRayConfig {
     }
 
     public processCertificates(): XrayConfig {
-        if ('debugCerts' in this.config) {
-            this.config.debugCerts = this.placeDebugCerts(this.config.debugCerts);
+        if (
+            this.config.integrations &&
+            this.config.integrations.certs &&
+            this.config.integrations.certs.length > 0
+        ) {
+            this.config.integrations.certs = this.placeIntegrationsCerts(
+                this.config.integrations.certs,
+            );
         }
 
         if (!this.config.inbounds) return this.config;
@@ -136,16 +142,24 @@ export class XRayConfig {
         return this.config;
     }
 
-    private placeDebugCerts(
+    private placeIntegrationsCerts(
         configCerts: unknown,
     ): { cert: string[]; key: string[]; name: string }[] {
         if (!Array.isArray(configCerts)) return [];
 
-        const certs = configCerts as { cert: string; key: string; name: string }[];
+        const certs = configCerts as {
+            cert: string | string[];
+            key: string | string[];
+            name: string;
+        }[];
 
         const debugCerts = [];
         for (const cert of certs) {
             try {
+                if (Array.isArray(cert.cert) || Array.isArray(cert.key)) {
+                    continue;
+                }
+
                 const resolvedCert = this.readPemLines(cert.cert);
                 const resolvedKey = this.readPemLines(cert.key);
 
