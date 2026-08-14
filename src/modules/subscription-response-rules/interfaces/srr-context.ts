@@ -20,4 +20,5 @@ export interface ISRRContext {
     disableHwidCheck?: boolean;
     encryption?: TResponseRuleEncryption;
     excludeHostsByTags?: Set<string>;
+    respondWithRemarks?: string[];
 }

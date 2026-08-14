@@ -149,6 +149,24 @@ export class SubscriptionService {
 
             const subscriptionSettings = srrContext.subscriptionSettings;
 
+            if (srrContext.respondWithRemarks) {
+                const { subscription, contentType } =
+                    await this.renderTemplatesService.generateSubscription({
+                        srrContext,
+                        user: user.response,
+                        hosts: [],
+                        fallbackOptions: {
+                            respondWithRemarks: srrContext.respondWithRemarks,
+                        },
+                    });
+
+                return new SubscriptionWithConfigResponse({
+                    headers: this.getUserProfileHeadersInfo(user.response, subscriptionSettings),
+                    body: subscription,
+                    contentType: contentType,
+                });
+            }
+
             let hwidCheckup: null | IHwidCheckupResult = null;
 
             if (subscriptionSettings.hwidSettings.enabled && !srrContext.disableHwidCheck) {

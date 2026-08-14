@@ -11,5 +11,6 @@ export interface IGenerateSubscription {
     fallbackOptions?: {
         showHwidMaxDeviceRemarks?: boolean;
         showHwidNotSupportedRemarks?: boolean;
+        respondWithRemarks?: string[];
     };
 }

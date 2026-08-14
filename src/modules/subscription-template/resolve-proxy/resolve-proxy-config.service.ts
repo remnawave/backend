@@ -55,6 +55,7 @@ export interface IResolveProxyConfigOptions {
     fallbackOptions?: {
         showHwidMaxDeviceRemarks?: boolean;
         showHwidNotSupportedRemarks?: boolean;
+        respondWithRemarks?: string[];
     };
     excludeHostsByTags?: ISRRContext['excludeHostsByTags'];
 }
@@ -156,6 +157,12 @@ export class ResolveProxyConfigService {
                 }
                 if (fallbackOptions.showHwidNotSupportedRemarks) {
                     return settings.customRemarks.HWIDNotSupported;
+                }
+                if (
+                    fallbackOptions.respondWithRemarks &&
+                    fallbackOptions.respondWithRemarks.length > 0
+                ) {
+                    return fallbackOptions.respondWithRemarks;
                 }
             }
 
