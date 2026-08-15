@@ -54,6 +54,7 @@ export const configSchema = z
         TELEGRAM_NOTIFY_CRM: z.string().optional(),
         TELEGRAM_NOTIFY_SERVICE: z.string().optional(),
         TELEGRAM_NOTIFY_TBLOCKER: z.string().optional(),
+        TELEGRAM_NOTIFY_ABUSE_BLOCKER: z.string().optional(),
 
         FRONT_END_DOMAIN: z.string(),
         PANEL_DOMAIN: z.string().optional(),

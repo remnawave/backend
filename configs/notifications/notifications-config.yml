@@ -274,3 +274,13 @@ events:
   torrent_blocker.report:
     telegram: true
     webhook: true
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # ABUSE BLOCKER EVENTS
+  # ════════════════════════════════════════════════════════════════════════════
+
+  # Triggered for alert, temporary-block, repeat-block, and disable incidents.
+  # Suspicious reports remain database-only.
+  abuse_blocker.report:
+    telegram: true
+    webhook: true

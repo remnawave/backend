@@ -71,6 +71,9 @@ export const EVENTS = {
     TORRENT_BLOCKER: {
         REPORT: 'torrent_blocker.report',
     },
+    ABUSE_BLOCKER: {
+        REPORT: 'abuse_blocker.report',
+    },
     CATCH_ALL_USER_EVENTS: 'user.*',
     CATCH_ALL_USER_HWID_DEVICES_EVENTS: 'user_hwid_devices.*',
     CATCH_ALL_NODE_EVENTS: 'node.*',
@@ -78,6 +81,7 @@ export const EVENTS = {
     CATCH_ALL_ERRORS_EVENTS: 'errors.*',
     CATCH_ALL_CRM_EVENTS: 'crm.*',
     CATCH_ALL_TORRENT_BLOCKER_EVENTS: 'torrent_blocker.*',
+    CATCH_ALL_ABUSE_BLOCKER_EVENTS: 'abuse_blocker.*',
 } as const;
 
 export type TNodeEvents = (typeof EVENTS.NODE)[keyof typeof EVENTS.NODE];
@@ -90,6 +94,7 @@ export type TUserHwidDevicesEvents =
 
 export type TTorrentBlockerEvents =
     (typeof EVENTS.TORRENT_BLOCKER)[keyof typeof EVENTS.TORRENT_BLOCKER];
+export type TAbuseBlockerEvents = (typeof EVENTS.ABUSE_BLOCKER)[keyof typeof EVENTS.ABUSE_BLOCKER];
 
 export type TAllEvents =
     | TUserEvents
@@ -98,7 +103,8 @@ export type TAllEvents =
     | TErrorsEvents
     | TCRMEvents
     | TUserHwidDevicesEvents
-    | TTorrentBlockerEvents;
+    | TTorrentBlockerEvents
+    | TAbuseBlockerEvents;
 export type TAllEventChannels = 'telegram' | 'webhook';
 
 export const EVENTS_SCOPES = {
@@ -109,6 +115,7 @@ export const EVENTS_SCOPES = {
     ERRORS: 'errors',
     CRM: 'crm',
     TORRENT_BLOCKER: 'torrent_blocker',
+    ABUSE_BLOCKER: 'abuse_blocker',
 } as const;
 
 export type TEventsScope = (typeof EVENTS_SCOPES)[keyof typeof EVENTS_SCOPES];
