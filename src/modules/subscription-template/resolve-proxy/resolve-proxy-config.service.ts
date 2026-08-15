@@ -687,12 +687,18 @@ export class ResolveProxyConfigService {
     }
 
     private parseResolvedProxyConfigFromRemark(remark: string): ResolvedProxyConfig | null {
-        if (!remark.startsWith('{')) {
+        if (!remark.startsWith('{"f')) {
             return null;
         }
 
         try {
-            return JSON.parse(remark) as ResolvedProxyConfig;
+            const parsed: unknown = JSON.parse(remark);
+
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return null;
+            }
+
+            return parsed as ResolvedProxyConfig;
         } catch {
             return null;
         }

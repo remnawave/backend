@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/backend-contract",
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "A contract library for Remnawave Backend. It can be used in backend and frontend.",
   "keywords": [],
   "homepage": "https://github.com/remnawave",
