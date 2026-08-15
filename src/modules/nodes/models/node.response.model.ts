@@ -30,6 +30,7 @@ export class NodeResponseModel {
     public viewPosition: number;
     public countryCode: string;
     public tags: string[];
+    public integrationUuids: string[];
     public ips: TNodeIps;
     public createdAt: Date;
     public updatedAt: Date;
@@ -68,6 +69,7 @@ export class NodeResponseModel {
         this.consumptionMultiplier = fromNanoToNumber(data.consumptionMultiplier);
         this.nodeConsumptionMultiplier = fromNanoToNumber(data.nodeConsumptionMultiplier);
         this.tags = data.tags;
+        this.integrationUuids = data.integrationUuids;
         this.ips = data.ips;
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;

@@ -10,6 +10,7 @@ export * from './internal-squads';
 export * from './connections';
 export * from './keygen';
 export * from './metadata';
+export * from './node-integrations';
 export * from './node-plugins';
 export * from './nodes';
 export * from './passkeys';

@@ -1,5 +1,4 @@
 import { hasher } from 'node-object-hash';
-import { readFileSync } from 'node:fs';
 import {
     BalancingRule,
     InboundConfig,
@@ -14,6 +13,7 @@ import {
 
 import { HashedSet } from '@remnawave/hashed-set';
 
+import { readPemLines } from '@common/utils/certs';
 import { getVlessFlow } from '@common/utils/flow/get-vless-flow';
 
 import { UserForConfigEntity } from '@modules/users/entities/users-for-config';
@@ -118,16 +118,6 @@ export class XRayConfig {
     }
 
     public processCertificates(): XrayConfig {
-        if (
-            this.config.integrations &&
-            this.config.integrations.certs &&
-            this.config.integrations.certs.length > 0
-        ) {
-            this.config.integrations.certs = this.placeIntegrationsCerts(
-                this.config.integrations.certs,
-            );
-        }
-
         if (!this.config.inbounds) return this.config;
 
         for (const inbound of this.config.inbounds) {
@@ -142,51 +132,17 @@ export class XRayConfig {
         return this.config;
     }
 
-    private placeIntegrationsCerts(
-        configCerts: unknown,
-    ): { cert: string[]; key: string[]; name: string }[] {
-        if (!Array.isArray(configCerts)) return [];
-
-        const certs = configCerts as {
-            cert: string | string[];
-            key: string | string[];
-            name: string;
-        }[];
-
-        const debugCerts = [];
-        for (const cert of certs) {
-            try {
-                if (Array.isArray(cert.cert) || Array.isArray(cert.key)) {
-                    continue;
-                }
-
-                const resolvedCert = this.readPemLines(cert.cert);
-                const resolvedKey = this.readPemLines(cert.key);
-
-                debugCerts.push({
-                    cert: resolvedCert,
-                    key: resolvedKey,
-                    name: cert.name,
-                });
-            } catch {
-                // silence
-            }
-        }
-
-        return debugCerts;
-    }
-
     private resolveCertificate(cert: TLSCertConfig): TLSCertConfig {
         try {
             const resolved = { ...cert };
 
             if (resolved.certificateFile) {
-                resolved.certificate = this.readPemLines(resolved.certificateFile);
+                resolved.certificate = readPemLines(resolved.certificateFile);
                 delete resolved.certificateFile;
             }
 
             if (resolved.keyFile) {
-                resolved.key = this.readPemLines(resolved.keyFile);
+                resolved.key = readPemLines(resolved.keyFile);
                 delete resolved.keyFile;
             }
 
@@ -194,13 +150,6 @@ export class XRayConfig {
         } catch {
             return cert;
         }
-    }
-
-    private readPemLines(filePath: string): string[] {
-        return readFileSync(filePath, 'utf-8')
-            .replace(/\r\n/g, '\n')
-            .split('\n')
-            .filter((line) => line);
     }
 
     private hasManagedClients(inbound: InboundConfig): inbound is {

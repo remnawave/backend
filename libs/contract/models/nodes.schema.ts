@@ -27,6 +27,7 @@ export const NodesSchema = z.object({
     consumptionMultiplier: z.number(),
     nodeConsumptionMultiplier: z.number(),
     tags: z.array(z.string()),
+    integrationUuids: z.array(z.uuid()),
     ips: NodeIpsSchema,
 
     createdAt: z.iso.datetime().transform((str) => new Date(str)),

@@ -1189,4 +1189,39 @@ export const ERRORS = {
         message: 'Sync snippet error',
         httpCode: 500,
     },
+    NODE_INTEGRATION_NOT_FOUND: {
+        code: 'A238',
+        message: 'Node integration not found',
+        httpCode: 404,
+    },
+    GET_ALL_NODE_INTEGRATIONS_ERROR: {
+        code: 'A239',
+        message: 'Get all node integrations error',
+        httpCode: 500,
+    },
+    GET_NODE_INTEGRATION_BY_UUID_ERROR: {
+        code: 'A240',
+        message: 'Get node integration by UUID error',
+        httpCode: 500,
+    },
+    CREATE_NODE_INTEGRATION_ERROR: {
+        code: 'A241',
+        message: 'Create node integration error',
+        httpCode: 500,
+    },
+    UPDATE_NODE_INTEGRATION_ERROR: {
+        code: 'A242',
+        message: 'Update node integration error',
+        httpCode: 500,
+    },
+    DELETE_NODE_INTEGRATION_ERROR: {
+        code: 'A243',
+        message: 'Delete node integration error',
+        httpCode: 500,
+    },
+    NODE_INTEGRATION_NAME_ALREADY_EXISTS: {
+        code: 'A244',
+        message: 'Node integration name already exists',
+        httpCode: 400,
+    },
 } as const;

@@ -36,6 +36,11 @@ export const CONTROLLERS_INFO = {
         description: '',
         resource: 'node-plugins',
     },
+    NODE_INTEGRATIONS: {
+        tag: 'Node Integrations Controller',
+        description: 'Management of Node Integrations.',
+        resource: 'node-integrations',
+    },
     BANDWIDTH_STATS: {
         tag: 'Bandwidth Stats Controller',
         description: '',

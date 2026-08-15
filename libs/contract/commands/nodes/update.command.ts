@@ -68,6 +68,7 @@ export namespace UpdateNodeCommand {
                 .max(10, 'Maximum 10 tags'),
         ),
         activePluginUuid: z.uuid().nullish(),
+        integrationUuids: z.optional(z.array(z.uuid()).max(20, 'Maximum 20 integrations')),
         note: z.optional(z.string().max(255).nullable()),
         ips: z.optional(NodeIpsSchema),
     });

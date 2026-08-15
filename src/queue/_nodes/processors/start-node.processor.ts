@@ -13,6 +13,8 @@ import { CACHE_KEYS, CACHE_KEYS_TTL, EVENTS } from '@libs/contracts/constants';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
+import { GetResolvedIntegrationsQuery } from '@modules/node-integrations/queries/get-resolved-integrations';
+import { mergeNodeIntegrations } from '@modules/node-integrations/utils';
 import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
@@ -202,6 +204,20 @@ export class StartNodeProcessor extends WorkerHost {
                 throw new Error('Failed to get config for node');
             }
 
+            const integrationsResult = await this.queryBus.execute(
+                new GetResolvedIntegrationsQuery(node.integrationUuids),
+            );
+
+            if (!integrationsResult.isOk) {
+                throw new Error('Failed to resolve integrations for node');
+            }
+
+            const nodeIntegrations = mergeNodeIntegrations(
+                node.integrationUuids
+                    .map((uuid) => integrationsResult.response.get(uuid))
+                    .filter((integration) => integration !== undefined),
+            );
+
             const reqStartTime = getTime();
 
             const startNodeResult = await this.axios.startXray(
@@ -217,6 +233,7 @@ export class StartNodeProcessor extends WorkerHost {
                             id: Number(node.id),
                             tags: node.tags,
                         },
+                        integrations: nodeIntegrations,
                     },
                 },
                 {

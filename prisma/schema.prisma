@@ -197,6 +197,8 @@ model Nodes {
   countryCode  String   @default("XX") @map("country_code")
   tags         String[] @default([]) @map("tags")
 
+  integrationUuids String[] @default([]) @map("integration_uuids") @db.Uuid
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -215,6 +217,18 @@ model Nodes {
 
   @@index([id])
   @@map("nodes")
+}
+
+model Integrations {
+  uuid        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String  @unique @map("name") @db.VarChar(30)
+  description String? @map("description") @db.VarChar(255)
+  config      Json    @map("config")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("integrations")
 }
 
 model NodesUserUsageHistory {

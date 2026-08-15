@@ -29,6 +29,7 @@ export class NodesEntity implements Nodes {
     public viewPosition: number;
     public countryCode: string;
     public tags: string[];
+    public integrationUuids: string[];
     public ips: TNodeIps;
     public consumptionMultiplier: bigint;
     public nodeConsumptionMultiplier: bigint;

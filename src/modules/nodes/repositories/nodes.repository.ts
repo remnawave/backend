@@ -194,7 +194,7 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
     public async findByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity[]> {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tags, ips, ...rest } = dto;
+        const { tags, ips, integrationUuids, ...rest } = dto;
         const nodesList = await this.prisma.tx.nodes.findMany({
             where: rest,
             orderBy: {
@@ -218,7 +218,7 @@ export class NodesRepository implements ICrud<NodesEntity> {
 
     public async findFirstByCriteria(dto: Partial<NodesEntity>): Promise<NodesEntity | null> {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { tags, ips, ...rest } = dto;
+        const { tags, ips, integrationUuids, ...rest } = dto;
         const result = await this.prisma.tx.nodes.findFirst({
             where: rest,
             include: INCLUDE_RESOLVED_INBOUNDS,
@@ -360,6 +360,60 @@ export class NodesRepository implements ICrud<NodesEntity> {
             .execute();
 
         return result.map((value) => value.uuid);
+    }
+
+    public async getProfileUuidsByIntegrationUuid(integrationUuid: string): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('activeConfigProfileUuid')
+            .distinct()
+            .where(
+                sql<boolean>`${sql.ref('nodes.integration_uuids')} @> ARRAY[${getKyselyUuid(integrationUuid)}]`,
+            )
+            .where('isDisabled', '=', false)
+            .where('activeConfigProfileUuid', 'is not', null)
+            .execute();
+
+        return result
+            .map((value) => value.activeConfigProfileUuid)
+            .filter((uuid): uuid is string => uuid !== null);
+    }
+
+    public async getProfileUuidsByNodeUuids(nodeUuids: string[]): Promise<string[]> {
+        if (nodeUuids.length === 0) {
+            return [];
+        }
+
+        const result = await this.qb.kysely
+            .selectFrom('nodes')
+            .select('activeConfigProfileUuid')
+            .distinct()
+            .where(
+                'uuid',
+                'in',
+                nodeUuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .where('isDisabled', '=', false)
+            .where('activeConfigProfileUuid', 'is not', null)
+            .execute();
+
+        return result
+            .map((value) => value.activeConfigProfileUuid)
+            .filter((uuid): uuid is string => uuid !== null);
+    }
+
+    public async removeIntegrationFromNodes(integrationUuid: string): Promise<boolean> {
+        const result = await this.qb.kysely
+            .updateTable('nodes')
+            .set({
+                integrationUuids: sql<string[]>`array_remove(${sql.ref('nodes.integration_uuids')}, ${getKyselyUuid(integrationUuid)})`,
+            })
+            .where(
+                sql<boolean>`${sql.ref('nodes.integration_uuids')} @> ARRAY[${getKyselyUuid(integrationUuid)}]`,
+            )
+            .execute();
+
+        return !!result;
     }
 
     public async updateMany(uuids: string[], fields: Partial<NodesEntity>): Promise<boolean> {
