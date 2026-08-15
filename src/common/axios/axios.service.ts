@@ -18,6 +18,7 @@ import {
     AddUsersCommand,
     BlockIpsCommand,
     CollectReportsCommand,
+    CollectAbuseBlockerReportsCommand,
     DropIpsCommand,
     DropUsersConnectionsCommand,
     GetCombinedStatsCommand,
@@ -27,6 +28,7 @@ import {
     GetUsersIpListCommand,
     GetUsersStatsCommand,
     RecreateTablesCommand,
+    RefreshAbuseBlockCommand,
     RemoveUserCommand,
     RemoveUsersCommand,
     StartXrayCommand,
@@ -430,6 +432,31 @@ export class AxiosService {
             opts,
             logAxiosError: false,
             timeout: 20_000,
+        });
+    }
+
+    public async collectAbuseBlockerReports(
+        opts: INodeConnectionOpts,
+    ): Promise<TResult<CollectAbuseBlockerReportsCommand.Response['response']>> {
+        return this.request<CollectAbuseBlockerReportsCommand.Response>({
+            label: 'COLLECT ABUSE BLOCKER REPORTS',
+            path: CollectAbuseBlockerReportsCommand.url,
+            opts,
+            logAxiosError: false,
+            timeout: 20_000,
+        });
+    }
+
+    public async refreshAbuseBlock(
+        data: RefreshAbuseBlockCommand.Request,
+        opts: INodeConnectionOpts,
+    ): Promise<TResult<RefreshAbuseBlockCommand.Response['response']>> {
+        return this.request<RefreshAbuseBlockCommand.Response>({
+            label: 'REFRESH ABUSE BLOCK',
+            path: RefreshAbuseBlockCommand.url,
+            opts,
+            data,
+            timeout: 10_000,
         });
     }
 

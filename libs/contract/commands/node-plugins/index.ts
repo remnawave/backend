@@ -1,4 +1,5 @@
 export * from './actions';
+export * from './abuse-blocker';
 export * from './create-node-plugin.command';
 export * from './delete-node-plugin.command';
 export * from './executor.command';

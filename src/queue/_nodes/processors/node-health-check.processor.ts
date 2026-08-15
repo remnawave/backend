@@ -119,14 +119,17 @@ export class NodeHealthCheckQueueProcessor extends WorkerHost {
             },
         ]);
 
-        const reports = stats.plugins.torrentBlocker.reportsCount;
-        if (reports !== undefined && reports > 0) {
+        const torrentReports = stats.plugins.torrentBlocker.reportsCount ?? 0;
+        const abuseReports = stats.plugins.abuseBlocker?.reportsCount ?? 0;
+        if (torrentReports + abuseReports > 0) {
             await this.nodesQueuesService.collectReports({
                 nodeUuid,
                 connectionOpts,
             });
 
-            this.logger.log(`Node ${nodeUuid} has ${reports} reports, collecting reports...`);
+            this.logger.log(
+                `Node ${nodeUuid} has ${torrentReports} torrent and ${abuseReports} abuse reports, collecting...`,
+            );
         }
 
         if (!isConnected) {

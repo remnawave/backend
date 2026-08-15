@@ -1,6 +1,9 @@
 import { createZodDto } from 'nestjs-zod';
 
 import {
+    GetAbuseBlockerReportsCommand,
+    GetAbuseBlockerReviewQueueCommand,
+    GetAbuseBlockerStatsCommand,
     GetNodePluginsCommand,
     UpdateNodePluginCommand,
     GetNodePluginCommand,
@@ -9,6 +12,7 @@ import {
     ReorderNodePluginCommand,
     CloneNodePluginCommand,
     PluginExecutorCommand,
+    ReviewAbuseBlockerUserCommand,
 } from '@libs/contracts/commands';
 import { GetTorrentBlockerReportsCommand } from '@libs/contracts/commands/node-plugins/torrent-blocker';
 import { GetTorrentBlockerReportsStatsCommand } from '@libs/contracts/commands/node-plugins/torrent-blocker/get-torrent-blocker-reports-stats.command';
@@ -65,3 +69,28 @@ export class GetTorrentBlockerReportsResponseDto extends createZodDto(
 export class GetTorrentBlockerReportsStatsResponseDto extends createZodDto(
     GetTorrentBlockerReportsStatsCommand.ResponseSchema,
 ) {} // TORRENT_BLOCKER_REPORT_STATS
+
+export class GetAbuseBlockerReportsQueryDto extends createZodDto(
+    GetAbuseBlockerReportsCommand.RequestQuerySchema,
+) {}
+export class GetAbuseBlockerReportsResponseDto extends createZodDto(
+    GetAbuseBlockerReportsCommand.ResponseSchema,
+) {}
+export class GetAbuseBlockerStatsResponseDto extends createZodDto(
+    GetAbuseBlockerStatsCommand.ResponseSchema,
+) {}
+export class GetAbuseBlockerReviewQueueQueryDto extends createZodDto(
+    GetAbuseBlockerReviewQueueCommand.RequestQuerySchema,
+) {}
+export class GetAbuseBlockerReviewQueueResponseDto extends createZodDto(
+    GetAbuseBlockerReviewQueueCommand.ResponseSchema,
+) {}
+export class ReviewAbuseBlockerUserParamDto extends createZodDto(
+    ReviewAbuseBlockerUserCommand.RequestParamSchema,
+) {}
+export class ReviewAbuseBlockerUserBodyDto extends createZodDto(
+    ReviewAbuseBlockerUserCommand.RequestBodySchema,
+) {}
+export class ReviewAbuseBlockerUserResponseDto extends createZodDto(
+    ReviewAbuseBlockerUserCommand.ResponseSchema,
+) {}

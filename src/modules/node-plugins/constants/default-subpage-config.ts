@@ -15,6 +15,9 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
             ip: [],
         },
     },
+    abuseBlocker: {
+        enabled: false,
+    },
     connectionDrop: {
         enabled: false,
         whitelistIps: [],
