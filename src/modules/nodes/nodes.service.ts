@@ -297,6 +297,7 @@ export class NodesService {
             if (!node.isDisabled) {
                 await this.nodesQueuesService.startNode({
                     nodeUuid: result.uuid,
+                    force: nodeData.integrationUuids !== undefined,
                 });
             }
 
