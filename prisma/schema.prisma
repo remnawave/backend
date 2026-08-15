@@ -75,6 +75,8 @@ model Users {
   userSubscriptionRequestHistory UserSubscriptionRequestHistory[]
   userMetas                      UserMeta[]
   torrentBlockerReports          TorrentBlockerReports[]
+  abuseBlockerReports            AbuseBlockerReports[]
+  abuseBlockerState              AbuseBlockerUserState?
   traffic                        UserTraffic?
 
   externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
@@ -210,6 +212,7 @@ model Nodes {
   connectedUsers               UserTraffic[]
   nodeMetas                    NodeMeta[]
   torrentBlockerReports        TorrentBlockerReports[]
+  abuseBlockerReports          AbuseBlockerReports[]
 
   activeConfigProfile ConfigProfiles? @relation(fields: [activeConfigProfileUuid], references: [uuid], onDelete: SetNull)
   provider            InfraProviders? @relation(fields: [providerUuid], references: [uuid], onDelete: SetNull)
@@ -645,4 +648,47 @@ model TorrentBlockerReports {
   node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
   @@map("torrent_blocker_reports")
+}
+
+model AbuseBlockerReports {
+  eventId    String   @id @map("event_id") @db.Uuid
+  userId     BigInt   @map("user_id")
+  nodeId     BigInt   @map("node_id")
+  severity   String   @map("severity") @db.VarChar(16)
+  score      Int      @map("score")
+  sourceIp   String   @map("source_ip") @db.VarChar(45)
+  action     String   @map("action") @db.VarChar(32)
+  detectedAt DateTime @map("detected_at")
+  report     Json     @map("report")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  node Nodes @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([userId, detectedAt])
+  @@index([nodeId, detectedAt])
+  @@index([severity, detectedAt])
+  @@index([action, detectedAt])
+  @@map("abuse_blocker_reports")
+}
+
+model AbuseBlockerUserState {
+  userId                 BigInt    @id @map("user_id")
+  strikeLevel            Int       @default(0) @map("strike_level")
+  lastBlockingIncidentAt DateTime? @map("last_blocking_incident_at")
+  manualReviewRequired   Boolean   @default(false) @map("manual_review_required")
+  disabledByPlugin       Boolean   @default(false) @map("disabled_by_plugin")
+  reviewRequestedAt      DateTime? @map("review_requested_at")
+  reviewedAt             DateTime? @map("reviewed_at")
+  reviewAction           String?   @map("review_action") @db.VarChar(20)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([manualReviewRequired, updatedAt])
+  @@map("abuse_blocker_user_state")
 }

@@ -11,6 +11,6 @@ import { UsersService } from './users.service';
     imports: [CqrsModule],
     controllers: [UsersController, UsersBulkActionsController],
     providers: [UsersRepository, UserConverter, UsersService, ...QUERIES, ...COMMANDS],
-    exports: [],
+    exports: [UsersService],
 })
 export class UsersModule {}

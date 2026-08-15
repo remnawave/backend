@@ -2,12 +2,13 @@ import { Job } from 'bullmq';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
 import { INodeConnectionOpts } from '@common/axios';
 import { AxiosService } from '@common/axios/axios.service';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
+import { ProcessAbuseReportCommand } from '@modules/node-plugins/commands/process-abuse-report';
 import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 
@@ -27,6 +28,7 @@ export class NodePluginsProcessor extends WorkerHost {
         private readonly axios: AxiosService,
         private readonly queryBus: QueryBus,
         private readonly usersQueuesService: UsersQueuesService,
+        private readonly commandBus: CommandBus,
     ) {
         super();
         this.CONCURRENCY = 20;
@@ -142,33 +144,44 @@ export class NodePluginsProcessor extends WorkerHost {
         try {
             const { nodeUuid, connectionOpts } = job.data;
 
-            const response = await this.axios.collectTorrentBlockerReports(connectionOpts);
+            const [torrentResponse, abuseResponse] = await Promise.all([
+                this.axios.collectTorrentBlockerReports(connectionOpts),
+                this.axios.collectAbuseBlockerReports(connectionOpts),
+            ]);
+            let success = true;
 
-            if (!response.isOk) {
-                this.logger.error(`Failed to collect reports: ${response.message}`);
-
-                return {
-                    success: false,
-                    nodeUuid,
-                    collectedReports: [],
-                };
+            if (!torrentResponse.isOk) {
+                success = false;
+                this.logger.error(`Failed to collect torrent reports: ${torrentResponse.message}`);
+            } else {
+                for (const report of torrentResponse.response.reports) {
+                    await this.usersQueuesService.fireTorrentBlockerEvent({
+                        id: report.actionReport.userId,
+                        event: EVENTS.TORRENT_BLOCKER.REPORT,
+                        nodeUuid,
+                        report,
+                    });
+                }
             }
 
-            const { response: collectedReports } = response;
-
-            for (const report of collectedReports.reports) {
-                await this.usersQueuesService.fireTorrentBlockerEvent({
-                    id: report.actionReport.userId,
-                    event: EVENTS.TORRENT_BLOCKER.REPORT,
-                    nodeUuid,
-                    report,
-                });
+            if (!abuseResponse.isOk) {
+                success = false;
+                this.logger.error(`Failed to collect abuse reports: ${abuseResponse.message}`);
+            } else {
+                for (const report of abuseResponse.response.reports) {
+                    await this.commandBus.execute(
+                        new ProcessAbuseReportCommand(nodeUuid, connectionOpts, report),
+                    );
+                }
             }
 
             return {
-                success: true,
+                success,
                 nodeUuid,
-                collectedReports,
+                collectedReports: torrentResponse.isOk ? torrentResponse.response : { reports: [] },
+                collectedAbuseReports: abuseResponse.isOk
+                    ? abuseResponse.response
+                    : { reports: [] },
             };
         } catch (error) {
             this.logger.error(`Failed to collect reports: ${error}`);

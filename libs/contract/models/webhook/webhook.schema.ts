@@ -156,6 +156,21 @@ export const RemnawaveWebhookTorrentBlockerEvents = z.object({
         }),
     }),
 });
+export const RemnawaveWebhookAbuseBlockerEvents = z.object({
+    scope: z.literal(EVENTS_SCOPES.ABUSE_BLOCKER),
+    event: z.enum(toZodEnum(EVENTS.ABUSE_BLOCKER)),
+    timestamp: z
+        .string()
+        .datetime()
+        .transform((str) => new Date(str)),
+    data: z.object({
+        node: NodesSchema,
+        user: ExtendedUsersSchema,
+        report: z.unknown(),
+        backendAction: z.enum(['none', 'initial_block', 'repeat_block', 'disabled']),
+        strikeLevel: z.number(),
+    }),
+});
 export const RemnawaveWebhookEventSchema = z.discriminatedUnion('scope', [
     RemnawaveWebhookUserEvents,
     RemnawaveWebhookUserHwidDevicesEvents,
@@ -164,6 +179,7 @@ export const RemnawaveWebhookEventSchema = z.discriminatedUnion('scope', [
     RemnawaveWebhookErrorsEvents,
     RemnawaveWebhookCrmEvents,
     RemnawaveWebhookTorrentBlockerEvents,
+    RemnawaveWebhookAbuseBlockerEvents,
 ]);
 
 export type TRemnawaveWebhookEvent = z.infer<typeof RemnawaveWebhookEventSchema>;
@@ -179,3 +195,4 @@ export type TRemnawaveWebhookUserHwidDevicesEvent = z.infer<
 export type TRemnawaveWebhookTorrentBlockerEvent = z.infer<
     typeof RemnawaveWebhookTorrentBlockerEvents
 >;
+export type TRemnawaveWebhookAbuseBlockerEvent = z.infer<typeof RemnawaveWebhookAbuseBlockerEvents>;
