@@ -1,6 +1,5 @@
 import { Transactional } from '@nestjs-cls/transactional';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import _ from 'lodash';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
@@ -8,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { XRayConfig } from '@common/helpers/xray-config';
 import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
+import { diffInbounds } from '@common/utils/inbounds';
 import { CACHE_KEYS } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
 
@@ -351,98 +351,32 @@ export class ConfigProfileService {
         newInbounds: ConfigProfileInboundEntity[],
     ): Promise<void> {
         try {
-            const inboundsToRemove = existingInbounds.filter((existingInbound) => {
-                const configInbound = newInbounds.find((ci) => ci.tag === existingInbound.tag);
-                return !configInbound || configInbound.type !== existingInbound.type;
-            });
+            const { toAdd, toRemove, toUpdate } = diffInbounds(existingInbounds, newInbounds);
 
-            const inboundsToAdd = newInbounds.filter((configInbound) => {
-                if (!existingInbounds) {
-                    // TODO: need additional checks
-                    return true;
-                }
-                const existingInbound = existingInbounds.find((ei) => ei.tag === configInbound.tag);
-                return !existingInbound || existingInbound.type !== configInbound.type;
-            });
-
-            if (inboundsToRemove.length) {
-                const tagsToRemove = inboundsToRemove.map((inbound) => inbound.tag);
-                this.logger.log(`Removing inbounds: ${tagsToRemove.join(', ')}`);
+            if (toRemove.length) {
+                this.logger.log(`Removing inbounds: ${toRemove.map((i) => i.tag).join(', ')}`);
 
                 await this.configProfileRepository.deleteManyConfigProfileInboundsByUUIDs(
-                    inboundsToRemove.map((inbound) => inbound.uuid),
+                    toRemove.map((inbound) => inbound.uuid),
                 );
             }
 
-            if (inboundsToAdd.length) {
-                this.logger.log(`Adding inbounds: ${inboundsToAdd.map((i) => i.tag).join(', ')}`);
-                await this.configProfileRepository.createManyConfigProfileInbounds(inboundsToAdd);
+            if (toAdd.length) {
+                this.logger.log(`Adding inbounds: ${toAdd.map((i) => i.tag).join(', ')}`);
+
+                await this.configProfileRepository.createManyConfigProfileInbounds(toAdd);
             }
 
-            if (inboundsToAdd.length === 0 && inboundsToRemove.length === 0) {
-                const inboundsToUpdate = newInbounds
-                    .filter((configInbound) => {
-                        if (!existingInbounds) {
-                            return false;
-                        }
+            if (toUpdate.length) {
+                this.logger.log(`Updating inbounds: ${toUpdate.map((i) => i.tag).join(', ')}`);
 
-                        const existingInbound = existingInbounds.find(
-                            (ei) => ei.tag === configInbound.tag,
-                        );
-
-                        if (!existingInbound) {
-                            return false;
-                        }
-
-                        const securityChanged = configInbound.security !== existingInbound.security;
-                        const networkChanged = configInbound.network !== existingInbound.network;
-                        const typeChanged = configInbound.type !== existingInbound.type;
-                        const portChanged = configInbound.port !== existingInbound.port;
-                        const rawInboundChanged = !_.isEqual(
-                            configInbound.rawInbound,
-                            existingInbound.rawInbound,
-                        );
-
-                        return (
-                            securityChanged ||
-                            networkChanged ||
-                            typeChanged ||
-                            portChanged ||
-                            rawInboundChanged
-                        );
-                    })
-                    .map((configInbound) => {
-                        const existingInbound = existingInbounds.find(
-                            (ei) => ei.tag === configInbound.tag,
-                        );
-
-                        if (!existingInbound) {
-                            throw new Error(`Inbound with tag ${configInbound.tag} not found`);
-                        }
-
-                        existingInbound.security = configInbound.security;
-                        existingInbound.network = configInbound.network;
-                        existingInbound.type = configInbound.type;
-                        existingInbound.port = configInbound.port;
-                        existingInbound.rawInbound = configInbound.rawInbound;
-
-                        return existingInbound;
-                    });
-
-                if (inboundsToUpdate.length) {
-                    this.logger.log(
-                        `Updating inbounds: ${inboundsToUpdate.map((i) => i.tag).join(', ')}`,
-                    );
-
-                    for (const inbound of inboundsToUpdate) {
-                        await this.configProfileRepository.updateConfigProfileInbound(inbound);
-                    }
+                for (const inbound of toUpdate) {
+                    await this.configProfileRepository.updateConfigProfileInbound(inbound);
                 }
             }
 
             return;
         } catch (error) {
-            this.logger.log('Inbounds synced/updated successfully');
             if (error instanceof Error) {
                 this.logger.error('Failed to sync inbounds:', error.message);
             } else {
