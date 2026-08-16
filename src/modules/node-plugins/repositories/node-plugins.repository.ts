@@ -11,6 +11,8 @@ import { ICrud } from '@common/types/crud-port';
 import { NodePluginEntity } from '../entities/node-plugin.entity';
 import { NodePluginConverter } from '../node-plugins.converter';
 
+const SHARED_LIST_USAGE_JSONPATH = `$.** ? (@ == $name)`;
+
 @Injectable()
 export class NodePluginRepository implements ICrud<NodePluginEntity> {
     constructor(
@@ -113,6 +115,22 @@ export class NodePluginRepository implements ICrud<NodePluginEntity> {
             },
         });
         return result.map((item) => new NodePluginEntity(item));
+    }
+
+    public async getUuidsBySharedListName(name: string): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodePlugin')
+            .select('uuid')
+            .where(
+                sql<boolean>`jsonb_path_exists(
+                    ${sql.ref('node_plugin.plugin_config')},
+                    ${SHARED_LIST_USAGE_JSONPATH}::jsonpath,
+                    jsonb_build_object('name', ${`ext:${name}`}::text)
+                )`,
+            )
+            .execute();
+
+        return result.map((row) => row.uuid);
     }
 
     public async reorderMany(

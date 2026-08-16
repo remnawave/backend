@@ -9,6 +9,7 @@ import {
     ReorderNodePluginCommand,
     CloneNodePluginCommand,
     PluginExecutorCommand,
+    SyncNodePluginCommand,
 } from '@libs/contracts/commands';
 import { GetTorrentBlockerReportsCommand } from '@libs/contracts/commands/node-plugins/torrent-blocker';
 import { GetTorrentBlockerReportsStatsCommand } from '@libs/contracts/commands/node-plugins/torrent-blocker/get-torrent-blocker-reports-stats.command';
@@ -54,6 +55,8 @@ export class CloneNodePluginResponseDto extends createZodDto(
 ) {} // CLONE
 
 export class PluginExecutorBodyDto extends createZodDto(PluginExecutorCommand.RequestBodySchema) {} // EXECUTOR
+
+export class SyncNodePluginBodyDto extends createZodDto(SyncNodePluginCommand.RequestBodySchema) {} // SYNC
 
 export class GetTorrentBlockerReportsQueryDto extends createZodDto(
     GetTorrentBlockerReportsCommand.RequestQuerySchema,

@@ -1,5 +1,4 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { NodePluginSchema } from 'libs/node-plugins';
 import { nanoid } from 'nanoid';
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -8,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { fail, ok, TResult } from '@common/types';
 import { GetTorrentBlockerReportsCommand } from '@libs/contracts/commands';
 import { ERRORS } from '@libs/contracts/constants';
+import { NodePluginEditorSchema } from '@libs/node-plugins/models';
 
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 import { FindNodesByCriteriaQuery } from '@modules/nodes/queries/find-nodes-by-criteria';
@@ -78,7 +78,7 @@ export class NodePluginService {
             }
 
             if (inputConfig) {
-                const validatedConfig = await NodePluginSchema.safeParseAsync(inputConfig);
+                const validatedConfig = await NodePluginEditorSchema.safeParseAsync(inputConfig);
 
                 if (!validatedConfig.success) {
                     const errorMessage = validatedConfig.error.issues
@@ -99,8 +99,6 @@ export class NodePluginService {
                 name: name ?? undefined,
                 pluginConfig: inputConfig ?? undefined,
             });
-
-            await this.syncNodePlugins(nodePlugin.uuid);
 
             return ok(new BaseNodePluginResponseModel(updatedConfig));
         } catch (error) {
@@ -215,6 +213,23 @@ export class NodePluginService {
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.CREATE_NODE_PLUGIN_ERROR);
+        }
+    }
+
+    public async syncNodePluginByUuid(pluginUuid: string): Promise<TResult<boolean>> {
+        try {
+            const nodePlugin = await this.nodePluginRepository.findByUUID(pluginUuid);
+
+            if (!nodePlugin) {
+                return fail(ERRORS.NODE_PLUGIN_NOT_FOUND);
+            }
+
+            await this.syncNodePlugins(nodePlugin.uuid);
+
+            return ok(true);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.INTERNAL_SERVER_ERROR);
         }
     }
 

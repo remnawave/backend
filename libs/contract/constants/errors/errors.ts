@@ -1224,4 +1224,49 @@ export const ERRORS = {
         message: 'Node integration name already exists',
         httpCode: 400,
     },
+    SHARED_LIST_NOT_FOUND: {
+        code: 'A245',
+        message: 'Shared list not found',
+        httpCode: 404,
+    },
+    SHARED_LIST_NAME_ALREADY_EXISTS: {
+        code: 'A246',
+        message: 'Shared list name already exists',
+        httpCode: 400,
+    },
+    GET_ALL_SHARED_LISTS_ERROR: {
+        code: 'A247',
+        message: 'Get all shared lists error',
+        httpCode: 500,
+    },
+    GET_SHARED_LIST_BY_NAME_ERROR: {
+        code: 'A248',
+        message: 'Get shared list by name error',
+        httpCode: 500,
+    },
+    CREATE_SHARED_LIST_ERROR: {
+        code: 'A249',
+        message: 'Create shared list error',
+        httpCode: 500,
+    },
+    UPDATE_SHARED_LIST_ERROR: {
+        code: 'A250',
+        message: 'Update shared list error',
+        httpCode: 500,
+    },
+    DELETE_SHARED_LIST_ERROR: {
+        code: 'A251',
+        message: 'Delete shared list error',
+        httpCode: 500,
+    },
+    INVALID_SHARED_LIST_CONFIG: {
+        code: 'A252',
+        message: 'Invalid shared list config',
+        httpCode: 400,
+        withMessage: (message: string) => ({
+            code: 'A252',
+            message,
+            httpCode: 400,
+        }),
+    },
 } as const;

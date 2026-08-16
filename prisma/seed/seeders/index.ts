@@ -3,6 +3,7 @@ export * from './10_seed-response-rules';
 export * from './11_seed-subpage-config';
 export * from './12_verify-admin';
 export * from './13_migrate-scopes';
+export * from './14_migrate-shared-lists';
 export * from './2_checkup-external-squads';
 export * from './3_seed-remnawave-settings';
 export * from './4_seed-subscription-template';
