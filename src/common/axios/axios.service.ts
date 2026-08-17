@@ -36,6 +36,7 @@ import {
 } from '@remnawave/node-contract';
 
 import { prettyBytesUtil } from '@common/utils/bytes';
+import { deriveSni } from '@common/utils/certs';
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 
 import { GetNodeJwtCommand } from '@modules/keygen/commands/get-node-jwt';
@@ -64,6 +65,7 @@ export class AxiosService {
 
     public axiosInstance: AxiosInstance;
     private mtlsOptions: IMtlsOptions;
+    private servername: string;
     private readonly socksAgentCache = new Map<string, MtlsSocksProxyAgent>();
 
     constructor(private readonly commandBus: CommandBus) {
@@ -90,6 +92,8 @@ export class AxiosService {
 
             this.axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${jwt.jwtToken}`;
 
+            this.servername = deriveSni(jwt.caCert, jwt.jwtPublicKey);
+
             this.mtlsOptions = {
                 cert: jwt.clientCert,
                 key: jwt.clientKey,
@@ -102,11 +106,13 @@ export class AxiosService {
                 rejectUnauthorized: true,
                 keepAlive: true,
                 minVersion: 'TLSv1.3',
+                servername: this.servername,
             });
 
             this.axiosInstance.defaults.httpsAgent = httpsAgent;
 
-            this.logger.log('Axios interceptor registered');
+            this.logger.log('Interceptor registered');
+            this.logger.log(`Node SNI: ${this.servername}`);
         } catch (error) {
             this.logger.error(`Error in onApplicationBootstrap: ${error}`);
             throw error;
@@ -121,7 +127,7 @@ export class AxiosService {
         const cached = this.socksAgentCache.get(proxyUrl);
         if (cached) return cached;
 
-        const httpsAgent = new MtlsSocksProxyAgent(proxyUrl, this.mtlsOptions);
+        const httpsAgent = new MtlsSocksProxyAgent(proxyUrl, this.mtlsOptions, this.servername);
         this.socksAgentCache.set(proxyUrl, httpsAgent);
 
         return httpsAgent;
