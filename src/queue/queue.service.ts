@@ -16,10 +16,12 @@ export abstract class AbstractQueueService {
      * @throws If the connection fails, an error is thrown.
      */
     protected async checkConnection(): Promise<void> {
-        const client = await this.queue.client;
+        try {
+            await this.queue.waitUntilReady();
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            const errorMessage = `Queue "${this.queue.name}" is not connected. Reason: [${reason}]`;
 
-        if (client.status !== 'ready') {
-            const errorMessage = `Queue "${this.queue.name}" is not connected. Current status: [${client.status.toUpperCase()}]`;
             this.logger.error(errorMessage);
             throw new Error(errorMessage);
         }
