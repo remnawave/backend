@@ -21,6 +21,7 @@ import {
     DropIpsCommand,
     DropUsersConnectionsCommand,
     GetCombinedStatsCommand,
+    GetGeocheckCommand,
     GetNodeHealthCheckCommand,
     GetSystemStatsCommand,
     GetUserIpListCommand,
@@ -46,6 +47,7 @@ import { INodeConnectionOpts, INodeRequestOpts, IMtlsOptions } from './axios.int
 import { MtlsSocksProxyAgent } from './mtls-agent';
 
 const EMPTY_BODY: Readonly<Record<string, never>> = {};
+const MAX_NODE_ERROR_LENGTH = 2000;
 const ZSTD_HEADERS: RawAxiosRequestHeaders = { 'Content-Encoding': 'zstd' };
 
 const zstdCompressAsync = promisify(zstdCompress);
@@ -137,6 +139,35 @@ export class AxiosService {
         return port ? `https://${url}:${port}${path}` : `https://${url}${path}`;
     }
 
+    private extractNodeError(error: AxiosError): string {
+        const data = error.response?.data;
+
+        let reason: string | undefined;
+
+        if (typeof data === 'string') {
+            reason = data;
+        } else if (data && typeof data === 'object') {
+            const body = data as { error?: unknown; message?: unknown };
+
+            reason =
+                typeof body.message === 'string'
+                    ? body.message
+                    : typeof body.error === 'string'
+                      ? body.error
+                      : JSON.stringify(data);
+        }
+
+        reason = reason?.trim();
+
+        if (!reason) {
+            return error.message;
+        }
+
+        return reason.length > MAX_NODE_ERROR_LENGTH
+            ? `${reason.slice(0, MAX_NODE_ERROR_LENGTH)}…`
+            : reason;
+    }
+
     private async request<TResponse extends { response: unknown }>(
         params: INodeRequestOpts,
     ): Promise<TResult<TResponse['response']>> {
@@ -194,9 +225,9 @@ export class AxiosService {
                     this.logger.error(`Error in Axios ${label} request: ${error.message}`);
                 }
 
-                if (handle500 && error.code === '500') {
+                if (handle500 && error.response?.status === 500) {
                     return fail(
-                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(JSON.stringify(error.message)),
+                        ERRORS.NODE_ERROR_500_WITH_MSG.withMessage(this.extractNodeError(error)),
                     );
                 }
 
@@ -323,6 +354,21 @@ export class AxiosService {
             data,
             handle500: true,
             logAxiosError: false,
+        });
+    }
+
+    public async getGeocheck(
+        data: GetGeocheckCommand.Request,
+        opts: INodeConnectionOpts,
+    ): Promise<TResult<GetGeocheckCommand.Response['response']>> {
+        return this.request<GetGeocheckCommand.Response>({
+            label: 'GET GEO CHECK',
+            path: GetGeocheckCommand.url,
+            opts,
+            data,
+            handle500: true,
+            logAxiosError: false,
+            timeout: 55_000,
         });
     }
 

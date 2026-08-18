@@ -16,6 +16,8 @@ import {
     ConnectionsByUserResultCommand,
     ConnectionsByNodeCommand,
     ConnectionsByNodeResultCommand,
+    GeocheckByNodeCommand,
+    GeocheckByNodeResultCommand,
 } from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
@@ -30,6 +32,11 @@ import {
     ConnectionsByNodeResponseDto,
     ConnectionsByNodeResultParamDto,
     ConnectionsByNodeResultResponseDto,
+    GeocheckByNodeBodyDto,
+    GeocheckByNodeParamDto,
+    GeocheckByNodeResponseDto,
+    GeocheckByNodeResultParamDto,
+    GeocheckByNodeResultResponseDto,
 } from './dtos';
 
 @ApiBearerAuth('Authorization')
@@ -110,6 +117,39 @@ export class ConnectionsController {
         @Param() param: ConnectionsByNodeResultParamDto,
     ): Promise<ConnectionsByNodeResultResponseDto> {
         const result = await this.connectionsService.connectionsByNodeResult(param.jobId);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        type: GeocheckByNodeResponseDto,
+        command: GeocheckByNodeCommand,
+        httpCode: HttpStatus.CREATED,
+    })
+    async geocheckByNode(
+        @Param() param: GeocheckByNodeParamDto,
+        @Body() body: GeocheckByNodeBodyDto,
+    ): Promise<GeocheckByNodeResponseDto> {
+        const result = await this.connectionsService.geocheckByNode(param.nodeUuid, body);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        type: GeocheckByNodeResultResponseDto,
+        command: GeocheckByNodeResultCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async geocheckByNodeResult(
+        @Param() param: GeocheckByNodeResultParamDto,
+    ): Promise<GeocheckByNodeResultResponseDto> {
+        const result = await this.connectionsService.geocheckByNodeResult(param.jobId);
 
         const data = errorHandler(result);
         return {

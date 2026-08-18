@@ -15,6 +15,8 @@ import {
     IAddUserToNodePayload,
     IDropIpsConnectionsPayload,
     IDropUsersConnectionsPayload,
+    IGeocheckPayload,
+    IGeocheckResult,
     IGetIpsListProgress,
     IGetIpsListResult,
     IGetUsersIpsListResult,
@@ -306,6 +308,40 @@ export class NodesQueuesService implements OnApplicationBootstrap {
             isCompleted,
             isFailed,
 
+            result: isCompleted ? job.returnvalue : null,
+        };
+    }
+
+    public async geocheckByNode(payload: IGeocheckPayload): Promise<{ jobId: string } | null> {
+        const result = await this.queryNodesQueue.add(NODES_JOB_NAMES.GEOCHECK_BY_NODE, payload, {
+            removeOnComplete: {
+                age: 900,
+            },
+            removeOnFail: {
+                age: 900,
+            },
+        });
+
+        if (!result || !result.id) {
+            return null;
+        }
+
+        return { jobId: result.id };
+    }
+
+    public async geocheckByNodeResult(jobId: string): Promise<IGeocheckResult | null> {
+        const job = await this.queryNodesQueue.getJob(jobId);
+        if (!job) {
+            return null;
+        }
+
+        const state = await job.getState();
+        const isCompleted = state === 'completed';
+        const isFailed = state === 'failed';
+
+        return {
+            isCompleted,
+            isFailed,
             result: isCompleted ? job.returnvalue : null,
         };
     }

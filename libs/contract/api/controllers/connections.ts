@@ -12,5 +12,10 @@ export const CONNECTIONS_ROUTES = {
     CONNECTIONS_BY_NODE_RESULT: (jobId: string) => `by-node/${jobId}`,
 
     // POST
+    GEOCHECK_BY_NODE: (uuid: string) => `geocheck/${uuid}`,
+    // GET
+    GEOCHECK_BY_NODE_RESULT: (jobId: string) => `geocheck/${jobId}`,
+
+    // POST
     DROP_CONNECTIONS: 'drop',
 } as const;

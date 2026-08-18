@@ -17,7 +17,7 @@ import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 
 import { QUEUES_NAMES } from '../../queue.enum';
 import { NODES_JOB_NAMES } from '../constants';
-import { IGetIpsListResult } from '../interfaces';
+import { IGeocheckJobResult, IGeocheckPayload, IGetIpsListResult } from '../interfaces';
 
 @Processor(
     {
@@ -60,6 +60,8 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                 return await this.handleConnectionsByUser(job);
             case NODES_JOB_NAMES.CONNECTIONS_BY_NODE:
                 return await this.handleConnectionsByNode(job);
+            case NODES_JOB_NAMES.GEOCHECK_BY_NODE:
+                return await this.handleGeocheckByNode(job);
             case NODES_JOB_NAMES.EXPORT_NODE_CONNECTIONS:
                 return await this.handleExportNodeConnectionsJob(job);
             default:
@@ -217,6 +219,53 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                 nodeUuid: job.data.nodeUuid,
                 users: [],
             };
+        }
+    }
+
+    private async handleGeocheckByNode(job: Job<IGeocheckPayload>): Promise<IGeocheckJobResult> {
+        const { nodeUuid, ip, interface: networkInterface } = job.data;
+
+        const failed = (message: string): IGeocheckJobResult => ({
+            success: false,
+            nodeUuid,
+            image: null,
+            rawReport: null,
+            message,
+        });
+
+        try {
+            const nodeResult = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
+
+            if (!nodeResult.isOk) {
+                return failed('Node not found.');
+            }
+
+            const result = await this.axios.getGeocheck(
+                { ip, interface: networkInterface },
+                {
+                    address: nodeResult.response.address,
+                    port: nodeResult.response.port,
+                    proxyUrl: nodeResult.response.proxyUrl,
+                },
+            );
+
+            if (!result.isOk) {
+                return failed(result.message ?? 'Node did not return a geocheck.');
+            }
+
+            const { image, ...rawReport } = result.response;
+
+            return {
+                success: true,
+                nodeUuid,
+                image,
+                rawReport,
+                message: null,
+            };
+        } catch (error) {
+            this.logger.error(`Failed to fetch geocheck for node ${nodeUuid}: ${error}`);
+
+            return failed(error instanceof Error ? error.message : String(error));
         }
     }
 

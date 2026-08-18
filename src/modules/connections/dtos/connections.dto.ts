@@ -4,6 +4,8 @@ import {
     ConnectionsByNodeCommand,
     ConnectionsByNodeResultCommand,
     DropConnectionsCommand,
+    GeocheckByNodeCommand,
+    GeocheckByNodeResultCommand,
 } from '@contract/commands';
 import { createZodDto } from 'nestjs-zod';
 
@@ -41,4 +43,20 @@ export class ConnectionsByNodeResultParamDto extends createZodDto(
 
 export class ConnectionsByNodeResultResponseDto extends createZodDto(
     ConnectionsByNodeResultCommand.ResponseSchema,
+) {}
+
+export class GeocheckByNodeParamDto extends createZodDto(
+    GeocheckByNodeCommand.RequestParamSchema,
+) {}
+
+export class GeocheckByNodeBodyDto extends createZodDto(GeocheckByNodeCommand.RequestBodySchema) {}
+
+export class GeocheckByNodeResponseDto extends createZodDto(GeocheckByNodeCommand.ResponseSchema) {}
+
+export class GeocheckByNodeResultParamDto extends createZodDto(
+    GeocheckByNodeResultCommand.RequestParamSchema,
+) {}
+
+export class GeocheckByNodeResultResponseDto extends createZodDto(
+    GeocheckByNodeResultCommand.ResponseSchema,
 ) {}
