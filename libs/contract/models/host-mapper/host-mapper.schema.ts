@@ -171,6 +171,21 @@ export const MihomoHostMapperOperationsSchema = buildOperationsSchema({
     unsetSnippet: { to: 'smux' },
 });
 
+export const SingBoxHostMapperOperationsSchema = buildOperationsSchema({
+    target: 'the generated **outbound**',
+    examples: [
+        'domain_resolver',
+        'multiplex.protocol',
+        'packet_encoding',
+        'tcp_fast_open',
+        'tls.insecure',
+        'tls.utls.fingerprint',
+    ],
+    copySnippet: { from: 'streamSettings.realitySettings.serverNames.0', to: 'tls.server_name' },
+    setSnippet: { to: 'tls.utls.fingerprint', value: 'chrome' },
+    unsetSnippet: { to: 'multiplex' },
+});
+
 export const Base64HostMapperOperationsSchema = buildOperationsSchema({
     target: 'the query string of the generated **share link**',
     examples: [
@@ -266,6 +281,28 @@ export const HostMapperSchema = z
                         [
                             { op: 'set', to: 'fp', value: 'chrome' },
                             { op: 'unset', to: 'fm' },
+                        ],
+                        null,
+                        2,
+                    ),
+                    '```',
+                ].join('\n'),
+            }),
+        singbox: z
+            .array(SingBoxHostMapperOperationsSchema)
+            .optional()
+            .meta({
+                title: 'sing-box',
+                markdownDescription: [
+                    'Operations applied to the **outbound** generated for this host in the sing-box subscription. Paths are counted from the root of the outbound.',
+                    '',
+                    'sing-box keys are written in snake_case, and the outbound of a Hysteria2 host has a shape of its own.',
+                    '',
+                    '```json',
+                    JSON.stringify(
+                        [
+                            { op: 'set', to: 'tls.utls.fingerprint', value: 'chrome' },
+                            { op: 'unset', to: 'multiplex' },
                         ],
                         null,
                         2,

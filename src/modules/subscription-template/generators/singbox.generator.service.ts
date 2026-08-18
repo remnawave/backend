@@ -5,6 +5,7 @@ import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
+import { applyHostMapper } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 /**
@@ -142,29 +143,41 @@ export class SingBoxGeneratorService {
 
     private buildOutbound(host: ResolvedProxyConfig): null | OutboundConfig {
         try {
-            if (host.protocol === 'hysteria') {
-                return this.buildHysteria2Outbound(host);
-            }
+            const outbound = this.buildBaseOutbound(host);
 
-            const config: OutboundConfig = {
-                type: host.protocol,
-                tag: host.finalRemark,
-                server: host.address,
-                server_port: host.port,
-            };
+            if (!outbound) return null;
 
-            if (!this.applyProtocolFields(config, host)) {
-                return null;
-            }
-
-            this.applyTransport(config, host);
-            this.applySecurity(config, host);
-            this.applyMultiplex(config, host);
-
-            return config;
+            return applyHostMapper(
+                outbound,
+                host.clientOverrides.mapper.singbox,
+                host.metadata.rawInbound,
+            );
         } catch {
             return null;
         }
+    }
+
+    private buildBaseOutbound(host: ResolvedProxyConfig): null | OutboundConfig {
+        if (host.protocol === 'hysteria') {
+            return this.buildHysteria2Outbound(host);
+        }
+
+        const config: OutboundConfig = {
+            type: host.protocol,
+            tag: host.finalRemark,
+            server: host.address,
+            server_port: host.port,
+        };
+
+        if (!this.applyProtocolFields(config, host)) {
+            return null;
+        }
+
+        this.applyTransport(config, host);
+        this.applySecurity(config, host);
+        this.applyMultiplex(config, host);
+
+        return config;
     }
 
     private applyProtocolFields(config: OutboundConfig, host: ResolvedProxyConfig): boolean {
