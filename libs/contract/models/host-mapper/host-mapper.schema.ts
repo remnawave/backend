@@ -10,12 +10,22 @@ const buildFromSchema = () =>
             markdownDescription: [
                 'Dot-separated path inside the **raw inbound** of the config profile this host belongs to. Array items are addressed by index.',
                 '',
-                '> If the path resolves to nothing, the operation is skipped and the target key is **not** created.',
+                'With a `$host.` prefix the value is read from the **host** itself, after overrides have been resolved – `$host.securityOptions.serverName` holds the SNI that actually went into the config.',
+                '',
+                'Only a part of the host is readable. Each entry below also opens everything nested under it:',
+                '',
+                '`address`, `port`, `finalRemark`, `protocol`, `transport`, `security`, `protocolOptions`, `transportOptions`, `securityOptions`, `mux`, `streamOverrides.finalMask`, `streamOverrides.sockopt`, `clientOverrides.serverDescription`, `metadata.remark`, `metadata.tags`, `metadata.inboundTag`',
+                '',
+                '> If the path resolves to nothing – or points outside the list above – the operation is skipped and the target key is **not** created.',
             ].join('\n'),
             examples: [
                 'streamSettings.tlsSettings.cipherSuites',
                 'streamSettings.tlsSettings.alpn',
                 'streamSettings.realitySettings.serverNames.0',
+                '$host.address',
+                '$host.securityOptions.serverName',
+                '$host.transportOptions.path',
+                '$host.mux.smux',
             ],
         });
 
@@ -318,7 +328,7 @@ export const HostMapperSchema = z
             '',
             'Operations run **after** the generator has finished, so they can change or remove anything it produced.',
             '',
-            'The source for `copy` is always the raw inbound of the config profile this host belongs to.',
+            'The source for `copy` is the raw inbound of the config profile this host belongs to, or the host itself when the path starts with `$host.`.',
             '',
             '> `to` is never checked against the target client. A misspelled key is written exactly like a real one.',
         ].join('\n'),

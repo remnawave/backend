@@ -177,7 +177,7 @@ export class MihomoGeneratorService {
 
         if (!node) return null;
 
-        return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host.metadata.rawInbound);
+        return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host);
     }
 
     private buildBaseProxyNode(

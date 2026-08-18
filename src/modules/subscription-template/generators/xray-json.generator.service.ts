@@ -300,11 +300,7 @@ export class XrayJsonGeneratorService {
             }
         }
 
-        return applyHostMapper(
-            outbound,
-            host.clientOverrides.mapper.xrayJson,
-            host.metadata.rawInbound,
-        );
+        return applyHostMapper(outbound, host.clientOverrides.mapper.xrayJson, host);
     }
 
     private buildTransportEntry(host: ResolvedProxyConfig): object {

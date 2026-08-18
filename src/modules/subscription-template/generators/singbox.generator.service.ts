@@ -147,11 +147,7 @@ export class SingBoxGeneratorService {
 
             if (!outbound) return null;
 
-            return applyHostMapper(
-                outbound,
-                host.clientOverrides.mapper.singbox,
-                host.metadata.rawInbound,
-            );
+            return applyHostMapper(outbound, host.clientOverrides.mapper.singbox, host);
         } catch {
             return null;
         }
