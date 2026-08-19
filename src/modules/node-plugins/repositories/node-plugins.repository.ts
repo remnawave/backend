@@ -150,10 +150,10 @@ export class NodePluginRepository implements ICrud<NodePluginEntity> {
         );
 
         await this.qb.kysely
-            .updateTable('externalSquads')
+            .updateTable('nodePlugin')
             .from(v)
             .set((eb) => ({ viewPosition: eb.ref('v.viewPosition') }))
-            .whereRef('externalSquads.uuid', '=', 'v.uuid')
+            .whereRef('nodePlugin.uuid', '=', 'v.uuid')
             .execute();
 
         await this.prisma.tx
