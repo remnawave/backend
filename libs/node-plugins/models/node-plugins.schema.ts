@@ -129,7 +129,6 @@ export const TorrentBlockerPluginSchema = z.object({
         .min(0)
         .max(1000)
         .optional()
-        .default(0)
         .meta({
             title: 'Rule Placement',
             markdownDescription: `The position of the rule which Remnawave will inject into the routing.rules array. The default is 0. ${DOCS_LINK}`,
