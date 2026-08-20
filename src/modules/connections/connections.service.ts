@@ -11,8 +11,13 @@ import { GetUserByUniqueFieldQuery } from '@modules/users/queries/get-user-by-un
 
 import { NodesQueuesService } from '@queue/_nodes';
 
-import { DropConnectionsBodyDto } from './dtos';
-import { ConnectionsByNodeResponseModel, ConnectionsByNodeResultResponseModel } from './models';
+import { DropConnectionsBodyDto, GeocheckByNodeBodyDto } from './dtos';
+import {
+    ConnectionsByNodeResponseModel,
+    ConnectionsByNodeResultResponseModel,
+    GeocheckByNodeResponseModel,
+    GeocheckByNodeResultResponseModel,
+} from './models';
 import {
     ConnectionsByUserResponseModel,
     ConnectionsByUserResultResponseModel,
@@ -168,6 +173,49 @@ export class ConnectionsService {
             }
 
             return ok(new ConnectionsByNodeResultResponseModel(result));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.JOB_RESULT_FETCH_FAILED);
+        }
+    }
+
+    public async geocheckByNode(
+        nodeUuid: string,
+        dto: GeocheckByNodeBodyDto,
+    ): Promise<TResult<GeocheckByNodeResponseModel>> {
+        try {
+            const node = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
+            if (!node.isOk) {
+                return fail(ERRORS.NODE_NOT_FOUND);
+            }
+
+            const result = await this.nodesQueuesService.geocheckByNode({
+                nodeUuid,
+                ip: dto.ip,
+                interface: dto.interface,
+            });
+
+            if (!result) {
+                return fail(ERRORS.JOB_CREATION_FAILED);
+            }
+
+            return ok(new GeocheckByNodeResponseModel({ jobId: result.jobId }));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.JOB_CREATION_FAILED);
+        }
+    }
+
+    public async geocheckByNodeResult(
+        jobId: string,
+    ): Promise<TResult<GeocheckByNodeResultResponseModel>> {
+        try {
+            const result = await this.nodesQueuesService.geocheckByNodeResult(jobId);
+            if (!result) {
+                return fail(ERRORS.JOB_RESULT_FETCH_FAILED);
+            }
+
+            return ok(new GeocheckByNodeResultResponseModel(result));
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.JOB_RESULT_FETCH_FAILED);

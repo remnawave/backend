@@ -15,12 +15,19 @@ import { errorHandler } from '@common/helpers/error-handler.helper';
 import {
     CloneNodePluginCommand,
     CreateNodePluginCommand,
+    CreateSharedListCommand,
     DeleteNodePluginCommand,
+    DeleteSharedListCommand,
     GetNodePluginCommand,
     GetNodePluginsCommand,
+    GetSharedListCommand,
+    GetSharedListsCommand,
     PluginExecutorCommand,
     ReorderNodePluginCommand,
+    SyncNodePluginCommand,
+    SyncSharedListCommand,
     UpdateNodePluginCommand,
+    UpdateSharedListCommand,
 } from '@libs/contracts/commands';
 
 import {
@@ -37,8 +44,21 @@ import {
     CloneNodePluginBodyDto,
     PluginExecutorBodyDto,
     GetNodePluginParamDto,
+    SyncNodePluginBodyDto,
 } from './dtos/node-plugins.dtos';
+import {
+    CreateSharedListBodyDto,
+    CreateSharedListResponseDto,
+    DeleteSharedListParamDto,
+    GetSharedListParamDto,
+    GetSharedListResponseDto,
+    GetSharedListsResponseDto,
+    SyncSharedListBodyDto,
+    UpdateSharedListBodyDto,
+    UpdateSharedListResponseDto,
+} from './dtos/shared-lists.dtos';
 import { NodePluginService } from './node-plugins.service';
+import { SharedListsService } from './shared-lists.service';
 
 @ApiBearerAuth('Authorization')
 @ApiScopeResource(CONTROLLERS_INFO.NODE_PLUGINS.resource)
@@ -48,7 +68,94 @@ import { NodePluginService } from './node-plugins.service';
 @UseFilters(HttpExceptionFilter)
 @Controller(NODE_PLUGINS_CONTROLLER)
 export class NodePluginController {
-    constructor(private readonly nodePluginService: NodePluginService) {}
+    constructor(
+        private readonly nodePluginService: NodePluginService,
+        private readonly sharedListsService: SharedListsService,
+    ) {}
+
+    @Endpoint({
+        type: GetSharedListsResponseDto,
+        command: GetSharedListsCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getAllSharedLists(): Promise<GetSharedListsResponseDto> {
+        const result = await this.sharedListsService.getAllSharedLists();
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        type: GetSharedListResponseDto,
+        command: GetSharedListCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async getSharedListByName(
+        @Param() param: GetSharedListParamDto,
+    ): Promise<GetSharedListResponseDto> {
+        const result = await this.sharedListsService.getSharedListByName(param.name);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        type: CreateSharedListResponseDto,
+        command: CreateSharedListCommand,
+        httpCode: HttpStatus.CREATED,
+    })
+    async createSharedList(
+        @Body() body: CreateSharedListBodyDto,
+    ): Promise<CreateSharedListResponseDto> {
+        const result = await this.sharedListsService.createSharedList(body.name, body.config);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        type: UpdateSharedListResponseDto,
+        command: UpdateSharedListCommand,
+        httpCode: HttpStatus.OK,
+    })
+    async updateSharedList(
+        @Body() body: UpdateSharedListBodyDto,
+    ): Promise<UpdateSharedListResponseDto> {
+        const result = await this.sharedListsService.updateSharedList(body.name, body.config);
+
+        const data = errorHandler(result);
+        return {
+            response: data,
+        };
+    }
+
+    @Endpoint({
+        command: SyncSharedListCommand,
+        httpCode: HttpStatus.ACCEPTED,
+    })
+    async syncSharedList(@Body() body: SyncSharedListBodyDto) {
+        const result = await this.sharedListsService.syncSharedList(body.name);
+
+        errorHandler(result);
+        return;
+    }
+
+    @Endpoint({
+        command: DeleteSharedListCommand,
+        httpCode: HttpStatus.NO_CONTENT,
+    })
+    async deleteSharedList(@Param() param: DeleteSharedListParamDto) {
+        const result = await this.sharedListsService.deleteSharedListByName(param.name);
+
+        errorHandler(result);
+        return;
+    }
 
     @Endpoint({
         type: GetNodePluginsResponseDto,
@@ -163,6 +270,17 @@ export class NodePluginController {
         return {
             response: data,
         };
+    }
+
+    @Endpoint({
+        command: SyncNodePluginCommand,
+        httpCode: HttpStatus.ACCEPTED,
+    })
+    async syncNodePlugin(@Body() body: SyncNodePluginBodyDto) {
+        const result = await this.nodePluginService.syncNodePluginByUuid(body.uuid);
+
+        errorHandler(result);
+        return;
     }
 
     @Endpoint({

@@ -19,5 +19,4 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
         enabled: false,
         whitelistIps: [],
     },
-    sharedLists: [],
 };

@@ -56,9 +56,11 @@ export class UsersQueuesService implements OnApplicationBootstrap {
 
     async onApplicationBootstrap(): Promise<void> {
         for (const queue of Object.values(this.queues)) {
-            const client = await queue.client;
-            if (client.status !== 'ready') {
-                throw new Error(`Queue "${queue.name}" not connected: ${client.status}.`);
+            try {
+                await queue.waitUntilReady();
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                throw new Error(`Queue "${queue.name}" not connected: ${reason}.`);
             }
         }
 

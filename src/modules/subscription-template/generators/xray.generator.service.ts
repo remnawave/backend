@@ -402,12 +402,7 @@ export class XrayGeneratorService {
     private buildQueryString(params: Record<string, unknown>, host: ResolvedProxyConfig): string {
         const parts: string[] = [];
 
-        const mapped = applyHostMapper(
-            params,
-            host.clientOverrides.mapper.base64,
-            host.metadata.rawInbound,
-            true,
-        );
+        const mapped = applyHostMapper(params, host.clientOverrides.mapper.base64, host, true);
 
         for (const [key, value] of Object.entries(mapped)) {
             if (value === undefined || value === null) continue;

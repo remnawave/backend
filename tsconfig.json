@@ -20,6 +20,7 @@
       "@integration-modules/*": ["./src/integration-modules/*"],
       "@modules/*": ["./src/modules/*"],
       "@libs/contracts/*": ["./libs/contract/*"],
+      "@libs/node-plugins/*": ["./libs/node-plugins/*"],
       "@libs/subscription-page/*": ["./libs/subscription-page/*"],
       "@contract/*": ["./libs/contract/*"],
       "@queue/*": ["./src/queue/*"],

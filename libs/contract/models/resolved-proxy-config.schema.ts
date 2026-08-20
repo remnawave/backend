@@ -134,10 +134,10 @@ const HysteriaProtocolSchema = z.object({
 });
 
 export const ProtocolVariantSchema = z.discriminatedUnion('protocol', [
-    VlessProtocolSchema,
-    TrojanProtocolSchema,
-    ShadowsocksProtocolSchema,
-    HysteriaProtocolSchema,
+    VlessProtocolSchema.meta({ title: 'vless' }),
+    TrojanProtocolSchema.meta({ title: 'trojan' }),
+    ShadowsocksProtocolSchema.meta({ title: 'shadowsocks' }),
+    HysteriaProtocolSchema.meta({ title: 'hysteria' }),
 ]);
 
 const TcpTransportSchema = z.object({
@@ -176,13 +176,13 @@ const HysteriaTransportSchema = z.object({
 });
 
 export const TransportVariantSchema = z.discriminatedUnion('transport', [
-    TcpTransportSchema,
-    XHttpTransportSchema,
-    WsTransportSchema,
-    HttpUpgradeTransportSchema,
-    GrpcTransportSchema,
-    KcpTransportSchema,
-    HysteriaTransportSchema,
+    TcpTransportSchema.meta({ title: 'tcp' }),
+    XHttpTransportSchema.meta({ title: 'xhttp' }),
+    WsTransportSchema.meta({ title: 'ws' }),
+    HttpUpgradeTransportSchema.meta({ title: 'httpupgrade' }),
+    GrpcTransportSchema.meta({ title: 'grpc' }),
+    KcpTransportSchema.meta({ title: 'kcp' }),
+    HysteriaTransportSchema.meta({ title: 'hysteria' }),
 ]);
 
 const TlsSecuritySchema = z.object({
@@ -200,9 +200,9 @@ const NoneSecuritySchema = z.object({
 });
 
 export const SecurityVariantSchema = z.discriminatedUnion('security', [
-    TlsSecuritySchema,
-    RealitySecuritySchema,
-    NoneSecuritySchema,
+    TlsSecuritySchema.meta({ title: 'tls' }),
+    RealitySecuritySchema.meta({ title: 'reality' }),
+    NoneSecuritySchema.meta({ title: 'none' }),
 ]);
 
 export const ProxyEntryMetadataSchema = z.object({
@@ -220,32 +220,10 @@ export const ProxyEntryMetadataSchema = z.object({
     rawInbound: z.nullable(z.unknown()),
 });
 
-export const ResolvedProxyConfigSchema = z.object({
+export const ResolvedProxyConfigBaseSchema = z.object({
     finalRemark: z.string(),
     address: z.string(),
     port: z.int().positive(),
-
-    protocol: z.enum(['vless', 'trojan', 'shadowsocks', 'hysteria']),
-    protocolOptions: z.union([
-        VlessProtocolOptionsSchema,
-        TrojanProtocolOptionsSchema,
-        ShadowsocksProtocolOptionsSchema,
-        HysteriaProtocolOptionsSchema,
-    ]),
-
-    transport: z.enum(['tcp', 'xhttp', 'ws', 'httpupgrade', 'grpc', 'kcp', 'hysteria']),
-    transportOptions: z.union([
-        TcpTransportOptionsSchema,
-        XhttpTransportOptionsSchema,
-        WsTransportOptionsSchema,
-        HttpUpgradeTransportOptionsSchema,
-        GrpcTransportOptionsSchema,
-        KcpTransportOptionsSchema,
-        HysteriaTransportOptionsSchema,
-    ]),
-
-    security: z.enum(['tls', 'reality', 'none']),
-    securityOptions: z.union([TlsSecurityOptionsSchema, RealitySecurityOptionsSchema]).optional(),
 
     streamOverrides: z.object({
         finalMask: z.nullable(z.unknown()),
@@ -265,3 +243,7 @@ export const ResolvedProxyConfigSchema = z.object({
 
     metadata: ProxyEntryMetadataSchema,
 });
+
+export const ResolvedProxyConfigSchema = ResolvedProxyConfigBaseSchema.and(ProtocolVariantSchema)
+    .and(TransportVariantSchema)
+    .and(SecurityVariantSchema);

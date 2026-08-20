@@ -4,5 +4,6 @@ export * from './delete-node-plugin.command';
 export * from './executor.command';
 export * from './get-node-plugin.command';
 export * from './get-node-plugins.command';
+export * from './shared-lists';
 export * from './torrent-blocker';
 export * from './update-node-plugin.command';

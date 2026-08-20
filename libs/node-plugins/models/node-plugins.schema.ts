@@ -22,17 +22,68 @@ const IpCidrOrExtSchema = z
         markdownDescription: `IP address or CIDR range. \n\n You can use lists from **sharedLists** in the format: **ext:list_name**.${DOCS_LINK}`,
     });
 
+const IpListSchema = z
+    .object({
+        type: z.literal('ipList').meta({
+            title: 'IP List',
+            markdownDescription: `A list of IP addresses and CIDR ranges.${DOCS_LINK}`,
+        }),
+        items: z.array(z.union([z.cidrv4(), cidrv6(), z.union([z.ipv4(), ipv6()])])).meta({
+            title: 'IP addresses and CIDR ranges',
+            markdownDescription: [
+                'IPv4 and IPv6 addresses, plain or as CIDR ranges. Mixing both families in one list is allowed.',
+                '',
+                '```json',
+                '{',
+                '  "type": "ipList",',
+                '  "items": ["1.1.1.1", "10.0.0.0/8", "2001:db8::1", "2001:db8::/32"]',
+                '}',
+                '```',
+                DOCS_LINK,
+            ].join('\n'),
+        }),
+    })
+    .meta({
+        title: 'IP List',
+        markdownDescription: `Shared list of IP addresses and CIDR ranges.${DOCS_LINK}`,
+    });
+
+const AsListSchema = z
+    .object({
+        type: z.literal('asList').meta({
+            title: 'AS List',
+            markdownDescription: `A list of autonomous system numbers.${DOCS_LINK}`,
+        }),
+        items: z.array(z.int().min(1).max(4294967295)).meta({
+            title: 'Autonomous system numbers',
+            markdownDescription: [
+                'ASN numbers without the `AS` prefix, from 1 to 4294967295.',
+                '',
+                '```json',
+                '{',
+                '  "type": "asList",',
+                '  "items": [13335, 15169, 32934]',
+                '}',
+                '```',
+                DOCS_LINK,
+            ].join('\n'),
+        }),
+    })
+    .meta({
+        title: 'AS List',
+        markdownDescription: `Shared list of autonomous system numbers.${DOCS_LINK}`,
+    });
+
+export const SharedListConfigSchema = z
+    .discriminatedUnion('type', [IpListSchema, AsListSchema])
+    .meta({
+        title: 'Shared List',
+        markdownDescription: `Shared list body. Pick **ipList** for IP addresses and CIDR ranges, or **asList** for autonomous system numbers.${DOCS_LINK}`,
+    });
+
 export const SharedListSchema = z.discriminatedUnion('type', [
-    z.object({
-        name: z.string().startsWith('ext:'),
-        type: z.literal('ipList'),
-        items: z.array(z.union([z.cidrv4(), cidrv6(), z.union([z.ipv4(), ipv6()])])),
-    }),
-    z.object({
-        name: z.string().startsWith('ext:'),
-        type: z.literal('asList'),
-        items: z.array(z.int().min(1).max(4294967295)),
-    }),
+    IpListSchema.extend({ name: z.string().startsWith('ext:') }),
+    AsListSchema.extend({ name: z.string().startsWith('ext:') }),
 ]);
 
 export const TorrentBlockerPluginSchema = z.object({
@@ -73,6 +124,15 @@ export const TorrentBlockerPluginSchema = z.object({
         title: 'Webhook URL',
         markdownDescription: `Optional. Additional webhook URL to send to when a block is triggered.${DOCS_LINK}`,
     }),
+    rulePlacement: z
+        .number()
+        .min(0)
+        .max(1000)
+        .optional()
+        .meta({
+            title: 'Rule Placement',
+            markdownDescription: `The position of the rule which Remnawave will inject into the routing.rules array. The default is 0. ${DOCS_LINK}`,
+        }),
 });
 
 const abuseBlockerDocs = (description: string) => `${description}${DOCS_LINK}`;
@@ -322,4 +382,8 @@ export const NodePluginSchema = z.object({
     }),
 });
 
+export const NodePluginEditorSchema = NodePluginSchema.omit({ sharedLists: true });
+
+export type TSharedListConfig = z.infer<typeof SharedListConfigSchema>;
 export type TNodePlugin = z.infer<typeof NodePluginSchema>;
+export type TNodePluginEditor = z.infer<typeof NodePluginEditorSchema>;

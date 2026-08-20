@@ -1,30 +1,62 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
+import { isNonEmptyObject, parseIntRangeUtil } from '@common/utils';
 import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
+import { applyHostMapper } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
+/**
+ * Target: sing-box 1.13.x
+ * Reference: https://sing-box.sagernet.org/configuration/
+ */
+
 interface OutboundConfig {
+    brutal_debug?: boolean;
+    down_mbps?: number;
     flow?: string;
+    hop_interval?: string;
     method?: string;
-    multiplex?: unknown;
+    multiplex?: MultiplexConfig;
     network?: string;
+    obfs?: ObfsConfig;
     outbounds?: string[];
     password?: string;
     remnawave?: { includeProxies?: boolean };
     server: string;
     server_port: number;
+    server_ports?: string[];
     tag: string;
     tls?: TlsConfig;
     transport?: TransportConfig;
     type: string;
+    up_mbps?: number;
     uuid?: string;
     udp_over_tcp?: {
         enabled: boolean;
-        version: number;
+        version?: number;
     };
+}
+
+interface ObfsConfig {
+    password: string;
+    type: 'salamander';
+}
+
+interface MultiplexConfig {
+    brutal?: {
+        down_mbps: number;
+        enabled: boolean;
+        up_mbps: number;
+    };
+    enabled: boolean;
+    max_connections?: number;
+    max_streams?: number;
+    min_streams?: number;
+    padding?: boolean;
+    protocol?: string;
 }
 
 interface TlsConfig {
@@ -45,19 +77,39 @@ interface TlsConfig {
 
 interface TransportConfig {
     early_data_header_name?: string;
-    headers?: Record<string, unknown>;
+    headers?: Record<string, string>;
+    host?: string;
     max_early_data?: number;
     path?: string;
     service_name?: string;
     type: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
-const PROXY_PROTOCOL_TYPES = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
-const SELECTOR_TYPES = new Set(['shadowsocks', 'trojan', 'urltest', 'vless']);
+interface Hysteria2FinalMask {
+    quicParams?: {
+        brutalDown?: number | string;
+        brutalUp?: number | string;
+        udpHop?: {
+            interval?: number | string;
+            ports?: number | string;
+        };
+    };
+    udp?: Array<{
+        settings?: { password?: string };
+        type?: string;
+    }>;
+}
+
+const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
+const PROXY_PROTOCOL_TYPES = new Set(['hysteria2', 'shadowsocks', 'trojan', 'vless']);
+const SELECTOR_TYPES = new Set([...PROXY_PROTOCOL_TYPES, 'urltest']);
+const MULTIPLEX_PROTOCOLS = new Set(['h2mux', 'smux', 'yamux']);
+const DURATION_REGEX = /^\d+(\.\d+)?(ns|us|µs|ms|s|m|h)$/;
 
 @Injectable()
 export class SingBoxGeneratorService {
+    private readonly logger = new Logger(SingBoxGeneratorService.name);
+
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
 
     public async generateConfig(
@@ -83,39 +135,61 @@ export class SingBoxGeneratorService {
             }
 
             return this.renderConfig(template, userOutbounds);
-        } catch {
+        } catch (error) {
+            this.logger.error(`Error generating sing-box config: ${error}`);
             return '';
         }
     }
 
-    private buildOutbound(host: ResolvedProxyConfig): OutboundConfig | null {
+    private buildOutbound(host: ResolvedProxyConfig): null | OutboundConfig {
         try {
-            const config: OutboundConfig = {
-                type: host.protocol,
-                tag: host.finalRemark,
-                server: host.address,
-                server_port: host.port,
-            };
+            const outbound = this.buildBaseOutbound(host);
 
-            if (!this.applyProtocolFields(config, host)) {
-                return null;
-            }
+            if (!outbound) return null;
 
-            this.applyTransport(config, host);
-            this.applySecurity(config, host);
-
-            return config;
+            return applyHostMapper(outbound, host.clientOverrides.mapper.singbox, host);
         } catch {
             return null;
         }
     }
 
+    private buildBaseOutbound(host: ResolvedProxyConfig): null | OutboundConfig {
+        if (host.protocol === 'hysteria') {
+            return this.buildHysteria2Outbound(host);
+        }
+
+        const config: OutboundConfig = {
+            type: host.protocol,
+            tag: host.finalRemark,
+            server: host.address,
+            server_port: host.port,
+        };
+
+        if (!this.applyProtocolFields(config, host)) {
+            return null;
+        }
+
+        this.applyTransport(config, host);
+        this.applySecurity(config, host);
+        this.applyMultiplex(config, host);
+
+        return config;
+    }
+
     private applyProtocolFields(config: OutboundConfig, host: ResolvedProxyConfig): boolean {
         switch (host.protocol) {
             case 'vless':
+                if (host.protocolOptions.encryption && host.protocolOptions.encryption !== 'none') {
+                    return false;
+                }
+
                 config.uuid = host.protocolOptions.id;
 
-                if (host.protocolOptions.flow === 'xtls-rprx-vision') {
+                if (
+                    host.protocolOptions.flow === 'xtls-rprx-vision' &&
+                    host.transport === 'tcp' &&
+                    host.security !== 'none'
+                ) {
                     config.flow = host.protocolOptions.flow;
                 }
                 return true;
@@ -127,16 +201,155 @@ export class SingBoxGeneratorService {
             case 'shadowsocks':
                 config.password = host.protocolOptions.password;
                 config.method = host.protocolOptions.method;
-                config.network = 'tcp';
-                config.udp_over_tcp = {
-                    enabled: host.protocolOptions.uot,
-                    version: host.protocolOptions.uotVersion,
-                };
+
+                if (host.protocolOptions.uot) {
+                    config.network = 'tcp';
+                    config.udp_over_tcp = {
+                        enabled: true,
+                        ...(host.protocolOptions.uotVersion === 1 && { version: 1 }),
+                    };
+                }
                 return true;
 
             default:
                 return false;
         }
+    }
+
+    private applyMultiplex(config: OutboundConfig, host: ResolvedProxyConfig): void {
+        if (config.udp_over_tcp?.enabled) return;
+
+        const multiplex = this.buildMultiplexConfig(host.mux);
+
+        if (multiplex) {
+            config.multiplex = multiplex;
+        }
+    }
+
+    private buildMultiplexConfig(mux: null | Record<string, unknown>): MultiplexConfig | null {
+        const smux = mux?.smux;
+
+        if (!isNonEmptyObject(smux) || smux.enabled !== true) return null;
+
+        const config: MultiplexConfig = { enabled: true };
+
+        if (typeof smux.protocol === 'string' && MULTIPLEX_PROTOCOLS.has(smux.protocol)) {
+            config.protocol = smux.protocol;
+        }
+
+        const maxConnections = this.parsePositiveInt(smux['max-connections']);
+        const minStreams = this.parsePositiveInt(smux['min-streams']);
+        const maxStreams = this.parsePositiveInt(smux['max-streams']);
+
+        if (maxConnections) config.max_connections = maxConnections;
+        if (minStreams) config.min_streams = minStreams;
+        if (maxStreams) config.max_streams = maxStreams;
+
+        if (smux.padding === true) config.padding = true;
+
+        const brutal = smux['brutal-opts'];
+
+        if (isNonEmptyObject(brutal) && brutal.enabled === true) {
+            const upMbps = this.parseMbps(brutal.up);
+            const downMbps = this.parseMbps(brutal.down);
+
+            if (upMbps && downMbps) {
+                config.brutal = { enabled: true, up_mbps: upMbps, down_mbps: downMbps };
+            }
+        }
+
+        return config;
+    }
+
+    private parsePositiveInt(value: unknown): null | number {
+        if (typeof value !== 'number' && typeof value !== 'string') return null;
+
+        const parsed = parseInt(String(value).trim(), 10);
+
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    }
+
+    private buildHysteria2Outbound(
+        host: Extract<ResolvedProxyConfig, { protocol: 'hysteria' }>,
+    ): null | OutboundConfig {
+        if (host.transport !== 'hysteria') return null;
+
+        const config: OutboundConfig = {
+            type: 'hysteria2',
+            tag: host.finalRemark,
+            server: host.address,
+            server_port: host.port,
+            password: host.transportOptions.auth,
+            tls: this.buildQuicTlsConfig(host),
+        };
+
+        const finalMask = host.streamOverrides.finalMask as Hysteria2FinalMask | null;
+        const { brutalDown, brutalUp, udpHop } = finalMask?.quicParams ?? {};
+
+        const upMbps = this.parseMbps(brutalUp);
+        const downMbps = this.parseMbps(brutalDown);
+
+        if (upMbps) config.up_mbps = upMbps;
+        if (downMbps) config.down_mbps = downMbps;
+
+        const serverPorts = this.parsePortRanges(udpHop?.ports);
+        if (serverPorts.length > 0) {
+            config.server_ports = serverPorts;
+
+            const hopInterval = this.parseDuration(udpHop?.interval);
+            if (hopInterval) config.hop_interval = hopInterval;
+        }
+
+        const obfs = this.buildObfsConfig(finalMask);
+        if (obfs) config.obfs = obfs;
+
+        return config;
+    }
+
+    private buildObfsConfig(finalMask: Hysteria2FinalMask | null): null | ObfsConfig {
+        if (!Array.isArray(finalMask?.udp)) return null;
+
+        const mask = finalMask.udp.find(
+            (item) => item?.type === 'salamander' && item.settings?.password,
+        );
+
+        if (!mask?.settings?.password) return null;
+
+        return { type: 'salamander', password: mask.settings.password };
+    }
+
+    private parseMbps(value: unknown): null | number {
+        return this.parsePositiveInt(value);
+    }
+
+    private parsePortRanges(value: number | string | undefined): string[] {
+        if (value === undefined || value === null || value === '') return [];
+
+        const ranges: string[] = [];
+
+        for (const part of String(value).split(',')) {
+            const { from, to } = parseIntRangeUtil(part.trim());
+
+            if (from === null || from === 0 || from > 65535) continue;
+
+            const end = to === null || to > 65535 ? from : to;
+
+            ranges.push(`${from}:${end}`);
+        }
+
+        return ranges;
+    }
+
+    private parseDuration(value: number | string | undefined): null | string {
+        if (value === undefined || value === null || value === '') return null;
+
+        const raw = String(value).trim();
+
+        if (/^\d+$/.test(raw)) {
+            return Number(raw) > 0 ? `${raw}s` : null;
+        }
+
+        return DURATION_REGEX.test(raw) ? raw : null;
     }
 
     private applyTransport(config: OutboundConfig, host: ResolvedProxyConfig): void {
@@ -145,6 +358,7 @@ export class SingBoxGeneratorService {
                 config.transport = this.buildWsTransport(
                     host.transportOptions.path,
                     host.transportOptions.host,
+                    host.transportOptions.headers,
                 );
                 break;
 
@@ -152,6 +366,7 @@ export class SingBoxGeneratorService {
                 config.transport = this.buildHttpUpgradeTransport(
                     host.transportOptions.path,
                     host.transportOptions.host,
+                    host.transportOptions.headers,
                 );
                 break;
 
@@ -164,10 +379,13 @@ export class SingBoxGeneratorService {
         }
     }
 
-    private buildWsTransport(rawPath: string | null, host: string | null): TransportConfig {
+    private buildWsTransport(
+        rawPath: null | string,
+        host: null | string,
+        rawHeaders: null | Record<string, string>,
+    ): TransportConfig {
         const config: TransportConfig = {
             type: 'ws',
-            headers: {},
         };
 
         let path = rawPath ?? '';
@@ -186,20 +404,21 @@ export class SingBoxGeneratorService {
             config.path = path;
         }
 
-        if (host) {
-            config.headers = { Host: host };
+        const headers = this.buildHeaders(rawHeaders, host);
+        if (headers) {
+            config.headers = headers;
         }
 
         return config;
     }
 
     private buildHttpUpgradeTransport(
-        rawPath: string | null,
-        host: string | null,
+        rawPath: null | string,
+        host: null | string,
+        rawHeaders: null | Record<string, string>,
     ): TransportConfig {
         const config: TransportConfig = {
             type: 'httpupgrade',
-            headers: {},
         };
 
         const path = rawPath ?? '';
@@ -209,17 +428,44 @@ export class SingBoxGeneratorService {
         }
 
         if (host) {
-            config.headers = { Host: host };
+            config.host = host;
+        }
+
+        const headers = this.buildHeaders(rawHeaders, null);
+        if (headers) {
+            config.headers = headers;
         }
 
         return config;
     }
 
-    private buildGrpcTransport(serviceName: string | null): TransportConfig {
+    private buildGrpcTransport(serviceName: null | string): TransportConfig {
         return {
             type: 'grpc',
             service_name: serviceName ?? '',
         };
+    }
+
+    private buildHeaders(
+        rawHeaders: null | Record<string, string>,
+        host: null | string,
+    ): null | Record<string, string> {
+        const headers: Record<string, string> = {};
+
+        if (rawHeaders) {
+            for (const [key, value] of Object.entries(rawHeaders)) {
+                if (key.toLowerCase() === 'host' && !host) continue;
+                if (typeof value !== 'string') continue;
+
+                headers[key] = value;
+            }
+        }
+
+        if (host) {
+            headers.Host = host;
+        }
+
+        return Object.keys(headers).length > 0 ? headers : null;
     }
 
     private applySecurity(config: OutboundConfig, host: ResolvedProxyConfig): void {
@@ -248,7 +494,7 @@ export class SingBoxGeneratorService {
         if (opts.fingerprint) {
             config.utls = {
                 enabled: true,
-                fingerprint: FINGERPRINTS.find((fp) => opts.fingerprint?.includes(fp)) ?? 'chrome',
+                fingerprint: this.resolveFingerprint(opts.fingerprint),
             };
         }
 
@@ -287,10 +533,41 @@ export class SingBoxGeneratorService {
 
         config.utls = {
             enabled: true,
-            fingerprint: opts.fingerprint || 'chrome',
+            fingerprint: this.resolveFingerprint(opts.fingerprint),
         };
 
         return config;
+    }
+
+    private buildQuicTlsConfig(host: ResolvedProxyConfig): TlsConfig {
+        const config: TlsConfig = {
+            enabled: true,
+        };
+
+        if (host.security !== 'tls') {
+            return config;
+        }
+
+        const opts = host.securityOptions;
+
+        if (opts.serverName) {
+            config.server_name = opts.serverName;
+        }
+
+        // allowInsecure
+        if (opts.pinnedPeerCertSha256) {
+            config.insecure = true;
+        }
+
+        if (opts.alpn) {
+            config.alpn = opts.alpn.split(',').map((a) => a.trim());
+        }
+
+        return config;
+    }
+
+    private resolveFingerprint(fingerprint: null | string): string {
+        return FINGERPRINTS.find((fp) => fingerprint?.includes(fp)) ?? 'chrome';
     }
 
     private renderConfig(

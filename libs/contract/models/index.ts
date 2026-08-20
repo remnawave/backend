@@ -24,6 +24,7 @@ export * from './nodes.schema';
 export * from './remnawave-settings';
 export * from './resolved-proxy-config.schema';
 export * from './response-rules';
+export * from './shared-list.schema';
 export * from './snippets.schema';
 export * from './subscripion-page-config.schema';
 export * from './subscription-info.schema';

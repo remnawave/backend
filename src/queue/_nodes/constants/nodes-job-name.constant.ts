@@ -12,6 +12,7 @@ export const NODES_JOB_NAMES = {
     RECORD_NODE_USAGE: 'recordNodeUsage',
     CONNECTIONS_BY_USER: 'connectionsByUser',
     CONNECTIONS_BY_NODE: 'connectionsByNode',
+    GEOCHECK_BY_NODE: 'geocheckByNode',
     EXPORT_NODE_CONNECTIONS: 'exportNodeConnections',
     DROP_USERS_CONNECTIONS: 'dropUsersConnections',
     DROP_IPS_CONNECTIONS: 'dropIpsConnections',

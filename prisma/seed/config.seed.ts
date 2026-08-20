@@ -23,6 +23,7 @@ import {
     verifyAdminUser,
     seedRemnawaveSettings,
     migrateScopes,
+    migrateSharedLists,
 } from './seeders';
 
 dayjs.extend(utc);
@@ -53,6 +54,7 @@ const SEED_STEPS = [
     { name: 'Subscription Page Config', fn: seedSubscriptionPageConfig },
     { name: 'Verify Admin User', fn: verifyAdminUser },
     { name: 'Migrate API Token Scopes', fn: migrateScopes },
+    { name: 'Migrate Shared Lists', fn: migrateSharedLists },
 ] as const;
 
 async function checkDatabaseConnection() {

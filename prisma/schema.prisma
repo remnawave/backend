@@ -599,6 +599,16 @@ model SubscriptionPageConfig {
   @@map("subscription_page_config")
 }
 
+model SharedLists {
+  name   String @id @map("name") @db.VarChar(255)
+  config Json   @map("config")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("shared_lists")
+}
+
 model NodePlugin {
   uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   viewPosition Int    @default(autoincrement()) @map("view_position")

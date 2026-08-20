@@ -298,7 +298,7 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            if (!node.isConnected) {
+            if (!node.isConnected && nodeResponse.isStarted) {
                 this.eventEmitter.emit(
                     EVENTS.NODE.CONNECTION_RESTORED,
                     new NodeEvent(updateNodeResult.response, EVENTS.NODE.CONNECTION_RESTORED),
