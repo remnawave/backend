@@ -173,119 +173,106 @@ rules:
   - MATCH,→ Remnawave`;
 
 export const DEFAULT_TEMPLATE_SINGBOX = {
-    log: {
-        disabled: true,
-        level: 'debug',
-        timestamp: true,
-    },
     dns: {
+        rules: [
+            {
+                server: 'remote',
+                query_type: ['A', 'AAAA'],
+            },
+        ],
         servers: [
             {
-                type: 'tls',
                 tag: 'cf-dns',
+                type: 'tls',
                 server: '1.1.1.1',
             },
             {
-                type: 'tcp',
                 tag: 'local',
+                type: 'udp',
                 server: '1.1.1.1',
-                detour: 'direct',
             },
             {
-                type: 'fakeip',
                 tag: 'remote',
+                type: 'fakeip',
                 inet4_range: '198.18.0.0/15',
                 inet6_range: 'fc00::/18',
             },
         ],
-        rules: [
-            {
-                query_type: ['A', 'AAAA'],
-                server: 'remote',
-            },
-        ],
         independent_cache: true,
     },
-    inbounds: [
-        {
-            type: 'tun',
-            mtu: 9000,
-            interface_name: 'tun125',
-            tag: 'tun-in',
-            address: ['172.19.0.1/30', 'fdfe:dcba:9876::1/126'],
-            auto_route: true,
-            strict_route: true,
-            stack: 'mixed',
-            platform: {
-                http_proxy: {
-                    enabled: true,
-                    server: '127.0.0.1',
-                    server_port: 2412,
-                },
-            },
-        },
-        {
-            type: 'mixed',
-            tag: 'mixed-in',
-            listen: '127.0.0.1',
-            listen_port: 2412,
-            users: [],
-            set_system_proxy: false,
-        },
-    ],
-    outbounds: [
-        {
-            type: 'selector',
-            tag: '→ Remnawave',
-            interrupt_exist_connections: true,
-            outbounds: null,
-        },
-        {
-            type: 'direct',
-            tag: 'direct',
-        },
-    ],
+    log: {
+        level: 'debug',
+        disabled: true,
+        timestamp: true,
+    },
     route: {
         rules: [
             {
                 action: 'sniff',
             },
             {
-                type: 'logical',
-                mode: 'or',
-                rules: [
-                    {
-                        protocol: 'dns',
-                    },
-                    {
-                        port: 53,
-                    },
-                ],
                 action: 'hijack-dns',
+                protocol: 'dns',
             },
             {
-                ip_is_private: true,
                 outbound: 'direct',
+                ip_is_private: true,
             },
         ],
-        default_domain_resolver: {
-            server: 'local',
-            strategy: 'ipv4_only',
-        },
         auto_detect_interface: true,
-        override_android_vpn: true,
+        default_domain_resolver: 'local',
     },
+    inbounds: [
+        {
+            mtu: 9000,
+            tag: 'tun-in',
+            type: 'tun',
+            stack: 'mixed',
+            address: ['172.19.0.1/30', 'fdfe:dcba:9876::1/126'],
+            platform: {
+                http_proxy: {
+                    server: '127.0.0.1',
+                    enabled: true,
+                    server_port: 2412,
+                },
+            },
+            auto_route: true,
+            strict_route: true,
+            interface_name: 'tun125',
+            endpoint_independent_nat: true,
+        },
+        {
+            tag: 'mixed-in',
+            type: 'mixed',
+            users: [],
+            listen: '127.0.0.1',
+            listen_port: 2412,
+            set_system_proxy: false,
+        },
+    ],
+    outbounds: [
+        {
+            tag: '→ Remnawave',
+            type: 'selector',
+            outbounds: null,
+            interrupt_exist_connections: true,
+        },
+        {
+            tag: 'direct',
+            type: 'direct',
+        },
+    ],
     experimental: {
         clash_api: {
-            external_controller: '127.0.0.1:9090',
             external_ui: 'yacd',
+            default_mode: 'rule',
+            external_controller: '127.0.0.1:9090',
             external_ui_download_url: 'https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip',
             external_ui_download_detour: 'direct',
-            default_mode: 'rule',
         },
         cache_file: {
-            enabled: true,
             path: 'remnawave.db',
+            enabled: true,
             cache_id: 'remnawave',
             store_fakeip: true,
         },
