@@ -9,7 +9,13 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { TypedConfigService } from '@common/config/app-config';
 import { fail, ok, TResult } from '@common/types';
-import { mapDefined, wrapBigInt, wrapBigIntNullable } from '@common/utils';
+import {
+    compileShortUuidPattern,
+    mapDefined,
+    SHORT_UUID_ALPHABET,
+    wrapBigInt,
+    wrapBigIntNullable,
+} from '@common/utils';
 import { ERRORS, USERS_STATUS, EVENTS } from '@libs/contracts/constants';
 
 import { UserEvent } from '@integration-modules/notifications/interfaces';
@@ -46,6 +52,8 @@ import { UsersRepository } from './repositories/users.repository';
 export class UsersService {
     private readonly logger = new Logger(UsersService.name);
     private readonly shortUuidLength: number;
+    private readonly shortUuidMethod: 'custom' | 'nanoid' | 'uuid';
+    private readonly generateShortUuid: () => string;
 
     constructor(
         private readonly userRepository: UsersRepository,
@@ -56,13 +64,15 @@ export class UsersService {
         private readonly usersQueuesService: UsersQueuesService,
     ) {
         this.shortUuidLength = this.configService.getOrThrow('SHORT_UUID_LENGTH');
+        this.shortUuidMethod = this.configService.getOrThrow('SHORT_UUID_METHOD');
+        this.generateShortUuid = this.createShortUuidGenerator();
     }
 
     public async createUser(dto: CreateUserBodyDto): Promise<TResult<UserEntity>> {
         try {
             const userEntity = new BaseUserEntity({
                 username: dto.username,
-                shortUuid: dto.shortUuid || this.createNanoId(),
+                shortUuid: dto.shortUuid || this.generateShortUuid(),
                 trojanPassword: dto.trojanPassword || this.createPassword(),
                 vlessUuid: dto.vlessUuid || this.createUuid(),
                 ssPassword: dto.ssPassword || this.createPassword(),
@@ -314,9 +324,9 @@ export class UsersService {
             let shortUuid = user.shortUuid;
 
             if (!dto) {
-                shortUuid = this.createNanoId();
+                shortUuid = this.generateShortUuid();
             } else if (!dto.revokeOnlyPasswords) {
-                shortUuid = dto.shortUuid ?? this.createNanoId();
+                shortUuid = dto.shortUuid ?? this.generateShortUuid();
             }
 
             const updateResult = await this.userRepository.revokeUserSubscription({
@@ -834,11 +844,26 @@ export class UsersService {
         return randomUUID();
     }
 
-    private createNanoId(): string {
-        const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
-        const nanoid = customAlphabet(alphabet, this.shortUuidLength);
+    private createShortUuidGenerator(): () => string {
+        switch (this.shortUuidMethod) {
+            case 'nanoid':
+                return customAlphabet(SHORT_UUID_ALPHABET, this.shortUuidLength);
+            case 'uuid':
+                return randomUUID;
+            case 'custom': {
+                const pattern = this.configService.get('SHORT_UUID_CUSTOM_PATTERN');
 
-        return nanoid();
+                if (!pattern) {
+                    throw new Error(
+                        'SHORT_UUID_CUSTOM_PATTERN is required when SHORT_UUID_METHOD is "custom"',
+                    );
+                }
+
+                return compileShortUuidPattern(pattern).generate;
+            }
+            default:
+                throw new Error(`Invalid short UUID method: ${this.shortUuidMethod}`);
+        }
     }
 
     private createPassword(length: number = 32): string {

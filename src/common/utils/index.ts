@@ -7,4 +7,5 @@ export * from './mask-string';
 export * from './md5';
 export * from './truncate-header.util';
 export * from './parse-int-range.util';
+export * from './short-uuid';
 export * from './yaml-merge-schema.util';

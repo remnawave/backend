@@ -1,0 +1,1 @@
+export const SHORT_UUID_ALPHABET = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';

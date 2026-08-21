@@ -1,6 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
+import { compileShortUuidPattern } from '@common/utils/short-uuid';
+
 const booleanString = (def: 'true' | 'false' = 'false') =>
     z
         .string()
@@ -85,6 +87,8 @@ export const configSchema = z
             .default('16')
             .transform((val) => parseInt(val, 10))
             .refine((val) => val >= 16 && val <= 64, 'SHORT_UUID_LENGTH must be between 16 and 64'),
+        SHORT_UUID_METHOD: z.enum(['nanoid', 'uuid', 'custom']).default('nanoid'),
+        SHORT_UUID_CUSTOM_PATTERN: z.optional(z.string()),
         IS_HTTP_LOGGING_ENABLED: booleanString('false'),
         ENABLE_DEBUG_LOGS: booleanString('false'),
         REMNAWAVE_BRANCH: z.string().default('dev'),
@@ -443,6 +447,29 @@ export const configSchema = z
                 message: 'JWT_AUTH_LIFETIME must be between 12 and 168 hours.',
                 path: ['JWT_AUTH_LIFETIME'],
             });
+        }
+
+        if (data.SHORT_UUID_METHOD === 'custom') {
+            if (!data.SHORT_UUID_CUSTOM_PATTERN) {
+                ctx.issues.push({
+                    input: data,
+                    code: 'custom',
+                    message:
+                        'SHORT_UUID_CUSTOM_PATTERN is required when SHORT_UUID_METHOD is "custom"',
+                    path: ['SHORT_UUID_CUSTOM_PATTERN'],
+                });
+            } else {
+                try {
+                    compileShortUuidPattern(data.SHORT_UUID_CUSTOM_PATTERN);
+                } catch (error) {
+                    ctx.issues.push({
+                        input: data,
+                        code: 'custom',
+                        message: `Invalid SHORT_UUID_CUSTOM_PATTERN: ${(error as Error).message}`,
+                        path: ['SHORT_UUID_CUSTOM_PATTERN'],
+                    });
+                }
+            }
         }
 
         if (data.REMNAWAVE_BRANCH !== 'dev' && data.REMNAWAVE_BRANCH !== 'main') {
