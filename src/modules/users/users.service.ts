@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import dayjs from 'dayjs';
 import { customAlphabet } from 'nanoid';
-import { randomUUID } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { EventBus, QueryBus } from '@nestjs/cqrs';
@@ -837,8 +837,20 @@ export class UsersService {
     private createNanoId(): string {
         const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
         const nanoid = customAlphabet(alphabet, this.shortUuidLength);
+        const shortUuid = nanoid();
 
-        return nanoid();
+        // Some CDNs reject a path segment built of 16+ consecutive alphanumerics as a
+        // hash-like URL and answer 403 without contacting the origin. SHORT_UUID_LENGTH
+        // has a floor of 16, so a shortUuid that happens to contain no separator lands
+        // exactly on that heuristic. Guarantee one so subscription links stay reachable.
+        if (/[-_]/.test(shortUuid)) {
+            return shortUuid;
+        }
+
+        const position = randomInt(shortUuid.length);
+        const separator = randomInt(2) === 0 ? '-' : '_';
+
+        return shortUuid.slice(0, position) + separator + shortUuid.slice(position + 1);
     }
 
     private createPassword(length: number = 32): string {
