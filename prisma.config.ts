@@ -17,7 +17,13 @@ for (const key of ['DATABASE_URL', 'DIRECT_URL']) {
         throw new Error(`${key} and ${key}_FILE are both set. Remove one of them.`);
     }
 
-    process.env[key] = readFileSync(filePath, 'utf8').replace(/(\r?\n)+$/, '');
+    const value = readFileSync(filePath, 'utf8').replace(/(\r?\n)+$/, '');
+
+    if (!value) {
+        throw new Error(`${key}_FILE points to "${filePath}", which is empty.`);
+    }
+
+    process.env[key] = value;
 }
 
 if (!process.env.DIRECT_URL) {
