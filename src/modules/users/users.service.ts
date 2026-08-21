@@ -837,20 +837,26 @@ export class UsersService {
     private createNanoId(): string {
         const alphabet = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ_abcdefghjkmnopqrstuvwxyz-';
         const nanoid = customAlphabet(alphabet, this.shortUuidLength);
-        const shortUuid = nanoid();
 
-        // Some CDNs reject a path segment built of 16+ consecutive alphanumerics as a
-        // hash-like URL and answer 403 without contacting the origin. SHORT_UUID_LENGTH
-        // has a floor of 16, so a shortUuid that happens to contain no separator lands
-        // exactly on that heuristic. Guarantee one so subscription links stay reachable.
-        if (/[-_]/.test(shortUuid)) {
-            return shortUuid;
+        // Some CDNs reject a path segment containing 16+ consecutive alphanumerics as a
+        // hash-like URL and answer 403 without ever contacting the origin. SHORT_UUID_LENGTH
+        // allows 16..64, so break every such run with a separator the alphabet already
+        // contains, keeping subscription links reachable through those CDNs.
+        const maxAlphanumericRun = 15;
+        const longRun = /[0-9A-Za-z]{16,}/;
+
+        let shortUuid = nanoid();
+        let match = longRun.exec(shortUuid);
+
+        while (match !== null) {
+            const position = match.index + randomInt(maxAlphanumericRun + 1);
+            const separator = randomInt(2) === 0 ? '-' : '_';
+
+            shortUuid = shortUuid.slice(0, position) + separator + shortUuid.slice(position + 1);
+            match = longRun.exec(shortUuid);
         }
 
-        const position = randomInt(shortUuid.length);
-        const separator = randomInt(2) === 0 ? '-' : '_';
-
-        return shortUuid.slice(0, position) + separator + shortUuid.slice(position + 1);
+        return shortUuid;
     }
 
     private createPassword(length: number = 32): string {
