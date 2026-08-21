@@ -15,12 +15,16 @@ import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import Redis from 'ioredis';
 
+import { configSchema } from '@common/config/app-config/config.schema';
 import { getRedisConnectionOptions } from '@common/utils';
 import { generateNodeCert } from '@common/utils/certs';
 import { encodeCertPayload } from '@common/utils/certs/encode-node-payload';
+import { loadSecretsFromFiles } from '@common/utils/load-secrets-from-files';
 import { CACHE_KEYS } from '@libs/contracts/constants';
 
 import { TResponseRuleEncryption } from '@modules/subscription-response-rules/types/response-rules.types';
+
+loadSecretsFromFiles(process.env, Object.keys(configSchema.shape));
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
