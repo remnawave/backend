@@ -90,7 +90,9 @@ export default defineConfig({
             },
         ],
     },
+    devtool: isGenDoc ? false : undefined,
     optimization: {
+        minimize: isGenDoc ? false : undefined,
         runtimeChunk: false,
         splitChunks: false,
         minimizer: [
@@ -125,12 +127,16 @@ export default defineConfig({
                       include: /cli\.js$/,
                   }),
               ]),
-        new TsCheckerRspackPlugin({
-            typescript: {
-                configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-                mode: 'readonly',
-                build: false,
-            },
-        }),
+        ...(isGenDoc
+            ? []
+            : [
+                  new TsCheckerRspackPlugin({
+                      typescript: {
+                          configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+                          mode: 'readonly',
+                          build: false,
+                      },
+                  }),
+              ]),
     ],
 });

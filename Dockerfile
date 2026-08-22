@@ -32,6 +32,8 @@ COPY src ./src
 COPY libs ./libs
 
 RUN npm run migrate:generate \
+    && npm run generate:openapi \
+    && test -s openapi.json \
     && npm run build \
     && npm prune --omit=dev \
     && npm cache clean --force
@@ -85,6 +87,7 @@ ENV __RW_METADATA_BUILD_TIME=${__RW_METADATA_BUILD_TIME}
 ENV __RW_METADATA_BUILD_NUMBER=${__RW_METADATA_BUILD_NUMBER}
 
 COPY --from=backend-build /opt/app/dist ./dist
+COPY --from=backend-build /opt/app/openapi.json ./openapi.json
 COPY --from=frontend /opt/frontend/frontend_temp/dist ./frontend
 COPY --from=backend-build /opt/app/prisma/generated ./prisma/generated
 COPY --from=backend-build /opt/app/prisma/migrations ./prisma/migrations

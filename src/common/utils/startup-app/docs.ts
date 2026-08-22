@@ -1,131 +1,57 @@
 import { apiReference } from '@scalar/nestjs-api-reference';
-import { cleanupOpenApiDoc } from 'nestjs-zod';
-import { readPackageJSON } from 'pkg-types';
+import fs from 'node:fs';
 import { SwaggerThemeNameEnum } from 'swagger-themes';
 import { SwaggerTheme } from 'swagger-themes';
 
-import { INestApplication } from '@nestjs/common';
-import { DocumentBuilder, getSchemaPath } from '@nestjs/swagger';
+import { INestApplication, Logger } from '@nestjs/common';
+import { OpenAPIObject } from '@nestjs/swagger';
 import { SwaggerModule } from '@nestjs/swagger';
 
-import { CONTROLLERS_INFO, ROOT, SCALAR_ROOT, SWAGGER_ROOT } from '@libs/contracts/api';
+import { ROOT, SCALAR_ROOT, SWAGGER_ROOT } from '@libs/contracts/api';
 
-import {
-    RemnawaveWebhookCrmEventsDto,
-    RemnawaveWebhookErrorsEventsDto,
-    RemnawaveWebhookNodeEventsDto,
-    RemnawaveWebhookServiceEventsDto,
-    RemnawaveWebhookUserEventsDto,
-    RemnawaveWebhookUserHwidDevicesEventsDto,
-    RemnawaveWebhookTorrentBlockerEventsDto,
-    RemnawaveNotFoundErrorDto,
-    RemnawaveBadRequestErrorDto,
-    RemnawaveInternalServerErrorDto,
-    RemnawaveValidationErrorDto,
-    RemnawaveUserUsageStreamMessageDto,
-    RemnawaveSubscriptionRequestStreamMessageDto,
-    RemnawaveNodeConnectionsStreamMessageDto,
-} from './extra-models';
+import { createOpenApiDocumentFactory } from './build-openapi-document';
+import { getOpenApiSpecPath } from './get-openapi-spec-path';
 
-const description = `
-Remnawave is a powerful proxy management tool, built on top of Xray-core, with a focus on simplicity and ease of use.
+const logger = new Logger('Docs');
 
-## Resources
-* https://t.me/remnawave
-* https://github.com/remnawave
-* https://docs.rw
-`;
+const readPrebuiltDocument = (): null | OpenAPIObject => {
+    const specPath = getOpenApiSpecPath();
+
+    if (!fs.existsSync(specPath)) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(fs.readFileSync(specPath, 'utf8')) as OpenAPIObject;
+    } catch (error) {
+        logger.warn(`Failed to read prebuilt OpenAPI spec at ${specPath}: ${error}`);
+
+        return null;
+    }
+};
 
 export async function getDocs(app: INestApplication<unknown>) {
-    const pkg = await readPackageJSON();
+    const buildDocument = await createOpenApiDocumentFactory(app);
 
-    const configSwagger = new DocumentBuilder()
-        .setTitle(`Remnawave API v${pkg.version}`)
-        .addBearerAuth(
-            {
-                type: 'http',
-                scheme: 'bearer',
-                bearerFormat: 'JWT',
-                name: 'Authorization',
-                description: 'JWT obtained login.',
-            },
-            'Authorization',
-        )
-        .addBasicAuth(
-            {
-                type: 'http',
-                scheme: 'basic',
-                name: 'Prometheus',
-                description: 'Prometheus Basic Auth',
-            },
-            'Prometheus',
-        )
-        .setDescription(description)
-        .setVersion(pkg.version!)
-        .setLicense('AGPL-3.0', 'https://github.com/remnawave/panel?tab=AGPL-3.0-1-ov-file')
-        .addGlobalResponse({
-            status: 404,
-            description: 'Resource not found',
+    let cachedDocument: null | OpenAPIObject = null;
 
-            content: {
-                'application/json': {
-                    schema: { $ref: getSchemaPath(RemnawaveNotFoundErrorDto) },
-                },
-            },
-        })
-        .addGlobalResponse({
-            status: 400,
-            description: 'Bad request / Validation error',
+    const getDocument = (): OpenAPIObject => {
+        if (cachedDocument) {
+            return cachedDocument;
+        }
 
-            content: {
-                'application/json': {
-                    schema: {
-                        oneOf: [
-                            { $ref: getSchemaPath(RemnawaveBadRequestErrorDto) },
-                            { $ref: getSchemaPath(RemnawaveValidationErrorDto) },
-                        ],
-                    },
-                },
-            },
-        })
-        .addGlobalResponse({
-            status: 500,
-            description: 'Internal server error',
+        const prebuilt = readPrebuiltDocument();
 
-            content: {
-                'application/json': {
-                    schema: { $ref: getSchemaPath(RemnawaveInternalServerErrorDto) },
-                },
-            },
-        });
+        if (prebuilt) {
+            logger.log('Using prebuilt OpenAPI spec.');
+            cachedDocument = prebuilt;
+        } else {
+            logger.log('Prebuilt OpenAPI spec is not available, building the document.');
+            cachedDocument = buildDocument();
+        }
 
-    Object.values(CONTROLLERS_INFO).reduce((builder, { tag, description }) => {
-        return builder.addTag(tag, description);
-    }, configSwagger);
-
-    const builtConfigSwagger = configSwagger.build();
-
-    const documentFactory = () =>
-        SwaggerModule.createDocument(app, builtConfigSwagger, {
-            extraModels: [
-                RemnawaveWebhookUserEventsDto,
-                RemnawaveWebhookUserHwidDevicesEventsDto,
-                RemnawaveWebhookNodeEventsDto,
-                RemnawaveWebhookServiceEventsDto,
-                RemnawaveWebhookErrorsEventsDto,
-                RemnawaveWebhookCrmEventsDto,
-                RemnawaveWebhookTorrentBlockerEventsDto,
-                RemnawaveNotFoundErrorDto,
-                RemnawaveBadRequestErrorDto,
-                RemnawaveInternalServerErrorDto,
-                RemnawaveValidationErrorDto,
-                RemnawaveUserUsageStreamMessageDto,
-                RemnawaveSubscriptionRequestStreamMessageDto,
-                RemnawaveNodeConnectionsStreamMessageDto,
-            ],
-        });
-
-    const document = documentFactory();
+        return cachedDocument;
+    };
 
     const theme = new SwaggerTheme();
     const options = {
@@ -138,7 +64,7 @@ export async function getDocs(app: INestApplication<unknown>) {
         useGlobalPrefix: true,
     };
 
-    SwaggerModule.setup(SWAGGER_ROOT, app, cleanupOpenApiDoc(document), options);
+    SwaggerModule.setup(SWAGGER_ROOT, app, getDocument, options);
 
     app.use(
         `${ROOT}${SCALAR_ROOT}`,
@@ -178,7 +104,7 @@ export async function getDocs(app: INestApplication<unknown>) {
                 clientKey: 'axios',
             },
             telemetry: false,
-            content: () => cleanupOpenApiDoc(document),
+            url: `${ROOT}${SWAGGER_ROOT}-json`,
         }),
     );
 }
