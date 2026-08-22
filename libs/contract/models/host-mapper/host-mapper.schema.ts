@@ -197,8 +197,13 @@ export const SingBoxHostMapperOperationsSchema = buildOperationsSchema({
 });
 
 export const Base64HostMapperOperationsSchema = buildOperationsSchema({
-    target: 'the query string of the generated **share link**',
+    target: 'the query string of the generated **share link**, or the link itself with a `$link.` prefix',
     examples: [
+        '$link.address',
+        '$link.port',
+        '$link.password',
+        '$link.remark',
+        '$link.method',
         'alpn',
         'authority',
         'cs',
@@ -282,15 +287,25 @@ export const HostMapperSchema = z
             .meta({
                 title: 'Base64',
                 markdownDescription: [
-                    'Operations applied to the **query string** of the share link generated for this host in the Base64 subscription.',
+                    'Operations applied to the share link generated for this host in the Base64 subscription.',
                     '',
                     '`to` is a plain query parameter name, not a path – dots carry no meaning here.',
+                    '',
+                    'With a `$link.` prefix the operation rewrites the link itself instead of its query string. Writable parts: `$link.address`, `$link.port`, `$link.password`, `$link.remark`, and `$link.method` for Shadowsocks. `$link.password` is the credential of the protocol.',
+                    '',
+                    '> A value that cannot make a valid link – an empty address, a port outside 1-65535 – is ignored, and the generated one is kept.',
                     '',
                     '```json',
                     JSON.stringify(
                         [
                             { op: 'set', to: 'fp', value: 'chrome' },
                             { op: 'unset', to: 'fm' },
+                            { op: 'set', to: '$link.port', value: 2053 },
+                            {
+                                op: 'copy',
+                                from: '$host.securityOptions.serverName',
+                                to: '$link.address',
+                            },
                         ],
                         null,
                         2,
