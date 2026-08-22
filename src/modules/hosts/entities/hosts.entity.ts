@@ -1,5 +1,6 @@
 import {
     SUBSCRIPTION_TEMPLATE_TYPE_VALUES,
+    TInternalSquadsMode,
     TMihomoIpVersion,
     TSecurityLayers,
     TSubscriptionTemplateType,
@@ -48,11 +49,12 @@ export class HostsEntity implements Hosts {
         nodeUuid: string;
     }[];
 
-    excludedInternalSquads: {
+    mapper: THostMapper;
+
+    internalSquadsMode: TInternalSquadsMode;
+    internalSquads: {
         squadUuid: string;
     }[];
-
-    mapper: THostMapper;
 
     constructor(data: Partial<Hosts>) {
         Object.assign(this, data);

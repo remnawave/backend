@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { SUBSCRIPTION_TEMPLATE_TYPE } from '../constants';
-import { ALPN, MIHOMO_IP_VERSION, SECURITY_LAYERS } from '../constants/hosts';
+import { ALPN, INTERNAL_SQUADS_MODE, MIHOMO_IP_VERSION, SECURITY_LAYERS } from '../constants/hosts';
 import { HostMapperSchema } from './host-mapper';
 
 export const HostsSchema = z.object({
@@ -41,7 +41,21 @@ export const HostsSchema = z.object({
 
     nodes: z.array(z.uuid()),
     xrayJsonTemplateUuid: z.uuid().nullable(),
-    excludedInternalSquads: z.array(z.uuid()),
     excludeFromSubscriptionTypes: z.array(z.enum(SUBSCRIPTION_TEMPLATE_TYPE)),
     mapper: HostMapperSchema,
+
+    internalSquads: z.object({
+        mode: z.enum(INTERNAL_SQUADS_MODE),
+        squads: z.array(z.uuid()),
+    }),
 });
+
+export const HostInternalSquadsSchema = z
+    .object({
+        mode: z.enum(INTERNAL_SQUADS_MODE),
+        squads: z.array(z.uuid()),
+    })
+    .refine((v) => v.mode !== INTERNAL_SQUADS_MODE.ALLOW_ONLY || v.squads.length > 0, {
+        error: 'At least one internal squad is required in ALLOW_ONLY mode',
+        path: ['squads'],
+    });

@@ -293,6 +293,8 @@ model Hosts {
   excludeFromSubscriptionTypes String[] @default([]) @map("exclude_from_subscription_types")
   mapper                       Json     @default("{}") @map("mapper")
 
+  internalSquadsMode String @default("EXCLUDE") @map("internal_squads_mode") // ENUM: EXCLUDE, ALLOW_ONLY
+
   tags     String[] @default([]) @map("tags")
   isHidden Boolean  @default(false) @map("is_hidden")
 
@@ -305,13 +307,13 @@ model Hosts {
   configProfiles        ConfigProfiles?        @relation(fields: [configProfileUuid], references: [uuid], onDelete: SetNull)
   xrayJsonTemplate      SubscriptionTemplate?  @relation(fields: [xrayJsonTemplateUuid], references: [uuid], onDelete: SetNull)
 
-  nodes                  HostsToNodes[]
-  excludedInternalSquads InternalSquadHostExclusions[]
+  nodes          HostsToNodes[]
+  internalSquads InternalSquadHostLinks[]
 
   @@map("hosts")
 }
 
-model InternalSquadHostExclusions {
+model InternalSquadHostLinks {
   hostUuid  String @map("host_uuid") @db.Uuid
   squadUuid String @map("squad_uuid") @db.Uuid
 
@@ -319,7 +321,7 @@ model InternalSquadHostExclusions {
   squad InternalSquads @relation(fields: [squadUuid], references: [uuid], onDelete: Cascade)
 
   @@id([hostUuid, squadUuid])
-  @@map("internal_squad_host_exclusions")
+  @@map("internal_squad_host_links")
 }
 
 model SubscriptionTemplate {
@@ -385,7 +387,7 @@ model InternalSquads {
 
   internalSquadMembers  InternalSquadMembers[]
   internalSquadInbounds InternalSquadInbounds[]
-  excludedHosts         InternalSquadHostExclusions[]
+  internalSquadHosts    InternalSquadHostLinks[]
 
   @@map("internal_squads")
 }

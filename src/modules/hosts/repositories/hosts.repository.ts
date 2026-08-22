@@ -10,6 +10,7 @@ import { TxKyselyService } from '@common/database';
 import { getKyselyUuid } from '@common/helpers';
 import { values } from '@common/helpers/kysely/values';
 import { ICrud } from '@common/types/crud-port';
+import { INTERNAL_SQUADS_MODE } from '@libs/contracts/constants';
 
 import { HostsEntity } from '../entities/hosts.entity';
 import { HostsConverter } from '../hosts.converter';
@@ -20,7 +21,7 @@ const INCLUDE_RELATED = {
             nodeUuid: true,
         },
     },
-    excludedInternalSquads: {
+    internalSquads: {
         select: {
             squadUuid: true,
         },
@@ -65,7 +66,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
     public async update({
         uuid,
         ...data
-    }: Partial<Omit<HostsEntity, 'nodes' | 'excludedInternalSquads'>>): Promise<HostsEntity> {
+    }: Partial<Omit<HostsEntity, 'internalSquads' | 'nodes'>>): Promise<HostsEntity> {
         const result = await this.prisma.tx.hosts.update({
             where: {
                 uuid,
@@ -88,7 +89,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
         data,
     }: {
         uuids: string[];
-        data: Partial<Omit<HostsEntity, 'nodes' | 'excludedInternalSquads'>>;
+        data: Partial<Omit<HostsEntity, 'internalSquads' | 'nodes'>>;
     }): Promise<number> {
         const result = await this.prisma.tx.hosts.updateMany({
             where: {
@@ -115,7 +116,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             | 'muxParams'
             | 'sockoptParams'
             | 'nodes'
-            | 'excludedInternalSquads'
+            | 'internalSquads'
             | 'excludeFromSubscriptionTypes'
             | 'finalMask'
             | 'tags'
@@ -189,21 +190,27 @@ export class HostsRepository implements ICrud<HostsEntity> {
                         )
                         .where('internalSquadMembers.userId', '=', userId)
                         .where((eb2) =>
-                            eb2.not(
+                            eb2(
                                 eb2.exists(
                                     eb2
-                                        .selectFrom('internalSquadHostExclusions')
+                                        .selectFrom('internalSquadHostLinks')
                                         .whereRef(
-                                            'internalSquadHostExclusions.hostUuid',
+                                            'internalSquadHostLinks.hostUuid',
                                             '=',
                                             'hosts.uuid',
                                         )
                                         .whereRef(
-                                            'internalSquadHostExclusions.squadUuid',
+                                            'internalSquadHostLinks.squadUuid',
                                             '=',
                                             'internalSquadInbounds.internalSquadUuid',
                                         )
                                         .select(eb2.val(1).as('one')),
+                                ),
+                                '=',
+                                eb2.parens(
+                                    'hosts.internalSquadsMode',
+                                    '=',
+                                    INTERNAL_SQUADS_MODE.ALLOW_ONLY,
                                 ),
                             ),
                         )
@@ -323,22 +330,19 @@ export class HostsRepository implements ICrud<HostsEntity> {
         return !!result;
     }
 
-    public async addExcludedInternalSquadsToHost(
-        hostUuid: string,
-        squadUuids: string[],
-    ): Promise<boolean> {
+    public async addInternalSquadsToHost(hostUuid: string, squadUuids: string[]): Promise<boolean> {
         if (squadUuids.length === 0) {
             return true;
         }
 
-        const result = await this.prisma.tx.internalSquadHostExclusions.createMany({
+        const result = await this.prisma.tx.internalSquadHostLinks.createMany({
             data: squadUuids.map((squad) => ({ hostUuid, squadUuid: squad })),
             skipDuplicates: true,
         });
         return !!result;
     }
 
-    public async addExcludedInternalSquadsToHosts(
+    public async addInternalSquadsToHosts(
         hostUuids: string[],
         squadUuids: string[],
     ): Promise<boolean> {
@@ -346,7 +350,7 @@ export class HostsRepository implements ICrud<HostsEntity> {
             return true;
         }
 
-        const result = await this.prisma.tx.internalSquadHostExclusions.createMany({
+        const result = await this.prisma.tx.internalSquadHostLinks.createMany({
             data: hostUuids.flatMap((hostUuid) =>
                 squadUuids.map((squad) => ({ hostUuid, squadUuid: squad })),
             ),
@@ -355,15 +359,15 @@ export class HostsRepository implements ICrud<HostsEntity> {
         return !!result;
     }
 
-    public async clearExcludedInternalSquadsFromHost(hostUuid: string): Promise<boolean> {
-        const result = await this.prisma.tx.internalSquadHostExclusions.deleteMany({
+    public async clearInternalSquadsFromHost(hostUuid: string): Promise<boolean> {
+        const result = await this.prisma.tx.internalSquadHostLinks.deleteMany({
             where: { hostUuid },
         });
         return !!result;
     }
 
-    public async clearExcludedInternalSquadsFromHosts(hostUuids: string[]): Promise<boolean> {
-        const result = await this.prisma.tx.internalSquadHostExclusions.deleteMany({
+    public async clearInternalSquadsFromHosts(hostUuids: string[]): Promise<boolean> {
+        const result = await this.prisma.tx.internalSquadHostLinks.deleteMany({
             where: { hostUuid: { in: hostUuids } },
         });
         return !!result;

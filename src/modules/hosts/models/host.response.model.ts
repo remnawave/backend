@@ -1,5 +1,6 @@
 import {
     TAlpnValues,
+    TInternalSquadsMode,
     TMihomoIpVersion,
     TSecurityLayers,
     TSubscriptionTemplateType,
@@ -49,9 +50,12 @@ export class HostResponseModel {
 
     public xrayJsonTemplateUuid: string | null;
 
-    public excludedInternalSquads: string[];
     public excludeFromSubscriptionTypes: TSubscriptionTemplateType[];
     public mapper: THostMapper;
+    public internalSquads: {
+        mode: TInternalSquadsMode;
+        squads: string[];
+    };
 
     constructor(data: HostsEntity) {
         this.uuid = data.uuid;
@@ -91,9 +95,10 @@ export class HostResponseModel {
         };
 
         this.nodes = data.nodes.map((node) => node.nodeUuid);
-        this.excludedInternalSquads = data.excludedInternalSquads.map(
-            (exclusion) => exclusion.squadUuid,
-        );
+        this.internalSquads = {
+            mode: data.internalSquadsMode,
+            squads: data.internalSquads.map((squad) => squad.squadUuid),
+        };
 
         this.xrayJsonTemplateUuid = data.xrayJsonTemplateUuid;
         this.excludeFromSubscriptionTypes = data.excludeFromSubscriptionTypes;

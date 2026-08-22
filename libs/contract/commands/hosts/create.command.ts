@@ -8,7 +8,7 @@ import {
     SUBSCRIPTION_TEMPLATE_TYPE,
     MIHOMO_IP_VERSION,
 } from '../../constants';
-import { HostMapperSchema } from '../../models';
+import { HostInternalSquadsSchema, HostMapperSchema } from '../../models';
 import { HostResponseSchema } from './host.response';
 
 export namespace CreateHostCommand {
@@ -68,13 +68,11 @@ export namespace CreateHostCommand {
         mihomoIpVersion: z.enum(MIHOMO_IP_VERSION).nullish(),
         nodes: z.optional(z.array(z.uuid())),
         xrayJsonTemplateUuid: z.uuid().nullish(),
-        excludedInternalSquads: z
-            .optional(z.array(z.uuid()))
-            .describe('Optional. Internal squads from which the host will be excluded.'),
         excludeFromSubscriptionTypes: z
             .optional(z.array(z.enum(SUBSCRIPTION_TEMPLATE_TYPE)))
             .describe('Optional. Subscription types from which the host will be excluded from.'),
         mapper: HostMapperSchema.optional(),
+        internalSquads: HostInternalSquadsSchema.optional(),
     });
 
     export const ResponseSchema = HostResponseSchema;

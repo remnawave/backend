@@ -44,7 +44,7 @@ export class HostsService {
             const {
                 inbound: inboundObj,
                 nodes,
-                excludedInternalSquads,
+                internalSquads,
                 xhttpExtraParams,
                 muxParams,
                 sockoptParams,
@@ -76,6 +76,7 @@ export class HostsService {
                 finalMask: nullifyEmpty(finalMask),
                 configProfileUuid: configProfile.response.uuid,
                 configProfileInboundUuid: configProfileInbound.uuid,
+                internalSquadsMode: internalSquads?.mode,
             });
 
             const result = await this.hostsRepository.create(hostEntity);
@@ -89,12 +90,12 @@ export class HostsService {
                 });
             }
 
-            if (excludedInternalSquads !== undefined && excludedInternalSquads.length > 0) {
-                await this.hostsRepository.addExcludedInternalSquadsToHost(
+            if (internalSquads !== undefined && internalSquads.squads.length > 0) {
+                await this.hostsRepository.addInternalSquadsToHost(
                     result.uuid,
-                    excludedInternalSquads,
+                    internalSquads.squads,
                 );
-                result.excludedInternalSquads = excludedInternalSquads.map((squad) => {
+                result.internalSquads = internalSquads.squads.map((squad) => {
                     return {
                         squadUuid: squad,
                     };
@@ -111,7 +112,7 @@ export class HostsService {
 
     public async updateHost(dto: UpdateHostBodyDto): Promise<TResult<HostsEntity>> {
         try {
-            const { inbound: inboundObj, nodes, excludedInternalSquads, ...rest } = dto;
+            const { inbound: inboundObj, nodes, internalSquads, ...rest } = dto;
 
             const host = await this.hostsRepository.findByUUID(dto.uuid);
             if (!host) return fail(ERRORS.HOST_NOT_FOUND);
@@ -211,11 +212,11 @@ export class HostsService {
                 await this.hostsRepository.addNodesToHost(host.uuid, nodes);
             }
 
-            if (excludedInternalSquads !== undefined) {
-                await this.hostsRepository.clearExcludedInternalSquadsFromHost(host.uuid);
-                await this.hostsRepository.addExcludedInternalSquadsToHost(
+            if (internalSquads !== undefined) {
+                await this.hostsRepository.clearInternalSquadsFromHost(host.uuid);
+                await this.hostsRepository.addInternalSquadsToHost(
                     host.uuid,
-                    excludedInternalSquads,
+                    internalSquads.squads,
                 );
             }
 
@@ -229,6 +230,7 @@ export class HostsService {
                 configProfileInboundUuid,
                 serverDescription,
                 finalMask,
+                internalSquadsMode: internalSquads?.mode,
             });
 
             return ok(result);
@@ -346,7 +348,7 @@ export class HostsService {
                 uuids,
                 inbound: inboundObj,
                 nodes,
-                excludedInternalSquads,
+                internalSquads,
                 xhttpExtraParams,
                 muxParams,
                 sockoptParams,
@@ -396,12 +398,9 @@ export class HostsService {
                 await this.hostsRepository.addNodesToHosts(uuids, nodes);
             }
 
-            if (excludedInternalSquads !== undefined) {
-                await this.hostsRepository.clearExcludedInternalSquadsFromHosts(uuids);
-                await this.hostsRepository.addExcludedInternalSquadsToHosts(
-                    uuids,
-                    excludedInternalSquads,
-                );
+            if (internalSquads !== undefined) {
+                await this.hostsRepository.clearInternalSquadsFromHosts(uuids);
+                await this.hostsRepository.addInternalSquadsToHosts(uuids, internalSquads.squads);
             }
 
             await this.hostsRepository.updateMany({
@@ -415,6 +414,7 @@ export class HostsService {
                     finalMask: nullifyEmpty(finalMask),
                     configProfileUuid,
                     configProfileInboundUuid,
+                    internalSquadsMode: internalSquads?.mode,
                 },
             });
 

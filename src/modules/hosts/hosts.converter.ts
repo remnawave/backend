@@ -48,6 +48,8 @@ const entityToModel = (entity: HostsEntity): Hosts => {
         xrayJsonTemplateUuid: entity.xrayJsonTemplateUuid,
         excludeFromSubscriptionTypes: entity.excludeFromSubscriptionTypes,
         mapper: entity.mapper,
+
+        internalSquadsMode: entity.internalSquadsMode,
     };
 };
 
