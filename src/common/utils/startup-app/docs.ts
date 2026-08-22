@@ -5,7 +5,7 @@ import { SwaggerThemeNameEnum } from 'swagger-themes';
 import { SwaggerTheme } from 'swagger-themes';
 
 import { INestApplication } from '@nestjs/common';
-import { DocumentBuilder, getSchemaPath } from '@nestjs/swagger';
+import { DocumentBuilder, getSchemaPath, OpenAPIObject } from '@nestjs/swagger';
 import { SwaggerModule } from '@nestjs/swagger';
 
 import { CONTROLLERS_INFO, ROOT, SCALAR_ROOT, SWAGGER_ROOT } from '@libs/contracts/api';
@@ -125,7 +125,13 @@ export async function getDocs(app: INestApplication<unknown>) {
             ],
         });
 
-    const document = documentFactory();
+    let cachedDocument: null | OpenAPIObject = null;
+
+    const getDocument = (): OpenAPIObject => {
+        cachedDocument ??= cleanupOpenApiDoc(documentFactory());
+
+        return cachedDocument;
+    };
 
     const theme = new SwaggerTheme();
     const options = {
@@ -138,7 +144,7 @@ export async function getDocs(app: INestApplication<unknown>) {
         useGlobalPrefix: true,
     };
 
-    SwaggerModule.setup(SWAGGER_ROOT, app, cleanupOpenApiDoc(document), options);
+    SwaggerModule.setup(SWAGGER_ROOT, app, getDocument, options);
 
     app.use(
         `${ROOT}${SCALAR_ROOT}`,
@@ -178,7 +184,7 @@ export async function getDocs(app: INestApplication<unknown>) {
                 clientKey: 'axios',
             },
             telemetry: false,
-            content: () => cleanupOpenApiDoc(document),
+            url: `${ROOT}${SWAGGER_ROOT}-json`,
         }),
     );
 }

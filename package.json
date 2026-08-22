@@ -62,7 +62,7 @@
     "@prisma/client": "6.19.3",
     "@remnawave/hashed-set": "^0.0.4",
     "@remnawave/node-contract": "3.2.3",
-    "@scalar/nestjs-api-reference": "^1.2.14",
+    "@scalar/nestjs-api-reference": "^1.2.16",
     "@simplewebauthn/server": "^13.3.2",
     "@songkeys/nestjs-redis": "^11.0.0",
     "@stablelib/base64": "^2.0.1",
