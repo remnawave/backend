@@ -14,5 +14,5 @@
     "declaration": true,
     "declarationMap": true
   },
-  "exclude": ["scripts/**/*", "tests/**/*", "**/*.spec.ts", "**/*.test.ts"]
+  "exclude": ["build/**/*", "scripts/**/*", "tests/**/*", "**/*.spec.ts", "**/*.test.ts"]
 }
