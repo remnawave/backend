@@ -21,6 +21,7 @@ import { NotFoundExceptionFilter } from '@common/exception/not-found-exception.f
 import { WorkerRoutesGuard } from '@common/guards/worker-routes/worker-routes.guard';
 import { customLogFilter } from '@common/utils/filter-logs/filter-logs';
 import { isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
+import { getStartMessage } from '@common/utils/startup-app/get-start-message';
 import { BULLBOARD_ROOT, HEALTH_ROOT, METRICS_ROOT } from '@libs/contracts/api';
 
 import { SchedulerRootModule } from './scheduler.root.module';
@@ -94,6 +95,8 @@ async function bootstrap(): Promise<void> {
     app.enableShutdownHooks();
 
     await app.listen(config.getOrThrow('METRICS_PORT'));
+
+    logger.info('\n' + (await getStartMessage()) + '\n');
 
     if (import.meta.webpackHot) {
         import.meta.webpackHot.accept();

@@ -29,7 +29,6 @@ import {
 } from '@common/middlewares';
 import { customLogFilter } from '@common/utils/filter-logs';
 import { getDocs, isDevelopment, isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
-import { getStartMessage } from '@common/utils/startup-app/get-start-message';
 
 import { AppModule } from './app.module';
 
@@ -143,8 +142,6 @@ async function bootstrap(): Promise<void> {
     app.enableShutdownHooks();
 
     await app.listen(Number(config.getOrThrow('APP_PORT')));
-
-    logger.info('\n' + (await getStartMessage()) + '\n');
 
     if (import.meta.webpackHot) {
         import.meta.webpackHot.accept();
