@@ -39,7 +39,7 @@ export namespace UpdateHostCommand {
         host: z.string().nullish(),
         alpn: z.enum(ALPN).nullish(),
         fingerprint: z.string().nullish(),
-        isDisabled: z.boolean().default(false),
+        isDisabled: z.optional(z.boolean()),
         securityLayer: z.optional(z.enum(SECURITY_LAYERS)),
         xhttpExtraParams: z.unknown().nullish(),
         muxParams: z.unknown().nullish(),
