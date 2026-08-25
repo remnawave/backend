@@ -1269,4 +1269,14 @@ export const ERRORS = {
             httpCode: 400,
         }),
     },
+    EVALUATE_VAULT_ERROR: {
+        code: 'A255',
+        message: 'Vault evaluation refused',
+        httpCode: 429,
+    },
+    CREATE_SSH_TICKET_ERROR: {
+        code: 'A254',
+        message: 'Create SSH ticket error',
+        httpCode: 500,
+    },
 } as const;

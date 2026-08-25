@@ -39,3 +39,4 @@ export * from './webhook';
 export * from './xray-json-advanced';
 export * from './path-params.schema';
 export * from './host-mapper';
+export * from './ssh-terminal.schema';

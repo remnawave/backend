@@ -12,6 +12,7 @@ export * from './keygen';
 export * from './metadata';
 export * from './node-integrations';
 export * from './node-plugins';
+export * from './node-ssh';
 export * from './nodes';
 export * from './passkeys';
 export * from './remnawave-settings';
