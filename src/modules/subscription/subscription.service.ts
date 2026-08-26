@@ -304,6 +304,7 @@ export class SubscriptionService {
         shortUuid: string,
         withDisabledHosts: boolean,
         hwidHeaders: HwidHeaders | null,
+        userAgent: string,
         requestIp?: string,
     ): Promise<TResult<RawSubscriptionWithHostsResponse>> {
         try {
@@ -413,6 +414,14 @@ export class SubscriptionService {
                     },
                 });
             }
+
+            void this.updateAndReportSubscriptionRequest({
+                userId: user.id,
+                userAgent: userAgent,
+                requestIp: requestIp,
+                matchedRuleName: 'RAW',
+                matchedResponseType: 'RAW',
+            });
 
             return ok(
                 new RawSubscriptionWithHostsResponse({

@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { Endpoint } from '@common/decorators/base-endpoint';
 import { IpAddress } from '@common/decorators/get-ip';
+import { UserAgent } from '@common/decorators/get-useragent';
 import { Roles } from '@common/decorators/roles/roles';
 import { ApiScopeResource } from '@common/decorators/scopes';
 import { HttpExceptionFilter } from '@common/exception/http-exception.filter';
@@ -168,6 +169,7 @@ export class SubscriptionsController {
         type: GetRawSubscriptionByShortUuidResponseDto,
     })
     async getRawSubscriptionByShortUuid(
+        @UserAgent() userAgent: string,
         @IpAddress() ip: string,
         @Param() { shortUuid }: GetRawSubscriptionByShortUuidParamDto,
         @Query() { withDisabledHosts }: GetRawSubscriptionByShortUuidQueryDto,
@@ -177,6 +179,7 @@ export class SubscriptionsController {
             shortUuid,
             withDisabledHosts,
             extractHwidHeaders(request),
+            userAgent,
             ip,
         );
 
