@@ -95,6 +95,11 @@ export class RawCacheService {
         return this.redis.getdel(key);
     }
 
+    async getDel<T>(key: string): Promise<T | null> {
+        const raw = await this.redis.getdel(key);
+        return raw ? (JSON.parse(raw) as T) : null;
+    }
+
     async del(key: string): Promise<void> {
         await this.redis.del(key);
         await this.memoryCacheService.invalidate(key);

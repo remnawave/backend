@@ -22,6 +22,7 @@ import { fail, ok, TResult } from '@common/types';
 import { AUTH_ROUTES } from '@libs/contracts/api';
 import {
     CACHE_KEYS,
+    CACHE_KEYS_TTL,
     EVENTS,
     OAUTH2_PROVIDERS,
     ROLE,
@@ -344,8 +345,9 @@ export class AuthService {
             );
 
             let authorizationURL: URL;
+            let pkceVerifier: string | null = null;
+
             const state = arctic.generateState();
-            let stateKey: string;
 
             switch (provider) {
                 case OAUTH2_PROVIDERS.GITHUB:
@@ -356,7 +358,6 @@ export class AuthService {
                     );
 
                     authorizationURL = ghClient.createAuthorizationURL(state, ['user:email']);
-                    stateKey = `oauth2:${OAUTH2_PROVIDERS.GITHUB}`;
                     break;
                 case OAUTH2_PROVIDERS.POCKETID:
                     const pocketIdClient = await this.getGenericOAuth2Client(
@@ -369,7 +370,6 @@ export class AuthService {
                         state,
                         OAUTH2_SCOPES,
                     );
-                    stateKey = `oauth2:${OAUTH2_PROVIDERS.POCKETID}`;
                     break;
                 case OAUTH2_PROVIDERS.YANDEX:
                     const yandexClient = new arctic.Yandex(
@@ -378,20 +378,16 @@ export class AuthService {
                         '',
                     );
                     authorizationURL = yandexClient.createAuthorizationURL(state, ['login:email']);
-                    stateKey = `oauth2:${OAUTH2_PROVIDERS.YANDEX}`;
                     break;
                 case OAUTH2_PROVIDERS.KEYCLOAK:
-                    const codeVerifier = arctic.generateCodeVerifier();
+                    pkceVerifier = arctic.generateCodeVerifier();
 
                     const keycloakClient = await this.getKeyCloakClient(remnawaveSettings);
                     authorizationURL = keycloakClient.createAuthorizationURL(
                         state,
-                        codeVerifier,
+                        pkceVerifier,
                         OAUTH2_SCOPES,
                     );
-
-                    stateKey = `oauth2:${OAUTH2_PROVIDERS.KEYCLOAK}`;
-                    await this.rawCacheService.set(`${stateKey}:codeVerifier`, codeVerifier, 600);
 
                     break;
                 case OAUTH2_PROVIDERS.GENERIC:
@@ -407,49 +403,43 @@ export class AuthService {
                                 state,
                                 OAUTH2_SCOPES,
                             );
-                            stateKey = `oauth2:${OAUTH2_PROVIDERS.GENERIC}`;
                             break;
                         case true:
-                            const codeVerifier = arctic.generateCodeVerifier();
+                            pkceVerifier = arctic.generateCodeVerifier();
 
                             authorizationURL = genericOAuth2Client.createAuthorizationURLWithPKCE(
                                 authorizationEndpoint,
                                 state,
                                 arctic.CodeChallengeMethod.S256,
-                                codeVerifier,
+                                pkceVerifier,
                                 OAUTH2_SCOPES,
-                            );
-                            stateKey = `oauth2:${OAUTH2_PROVIDERS.GENERIC}`;
-
-                            await this.rawCacheService.set(
-                                `${stateKey}:codeVerifier`,
-                                codeVerifier,
-                                600,
                             );
                             break;
                     }
                     break;
                 case OAUTH2_PROVIDERS.TELEGRAM: {
-                    const tgCodeVerifier = arctic.generateCodeVerifier();
+                    pkceVerifier = arctic.generateCodeVerifier();
                     const tgClient = this.getTelegramOAuth2Client(remnawaveSettings);
 
                     authorizationURL = tgClient.createAuthorizationURLWithPKCE(
                         'https://oauth.telegram.org/auth',
                         state,
                         arctic.CodeChallengeMethod.S256,
-                        tgCodeVerifier,
+                        pkceVerifier,
                         ['openid', 'profile', 'telegram:bot_access'],
                     );
 
-                    stateKey = `oauth2:${OAUTH2_PROVIDERS.TELEGRAM}`;
-                    await this.rawCacheService.set(`${stateKey}:codeVerifier`, tgCodeVerifier, 600);
                     break;
                 }
                 default:
                     return fail(ERRORS.OAUTH2_PROVIDER_NOT_FOUND);
             }
 
-            await this.rawCacheService.set(stateKey, state, 600);
+            await this.rawCacheService.set(
+                CACHE_KEYS.OAUTH2_STATE(state),
+                { codeVerifier: pkceVerifier, provider },
+                CACHE_KEYS_TTL.OAUTH2_STATE,
+            );
 
             return ok(
                 new OAuth2AuthorizeResponseModel({
@@ -553,19 +543,14 @@ export class AuthService {
     ): Promise<{ isAllowed: boolean; email: string | null }> {
         const FAIL = { isAllowed: false, email: null };
 
-        const stateKey = `oauth2:${provider}`;
+        const ceremony = await this.rawCacheService.getDel<{
+            codeVerifier: string | null;
+            provider: TOAuth2ProvidersKeys;
+        }>(CACHE_KEYS.OAUTH2_STATE(state));
 
-        const [stateFromCache, codeVerifier] = await Promise.all([
-            this.rawCacheService.get<string>(stateKey),
-            this.rawCacheService.get<string>(`${stateKey}:codeVerifier`),
-        ]);
+        const codeVerifier = ceremony?.codeVerifier ?? null;
 
-        await Promise.all([
-            this.rawCacheService.del(stateKey),
-            this.rawCacheService.del(`${stateKey}:codeVerifier`),
-        ]);
-
-        if (stateFromCache !== state) {
+        if (!ceremony || ceremony.provider !== provider) {
             await this.emitFailedLoginAttempt(
                 'Unknown',
                 `State: ${state}`,
@@ -934,16 +919,28 @@ export class AuthService {
                 userVerification: 'required',
             });
 
-            await this.rawCacheService.set(
-                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
-                options.challenge,
-                60, // 1 minute
+            await this.rawCacheService.setString(
+                CACHE_KEYS.PASSKEY_AUTHENTICATION_CHALLENGE(options.challenge),
+                admin.response.uuid,
+                CACHE_KEYS_TTL.PASSKEY_AUTHENTICATION_CHALLENGE,
             );
 
             return ok(options);
         } catch (error) {
             this.logger.error(`Passkey authentication options error: ${error}`);
             return fail(ERRORS.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private readClientDataChallenge(response: AuthenticationResponseJSON): string | null {
+        try {
+            const clientData = JSON.parse(
+                Buffer.from(response.response.clientDataJSON, 'base64url').toString('utf8'),
+            ) as { challenge?: unknown };
+
+            return typeof clientData.challenge === 'string' ? clientData.challenge : null;
+        } catch {
+            return null;
         }
     }
 
@@ -994,11 +991,15 @@ export class AuthService {
                 return fail(ERRORS.FORBIDDEN);
             }
 
-            const expectedChallenge = await this.rawCacheService.get<string>(
-                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
-            );
+            const expectedChallenge = this.readClientDataChallenge(response);
 
-            if (!expectedChallenge) {
+            const challengeOwner = expectedChallenge
+                ? await this.rawCacheService.getDelString(
+                      CACHE_KEYS.PASSKEY_AUTHENTICATION_CHALLENGE(expectedChallenge),
+                  )
+                : null;
+
+            if (!expectedChallenge || challengeOwner !== admin.response.uuid) {
                 await this.emitFailedLoginAttempt(
                     'Unknown',
                     '–',
@@ -1040,10 +1041,6 @@ export class AuthService {
                 },
                 requireUserVerification: true,
             });
-
-            await this.rawCacheService.del(
-                CACHE_KEYS.PASSKEY_AUTHENTICATION_OPTIONS(admin.response.uuid),
-            );
 
             if (!verification.verified) {
                 await this.emitFailedLoginAttempt(

@@ -6,7 +6,9 @@ export const CACHE_KEYS = {
     SUBSCRIPTION_TEMPLATE: (name: string, type: TSubscriptionTemplateType) =>
         `subscription_template:${name}:${type}`,
     PASSKEY_REGISTRATION_OPTIONS: (uuid: string) => `passkey_registration_options:${uuid}`,
-    PASSKEY_AUTHENTICATION_OPTIONS: (uuid: string) => `passkey_authentication_options:${uuid}`,
+    PASSKEY_AUTHENTICATION_CHALLENGE: (challenge: string) =>
+        `passkey_authentication_challenge:${challenge}`,
+    OAUTH2_STATE: (state: string) => `oauth2_state:${state}`,
     REMNAWAVE_SETTINGS: 'remnawave_settings',
     NODE_SYSTEM_INFO: (uuid: string) => `node_system_info:${uuid}`,
     NODE_SYSTEM_STATS: (uuid: string) => `node_system_stats:${uuid}`,
@@ -20,6 +22,8 @@ export const CACHE_KEYS = {
 } as const;
 
 export const CACHE_KEYS_TTL = {
+    OAUTH2_STATE: 600, // 10 minutes
+    PASSKEY_AUTHENTICATION_CHALLENGE: 60, // 1 minute
     REMNAWAVE_SETTINGS: 86_400, // 1 day
     EXTERNAL_SQUAD_SETTINGS: 3_600, // 1 hour
     SUBSCRIPTION_SETTINGS: 3_600, // 1 hour
