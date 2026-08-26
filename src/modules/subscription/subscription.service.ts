@@ -84,9 +84,9 @@ export class SubscriptionService {
         SubscriptionNotFoundResponse | SubscriptionRawResponse | SubscriptionWithConfigResponse
     > {
         try {
-            const { userAgent, hwidHeaders, matchedResponseType, matchedRuleName } = srrContext;
+            const { userAgent, hwidHeaders } = srrContext;
 
-            if (matchedResponseType === 'BROWSER') {
+            if (srrContext.matchedResponseType === 'BROWSER') {
                 const subscriptionInfo = await this.getSubscriptionInfo({
                     searchBy: {
                         uniqueFieldKey: 'shortUuid',
@@ -119,9 +119,10 @@ export class SubscriptionService {
 
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
-                    let templateTypeMatcher = matchedResponseType as TSubscriptionTemplateType;
+                    let templateTypeMatcher =
+                        srrContext.matchedResponseType as TSubscriptionTemplateType;
 
-                    if (matchedResponseType === 'XRAY_BASE64') {
+                    if (templateTypeMatcher === 'XRAY_BASE64') {
                         // In case if XRAY_BASE64 matched as fallback
                         templateTypeMatcher = 'XRAY_JSON';
                     }
@@ -272,8 +273,8 @@ export class SubscriptionService {
                 userId: user.response.id,
                 userAgent: userAgent,
                 requestIp: srrContext.ip,
-                matchedRuleName: matchedRuleName,
-                matchedResponseType: matchedResponseType,
+                matchedRuleName: srrContext.matchedRuleName,
+                matchedResponseType: srrContext.matchedResponseType,
             });
 
             const subscription = await this.renderTemplatesService.generateSubscription({
