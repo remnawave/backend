@@ -135,6 +135,133 @@ export const TorrentBlockerPluginSchema = z.object({
         }),
 });
 
+const abuseBlockerDocs = (description: string) => `${description}${DOCS_LINK}`;
+
+const AbuseBlockerIgnoreListsSchema = z
+    .object({
+        userId: z
+            .array(z.int().min(1))
+            .default([])
+            .meta({
+                title: 'Ignored User IDs',
+                markdownDescription: abuseBlockerDocs(
+                    'Users that must not be scored or blocked by Abuse Blocker.',
+                ),
+            }),
+        sourceIp: z
+            .array(IpCidrOrExtSchema)
+            .default([])
+            .meta({
+                title: 'Ignored Source IPs',
+                markdownDescription: abuseBlockerDocs(
+                    'Source IP addresses and CIDR ranges that must not be scored or blocked. Shared IP lists are supported through **ext:list_name**.',
+                ),
+            }),
+        destinationIp: z
+            .array(IpCidrOrExtSchema)
+            .default([])
+            .meta({
+                title: 'Ignored Destination IPs',
+                markdownDescription: abuseBlockerDocs(
+                    'Destination IP addresses and CIDR ranges excluded from scan detection. Shared IP lists are supported through **ext:list_name**.',
+                ),
+            }),
+    })
+    .default({ userId: [], sourceIp: [], destinationIp: [] });
+
+const HorizontalScanRuleSchema = z
+    .object({
+        enabled: z.boolean().default(true),
+        windowSeconds: z.int().min(1).max(3600).default(60),
+        uniqueDestinations: z.int().min(2).max(65535).default(20),
+        ipv4Prefix: z.int().min(0).max(32).default(24),
+        ipv6Prefix: z.int().min(0).max(128).default(64),
+        score: z.int().min(1).max(10000).default(100),
+    })
+    .default({
+        enabled: true,
+        windowSeconds: 60,
+        uniqueDestinations: 20,
+        ipv4Prefix: 24,
+        ipv6Prefix: 64,
+        score: 100,
+    })
+    .meta({
+        title: 'Horizontal Scan',
+        markdownDescription: abuseBlockerDocs(
+            'Detects one user contacting many unique hosts in the same network prefix on the same non-web port.',
+        ),
+    });
+
+const DestinationSweepRuleSchema = z
+    .object({
+        enabled: z.boolean().default(true),
+        windowSeconds: z.int().min(1).max(3600).default(60),
+        uniqueDestinations: z.int().min(2).max(65535).default(50),
+        score: z.int().min(1).max(10000).default(50),
+    })
+    .default({ enabled: true, windowSeconds: 60, uniqueDestinations: 50, score: 50 })
+    .meta({
+        title: 'Destination Sweep',
+        markdownDescription: abuseBlockerDocs(
+            'Detects one user contacting many unique destination IPs on the same non-web port.',
+        ),
+    });
+
+export const AbuseBlockerPluginSchema = z
+    .object({
+        enabled: z.boolean().meta({
+            title: 'Enabled',
+            markdownDescription: abuseBlockerDocs(
+                'Enables local scan detection, scoring, reporting, and temporary source-IP blocking.',
+            ),
+        }),
+        excludedPorts: z
+            .array(z.int().min(1).max(65535))
+            .refine((ports) => new Set(ports).size === ports.length, {
+                message: 'Excluded ports must be unique.',
+            })
+            .default([80, 443])
+            .meta({
+                title: 'Excluded Ports',
+                markdownDescription: abuseBlockerDocs(
+                    'Destination ports excluded from scan detection.',
+                ),
+            }),
+        ignoreLists: AbuseBlockerIgnoreListsSchema,
+        scoreWindowSeconds: z.int().min(60).max(86400).default(3600),
+        incidentCooldownSeconds: z.int().min(0).max(86400).default(300),
+        suspiciousScore: z.int().min(1).max(100000).default(50),
+        alertScore: z.int().min(1).max(100000).default(100),
+        blockScore: z.int().min(1).max(100000).default(150),
+        initialBlockSeconds: z.int().min(1).max(2592000).default(600),
+        repeatBlockSeconds: z.int().min(1).max(2592000).default(3600),
+        repeatWindowSeconds: z.int().min(60).max(31536000).default(604800),
+        evidenceLimit: z.int().min(1).max(1000).default(10),
+        enhancedEvidenceLimit: z.int().min(1).max(5000).default(50),
+        maxTrackedUsers: z.int().min(1).max(1000000).default(50000),
+        maxKeysPerUser: z.int().min(1).max(4096).default(256),
+        reportBufferSize: z.int().min(1).max(1000000).default(10000),
+        horizontalScan: HorizontalScanRuleSchema,
+        destinationSweep: DestinationSweepRuleSchema,
+    })
+    .refine((config) => config.suspiciousScore < config.alertScore, {
+        message: 'suspiciousScore must be lower than alertScore.',
+        path: ['alertScore'],
+    })
+    .refine((config) => config.alertScore < config.blockScore, {
+        message: 'alertScore must be lower than blockScore.',
+        path: ['blockScore'],
+    })
+    .refine((config) => config.initialBlockSeconds <= config.repeatBlockSeconds, {
+        message: 'repeatBlockSeconds must be greater than or equal to initialBlockSeconds.',
+        path: ['repeatBlockSeconds'],
+    })
+    .refine((config) => config.evidenceLimit <= config.enhancedEvidenceLimit, {
+        message: 'enhancedEvidenceLimit must be greater than or equal to evidenceLimit.',
+        path: ['enhancedEvidenceLimit'],
+    });
+
 export const ConnectionDropPluginSchema = z.object({
     enabled: z.boolean().meta({
         title: 'Enabled',
@@ -232,6 +359,10 @@ export const NodePluginSchema = z.object({
     torrentBlocker: TorrentBlockerPluginSchema.optional().meta({
         title: 'Torrent Blocker',
         markdownDescription: `Torrent Blocker Plugin configuration. Optional.${DOCS_LINK}`,
+    }),
+    abuseBlocker: AbuseBlockerPluginSchema.optional().meta({
+        title: 'Abuse Blocker',
+        markdownDescription: `Abuse Blocker Plugin configuration. Optional.${DOCS_LINK}`,
     }),
     ingressFilter: IngressFilterPluginSchema.optional().meta({
         title: 'Ingress Filter',
