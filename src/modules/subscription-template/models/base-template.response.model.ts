@@ -6,6 +6,7 @@ export class BaseTemplateResponseModel {
     public uuid: string;
     public viewPosition: number;
     public name: string;
+    public tags: string[];
     public templateType: TSubscriptionTemplateType;
     public templateJson: object | null;
     public encodedTemplateYaml: string | null;
@@ -14,6 +15,7 @@ export class BaseTemplateResponseModel {
         this.uuid = entity.uuid;
         this.viewPosition = entity.viewPosition;
         this.name = entity.name;
+        this.tags = entity.tags;
         this.templateType = entity.templateType;
         this.templateJson = entity.templateJson ?? null;
         this.encodedTemplateYaml = entity.templateYaml

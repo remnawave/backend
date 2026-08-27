@@ -8,3 +8,4 @@ export * from './get-inbounds-by-profile-uuid.dto';
 export * from './reorder-config-profiles.dto';
 export * from './snippets.dtos';
 export * from './update-config-profile.dto';
+export * from './tags.dto';

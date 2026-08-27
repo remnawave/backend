@@ -7,3 +7,4 @@ export * from './get-node-plugins.command';
 export * from './shared-lists';
 export * from './torrent-blocker';
 export * from './update-node-plugin.command';
+export * from './tags';

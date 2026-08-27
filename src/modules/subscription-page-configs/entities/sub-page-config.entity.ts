@@ -4,6 +4,7 @@ export class SubscriptionPageConfigEntity implements SubscriptionPageConfig {
     uuid: string;
     viewPosition: number;
     name: string;
+    tags: string[];
     config: object;
 
     createdAt: Date;

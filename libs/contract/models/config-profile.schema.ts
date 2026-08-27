@@ -6,6 +6,7 @@ export const ConfigProfileSchema = z.object({
     uuid: z.uuid(),
     viewPosition: z.int(),
     name: z.string(),
+    tags: z.array(z.string()),
     config: z.unknown(),
     inbounds: z.array(ConfigProfileInboundsSchema),
     nodes: z.array(
@@ -16,8 +17,6 @@ export const ConfigProfileSchema = z.object({
         }),
     ),
 
-    createdAt: z.iso.datetime()
-        .transform((str) => new Date(str)),
-    updatedAt: z.iso.datetime()
-        .transform((str) => new Date(str)),
+    createdAt: z.iso.datetime().transform((str) => new Date(str)),
+    updatedAt: z.iso.datetime().transform((str) => new Date(str)),
 });

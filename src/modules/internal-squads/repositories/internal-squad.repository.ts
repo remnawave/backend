@@ -72,7 +72,9 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
         return this.internalSquadConverter.fromPrismaModelToEntity(result);
     }
 
-    public async findByCriteria(dto: Partial<InternalSquadEntity>): Promise<InternalSquadEntity[]> {
+    public async findByCriteria(
+        dto: Partial<Omit<InternalSquadEntity, 'tags'>>,
+    ): Promise<InternalSquadEntity[]> {
         const internalSquadList = await this.prisma.tx.internalSquads.findMany({
             where: dto,
         });
@@ -80,7 +82,7 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
     }
 
     public async findFirstByCriteria(
-        dto: Partial<InternalSquadEntity>,
+        dto: Partial<Omit<InternalSquadEntity, 'tags'>>,
     ): Promise<InternalSquadEntity | null> {
         const result = await this.prisma.tx.internalSquads.findFirst({
             where: dto,
@@ -105,6 +107,7 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
                 'internalSquads.uuid',
                 'internalSquads.viewPosition',
                 'internalSquads.name',
+                'internalSquads.tags',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
 
@@ -178,6 +181,7 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
                 'internalSquads.uuid',
                 'internalSquads.viewPosition',
                 'internalSquads.name',
+                'internalSquads.tags',
                 'internalSquads.createdAt',
                 'internalSquads.updatedAt',
 
@@ -577,5 +581,27 @@ export class InternalSquadRepository implements ICrud<InternalSquadEntity> {
             .values(records)
             .onConflict((oc) => oc.columns(['userId', 'internalSquadUuid']).doNothing())
             .execute();
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('internalSquads')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.internalSquads.update({
+            where: { uuid },
+            data: { tags },
+            select: { tags: true },
+        });
+
+        return result.tags;
     }
 }

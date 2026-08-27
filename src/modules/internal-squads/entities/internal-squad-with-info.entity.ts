@@ -6,6 +6,7 @@ export class InternalSquadWithInfoEntity implements InternalSquads {
     public uuid: string;
     public viewPosition: number;
     public name: string;
+    public tags: string[];
 
     public membersCount: number | string | bigint | null;
     public inboundsCount: number | string | bigint | null;

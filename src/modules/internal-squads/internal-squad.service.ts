@@ -444,4 +444,26 @@ export class InternalSquadService {
             return fail(ERRORS.REMOVE_MANY_USERS_FROM_INTERNAL_SQUAD_ERROR);
         }
     }
+
+    public async getTags(): Promise<TResult<string[]>> {
+        try {
+            const tags = await this.internalSquadRepository.findAllTags();
+
+            return ok(tags);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_ENTITY_TAGS_ERROR);
+        }
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<TResult<string[]>> {
+        try {
+            const updated = await this.internalSquadRepository.setTags(uuid, tags);
+
+            return ok(updated);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.SET_ENTITY_TAGS_ERROR);
+        }
+    }
 }

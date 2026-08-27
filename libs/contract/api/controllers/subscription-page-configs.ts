@@ -13,4 +13,8 @@ export const SUBSCRIPTION_PAGE_CONFIGS_ROUTES = {
         REORDER: `${ACTIONS_ROUTE}/reorder`,
         CLONE: `${ACTIONS_ROUTE}/clone`,
     },
+    TAGS: {
+        GET: 'tags', // get
+        SET: 'tags', // patch
+    },
 } as const;

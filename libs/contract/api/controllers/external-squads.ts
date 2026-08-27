@@ -18,4 +18,8 @@ export const EXTERNAL_SQUADS_ROUTES = {
     ACTIONS: {
         REORDER: `${ACTIONS_ROUTE}/reorder`,
     },
+    TAGS: {
+        GET: 'tags', // get
+        SET: 'tags', // patch
+    },
 } as const;

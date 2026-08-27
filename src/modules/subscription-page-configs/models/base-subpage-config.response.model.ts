@@ -6,12 +6,14 @@ export class BaseSubscriptionPageConfigResponseModel {
     public uuid: string;
     public viewPosition: number;
     public name: string;
+    public tags: string[];
     public config: TSubscriptionPageRawConfig | null;
 
     constructor(entity: SubscriptionPageConfigEntity) {
         this.uuid = entity.uuid;
         this.viewPosition = entity.viewPosition;
         this.name = entity.name;
+        this.tags = entity.tags;
         if (entity.config) {
             this.config = entity.config as unknown as TSubscriptionPageRawConfig;
         } else {

@@ -6,3 +6,4 @@ export * from './get-external-squads.dto';
 export * from './remove-users-from-external-squad.dto';
 export * from './reorder-external-squads.dto';
 export * from './update-external-squad.dto';
+export * from './tags.dto';

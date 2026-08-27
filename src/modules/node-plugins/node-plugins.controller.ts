@@ -29,7 +29,13 @@ import {
     UpdateNodePluginCommand,
     UpdateSharedListCommand,
 } from '@libs/contracts/commands';
+import { GetNodePluginsTagsCommand, SetNodePluginTagsCommand } from '@libs/contracts/commands';
 
+import {
+    GetNodePluginsTagsResponseDto,
+    SetNodePluginsTagsBodyDto,
+    SetNodePluginsTagsResponseDto,
+} from './dtos';
 import {
     ReorderNodePluginsBodyDto,
     ReorderNodePluginsResponseDto,
@@ -72,6 +78,35 @@ export class NodePluginController {
         private readonly nodePluginService: NodePluginService,
         private readonly sharedListsService: SharedListsService,
     ) {}
+
+    @Endpoint({
+        command: GetNodePluginsTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetNodePluginsTagsResponseDto,
+    })
+    async getTags(): Promise<GetNodePluginsTagsResponseDto> {
+        const result = await this.nodePluginService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetNodePluginTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetNodePluginsTagsResponseDto,
+    })
+    async setTags(@Body() body: SetNodePluginsTagsBodyDto): Promise<SetNodePluginsTagsResponseDto> {
+        const result = await this.nodePluginService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         type: GetSharedListsResponseDto,
@@ -293,4 +328,5 @@ export class NodePluginController {
         errorHandler(result);
         return;
     }
+
 }

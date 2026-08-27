@@ -15,6 +15,7 @@ const entityToModel = (entity: InternalSquadEntity): InternalSquads => {
         uuid: entity.uuid,
         viewPosition: entity.viewPosition,
         name: entity.name,
+        tags: entity.tags,
         createdAt: entity.createdAt,
         updatedAt: entity.updatedAt,
     };

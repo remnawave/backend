@@ -13,6 +13,7 @@ export class ExternalSquadEntity implements ExternalSquads {
     public uuid: string;
     public viewPosition: number;
     public name: string;
+    public tags: string[];
 
     public subscriptionSettings: z.infer<typeof ExternalSquadSubscriptionSettingsSchema> | null;
     public hostOverrides: z.infer<typeof ExternalSquadHostOverridesSchema> | null;

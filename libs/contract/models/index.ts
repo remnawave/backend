@@ -32,6 +32,7 @@ export * from './subscription-request-history.schema';
 export * from './subscription-settings';
 export * from './subscription-settings.schema';
 export * from './subscription-template.schema';
+export * from './tags.schema';
 export * from './tanstack-query';
 export * from './torrent-blocker-report.schema';
 export * from './users.schema';

@@ -82,6 +82,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 | 'responseHeadersAdd'
                 | 'responseHeadersRemove'
                 | 'hwidSettings'
+                | 'tags'
             >
         >,
     ): Promise<ExternalSquadEntity[]> {
@@ -103,6 +104,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 | 'responseHeadersAdd'
                 | 'responseHeadersRemove'
                 | 'hwidSettings'
+                | 'tags'
             >
         >,
     ): Promise<ExternalSquadEntity | null> {
@@ -131,6 +133,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.uuid',
                 'externalSquads.viewPosition',
                 'externalSquads.name',
+                'externalSquads.tags',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeadersAdd',
@@ -168,6 +171,7 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
                 'externalSquads.uuid',
                 'externalSquads.viewPosition',
                 'externalSquads.name',
+                'externalSquads.tags',
                 'externalSquads.subscriptionSettings',
                 'externalSquads.hostOverrides',
                 'externalSquads.responseHeadersAdd',
@@ -352,5 +356,27 @@ export class ExternalSquadRepository implements ICrud<ExternalSquadEntity> {
             .$executeRaw`SELECT setval('external_squads_view_position_seq', (SELECT MAX(view_position) FROM external_squads) + 1)`;
 
         return true;
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('externalSquads')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.externalSquads.update({
+            where: { uuid },
+            data: { tags },
+            select: { tags: true },
+        });
+
+        return result.tags;
     }
 }

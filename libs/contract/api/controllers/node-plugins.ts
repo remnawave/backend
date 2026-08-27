@@ -36,4 +36,8 @@ export const NODE_PLUGINS_ROUTES = {
             SYNC: `${SHARED_LISTS_ROUTE}/${ACTIONS_ROUTE}/sync`, // post
         },
     },
+    TAGS: {
+        GET: 'tags', // get
+        SET: 'tags', // patch
+    },
 } as const;

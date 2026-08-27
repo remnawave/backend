@@ -6,6 +6,7 @@ export class GetInternalSquadByUuidResponseModel {
     public readonly uuid: string;
     public readonly viewPosition: number;
     public readonly name: string;
+    public readonly tags: string[];
     public readonly info: {
         membersCount: number;
         inboundsCount: number;
@@ -19,6 +20,7 @@ export class GetInternalSquadByUuidResponseModel {
         this.uuid = entity.uuid;
         this.viewPosition = entity.viewPosition;
         this.name = entity.name;
+        this.tags = entity.tags;
         this.info = {
             membersCount: Number(entity.membersCount),
             inboundsCount: Number(entity.inboundsCount),

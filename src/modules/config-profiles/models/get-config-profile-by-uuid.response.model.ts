@@ -5,6 +5,7 @@ export class GetConfigProfileByUuidResponseModel {
     public readonly uuid: string;
     public readonly viewPosition: number;
     public readonly name: string;
+    public readonly tags: string[];
     public readonly config: object;
     public readonly inbounds: ConfigProfileInboundEntity[];
     public readonly nodes: {
@@ -20,6 +21,7 @@ export class GetConfigProfileByUuidResponseModel {
         this.uuid = entity.uuid;
         this.viewPosition = entity.viewPosition;
         this.name = entity.name;
+        this.tags = entity.tags;
         this.config = entity.config as object;
         this.inbounds = entity.inbounds;
         this.nodes = entity.nodes;

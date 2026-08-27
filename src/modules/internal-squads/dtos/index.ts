@@ -11,3 +11,4 @@ export * from './reorder-internal-squads.dto';
 export * from './update-internal-squad.dto';
 export * from './add-many-users-to-internal-squad.dto';
 export * from './remove-many-users-from-internal-squad.dto';
+export * from './tags.dto';

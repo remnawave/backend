@@ -38,7 +38,7 @@ export class GetFullUserResponseModel {
     public readonly subscriptionUrl: string;
     public readonly activeInternalSquads: Omit<
         InternalSquadEntity,
-        'createdAt' | 'updatedAt' | 'viewPosition'
+        'createdAt' | 'tags' | 'updatedAt' | 'viewPosition'
     >[];
     public readonly userTraffic: {
         usedTrafficBytes: number;

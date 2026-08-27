@@ -24,6 +24,10 @@ import {
     ReorderInternalSquadCommand,
     UpdateInternalSquadCommand,
 } from '@libs/contracts/commands';
+import {
+    GetInternalSquadsTagsCommand,
+    SetInternalSquadTagsCommand,
+} from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -49,6 +53,11 @@ import {
     AddManyUsersToInternalSquadParamDto,
     DeleteManyUsersFromInternalSquadParamDto,
 } from './dtos';
+import {
+    GetInternalSquadsTagsResponseDto,
+    SetInternalSquadsTagsBodyDto,
+    SetInternalSquadsTagsResponseDto,
+} from './dtos';
 import { InternalSquadService } from './internal-squad.service';
 
 @ApiBearerAuth('Authorization')
@@ -60,6 +69,37 @@ import { InternalSquadService } from './internal-squad.service';
 @Controller(INTERNAL_SQUADS_CONTROLLER)
 export class InternalSquadController {
     constructor(private readonly internalSquadService: InternalSquadService) {}
+
+    @Endpoint({
+        command: GetInternalSquadsTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetInternalSquadsTagsResponseDto,
+    })
+    async getTags(): Promise<GetInternalSquadsTagsResponseDto> {
+        const result = await this.internalSquadService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetInternalSquadTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetInternalSquadsTagsResponseDto,
+    })
+    async setTags(
+        @Body() body: SetInternalSquadsTagsBodyDto,
+    ): Promise<SetInternalSquadsTagsResponseDto> {
+        const result = await this.internalSquadService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         command: GetInternalSquadsCommand,
@@ -251,4 +291,5 @@ export class InternalSquadController {
         errorHandler(result);
         return;
     }
+
 }

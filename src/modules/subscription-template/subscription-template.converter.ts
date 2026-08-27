@@ -15,6 +15,7 @@ const entityToModel = (entity: SubscriptionTemplateEntity): SubscriptionTemplate
         uuid: entity.uuid,
         viewPosition: entity.viewPosition,
         name: entity.name,
+        tags: entity.tags,
         templateType: entity.templateType,
         templateYaml: entity.templateYaml,
         templateJson: entity.templateJson,

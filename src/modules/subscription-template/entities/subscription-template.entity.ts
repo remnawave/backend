@@ -6,6 +6,7 @@ export class SubscriptionTemplateEntity implements SubscriptionTemplate {
     uuid: string;
     viewPosition: number;
     name: string;
+    tags: string[];
     templateType: TSubscriptionTemplateType;
     templateYaml: string | null;
     templateJson: object | null;

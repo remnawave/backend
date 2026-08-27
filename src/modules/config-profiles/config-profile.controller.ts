@@ -21,6 +21,10 @@ import {
     ReorderConfigProfileCommand,
     UpdateConfigProfileCommand,
 } from '@libs/contracts/commands';
+import {
+    GetConfigProfilesTagsCommand,
+    SetConfigProfileTagsCommand,
+} from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
 import { ConfigProfileService } from './config-profile.service';
@@ -41,6 +45,11 @@ import {
     UpdateConfigProfileBodyDto,
     UpdateConfigProfileResponseDto,
 } from './dtos';
+import {
+    GetConfigProfilesTagsResponseDto,
+    SetConfigProfilesTagsBodyDto,
+    SetConfigProfilesTagsResponseDto,
+} from './dtos';
 
 @ApiBearerAuth('Authorization')
 @ApiScopeResource(CONTROLLERS_INFO.CONFIG_PROFILES.resource)
@@ -51,6 +60,37 @@ import {
 @Controller(CONFIG_PROFILES_CONTROLLER)
 export class ConfigProfileController {
     constructor(private readonly configProfileService: ConfigProfileService) {}
+
+    @Endpoint({
+        command: GetConfigProfilesTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetConfigProfilesTagsResponseDto,
+    })
+    async getTags(): Promise<GetConfigProfilesTagsResponseDto> {
+        const result = await this.configProfileService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetConfigProfileTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetConfigProfilesTagsResponseDto,
+    })
+    async setTags(
+        @Body() body: SetConfigProfilesTagsBodyDto,
+    ): Promise<SetConfigProfilesTagsResponseDto> {
+        const result = await this.configProfileService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         command: GetConfigProfilesCommand,
@@ -198,4 +238,5 @@ export class ConfigProfileController {
             response: data,
         };
     }
+
 }

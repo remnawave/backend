@@ -20,6 +20,10 @@ import {
     ReorderExternalSquadCommand,
     UpdateExternalSquadCommand,
 } from '@libs/contracts/commands';
+import {
+    GetExternalSquadsTagsCommand,
+    SetExternalSquadTagsCommand,
+} from '@libs/contracts/commands';
 import { ROLE } from '@libs/contracts/constants';
 
 import {
@@ -36,6 +40,11 @@ import {
     UpdateExternalSquadBodyDto,
     UpdateExternalSquadResponseDto,
 } from './dtos';
+import {
+    GetExternalSquadsTagsResponseDto,
+    SetExternalSquadsTagsBodyDto,
+    SetExternalSquadsTagsResponseDto,
+} from './dtos';
 import { ExternalSquadService } from './external-squads.service';
 
 @ApiBearerAuth('Authorization')
@@ -47,6 +56,37 @@ import { ExternalSquadService } from './external-squads.service';
 @Controller(EXTERNAL_SQUADS_CONTROLLER)
 export class ExternalSquadController {
     constructor(private readonly externalSquadService: ExternalSquadService) {}
+
+    @Endpoint({
+        command: GetExternalSquadsTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetExternalSquadsTagsResponseDto,
+    })
+    async getTags(): Promise<GetExternalSquadsTagsResponseDto> {
+        const result = await this.externalSquadService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetExternalSquadTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetExternalSquadsTagsResponseDto,
+    })
+    async setTags(
+        @Body() body: SetExternalSquadsTagsBodyDto,
+    ): Promise<SetExternalSquadsTagsResponseDto> {
+        const result = await this.externalSquadService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         command: GetExternalSquadsCommand,
@@ -164,4 +204,5 @@ export class ExternalSquadController {
             response: data,
         };
     }
+
 }

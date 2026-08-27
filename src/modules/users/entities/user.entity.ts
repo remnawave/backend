@@ -4,13 +4,16 @@ import { BaseUserEntity } from './base-users.entity';
 import { UserTrafficEntity } from './user-traffic.entity';
 
 interface IActiveInternalSquads {
-    activeInternalSquads?: Omit<InternalSquadEntity, 'createdAt' | 'updatedAt' | 'viewPosition'>[];
+    activeInternalSquads?: Omit<
+        InternalSquadEntity,
+        'createdAt' | 'tags' | 'updatedAt' | 'viewPosition'
+    >[];
 }
 
 export class UserEntity extends BaseUserEntity {
     public readonly activeInternalSquads: Omit<
         InternalSquadEntity,
-        'createdAt' | 'updatedAt' | 'viewPosition'
+        'createdAt' | 'tags' | 'updatedAt' | 'viewPosition'
     >[];
     public readonly userTraffic: Omit<UserTrafficEntity, 'id'>;
 

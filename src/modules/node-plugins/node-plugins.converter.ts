@@ -15,6 +15,7 @@ const entityToModel = (entity: NodePluginEntity): NodePlugin => {
         uuid: entity.uuid,
         viewPosition: entity.viewPosition,
         name: entity.name,
+        tags: entity.tags,
         pluginConfig: entity.pluginConfig,
 
         createdAt: entity.createdAt,

@@ -21,7 +21,16 @@ import {
     ReorderSubpageConfigsCommand,
     UpdateSubpageConfigCommand,
 } from '@libs/contracts/commands';
+import {
+    GetSubpageConfigsTagsCommand,
+    SetSubpageConfigTagsCommand,
+} from '@libs/contracts/commands';
 
+import {
+    GetSubpageConfigsTagsResponseDto,
+    SetSubpageConfigsTagsBodyDto,
+    SetSubpageConfigsTagsResponseDto,
+} from './dtos';
 import {
     ReorderSubpageConfigsBodyDto,
     ReorderSubpageConfigsResponseDto,
@@ -47,6 +56,37 @@ import { SubscriptionPageConfigService } from './subpage-configs.service';
 @Controller(SUBSCRIPTION_PAGE_CONFIGS_CONTROLLER)
 export class SubscriptionPageConfigController {
     constructor(private readonly subscriptionPageConfigService: SubscriptionPageConfigService) {}
+
+    @Endpoint({
+        command: GetSubpageConfigsTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetSubpageConfigsTagsResponseDto,
+    })
+    async getTags(): Promise<GetSubpageConfigsTagsResponseDto> {
+        const result = await this.subscriptionPageConfigService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetSubpageConfigTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetSubpageConfigsTagsResponseDto,
+    })
+    async setTags(
+        @Body() body: SetSubpageConfigsTagsBodyDto,
+    ): Promise<SetSubpageConfigsTagsResponseDto> {
+        const result = await this.subscriptionPageConfigService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         type: GetSubpageConfigsResponseDto,
@@ -166,4 +206,5 @@ export class SubscriptionPageConfigController {
             response: data,
         };
     }
+
 }

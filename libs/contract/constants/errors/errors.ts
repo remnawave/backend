@@ -1279,4 +1279,14 @@ export const ERRORS = {
         message: 'Create SSH ticket error',
         httpCode: 500,
     },
+    GET_ENTITY_TAGS_ERROR: {
+        code: 'A256',
+        message: 'Get tags error',
+        httpCode: 500,
+    },
+    SET_ENTITY_TAGS_ERROR: {
+        code: 'A257',
+        message: 'Set tags error',
+        httpCode: 500,
+    },
 } as const;

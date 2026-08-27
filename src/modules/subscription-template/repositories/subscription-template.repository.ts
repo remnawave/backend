@@ -63,12 +63,14 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
     }
 
     public async findByCriteria(
-        dto: Partial<SubscriptionTemplateEntity>,
+        dto: Partial<Omit<SubscriptionTemplateEntity, 'tags'>>,
     ): Promise<SubscriptionTemplateEntity[]> {
         const model = this.converter.fromEntityToPrismaModel(dto as SubscriptionTemplateEntity);
+        /* eslint-disable @typescript-eslint/no-unused-vars */
+        const { tags, ...rest } = model;
         const list = await this.prisma.tx.subscriptionTemplate.findMany({
             where: {
-                ...model,
+                ...rest,
                 templateJson: model.templateJson
                     ? { equals: model.templateJson as Prisma.InputJsonValue }
                     : undefined,
@@ -113,6 +115,7 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
                 name: true,
                 templateType: true,
                 uuid: true,
+                tags: true,
                 ...(withContent
                     ? {
                           templateYaml: true,
@@ -184,5 +187,27 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
             .$executeRaw`SELECT setval('subscription_templates_view_position_seq', (SELECT MAX(view_position) FROM subscription_templates) + 1)`;
 
         return true;
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('subscriptionTemplates')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.subscriptionTemplate.update({
+            where: { uuid },
+            data: { tags },
+            select: { tags: true },
+        });
+
+        return result.tags;
     }
 }

@@ -366,4 +366,26 @@ export class SubscriptionTemplateService {
             await this.rawCacheService.del(CACHE_KEYS.XRAY_JSON_TEMPLATE(uuid));
         }
     }
+
+    public async getTags(): Promise<TResult<string[]>> {
+        try {
+            const tags = await this.subscriptionTemplateRepository.findAllTags();
+
+            return ok(tags);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_ENTITY_TAGS_ERROR);
+        }
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<TResult<string[]>> {
+        try {
+            const updated = await this.subscriptionTemplateRepository.setTags(uuid, tags);
+
+            return ok(updated);
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.SET_ENTITY_TAGS_ERROR);
+        }
+    }
 }

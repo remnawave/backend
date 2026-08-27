@@ -65,7 +65,7 @@ export class SubscriptionPageConfigRepository implements ICrud<SubscriptionPageC
     ): Promise<SubscriptionPageConfigEntity[]> {
         const model = this.converter.fromEntityToPrismaModel(dto as SubscriptionPageConfigEntity);
         /* eslint-disable @typescript-eslint/no-unused-vars */
-        const { config, ...rest } = model;
+        const { config, tags, ...rest } = model;
         const list = await this.prisma.tx.subscriptionPageConfig.findMany({
             where: {
                 ...rest,
@@ -107,6 +107,7 @@ export class SubscriptionPageConfigRepository implements ICrud<SubscriptionPageC
                 viewPosition: true,
                 name: true,
                 uuid: true,
+                tags: true,
                 ...(withContent
                     ? {
                           config: true,
@@ -149,5 +150,27 @@ export class SubscriptionPageConfigRepository implements ICrud<SubscriptionPageC
             .$executeRaw`SELECT setval('subscription_page_config_view_position_seq', (SELECT MAX(view_position) FROM subscription_page_config) + 1)`;
 
         return true;
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('subscriptionPageConfig')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.subscriptionPageConfig.update({
+            where: { uuid },
+            data: { tags },
+            select: { tags: true },
+        });
+
+        return result.tags;
     }
 }

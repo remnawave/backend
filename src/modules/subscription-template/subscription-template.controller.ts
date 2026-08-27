@@ -20,7 +20,16 @@ import {
     ReorderSubscriptionTemplateCommand,
     UpdateSubscriptionTemplateCommand,
 } from '@libs/contracts/commands';
+import {
+    GetSubscriptionTemplatesTagsCommand,
+    SetSubscriptionTemplateTagsCommand,
+} from '@libs/contracts/commands';
 
+import {
+    GetSubscriptionTemplatesTagsResponseDto,
+    SetSubscriptionTemplatesTagsBodyDto,
+    SetSubscriptionTemplatesTagsResponseDto,
+} from './dtos';
 import {
     CreateSubscriptionTemplateBodyDto,
     CreateSubscriptionTemplateResponseDto,
@@ -44,6 +53,37 @@ import { SubscriptionTemplateService } from './subscription-template.service';
 @Controller(SUBSCRIPTION_TEMPLATE_CONTROLLER)
 export class SubscriptionTemplateController {
     constructor(private readonly subscriptionTemplateService: SubscriptionTemplateService) {}
+
+    @Endpoint({
+        command: GetSubscriptionTemplatesTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: GetSubscriptionTemplatesTagsResponseDto,
+    })
+    async getTags(): Promise<GetSubscriptionTemplatesTagsResponseDto> {
+        const result = await this.subscriptionTemplateService.getTags();
+
+        const data = errorHandler(result);
+        return {
+            response: { tags: data },
+        };
+    }
+
+    @Endpoint({
+        command: SetSubscriptionTemplateTagsCommand,
+        httpCode: HttpStatus.OK,
+        type: SetSubscriptionTemplatesTagsResponseDto,
+    })
+    async setTags(
+        @Body() body: SetSubscriptionTemplatesTagsBodyDto,
+    ): Promise<SetSubscriptionTemplatesTagsResponseDto> {
+        const result = await this.subscriptionTemplateService.setTags(body.uuid, body.tags);
+
+        const data = errorHandler(result);
+        return {
+            response: { uuid: body.uuid, tags: data },
+        };
+    }
+
 
     @Endpoint({
         command: GetSubscriptionTemplatesCommand,
@@ -136,4 +176,5 @@ export class SubscriptionTemplateController {
             response: data,
         };
     }
+
 }

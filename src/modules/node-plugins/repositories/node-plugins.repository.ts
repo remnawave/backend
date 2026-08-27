@@ -62,7 +62,7 @@ export class NodePluginRepository implements ICrud<NodePluginEntity> {
     ): Promise<NodePluginEntity[]> {
         const model = this.converter.fromEntityToPrismaModel(dto as NodePluginEntity);
         /* eslint-disable @typescript-eslint/no-unused-vars */
-        const { pluginConfig, ...rest } = model;
+        const { pluginConfig, tags, ...rest } = model;
         const list = await this.prisma.tx.nodePlugin.findMany({
             where: {
                 ...rest,
@@ -102,6 +102,7 @@ export class NodePluginRepository implements ICrud<NodePluginEntity> {
                 viewPosition: true,
                 name: true,
                 uuid: true,
+                tags: true,
                 ...(withContent
                     ? {
                           pluginConfig: true,
@@ -160,5 +161,27 @@ export class NodePluginRepository implements ICrud<NodePluginEntity> {
             .$executeRaw`SELECT setval('node_plugin_view_position_seq', (SELECT MAX(view_position) FROM node_plugin) + 1)`;
 
         return true;
+    }
+
+    public async findAllTags(): Promise<string[]> {
+        const result = await this.qb.kysely
+            .selectFrom('nodePlugin')
+            .select(sql<string>`unnest(tags)`.as('tag'))
+            .distinct()
+            .where('tags', 'is not', null)
+            .orderBy('tag')
+            .execute();
+
+        return result.map((value) => value.tag);
+    }
+
+    public async setTags(uuid: string, tags: string[]): Promise<string[]> {
+        const result = await this.prisma.tx.nodePlugin.update({
+            where: { uuid },
+            data: { tags },
+            select: { tags: true },
+        });
+
+        return result.tags;
     }
 }

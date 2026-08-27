@@ -15,6 +15,7 @@ const entityToModel = (entity: SubscriptionPageConfigEntity): SubscriptionPageCo
         uuid: entity.uuid,
         viewPosition: entity.viewPosition,
         name: entity.name,
+        tags: entity.tags,
         config: entity.config,
 
         createdAt: entity.createdAt,

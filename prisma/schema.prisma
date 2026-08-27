@@ -325,12 +325,13 @@ model InternalSquadHostLinks {
 }
 
 model SubscriptionTemplate {
-  uuid         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition Int     @default(autoincrement()) @map("view_position")
-  name         String  @default("Default") @map("name") @db.VarChar(255)
-  templateType String  @map("template_type")
-  templateYaml String? @map("template_yaml")
-  templateJson Json?   @map("template_json")
+  uuid         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  name         String   @default("Default") @map("name") @db.VarChar(255)
+  tags         String[] @default([]) @map("tags")
+  templateType String   @map("template_type")
+  templateYaml String?  @map("template_yaml")
+  templateJson Json?    @map("template_json")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -378,9 +379,10 @@ model HwidUserDevices {
 }
 
 model InternalSquads {
-  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition Int    @default(autoincrement()) @map("view_position")
-  name         String @unique @map("name")
+  uuid         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  name         String   @unique @map("name")
+  tags         String[] @default([]) @map("tags")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -417,10 +419,11 @@ model InternalSquadInbounds {
 }
 
 model ConfigProfiles {
-  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition Int    @default(autoincrement()) @map("view_position")
-  name         String @unique @map("name")
-  config       Json   @map("config")
+  uuid         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  name         String   @unique @map("name")
+  tags         String[] @default([]) @map("tags")
+  config       Json     @map("config")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -555,6 +558,7 @@ model ExternalSquads {
   uuid                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   viewPosition          Int      @default(autoincrement()) @map("view_position")
   name                  String   @unique @map("name") @db.VarChar(30)
+  tags                  String[] @default([]) @map("tags")
   subscriptionSettings  Json?    @map("subscription_settings")
   hostOverrides         Json?    @map("host_overrides")
   responseHeadersAdd    Json     @default("{}") @map("response_headers_add")
@@ -588,10 +592,11 @@ model ExternalSquadsTemplates {
 }
 
 model SubscriptionPageConfig {
-  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition Int    @default(autoincrement()) @map("view_position")
-  name         String @unique @map("name") @db.VarChar(30)
-  config       Json   @map("config")
+  uuid         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  name         String   @unique @map("name") @db.VarChar(30)
+  tags         String[] @default([]) @map("tags")
+  config       Json     @map("config")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
@@ -612,10 +617,11 @@ model SharedLists {
 }
 
 model NodePlugin {
-  uuid         String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  viewPosition Int    @default(autoincrement()) @map("view_position")
-  name         String @map("name") @db.VarChar(255)
-  pluginConfig Json   @map("plugin_config")
+  uuid         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  viewPosition Int      @default(autoincrement()) @map("view_position")
+  name         String   @map("name") @db.VarChar(255)
+  tags         String[] @default([]) @map("tags")
+  pluginConfig Json     @map("plugin_config")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at")

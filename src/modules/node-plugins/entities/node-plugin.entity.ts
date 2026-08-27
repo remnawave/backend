@@ -4,6 +4,7 @@ export class NodePluginEntity implements NodePlugin {
     uuid: string;
     viewPosition: number;
     name: string;
+    tags: string[];
     pluginConfig: object;
 
     createdAt: Date;
