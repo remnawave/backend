@@ -11,7 +11,7 @@ import {
 
 export class GetSharedListsResponseDto extends createZodDto(GetSharedListsCommand.ResponseSchema) {} // GET_ALL
 
-export class GetSharedListParamDto extends createZodDto(GetSharedListCommand.RequestParamSchema) {} // GET BY NAME
+export class GetSharedListQueryDto extends createZodDto(GetSharedListCommand.RequestQuerySchema) {} // GET BY NAME
 export class GetSharedListResponseDto extends createZodDto(GetSharedListCommand.ResponseSchema) {} // GET BY NAME
 
 export class CreateSharedListBodyDto extends createZodDto(
@@ -28,8 +28,8 @@ export class UpdateSharedListResponseDto extends createZodDto(
     UpdateSharedListCommand.ResponseSchema,
 ) {} // UPDATE
 
-export class DeleteSharedListParamDto extends createZodDto(
-    DeleteSharedListCommand.RequestParamSchema,
+export class DeleteSharedListBodyDto extends createZodDto(
+    DeleteSharedListCommand.RequestBodySchema,
 ) {} // DELETE
 
 export class SyncSharedListBodyDto extends createZodDto(SyncSharedListCommand.RequestBodySchema) {} // SYNC
