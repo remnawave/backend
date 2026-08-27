@@ -21,8 +21,8 @@ export namespace SyncSnippetCommand {
             .min(2, 'Name must be at least 2 characters')
             .max(255, 'Name must be less than 255 characters')
             .regex(
-                /^[A-Za-z0-9_\s-]+$/,
-                'Name can only contain letters, numbers, underscores, dashes and spaces',
+                /^[A-Za-z0-9_ -]+(\/[A-Za-z0-9_ -]+)*$/,
+                'Name can only contain letters, numbers, underscores, dashes, slashes and spaces',
             ),
     });
 

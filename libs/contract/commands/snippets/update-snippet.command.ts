@@ -21,8 +21,8 @@ export namespace UpdateSnippetCommand {
             .min(2)
             .max(255)
             .regex(
-                /^[A-Za-z0-9_\s-]+$/,
-                'Name can only contain letters, numbers, underscores, dashes and spaces',
+                /^[A-Za-z0-9_ -]+(\/[A-Za-z0-9_ -]+)*$/,
+                'Name can only contain letters, numbers, underscores, dashes, slashes and spaces',
             ),
         snippet: z.array(z.looseObject({})),
     });
