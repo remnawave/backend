@@ -1,6 +1,7 @@
 (BigInt.prototype as any).toJSON = function () {
     return this.toString();
 };
+import 'zod/compile';
 
 process.title = 'rw-api';
 

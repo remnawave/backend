@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/node-plugins",
-  "version": "0.7.3",
+  "version": "0.8.2",
   "description": "A library for Remnawave Node Plugins.",
   "keywords": [],
   "homepage": "https://github.com/remnawave",
@@ -27,7 +27,7 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "public": true
 }

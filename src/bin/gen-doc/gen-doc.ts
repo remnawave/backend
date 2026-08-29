@@ -6,6 +6,7 @@ import utc from 'dayjs/plugin/utc';
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { createLogger } from 'winston';
 import * as winston from 'winston';
+import 'zod/compile';
 
 import { NestFactory } from '@nestjs/core';
 

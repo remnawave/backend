@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/subscription-page-types",
-  "version": "0.5.1",
+  "version": "0.6.2",
   "description": "A types library for Remnawave Subscription Page.",
   "keywords": [],
   "homepage": "https://github.com/remnawave",
@@ -27,7 +27,7 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "public": true
 }

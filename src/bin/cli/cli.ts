@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-
+import 'zod/compile';
 import 'reflect-metadata';
 import { PrismaClient } from '@prisma/client';
 import {
