@@ -1,0 +1,64 @@
+diff --git a/node_modules/nestjs-zod/dist/dto-CHeB-l1i.mjs b/node_modules/nestjs-zod/dist/dto-CHeB-l1i.mjs
+index 71150db..9282aaf 100644
+--- a/node_modules/nestjs-zod/dist/dto-CHeB-l1i.mjs
++++ b/node_modules/nestjs-zod/dist/dto-CHeB-l1i.mjs
+@@ -367,15 +367,25 @@ function openApiMetadataFactory({ schema, io }) {
+ 	}
+ 	return properties;
+ }
++function normalizeTypeUnions(rootSchema) {
++	return walkJsonSchema(rootSchema, (schema) => {
++		if (!Array.isArray(schema.type)) return schema;
++		const { type, ...rest } = schema;
++		return {
++			...rest,
++			anyOf: type.map((singleType) => ({ type: singleType }))
++		};
++	}, { clone: true });
++}
+ function generateJsonSchema(schema, io) {
+ 	const generatedJsonSchema = "_zod" in schema ? toJSONSchema(schema, { io }) : zodV3ToOpenAPI(schema);
+ 	const $defs = "$defs" in generatedJsonSchema && generatedJsonSchema.$defs ? generatedJsonSchema.$defs : void 0;
+-	const newSchema = cleanupRefs(generatedJsonSchema, io);
++	const newSchema = cleanupRefs(normalizeTypeUnions(generatedJsonSchema), io);
+ 	const newDefs = {};
+ 	Object.entries($defs || {}).forEach(([defKey, defValue]) => {
+ 		const newKey = io === "output" ? `${defKey}_Output` : defKey;
+ 		if (newDefs[newKey]) throw new Error(`[nestjs-zod] Duplicate id in $defs: ${newKey}`);
+-		newDefs[newKey] = cleanupRefs(defValue, io);
++		newDefs[newKey] = cleanupRefs(normalizeTypeUnions(defValue), io);
+ 	});
+ 	if ($defs) newSchema.$defs = newDefs;
+ 	return newSchema;
+diff --git a/node_modules/nestjs-zod/dist/dto-sWxCeI9D.cjs b/node_modules/nestjs-zod/dist/dto-sWxCeI9D.cjs
+index b01e7e7..d1b3d3a 100644
+--- a/node_modules/nestjs-zod/dist/dto-sWxCeI9D.cjs
++++ b/node_modules/nestjs-zod/dist/dto-sWxCeI9D.cjs
+@@ -390,15 +390,25 @@ function openApiMetadataFactory({ schema, io }) {
+ 	}
+ 	return properties;
+ }
++function normalizeTypeUnions(rootSchema) {
++	return walkJsonSchema(rootSchema, (schema) => {
++		if (!Array.isArray(schema.type)) return schema;
++		const { type, ...rest } = schema;
++		return {
++			...rest,
++			anyOf: type.map((singleType) => ({ type: singleType }))
++		};
++	}, { clone: true });
++}
+ function generateJsonSchema(schema, io) {
+ 	const generatedJsonSchema = "_zod" in schema ? (0, zod_v4_core.toJSONSchema)(schema, { io }) : zodV3ToOpenAPI(schema);
+ 	const $defs = "$defs" in generatedJsonSchema && generatedJsonSchema.$defs ? generatedJsonSchema.$defs : void 0;
+-	const newSchema = cleanupRefs(generatedJsonSchema, io);
++	const newSchema = cleanupRefs(normalizeTypeUnions(generatedJsonSchema), io);
+ 	const newDefs = {};
+ 	Object.entries($defs || {}).forEach(([defKey, defValue]) => {
+ 		const newKey = io === "output" ? `${defKey}_Output` : defKey;
+ 		if (newDefs[newKey]) throw new Error(`[nestjs-zod] Duplicate id in $defs: ${newKey}`);
+-		newDefs[newKey] = cleanupRefs(defValue, io);
++		newDefs[newKey] = cleanupRefs(normalizeTypeUnions(defValue), io);
+ 	});
+ 	if ($defs) newSchema.$defs = newDefs;
+ 	return newSchema;
