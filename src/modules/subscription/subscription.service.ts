@@ -22,7 +22,7 @@ import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/qu
 import { GetCachedTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import { CreateWithAdvisoryLockCommand } from '@modules/hwid-user-devices/commands/create-with-advisory-lock';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
-import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists';
+import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists/check-hwid-exists.query';
 import type { ISRRContext } from '@modules/subscription-response-rules/interfaces';
 import { ResponseRulesMatcherService } from '@modules/subscription-response-rules/services/response-rules-matcher.service';
 import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entities/subscription-settings.entity';
@@ -735,14 +735,6 @@ export class SubscriptionService {
         >(new GetUsersWithPaginationQuery(dto.start, dto.size));
     }
 
-    private async checkHwidDeviceExists(
-        dto: CheckHwidExistsQuery,
-    ): Promise<TResult<{ exists: boolean }>> {
-        return this.queryBus.execute<CheckHwidExistsQuery, TResult<{ exists: boolean }>>(
-            new CheckHwidExistsQuery(dto.hwid, dto.userId),
-        );
-    }
-
     private async checkHwidDeviceLimit(
         user: UserEntity,
         hwidHeaders: HwidHeaders | null,
@@ -779,12 +771,11 @@ export class SubscriptionService {
                 });
             }
 
-            const isDeviceExists = await this.checkHwidDeviceExists({
-                hwid: hwidHeaders.hwid,
-                userId: user.id,
-            });
+            const existsResult = await this.queryBus.execute(
+                new CheckHwidExistsQuery(hwidHeaders.hwid, user.id),
+            );
 
-            if (isDeviceExists.isOk && isDeviceExists.response.exists) {
+            if (existsResult.isOk && existsResult.response.exists) {
                 await this.usersQueuesService.checkAndUpsertHwidDevice({
                     hwid: hwidHeaders.hwid,
                     userId: user.id.toString(),
@@ -803,9 +794,7 @@ export class SubscriptionService {
                 });
             }
 
-            const deviceLimit = user.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit;
-
-            const result = await this.commandBus.execute(
+            const checkupResult = await this.commandBus.execute(
                 new CreateWithAdvisoryLockCommand(
                     new HwidUserDeviceEntity({
                         hwid: hwidHeaders.hwid,
@@ -816,12 +805,12 @@ export class SubscriptionService {
                         userAgent: hwidHeaders.userAgent,
                         requestIp,
                     }),
-                    deviceLimit,
+                    user.hwidDeviceLimit ?? hwidSettings.fallbackDeviceLimit,
                 ),
             );
 
-            if (!result.isOk) {
-                this.logger.error(`Error creating Hwid user device, access forbidden.`);
+            if (!checkupResult.isOk) {
+                this.logger.error(`Error creating HWID, access forbidden, userId: ${user.id}`);
 
                 return ok({
                     subscriptionAllowed: false,
@@ -831,23 +820,44 @@ export class SubscriptionService {
                 });
             }
 
-            if (!result.response.hwidDevice) {
-                return ok({
-                    subscriptionAllowed: false,
-                    maxDeviceReached: true,
-                    hwidNotSupported: false,
-                    limitBypassed: false,
-                });
+            switch (checkupResult.response.status) {
+                case 'CREATED':
+                    this.eventEmitter.emit(
+                        EVENTS.USER_HWID_DEVICES.ADDED,
+                        new UserHwidDeviceEvent(
+                            user,
+                            checkupResult.response.hwidDevice,
+                            EVENTS.USER_HWID_DEVICES.ADDED,
+                        ),
+                    );
+                    break;
+                case 'EXISTS':
+                    await this.usersQueuesService.checkAndUpsertHwidDevice({
+                        hwid: hwidHeaders.hwid,
+                        userId: user.id.toString(),
+                        platform: hwidHeaders.platform,
+                        osVersion: hwidHeaders.osVersion,
+                        deviceModel: hwidHeaders.deviceModel,
+                        userAgent: hwidHeaders.userAgent,
+                        requestIp,
+                    });
+                    break;
+                case 'LIMIT_REACHED':
+                    return ok({
+                        subscriptionAllowed: false,
+                        maxDeviceReached: true,
+                        hwidNotSupported: false,
+                        limitBypassed: false,
+                    });
+                default:
+                    this.logger.error(`Unknown hwid device status: ${checkupResult.response}`);
+                    return ok({
+                        subscriptionAllowed: false,
+                        maxDeviceReached: true,
+                        hwidNotSupported: false,
+                        limitBypassed: false,
+                    });
             }
-
-            this.eventEmitter.emit(
-                EVENTS.USER_HWID_DEVICES.ADDED,
-                new UserHwidDeviceEvent(
-                    user,
-                    result.response.hwidDevice,
-                    EVENTS.USER_HWID_DEVICES.ADDED,
-                ),
-            );
 
             return ok({
                 subscriptionAllowed: true,
@@ -856,7 +866,7 @@ export class SubscriptionService {
                 limitBypassed: false,
             });
         } catch (error) {
-            this.logger.error(`Error checking hwid device limit: ${error}`);
+            this.logger.error(`Error checking HWID: ${error}`);
             return ok({
                 subscriptionAllowed: false,
                 maxDeviceReached: true,

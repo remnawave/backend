@@ -310,30 +310,42 @@ export class HwidUserDevicesRepository implements Omit<
     public async createWithAdvisoryLock(
         entity: HwidUserDeviceEntity,
         deviceLimit: number,
-    ): Promise<{
-        hwidDevice: HwidUserDeviceEntity | null;
-    }> {
-        await this.prisma.tx.$executeRaw`
-                SELECT pg_advisory_xact_lock(${HWID_LOCK_PREFIX + entity.userId})
-            `;
+    ): Promise<
+        | {
+              status: 'CREATED' | 'EXISTS';
+              hwidDevice: HwidUserDeviceEntity;
+          }
+        | {
+              status: 'LIMIT_REACHED';
+              hwidDevice: null;
+          }
+    > {
+        await this.prisma.tx
+            .$executeRaw`SELECT pg_advisory_xact_lock(${HWID_LOCK_PREFIX + entity.userId})`;
 
-        const hwids = await this.qb.kysely
-            .selectFrom('hwidUserDevices')
-            .select('hwid')
-            .where('userId', '=', entity.userId)
-            .limit(deviceLimit)
-            .execute();
-
-        if (hwids.length >= deviceLimit) {
-            return { hwidDevice: null };
-        }
-
-        const model = this.converter.fromEntityToPrismaModel(entity);
-
-        const result = await this.prisma.tx.hwidUserDevices.create({
-            data: model,
+        const existing = await this.prisma.tx.hwidUserDevices.findUnique({
+            where: { hwid_userId: { hwid: entity.hwid, userId: entity.userId } },
         });
 
-        return { hwidDevice: this.converter.fromPrismaModelToEntity(result) };
+        if (existing) {
+            return {
+                status: 'EXISTS',
+                hwidDevice: this.converter.fromPrismaModelToEntity(existing),
+            };
+        }
+
+        const count = await this.prisma.tx.hwidUserDevices.count({
+            where: { userId: entity.userId },
+        });
+
+        if (count >= deviceLimit) {
+            return { status: 'LIMIT_REACHED', hwidDevice: null };
+        }
+
+        const result = await this.prisma.tx.hwidUserDevices.create({
+            data: this.converter.fromEntityToPrismaModel(entity),
+        });
+
+        return { status: 'CREATED', hwidDevice: this.converter.fromPrismaModelToEntity(result) };
     }
 }
