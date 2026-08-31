@@ -94,16 +94,15 @@ async function bootstrap(): Promise<void> {
 
     app.use(getRealIp);
 
-    app.use((req: Request, res: Response, next: NextFunction) => {
-        if (req.path.startsWith(`${ROOT}${BACKEND_TOOLS_ROOT}`)) {
-            return toolsAuthMiddleware(config.getOrThrow('APP_SECRET'))(req, res, next);
-        }
-        return next();
-    });
+    const backendToolsPath = `${ROOT}${BACKEND_TOOLS_ROOT}`;
+    const isBackendToolsRequest = (req: Request): boolean =>
+        req.path.toLowerCase().startsWith(backendToolsPath);
+
+    app.use(backendToolsPath, toolsAuthMiddleware(config.getOrThrow('APP_SECRET')));
 
     if (!isDevelopment()) {
         app.use((req: Request, res: Response, next: NextFunction) => {
-            if (req.path.startsWith(`${ROOT}${BACKEND_TOOLS_ROOT}`)) {
+            if (isBackendToolsRequest(req)) {
                 return next();
             }
             return helmetMiddleware(req, res, next);
