@@ -6,7 +6,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { fail, ok, TResult } from '@common/types';
-import { mapDefined, wrapBigInt } from '@common/utils';
+import { atLeastOneDefined, mapDefined, wrapBigInt } from '@common/utils';
 import { toNano } from '@common/utils/nano';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
@@ -283,6 +283,7 @@ export class NodesService {
 
             const result = await this.nodesRepository.update({
                 ...nodeData,
+                name: nodeData.name ? nodeData.name.trim() : undefined,
                 address: nodeData.address ? nodeData.address.trim() : undefined,
                 trafficLimitBytes: wrapBigInt(nodeData.trafficLimitBytes),
                 consumptionMultiplier: mapDefined(nodeData.consumptionMultiplier, toNano),
@@ -294,7 +295,17 @@ export class NodesService {
                 return fail(ERRORS.UPDATE_NODE_ERROR);
             }
 
-            if (!node.isDisabled) {
+            if (
+                !node.isDisabled &&
+                atLeastOneDefined(
+                    nodeData.integrationUuids,
+                    nodeData.proxyUrl,
+                    nodeData.port,
+                    nodeData.address,
+                    nodeData.activePluginUuid,
+                    configProfile,
+                )
+            ) {
                 await this.nodesQueuesService.startNode({
                     nodeUuid: result.uuid,
                     force: nodeData.integrationUuids !== undefined,

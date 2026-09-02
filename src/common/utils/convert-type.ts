@@ -46,3 +46,7 @@ export function nullifyEmpty(value: unknown): object | null | undefined {
     if (typeof value === 'object' && Object.keys(value).length === 0) return null;
     return value as object;
 }
+
+export function atLeastOneDefined(...values: unknown[]): boolean {
+    return values.some((value) => value !== undefined);
+}
