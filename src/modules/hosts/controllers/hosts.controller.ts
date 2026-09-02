@@ -11,6 +11,7 @@ import { ScopesGuard } from '@common/guards/scopes';
 import { errorHandler } from '@common/helpers/error-handler.helper';
 import { CONTROLLERS_INFO, HOSTS_CONTROLLER } from '@libs/contracts/api';
 import {
+    CloneHostCommand,
     CreateHostCommand,
     DeleteHostCommand,
     GetHostsCommand,
@@ -22,6 +23,7 @@ import {
 import { ROLE } from '@libs/contracts/constants';
 
 import {
+    CloneHostBodyDto,
     ReorderHostsBodyDto,
     ReorderHostsResponseDto,
     GetHostsTagsResponseDto,
@@ -108,6 +110,20 @@ export class HostsController {
     })
     async getOneHost(@Param() params: GetHostParamDto): Promise<HostResponseDto> {
         const result = await this.hostsService.getHost(params.uuid);
+
+        const data = errorHandler(result);
+        return {
+            response: new HostResponseModel(data),
+        };
+    }
+
+    @Endpoint({
+        command: CloneHostCommand,
+        httpCode: HttpStatus.CREATED,
+        type: HostResponseDto,
+    })
+    async cloneHost(@Body() body: CloneHostBodyDto): Promise<HostResponseDto> {
+        const result = await this.hostsService.cloneHost(body.cloneFromUuid);
 
         const data = errorHandler(result);
         return {

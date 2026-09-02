@@ -1,4 +1,5 @@
 export * from './bulk-operations.dto';
+export * from './clone-host.dto';
 export * from './create-host.dto';
 export * from './delete-host.dto';
 export * from './get-hosts-tags.dto';

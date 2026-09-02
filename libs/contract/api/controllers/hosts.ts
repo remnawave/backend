@@ -11,6 +11,7 @@ export const HOSTS_ROUTES = {
 
     ACTIONS: {
         REORDER: `${HOST_ACTIONS_ROUTE}/reorder`,
+        CLONE: `${HOST_ACTIONS_ROUTE}/clone`,
     },
 
     BULK: {
