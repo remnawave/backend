@@ -6,8 +6,9 @@ import { SubscriptionSettingsEntity } from '@modules/subscription-settings/entit
 import { UserEntity } from '@modules/users/entities';
 
 import { prettyBytesUtil } from '../bytes';
+import { getNextTrafficResetAt } from '../get-next-traffic-reset-at.util';
 import { parseTemplate, renderTemplate } from './template-parser';
-import { TemplateResolvers } from './template-variables';
+import { DEFAULT_DATE_FORMAT, TemplateResolvers } from './template-variables';
 
 const USER_STATUS_LABELS = Object.fromEntries(
     USERS_STATUS_VALUES.map((status) => [status, status.charAt(0) + status.slice(1).toLowerCase()]),
@@ -27,6 +28,12 @@ export class TemplateEngine {
             user.trafficLimitBytes === 0n
                 ? 0n
                 : user.trafficLimitBytes - user.userTraffic.usedTrafficBytes;
+
+        const nextTrafficResetAt = (): Date | null =>
+            getNextTrafficResetAt(user.trafficLimitStrategy, user.createdAt);
+
+        const formatDate = (date: Date | null, args: { format?: string }): string =>
+            date ? dayjs(date).format(args.format || DEFAULT_DATE_FORMAT) : '';
 
         return {
             DAYS_LEFT: () => Math.max(0, dayjs(user.expireAt).diff(dayjs(), 'day')),
@@ -50,6 +57,13 @@ export class TemplateEngine {
             CREATED_AT_UNIX: () => dayjs(user.createdAt).unix(),
             LAST_TRAFFIC_RESET_AT_UNIX: () =>
                 user.lastTrafficResetAt ? dayjs(user.lastTrafficResetAt).unix() : 0,
+            LAST_TRAFFIC_RESET_AT: (args) => formatDate(user.lastTrafficResetAt, args),
+            NEXT_TRAFFIC_RESET_AT_UNIX: () => {
+                const nextResetAt = nextTrafficResetAt();
+
+                return nextResetAt ? dayjs(nextResetAt).unix() : 0;
+            },
+            NEXT_TRAFFIC_RESET_AT: (args) => formatDate(nextTrafficResetAt(), args),
             SS_HWID_LIMIT: () =>
                 (user.hwidDeviceLimit !== null
                     ? user.hwidDeviceLimit

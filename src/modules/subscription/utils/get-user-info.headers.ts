@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 
-import { TResetPeriods } from '@libs/contracts/constants';
+import { getNextTrafficResetAt } from '@common/utils';
 
 import { UserEntity } from '@modules/users/entities';
 
@@ -21,26 +21,8 @@ export function getSubscriptionUserInfo(user: UserEntity): SubscriptionUserInfo 
     };
 }
 
-export function getSubscriptionRefillDate(trafficLimitStrategy: TResetPeriods): string | undefined {
-    const now = new Date();
+export function getSubscriptionRefillDate(user: UserEntity): string | undefined {
+    const nextResetAt = getNextTrafficResetAt(user.trafficLimitStrategy, user.createdAt);
 
-    switch (trafficLimitStrategy) {
-        case 'DAY':
-            now.setDate(now.getDate() + 1);
-            now.setHours(0, 0, 0, 0);
-            return Math.floor(now.getTime() / 1000).toString();
-        case 'WEEK': {
-            now.setDate(now.getDate() + (8 - now.getDay()));
-            now.setHours(0, 5, 0, 0);
-            return Math.floor(now.getTime() / 1000).toString();
-        }
-        case 'MONTH': {
-            now.setDate(1);
-            now.setMonth(now.getMonth() + 1);
-            now.setHours(0, 10, 0, 0);
-            return Math.floor(now.getTime() / 1000).toString();
-        }
-        case 'NO_RESET':
-            return undefined;
-    }
+    return nextResetAt ? dayjs(nextResetAt).unix().toString() : undefined;
 }

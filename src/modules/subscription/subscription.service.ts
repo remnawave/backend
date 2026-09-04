@@ -623,7 +623,7 @@ export class SubscriptionService {
                 .join('; '),
         };
 
-        const refillDate = getSubscriptionRefillDate(user.trafficLimitStrategy);
+        const refillDate = getSubscriptionRefillDate(user);
         if (refillDate) {
             headers['subscription-refill-date'] = refillDate;
         }

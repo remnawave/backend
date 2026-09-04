@@ -5,6 +5,10 @@ interface TemplateVariableSpec {
     readonly args: readonly string[];
 }
 
+export const DATE_ARGS = ['format'] as const;
+
+export const DEFAULT_DATE_FORMAT = 'DD.MM.YYYY';
+
 export const TEMPLATE_VARIABLES = {
     DAYS_LEFT: { args: [] },
     TRAFFIC_USED: { args: [] },
@@ -26,6 +30,9 @@ export const TEMPLATE_VARIABLES = {
     LIFETIME_USED_BYTES: { args: [] },
     CREATED_AT_UNIX: { args: [] },
     LAST_TRAFFIC_RESET_AT_UNIX: { args: [] },
+    LAST_TRAFFIC_RESET_AT: { args: DATE_ARGS },
+    NEXT_TRAFFIC_RESET_AT_UNIX: { args: [] },
+    NEXT_TRAFFIC_RESET_AT: { args: DATE_ARGS },
     SS_HWID_LIMIT: { args: [] },
     DESCRIPTION: { args: [] },
 } satisfies Record<TemplateKeys, TemplateVariableSpec>;
