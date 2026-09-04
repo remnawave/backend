@@ -1,9 +1,9 @@
 // init: 0c6711a63dc2571a9b7a69a5ae00219be616ac47d38f4c6e02caff8b3c7315b4
-// prev: 7fc425120da84b74dc56832b3058c775f5595e65e690bf97668ff4819c662127
-// next: 8360aea32ccc607381501994bd15cee0557c0e7ae7db5153f385bde714496d24
+// prev: 8360aea32ccc607381501994bd15cee0557c0e7ae7db5153f385bde714496d24
+// next: 5551e5ceadbd8f900b78926049cb72ef63e9287f6f73d77a7c5237ccc4368f91
 
 export const PREV_SRR_CONFIG_HASH =
-    '7fc425120da84b74dc56832b3058c775f5595e65e690bf97668ff4819c662127';
+    '8360aea32ccc607381501994bd15cee0557c0e7ae7db5153f385bde714496d24';
 
 export const SRR_DEFAULT_CONFIG = {
     version: '1',
@@ -32,7 +32,7 @@ export const SRR_DEFAULT_CONFIG = {
                 {
                     headerName: 'user-agent',
                     operator: 'REGEX',
-                    value: '^(?:flclash|flowvy|murge|mihomo|prizrak-box|koala-clash|clash(?:-verge|-nyanpasu|x meta|[-.]?meta))',
+                    value: '^(?:flclash|rabbit|flowvy|murge|mihomo|prizrak-box|koala-clash|clash(?:-verge|-nyanpasu|x meta|[-.]?meta))',
                     caseSensitive: false,
                 },
             ],
