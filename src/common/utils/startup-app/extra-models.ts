@@ -51,7 +51,9 @@ const internalServerErrors = Object.values(ERRORS).filter(
 
 export class RemnawaveNotFoundErrorDto extends createZodDto(
     z.object({
-        timestamp: z.string().describe('Time when the error occurred, in ISO 8601 format.'),
+        timestamp: z.iso
+            .datetime({ local: true, offset: true })
+            .describe('Time when the error occurred, in ISO 8601 format.'),
         path: z.string().describe('Path of the request that caused the error.'),
         message: z
             .enum(notFoundErrors.map((error) => error.message) as [string, ...string[]])
@@ -70,7 +72,9 @@ export class RemnawaveNotFoundErrorDto extends createZodDto(
 
 export class RemnawaveBadRequestErrorDto extends createZodDto(
     z.object({
-        timestamp: z.string().describe('Time when the error occurred, in ISO 8601 format.'),
+        timestamp: z.iso
+            .datetime({ local: true, offset: true })
+            .describe('Time when the error occurred, in ISO 8601 format.'),
         path: z.string().describe('Path of the request that caused the error.'),
         message: z
             .enum(badRequestErrors.map((error) => error.message) as [string, ...string[]])
@@ -106,7 +110,9 @@ export class RemnawaveValidationErrorDto extends createZodDto(
 
 export class RemnawaveInternalServerErrorDto extends createZodDto(
     z.object({
-        timestamp: z.string().describe('Time when the error occurred, in ISO 8601 format.'),
+        timestamp: z.iso
+            .datetime({ local: true, offset: true })
+            .describe('Time when the error occurred, in ISO 8601 format.'),
         path: z.string().describe('Path of the request that caused the error.'),
         message: z
             .enum(internalServerErrors.map((error) => error.message) as [string, ...string[]])
