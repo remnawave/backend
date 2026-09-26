@@ -108,12 +108,11 @@ export class ConnectionsService {
                             data: {
                                 userIds: [
                                     ...new Set(
-                                        dto.dropBy.userIds.flatMap((userId) => [
-                                            userId.toString(),
-                                            ...node.activeInbounds.map((inbound) =>
+                                        dto.dropBy.userIds.flatMap((userId) =>
+                                            node.activeInbounds.map((inbound) =>
                                                 buildClientEmail(BigInt(userId), inbound.uuid),
                                             ),
-                                        ]),
+                                        ),
                                     ),
                                 ],
                             },

@@ -2,12 +2,9 @@ import { Job } from 'bullmq';
 
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { QueryBus } from '@nestjs/cqrs';
 
 import { AxiosService } from '@common/axios';
 import { buildClientEmail, parseClientEmail } from '@common/helpers/xray-config/client-email';
-
-import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes';
 
 import { QUEUES_NAMES } from '@queue/queue.enum';
 
@@ -23,7 +20,6 @@ export class NodeUsersQueueProcessor extends WorkerHost {
 
     constructor(
         private readonly axios: AxiosService,
-        private readonly queryBus: QueryBus,
         private readonly nodeUserRemovalService: NodeUserRemovalService,
     ) {
         super();
@@ -43,18 +39,12 @@ export class NodeUsersQueueProcessor extends WorkerHost {
 
     private async handleAddUserToNode(job: Job<IAddUserToNodePayload>) {
         try {
-            const { data, node, cleanupUsernames, legacyUsername } = job.data;
-            const cleanupInbounds = await this.getCleanupInbounds(job.data);
+            const { data, node, cleanupInbounds } = job.data;
             const { userId } = parseClientEmail(data.data[0].username);
 
-            // TODO: remove legacy plain userId cleanup in a future
-            // release, once most panel users have upgraded past the identity migration.
-            const usernamesToCleanup = new Set([
-                userId,
-                ...cleanupInbounds.map((inbound) => buildClientEmail(BigInt(userId), inbound.uuid)),
-                ...(cleanupUsernames ?? []),
-                ...(legacyUsername ? [legacyUsername] : []),
-            ]);
+            const usernamesToCleanup = new Set(
+                cleanupInbounds.map((inbound) => buildClientEmail(BigInt(userId), inbound.uuid)),
+            );
 
             // Empty inboundData uses the node's add/update cleanup without dropping IP sockets.
             // Restore the full tag list on every call: removing the last hash removes its tag.
@@ -102,28 +92,6 @@ export class NodeUsersQueueProcessor extends WorkerHost {
             this.logger.error(`Error handling "${NODES_JOB_NAMES.ADD_USER_TO_NODE}" job: ${error}`);
             return;
         }
-    }
-
-    private async getCleanupInbounds(payload: IAddUserToNodePayload) {
-        if (payload.cleanupInbounds) {
-            return payload.cleanupInbounds;
-        }
-
-        // Jobs queued before cleanupInbounds was added only contain the node address.
-        const nodes = await this.queryBus.execute(new GetAllNodesQuery());
-        if (!nodes.isOk) {
-            throw new Error('Failed to resolve inbounds for a queued user update');
-        }
-
-        const node = nodes.response.find(
-            (candidate) =>
-                candidate.address === payload.node.address && candidate.port === payload.node.port,
-        );
-        if (!node) {
-            throw new Error('Node for a queued user update no longer exists');
-        }
-
-        return node.activeInbounds;
     }
 
     private async handleRemoveUserFromNode(job: Job<IRemoveUserFromNodePayload>) {
