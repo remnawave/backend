@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 import { XRayConfig } from '@common/helpers/xray-config';
 import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
+import { getDateRangeArrayUtil } from '@common/utils/get-date-range-array.util';
 import { diffInbounds } from '@common/utils/inbounds';
 import { CACHE_KEYS } from '@libs/contracts/constants';
 import { ERRORS } from '@libs/contracts/constants/errors';
@@ -15,9 +16,15 @@ import { NodesQueuesService } from '@queue/_nodes';
 
 import { ReorderConfigProfilesBodyDto } from './dtos';
 import { ConfigProfileWithInboundsAndNodesEntity } from './entities';
+import { ConfigProfileInboundWithSquadsEntity } from './entities/config-profile-inbound-with-squads.entity';
 import { ConfigProfileInboundEntity } from './entities/config-profile-inbound.entity';
 import { ConfigProfileEntity } from './entities/config-profile.entity';
-import { GetAllInboundsResponseModel } from './models';
+import {
+    GetAllInboundsResponseModel,
+    GetInboundTopUsersUsageResponseModel,
+    GetInboundUsageResponseModel,
+    GetInboundUserUsageResponseModel,
+} from './models';
 import { GetConfigProfileByUuidResponseModel } from './models/get-config-profile-by-uuid.response.model';
 import { GetConfigProfilesResponseModel } from './models/get-config-profiles.response.model';
 import { GetSnippetsQuery } from './queries/get-snippets';
@@ -315,6 +322,8 @@ export class ConfigProfileService {
             const inbounds =
                 await this.configProfileRepository.getInboundsWithSquadsByProfileUuid(profileUuid);
 
+            await this.attachOnlineUsersCount(inbounds);
+
             return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
@@ -326,10 +335,181 @@ export class ConfigProfileService {
         try {
             const inbounds = await this.configProfileRepository.getAllInbounds();
 
+            await this.attachOnlineUsersCount(inbounds);
+
             return ok(new GetAllInboundsResponseModel(inbounds, inbounds.length));
         } catch (error) {
             this.logger.error(error);
             return fail(ERRORS.GET_ALL_INBOUNDS_ERROR);
+        }
+    }
+
+    private async attachOnlineUsersCount(
+        inbounds: ConfigProfileInboundWithSquadsEntity[],
+    ): Promise<void> {
+        if (inbounds.length === 0) return;
+
+        const byInbound = await this.getOnlineUsersCountByInboundUuids(
+            inbounds.map((inbound) => inbound.uuid),
+        );
+
+        for (const inbound of inbounds) {
+            inbound.onlineByNode = byInbound.get(inbound.uuid) ?? [];
+        }
+    }
+
+    private async getOnlineUsersCountByInboundUuids(
+        inboundUuids: string[],
+    ): Promise<Map<string, { nodeUuid: string; count: number }[]>> {
+        const byInbound = new Map<string, { nodeUuid: string; count: number }[]>();
+        if (inboundUuids.length === 0) return byInbound;
+
+        const nodeUuidsByInbound =
+            await this.configProfileRepository.findNodeUuidsByInboundUuids(inboundUuids);
+
+        const pipeline = this.rawCache.createPipeline();
+        const keyOrder: { inboundUuid: string; nodeUuid: string }[] = [];
+
+        for (const inboundUuid of inboundUuids) {
+            const nodeUuids = nodeUuidsByInbound.get(inboundUuid) ?? [];
+            for (const nodeUuid of nodeUuids) {
+                pipeline.get(CACHE_KEYS.NODE_INBOUND_USERS_ONLINE(nodeUuid, inboundUuid));
+                keyOrder.push({ inboundUuid, nodeUuid });
+            }
+        }
+
+        if (keyOrder.length === 0) return byInbound;
+
+        const results = await pipeline.exec();
+        if (!results) return byInbound;
+
+        results.forEach(([err, raw], index) => {
+            if (err || !raw) return;
+            const { inboundUuid, nodeUuid } = keyOrder[index];
+
+            const list = byInbound.get(inboundUuid);
+            const entry = { nodeUuid, count: Number(raw) };
+            if (list) {
+                list.push(entry);
+            } else {
+                byInbound.set(inboundUuid, [entry]);
+            }
+        });
+
+        return byInbound;
+    }
+
+    public async getInboundUsage(
+        inboundUuid: string,
+        query: {
+            start: string;
+            end: string;
+            minTotalBytes: number;
+            limit: number;
+            cursor?: number;
+        },
+    ): Promise<TResult<GetInboundUsageResponseModel>> {
+        try {
+            const { startDate, endDate } = getDateRangeArrayUtil(
+                new Date(query.start),
+                new Date(query.end),
+            );
+            const { minTotalBytes, limit, cursor } = query;
+
+            const [result, onlineByInbound] = await Promise.all([
+                this.configProfileRepository.getInboundUsage({
+                    inboundUuid,
+                    start: startDate,
+                    end: endDate,
+                    minTotalBytes,
+                    limit,
+                    cursor,
+                }),
+                this.getOnlineUsersCountByInboundUuids([inboundUuid]),
+            ]);
+
+            return ok(
+                new GetInboundUsageResponseModel({
+                    inboundUuid,
+                    onlineByNode: onlineByInbound.get(inboundUuid) ?? [],
+                    ...result,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_INBOUND_USAGE_ERROR);
+        }
+    }
+
+    public async getInboundUserUsage(
+        inboundUuid: string,
+        userId: number,
+        query: {
+            start: string;
+            end: string;
+        },
+    ): Promise<TResult<GetInboundUserUsageResponseModel>> {
+        try {
+            const { startDate, endDate, dates } = getDateRangeArrayUtil(
+                new Date(query.start),
+                new Date(query.end),
+            );
+
+            const days = await this.configProfileRepository.getInboundUserDailyUsage({
+                inboundUuid,
+                userId: BigInt(userId),
+                start: startDate,
+                end: endDate,
+                dates,
+            });
+
+            return ok(new GetInboundUserUsageResponseModel({ days }));
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_INBOUND_USER_USAGE_ERROR);
+        }
+    }
+
+    public async getInboundTopUsersUsage(
+        inboundUuid: string,
+        query: {
+            start: string;
+            end: string;
+            topUsersLimit: number;
+        },
+    ): Promise<TResult<GetInboundTopUsersUsageResponseModel>> {
+        try {
+            const { start, end, topUsersLimit } = query;
+            const { startDate, endDate, dates } = getDateRangeArrayUtil(
+                new Date(start),
+                new Date(end),
+            );
+
+            const [sparklineData, topUsers] = await Promise.all([
+                this.configProfileRepository.getInboundDailyTrafficSum(
+                    inboundUuid,
+                    startDate,
+                    endDate,
+                    dates,
+                ),
+                this.configProfileRepository.getInboundTopUsersUsage({
+                    inboundUuid,
+                    start: startDate,
+                    end: endDate,
+                    limit: topUsersLimit,
+                }),
+            ]);
+
+            return ok(
+                new GetInboundTopUsersUsageResponseModel({
+                    categories: dates,
+                    sparklineData,
+                    topUsers,
+                }),
+            );
+        } catch (error) {
+            this.logger.error(error);
+            return fail(ERRORS.GET_INBOUND_TOP_USERS_USAGE_ERROR);
         }
     }
 

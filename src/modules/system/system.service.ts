@@ -536,6 +536,7 @@ export class SystemService implements OnApplicationBootstrap {
 
         const validMetrics = [
             'remnawave_node_online_users',
+            'remnawave_node_inbound_online_users',
             'remnawave_node_inbound_upload_bytes',
             'remnawave_node_inbound_download_bytes',
             'remnawave_node_outbound_upload_bytes',
@@ -560,6 +561,7 @@ export class SystemService implements OnApplicationBootstrap {
 
                 const metricGroups = {
                     onlineUsers: 0,
+                    inboundOnlineUsers: new Map<string, number>(),
                     inboundUpload: new Map<string, number>(),
                     inboundDownload: new Map<string, number>(),
                     outboundUpload: new Map<string, number>(),
@@ -573,6 +575,9 @@ export class SystemService implements OnApplicationBootstrap {
                     switch (metric.metricName) {
                         case 'remnawave_node_online_users':
                             metricGroups.onlineUsers = value;
+                            break;
+                        case 'remnawave_node_inbound_online_users':
+                            metricGroups.inboundOnlineUsers.set(tag, value);
                             break;
                         case 'remnawave_node_inbound_upload_bytes':
                             metricGroups.inboundUpload.set(tag, value);
@@ -592,6 +597,7 @@ export class SystemService implements OnApplicationBootstrap {
                 const allInboundTags = new Set([
                     ...metricGroups.inboundDownload.keys(),
                     ...metricGroups.inboundUpload.keys(),
+                    ...metricGroups.inboundOnlineUsers.keys(),
                 ]);
                 const allOutboundTags = new Set([
                     ...metricGroups.outboundDownload.keys(),
@@ -602,6 +608,7 @@ export class SystemService implements OnApplicationBootstrap {
                     tag,
                     upload: prettyBytesUtil(metricGroups.inboundUpload.get(tag) || 0),
                     download: prettyBytesUtil(metricGroups.inboundDownload.get(tag) || 0),
+                    online: metricGroups.inboundOnlineUsers.get(tag) || 0,
                 })).sort((a, b) => a.tag.localeCompare(b.tag));
 
                 const outboundsStats: OutboundStats[] = Array.from(allOutboundTags, (tag) => ({

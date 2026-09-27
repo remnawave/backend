@@ -51,6 +51,7 @@ export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
             }
 
             const activeInboundsTags = new Set(activeInbounds.map((inbound) => inbound.tag));
+            const tagToUuid = new Map(activeInbounds.map((inbound) => [inbound.tag, inbound.uuid]));
 
             config = new XRayConfig(configProfile.response.config as object);
 
@@ -67,7 +68,7 @@ export class GetPreparedConfigWithUsersHandler implements IQueryHandler<
             const usersStream = this.usersRepository.getUsersForConfigStream(activeInbounds);
 
             for await (const userBatch of usersStream) {
-                config.includeUserBatch(userBatch, inboundsUserSets);
+                config.includeUserBatch(userBatch, inboundsUserSets, tagToUuid);
             }
 
             for (const [tag, set] of inboundsUserSets) {

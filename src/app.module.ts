@@ -8,6 +8,7 @@ import { ConditionalModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { CommonConfigModule } from '@common/config/common-config/common-config.module';
+import { AxiosModule } from '@common/axios';
 import { PrismaModule } from '@common/database';
 import { PrismaService } from '@common/database/prisma.service';
 import { RawCacheModule } from '@common/raw-cache/raw-cache.module';
@@ -25,6 +26,7 @@ const HASHED = /-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/i;
 
 @Module({
     imports: [
+        AxiosModule,
         RawCacheModule,
         CommonConfigModule,
         PrismaModule,

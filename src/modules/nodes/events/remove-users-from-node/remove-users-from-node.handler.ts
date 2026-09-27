@@ -1,8 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { IEventHandler, EventsHandler } from '@nestjs/cqrs';
 
-import { RemoveUsersCommand as RemoveUsersFromNodeCommandSdk } from '@remnawave/node-contract';
-
 import { NodesQueuesService } from '@queue/_nodes';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
@@ -18,25 +16,37 @@ export class RemoveUsersFromNodeHandler implements IEventHandler<RemoveUsersFrom
     ) {}
     async handle(event: RemoveUsersFromNodeEvent) {
         try {
-            const nodes = await this.nodesRepository.findConnectedNodesWithoutInbounds();
+            const nodes = await this.nodesRepository.findConnectedNodes();
 
             if (nodes.length === 0 || event.users.length === 0) {
                 return;
             }
 
-            const userData: RemoveUsersFromNodeCommandSdk.Request = {
-                users: event.users.map((user) => ({
-                    userId: user.id.toString(),
-                    hashUuid: user.vlessUuid,
-                })),
-            };
+            const requests: Promise<unknown>[] = [];
 
             for (const node of nodes) {
-                await this.nodesQueuesService.removeUsersFromNode({
-                    data: userData,
-                    node: node.connectionOpts,
-                });
+                requests.push(
+                    this.nodesQueuesService.removeUsersFromNode({
+                        data: {
+                            users: event.users.map((user) => ({
+                                userId: user.id.toString(),
+                                hashUuid: user.vlessUuid,
+                            })),
+                        },
+                        node: {
+                            address: node.address,
+                            port: node.port,
+                            proxyUrl: node.proxyUrl,
+                        },
+                        cleanupInbounds: node.activeInbounds.map(({ uuid, tag }) => ({
+                            uuid,
+                            tag,
+                        })),
+                    }),
+                );
             }
+
+            await Promise.all(requests);
 
             return;
         } catch (error) {

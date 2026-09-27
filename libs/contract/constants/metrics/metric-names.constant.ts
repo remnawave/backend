@@ -1,5 +1,6 @@
 export const METRIC_NAMES = {
     NODE_ONLINE_USERS: 'node_online_users',
+    NODE_INBOUND_ONLINE_USERS: 'node_inbound_online_users',
     NODE_STATUS: 'node_status',
     USERS_STATUS: 'users_status',
     USERS_ONLINE_STATS: 'users_online_stats',
