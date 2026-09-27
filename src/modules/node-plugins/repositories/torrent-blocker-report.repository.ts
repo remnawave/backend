@@ -41,6 +41,8 @@ const SORT_COLUMN_MAP: Record<string, string> = {
 
 type AllowedFilterId = keyof typeof FILTER_COLUMN_MAP;
 
+const BIGINT_FILTER_IDS: readonly string[] = ['id', 'userId', 'nodeId'] as const;
+
 @Injectable()
 export class TorrentBlockerReportsRepository {
     constructor(
@@ -149,18 +151,11 @@ export class TorrentBlockerReportsRepository {
                 continue;
             }
 
-            const BIGINT_FILTER_IDS: readonly string[] = ['id', 'userId', 'nodeId'] as const;
-
             if (BIGINT_FILTER_IDS.includes(filter.id)) {
                 try {
-                    BigInt(filter.value as string);
-                    qb = qb.where(
-                        sql`CAST(${FILTER_COLUMN_MAP[filter.id as AllowedFilterId]} AS TEXT)`,
-                        'like',
-                        `%${filter.value}%`,
-                    );
+                    qb = qb.where(column, '=', BigInt(filter.value as string));
                 } catch {
-                    qb = qb.where('torrentBlockerReports.id', 'is', null);
+                    qb = qb.where(sql<boolean>`false`);
                 }
                 continue;
             }

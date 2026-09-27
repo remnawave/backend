@@ -61,7 +61,7 @@ const USERS_FILTER_COLUMN_MAP = {
     nodeName: null,
 } as const;
 
-const NUMERIC_FILTER_IDS = new Set(['hwidDeviceLimit', 'id', 'trafficLimitBytes']);
+const NUMERIC_FILTER_IDS = new Set(['hwidDeviceLimit', 'trafficLimitBytes']);
 
 type AllowedUsersFilterId = keyof typeof USERS_FILTER_COLUMN_MAP;
 
@@ -328,9 +328,10 @@ export class UsersRepository {
 
             if (filter.id === 'id') {
                 try {
-                    BigInt(filter.value as string);
-                    qb = qb.where(sql`CAST(users.id AS TEXT)`, 'like', `%${filter.value}%`);
-                } catch {}
+                    qb = qb.where(USERS_FILTER_COLUMN_MAP.id, '=', BigInt(filter.value as string));
+                } catch {
+                    qb = qb.where(sql<boolean>`false`);
+                }
                 continue;
             }
 
@@ -339,7 +340,7 @@ export class UsersRepository {
                     BigInt(filter.value as string);
                     qb = qb.where(sql`CAST(telegram_id AS TEXT)`, 'like', `%${filter.value}%`);
                 } catch {
-                    qb = qb.where('telegramId', 'is', null);
+                    qb = qb.where(sql<boolean>`false`);
                 }
                 continue;
             }
