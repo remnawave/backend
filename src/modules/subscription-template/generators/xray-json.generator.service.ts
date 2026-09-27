@@ -115,7 +115,7 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
     grpc: (host) => ({
         serviceName: host.transportOptions.serviceName,
         authority: host.transportOptions.authority,
-        mode: !!host.transportOptions.multiMode,
+        multiMode: !!host.transportOptions.multiMode,
     }),
     kcp: (host) => ({
         mtu: host.transportOptions.clientMtu,
