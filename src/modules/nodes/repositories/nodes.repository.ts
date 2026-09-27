@@ -11,7 +11,7 @@ import { getKyselyUuid } from '@common/helpers/kysely/get-kysely-uuid';
 import { values } from '@common/helpers/kysely/values';
 import { ICrud } from '@common/types/crud-port';
 
-import { NodesEntity } from '../entities/nodes.entity';
+import { NodesConnectionState, NodesEntity } from '../entities/nodes.entity';
 import { IReorderNode } from '../interfaces';
 import { NodesConverter } from '../nodes.converter';
 import { IGetEnabledNodesPartialResponse } from '../queries/get-enabled-nodes-partial/get-enabled-nodes-partial.query';
@@ -179,12 +179,15 @@ export class NodesRepository implements ICrud<NodesEntity> {
         return new NodesEntity(result);
     }
 
-    public async update({ uuid, ...data }: Partial<NodesEntity>): Promise<NodesEntity> {
+    public async update(
+        { uuid, ...data }: Partial<NodesEntity>,
+        expectedState?: Partial<NodesConnectionState>,
+    ): Promise<NodesEntity> {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { provider, activeInbounds, ...prismaData } = data;
 
         const result = await this.prisma.tx.nodes.update({
-            where: { uuid },
+            where: { uuid, ...expectedState },
             data: prismaData,
             include: INCLUDE_RESOLVED_INBOUNDS,
         });
@@ -406,7 +409,9 @@ export class NodesRepository implements ICrud<NodesEntity> {
         const result = await this.qb.kysely
             .updateTable('nodes')
             .set({
-                integrationUuids: sql<string[]>`array_remove(${sql.ref('nodes.integration_uuids')}, ${getKyselyUuid(integrationUuid)})`,
+                integrationUuids: sql<
+                    string[]
+                >`array_remove(${sql.ref('nodes.integration_uuids')}, ${getKyselyUuid(integrationUuid)})`,
             })
             .where(
                 sql<boolean>`${sql.ref('nodes.integration_uuids')} @> ARRAY[${getKyselyUuid(integrationUuid)}]`,

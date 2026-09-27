@@ -36,6 +36,8 @@ export const CACHE_KEYS_TTL = {
 } as const;
 
 export const INTERNAL_CACHE_KEYS = {
+    NODE_HEALTH_CHECK: (uuid: string) => `node_health_check:${uuid}`,
+    NODE_HEALTH_CHECK_SYNC_PENDING: (uuid: string) => `node_health_check_sync_pending:${uuid}`,
     NODE_USER_USAGE_PREFIX: 'node_user_usage:',
     NODE_USER_USAGE: (nodeId: bigint) =>
         `${INTERNAL_CACHE_KEYS.NODE_USER_USAGE_PREFIX}${nodeId.toString()}`,
@@ -45,6 +47,7 @@ export const INTERNAL_CACHE_KEYS = {
 } as const;
 
 export const INTERNAL_CACHE_KEYS_TTL = {
+    NODE_HEALTH_CHECK: 300, // Expire confirmation history after five minutes without a sample.
     NODE_USER_USAGE: 10_800, // 3 hours in seconds
 } as const;
 

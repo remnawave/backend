@@ -1,4 +1,4 @@
-import { CACHE_KEYS } from '@contract/constants';
+import { CACHE_KEYS, INTERNAL_CACHE_KEYS } from '@contract/constants';
 
 import { Injectable } from '@nestjs/common';
 
@@ -85,6 +85,8 @@ export class NodesSystemCacheService {
 
     async delete(uuid: string): Promise<void> {
         await this.rawCacheService.delMany([
+            INTERNAL_CACHE_KEYS.NODE_HEALTH_CHECK(uuid),
+            INTERNAL_CACHE_KEYS.NODE_HEALTH_CHECK_SYNC_PENDING(uuid),
             CACHE_KEYS.NODE_SYSTEM_INFO(uuid),
             CACHE_KEYS.NODE_SYSTEM_STATS(uuid),
             CACHE_KEYS.NODE_USERS_ONLINE(uuid),

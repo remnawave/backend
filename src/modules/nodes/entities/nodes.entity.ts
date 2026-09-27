@@ -7,6 +7,29 @@ import { InfraProviderEntity } from '@modules/infra-billing/entities';
 
 import { INodesWithResolvedInbounds } from '../repositories/nodes.repository';
 
+export type NodesConnectionState = Pick<
+    NodesEntity,
+    | 'address'
+    | 'port'
+    | 'proxyUrl'
+    | 'isConnected'
+    | 'isConnecting'
+    | 'isDisabled'
+    | 'lastStatusChange'
+>;
+
+export function getNodeConnectionState(node: NodesEntity): NodesConnectionState {
+    return {
+        address: node.address,
+        port: node.port,
+        proxyUrl: node.proxyUrl,
+        isConnected: node.isConnected,
+        isConnecting: node.isConnecting,
+        isDisabled: node.isDisabled,
+        lastStatusChange: node.lastStatusChange,
+    };
+}
+
 export class NodesEntity implements Nodes {
     public id: bigint;
     public uuid: string;

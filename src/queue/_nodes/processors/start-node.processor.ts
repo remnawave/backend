@@ -9,7 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AxiosService } from '@common/axios/axios.service';
 import { RawCacheService } from '@common/raw-cache';
 import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
-import { CACHE_KEYS, CACHE_KEYS_TTL, EVENTS } from '@libs/contracts/constants';
+import { CACHE_KEYS, CACHE_KEYS_TTL, EVENTS, INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 
 import { NodeEvent } from '@integration-modules/notifications/interfaces';
 
@@ -17,6 +17,7 @@ import { GetResolvedIntegrationsQuery } from '@modules/node-integrations/queries
 import { mergeNodeIntegrations } from '@modules/node-integrations/utils';
 import { GetPluginByUuidQuery } from '@modules/node-plugins/queries/get-plugin-by-uuid';
 import { UpdateNodeCommand } from '@modules/nodes/commands/update-node';
+import { getNodeConnectionState, NodesConnectionState } from '@modules/nodes/entities/nodes.entity';
 import { GetNodeByUuidQuery } from '@modules/nodes/queries/get-node-by-uuid';
 import { GetPreparedConfigWithUsersQuery } from '@modules/users/queries/get-prepared-config-with-users';
 
@@ -42,9 +43,15 @@ export class StartNodeProcessor extends WorkerHost {
         super();
     }
 
-    async process(job: Job<{ nodeUuid: string; force?: boolean }>) {
+    async process(job: Job<{ nodeUuid: string; force?: boolean; healthCheck?: boolean }>) {
+        let connectingState: NodesConnectionState | undefined;
         try {
-            const { nodeUuid, force } = job.data;
+            const { nodeUuid, force, healthCheck } = job.data;
+
+            // Automatic recovery leaves connection state to the statistics monitor.
+            // Starting Xray successfully does not prove its statistics API recovered.
+            const connectionStatus = (isConnected: boolean, lastStatusMessage: null | string) =>
+                healthCheck ? {} : { isConnected, lastStatusMessage, lastStatusChange: new Date() };
 
             const nodeCheckup = await this.queryBus.execute(new GetNodeByUuidQuery(nodeUuid));
 
@@ -55,8 +62,13 @@ export class StartNodeProcessor extends WorkerHost {
 
             const { response: node } = nodeCheckup;
 
-            if (node.isConnecting) {
+            if (node.isConnecting || (healthCheck && node.isDisabled)) {
                 return;
+            }
+
+            const syncPendingKey = INTERNAL_CACHE_KEYS.NODE_HEALTH_CHECK_SYNC_PENDING(nodeUuid);
+            if (healthCheck) {
+                await this.rawCacheService.set(syncPendingKey, true);
             }
 
             await this.rawCacheService.delMany([
@@ -90,12 +102,20 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            await this.commandBus.execute(
-                new UpdateNodeCommand({
-                    uuid: node.uuid,
-                    isConnecting: true,
-                }),
+            const connectingResult = await this.commandBus.execute(
+                new UpdateNodeCommand(
+                    { uuid: node.uuid, isConnecting: true },
+                    healthCheck ? getNodeConnectionState(node) : undefined,
+                ),
             );
+
+            if (!connectingResult.isOk) {
+                return;
+            }
+
+            if (healthCheck) {
+                connectingState = { ...getNodeConnectionState(node), isConnecting: true };
+            }
 
             const xrayStatusResponse = await this.axios.getNodeHealth({
                 address: node.address,
@@ -105,13 +125,14 @@ export class StartNodeProcessor extends WorkerHost {
 
             if (!xrayStatusResponse.isOk) {
                 await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: node.uuid,
-                        lastStatusMessage: xrayStatusResponse.message ?? null,
-                        lastStatusChange: new Date(),
-                        isConnected: false,
-                        isConnecting: false,
-                    }),
+                    new UpdateNodeCommand(
+                        {
+                            uuid: node.uuid,
+                            ...connectionStatus(false, xrayStatusResponse.message ?? null),
+                            isConnecting: false,
+                        },
+                        connectingState,
+                    ),
                 );
 
                 this.logger.error(
@@ -123,13 +144,17 @@ export class StartNodeProcessor extends WorkerHost {
 
             if (semver.lt(xrayStatusResponse.response.nodeVersion, '2.7.0')) {
                 await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: node.uuid,
-                        lastStatusMessage: `Outdated version ${xrayStatusResponse.response.nodeVersion} of Remnawave Node. Please upgrade to the latest version (>= 2.7.0).`,
-                        lastStatusChange: new Date(),
-                        isConnected: false,
-                        isConnecting: false,
-                    }),
+                    new UpdateNodeCommand(
+                        {
+                            uuid: node.uuid,
+                            ...connectionStatus(
+                                false,
+                                `Outdated version ${xrayStatusResponse.response.nodeVersion} of Remnawave Node. Please upgrade to the latest version (>= 2.7.0).`,
+                            ),
+                            isConnecting: false,
+                        },
+                        connectingState,
+                    ),
                 );
 
                 this.logger.error(
@@ -175,13 +200,17 @@ export class StartNodeProcessor extends WorkerHost {
 
             if (!syncNodePluginsResponse.isOk) {
                 await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: node.uuid,
-                        isConnecting: false,
-                        isConnected: false,
-                        lastStatusMessage: `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
-                        lastStatusChange: new Date(),
-                    }),
+                    new UpdateNodeCommand(
+                        {
+                            uuid: node.uuid,
+                            isConnecting: false,
+                            ...connectionStatus(
+                                false,
+                                `Failed to sync node plugins: ${syncNodePluginsResponse.message}`,
+                            ),
+                        },
+                        connectingState,
+                    ),
                 );
 
                 this.logger.error(
@@ -247,13 +276,14 @@ export class StartNodeProcessor extends WorkerHost {
 
             if (!startNodeResult.isOk) {
                 await this.commandBus.execute(
-                    new UpdateNodeCommand({
-                        uuid: node.uuid,
-                        lastStatusMessage: startNodeResult.message ?? null,
-                        lastStatusChange: new Date(),
-                        isConnected: false,
-                        isConnecting: false,
-                    }),
+                    new UpdateNodeCommand(
+                        {
+                            uuid: node.uuid,
+                            ...connectionStatus(false, startNodeResult.message ?? null),
+                            isConnecting: false,
+                        },
+                        connectingState,
+                    ),
                 );
 
                 return;
@@ -284,13 +314,14 @@ export class StartNodeProcessor extends WorkerHost {
             ]);
 
             const updateNodeResult = await this.commandBus.execute(
-                new UpdateNodeCommand({
-                    uuid: node.uuid,
-                    isConnected: nodeResponse.isStarted,
-                    lastStatusMessage: nodeResponse.error ?? null,
-                    lastStatusChange: new Date(),
-                    isConnecting: false,
-                }),
+                new UpdateNodeCommand(
+                    {
+                        uuid: node.uuid,
+                        ...connectionStatus(nodeResponse.isStarted, nodeResponse.error ?? null),
+                        isConnecting: false,
+                    },
+                    connectingState,
+                ),
             );
 
             if (!updateNodeResult.isOk) {
@@ -298,7 +329,13 @@ export class StartNodeProcessor extends WorkerHost {
                 return;
             }
 
-            if (!node.isConnected && nodeResponse.isStarted) {
+            connectingState = undefined;
+
+            if (nodeResponse.isStarted && (node.isConnected || !healthCheck)) {
+                await this.rawCacheService.del(syncPendingKey);
+            }
+
+            if (!healthCheck && !node.isConnected && nodeResponse.isStarted) {
                 this.eventEmitter.emit(
                     EVENTS.NODE.CONNECTION_RESTORED,
                     new NodeEvent(updateNodeResult.response, EVENTS.NODE.CONNECTION_RESTORED),
@@ -308,6 +345,24 @@ export class StartNodeProcessor extends WorkerHost {
             return;
         } catch (error) {
             this.logger.error(`Error handling "${NODES_JOB_NAMES.START_NODE}" job: ${error}`);
+        } finally {
+            // Early returns and exceptions must not leave automatic recovery stuck
+            // in isConnecting, which would exclude the node from future checks.
+            if (connectingState) {
+                await this.commandBus.execute(
+                    new UpdateNodeCommand(
+                        { uuid: job.data.nodeUuid, isConnecting: false },
+                        {
+                            // An endpoint edit invalidates the result, but the old
+                            // operation still owns this connecting flag until it exits.
+                            isConnecting: true,
+                            isConnected: connectingState.isConnected,
+                            isDisabled: connectingState.isDisabled,
+                            lastStatusChange: connectingState.lastStatusChange,
+                        },
+                    ),
+                );
+            }
         }
     }
 }

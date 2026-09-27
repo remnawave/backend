@@ -1,4 +1,5 @@
 import { ERRORS } from '@contract/constants';
+import { Prisma } from '@prisma/client';
 
 import { Logger } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
@@ -18,9 +19,20 @@ export class UpdateNodeHandler implements ICommandHandler<UpdateNodeCommand, TRe
 
     async execute(command: UpdateNodeCommand): Promise<TResult<NodesEntity>> {
         try {
-            const node = await this.nodesRepository.update(command.node);
+            const node = await this.nodesRepository.update(command.node, command.expectedState);
             return ok(node);
         } catch (error: unknown) {
+            if (
+                command.expectedState &&
+                error instanceof Prisma.PrismaClientKnownRequestError &&
+                error.code === 'P2025'
+            ) {
+                this.logger.debug(
+                    `Skipped outdated connection update for node ${command.node.uuid}`,
+                );
+                return fail(ERRORS.UPDATE_NODE_ERROR);
+            }
+
             this.logger.error(`Error: ${error}`);
             return fail(ERRORS.UPDATE_NODE_ERROR);
         }
