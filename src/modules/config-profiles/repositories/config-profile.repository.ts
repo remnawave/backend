@@ -227,6 +227,10 @@ export class ConfigProfileRepository {
     ): Promise<ConfigProfileInboundWithSquadsEntity[]> {
         const result = await this.qb.kysely
             .selectFrom('configProfileInbounds')
+            .innerJoin('configProfiles', 'configProfiles.uuid', 'configProfileInbounds.profileUuid')
+            .leftJoin(this.configInboundsPositions(), (join) =>
+                join.on(this.matchesConfigInbound()),
+            )
             .where('configProfileInbounds.profileUuid', '=', getKyselyUuid(profileUuid))
             .selectAll('configProfileInbounds')
             .select((eb) => [
@@ -241,6 +245,8 @@ export class ConfigProfileRepository {
                         ),
                 ).as('activeSquads'),
             ])
+            .orderBy('configInbound.ordinality', 'asc')
+            .orderBy('configProfileInbounds.tag', 'asc')
             .execute();
 
         return result.map((item) => new ConfigProfileInboundWithSquadsEntity(item));
@@ -249,6 +255,10 @@ export class ConfigProfileRepository {
     public async getAllInbounds(): Promise<ConfigProfileInboundWithSquadsEntity[]> {
         const result = await this.qb.kysely
             .selectFrom('configProfileInbounds')
+            .innerJoin('configProfiles', 'configProfiles.uuid', 'configProfileInbounds.profileUuid')
+            .leftJoin(this.configInboundsPositions(), (join) =>
+                join.on(this.matchesConfigInbound()),
+            )
             .selectAll('configProfileInbounds')
             .select((eb) => [
                 jsonArrayFrom(
@@ -262,6 +272,9 @@ export class ConfigProfileRepository {
                         ),
                 ).as('activeSquads'),
             ])
+            .orderBy('configProfiles.viewPosition', 'asc')
+            .orderBy('configInbound.ordinality', 'asc')
+            .orderBy('configProfileInbounds.tag', 'asc')
             .execute();
 
         return result.map((item) => new ConfigProfileInboundWithSquadsEntity(item));
@@ -306,18 +319,27 @@ export class ConfigProfileRepository {
         return jsonArrayFrom(
             eb
                 .selectFrom('configProfileInbounds')
+                .leftJoin(this.configInboundsPositions(), (join) =>
+                    join.on(this.matchesConfigInbound()),
+                )
                 .selectAll('configProfileInbounds')
                 .whereRef('configProfileInbounds.profileUuid', '=', 'configProfiles.uuid')
-                .orderBy(
-                    sql`(
-                        SELECT i.ord
-                        FROM jsonb_array_elements(${sql.ref('config_profiles.config')} -> 'inbounds')
-                            WITH ORDINALITY AS i(value, ord)
-                        WHERE i.value ->> 'tag' = ${sql.ref('config_profile_inbounds.tag')}
-                    )`,
-                )
+                .orderBy('configInbound.ordinality', 'asc')
                 .orderBy('configProfileInbounds.tag', 'asc'),
         ).as('inbounds');
+    }
+
+    private configInboundsPositions() {
+        return sql<{
+            value: unknown;
+            ordinality: string;
+        }>`jsonb_array_elements(${sql.ref('config_profiles.config')} -> 'inbounds') WITH ORDINALITY`.as(
+            'configInbound',
+        );
+    }
+
+    private matchesConfigInbound() {
+        return sql<boolean>`${sql.ref('config_inbound.value')} ->> 'tag' = ${sql.ref('config_profile_inbounds.tag')}`;
     }
 
     private includeNodes(eb: ExpressionBuilder<DB, 'configProfiles'>) {
