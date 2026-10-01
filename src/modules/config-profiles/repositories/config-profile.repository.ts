@@ -307,7 +307,16 @@ export class ConfigProfileRepository {
             eb
                 .selectFrom('configProfileInbounds')
                 .selectAll('configProfileInbounds')
-                .whereRef('configProfileInbounds.profileUuid', '=', 'configProfiles.uuid'),
+                .whereRef('configProfileInbounds.profileUuid', '=', 'configProfiles.uuid')
+                .orderBy(
+                    sql`(
+                        SELECT i.ord
+                        FROM jsonb_array_elements(${sql.ref('config_profiles.config')} -> 'inbounds')
+                            WITH ORDINALITY AS i(value, ord)
+                        WHERE i.value ->> 'tag' = ${sql.ref('config_profile_inbounds.tag')}
+                    )`,
+                )
+                .orderBy('configProfileInbounds.tag', 'asc'),
         ).as('inbounds');
     }
 
