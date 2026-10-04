@@ -95,6 +95,7 @@ export const configSchema = z
         SERVICE_CLEAN_USAGE_HISTORY: booleanString('false'),
         SERVICE_DISABLE_USER_USAGE_RECORDS: booleanString('false'),
         SERVICE_DISABLE_SRH_RECORDS: booleanString('false'),
+        SERVICE_SNI_VERIFICATION: booleanString('true'),
         EXPORT_TO_STREAM_ENABLED: booleanString('false'),
         EXPORT_TO_STREAM_MAXLEN: z
             .string()

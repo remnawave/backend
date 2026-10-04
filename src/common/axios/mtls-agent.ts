@@ -8,7 +8,7 @@ export class MtlsSocksProxyAgent extends SocksProxyAgent {
     constructor(
         uri: string,
         private readonly mtls: IMtlsOptions,
-        private readonly sni: string,
+        private readonly sni: string | undefined,
     ) {
         super(uri, { keepAlive: true });
     }
