@@ -76,6 +76,7 @@ model Users {
   userMetas                      UserMeta[]
   torrentBlockerReports          TorrentBlockerReports[]
   traffic                        UserTraffic?
+  inboundUsageHistory            UserInboundUsageHistory[]
 
   externalSquad ExternalSquads? @relation(fields: [externalSquadUuid], references: [uuid], onDelete: SetNull)
 
@@ -246,6 +247,22 @@ model NodesUserUsageHistory {
   @@id([nodeId, createdAt, userId])
   @@index([userId, createdAt])
   @@map("nodes_user_usage_history")
+}
+
+model UserInboundUsageHistory {
+  inboundUuid String @map("inbound_uuid") @db.Uuid
+  userId      BigInt @map("user_id")
+
+  totalBytes BigInt @map("total_bytes")
+
+  createdAt DateTime @default(dbgenerated("CURRENT_DATE")) @map("created_at") @db.Date
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  inbound ConfigProfileInbounds @relation(fields: [inboundUuid], references: [uuid], onDelete: Cascade)
+  user    Users                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([inboundUuid, createdAt, userId])
+  @@map("user_inbound_usage_history")
 }
 
 model NodesUsageHistory {
@@ -452,6 +469,7 @@ model ConfigProfileInbounds {
   hosts                        Hosts[]
   configProfileInboundsToNodes ConfigProfileInboundsToNodes[]
   internalSquadInbounds        InternalSquadInbounds[]
+  userInboundUsageHistory      UserInboundUsageHistory[]
 
   @@unique([tag])
   @@index([profileUuid, uuid])

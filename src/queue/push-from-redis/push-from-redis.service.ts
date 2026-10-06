@@ -48,4 +48,20 @@ export class PushFromRedisQueueService
             },
         });
     }
+
+    public async recordUserInboundUsageDelayed(payload: IRecordUserUsageFromRedisPayload) {
+        return this.addJob(PushFromRedisJobNames.recordUserInboundUsage, payload, {
+            delay: 120_000, // 2 minutes
+            deduplication: {
+                id: `${payload.redisKey}_PFR`,
+            },
+            removeOnComplete: {
+                age: 3_600,
+                count: 300,
+            },
+            removeOnFail: {
+                age: 24 * 3_600,
+            },
+        });
+    }
 }

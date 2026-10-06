@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 
 import { AxiosService } from '@common/axios/axios.service';
 import { TypedConfigService } from '@common/config/app-config';
+import { buildClientEmail, parseClientEmail } from '@common/helpers/xray-config/client-email';
 import { RawCacheService } from '@common/raw-cache';
 import { EXPORT_TO_STREAM_KEYS } from '@libs/contracts/constants';
 import { NODE_CONNECTIONS_STREAM_MESSAGE_VERSION } from '@libs/contracts/models';
@@ -102,35 +103,60 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
 
             const mapper = async (node: NodesEntity) => {
                 try {
-                    const ipsListResponse = await this.axios.getIpsList(
-                        { userId: job.data.userId.toString() },
-                        {
-                            address: node.address,
-                            port: node.port,
-                            proxyUrl: node.proxyUrl,
-                        },
+                    // Query each active inbound because Xray stores per-inbound emails.
+                    const usernames =
+                        node.activeInbounds.length > 0
+                            ? node.activeInbounds.map((inbound) =>
+                                  buildClientEmail(BigInt(job.data.userId), inbound.uuid),
+                              )
+                            : [job.data.userId.toString()];
+
+                    const ipsByAddress = new Map<string, Date>();
+
+                    const ipsListResponses = await Promise.all(
+                        usernames.map((username) =>
+                            this.axios.getIpsList(
+                                { userId: username },
+                                {
+                                    address: node.address,
+                                    port: node.port,
+                                    proxyUrl: node.proxyUrl,
+                                },
+                            ),
+                        ),
                     );
 
-                    if (!ipsListResponse.isOk || !ipsListResponse.response.ips.length) {
+                    for (const ipsListResponse of ipsListResponses) {
+                        if (!ipsListResponse.isOk || !ipsListResponse.response.ips.length) {
+                            continue;
+                        }
+
+                        const ips = ipsListResponse.response.ips;
+
+                        if (ips.length > 0 && typeof ips[0] === 'string') {
+                            for (const ip of ips as unknown as string[]) {
+                                if (!ipsByAddress.has(ip)) {
+                                    ipsByAddress.set(ip, new Date(0));
+                                }
+                            }
+                        } else {
+                            for (const ip of ips) {
+                                const existing = ipsByAddress.get(ip.ip);
+                                const lastSeen = new Date(ip.lastSeen);
+                                if (!existing || lastSeen > existing) {
+                                    ipsByAddress.set(ip.ip, lastSeen);
+                                }
+                            }
+                        }
+                    }
+
+                    if (ipsByAddress.size === 0) {
                         return;
                     }
 
-                    const ips = ipsListResponse.response.ips;
-                    let formattedIps: { ip: string; lastSeen: Date }[] = [];
-
-                    if (ips.length > 0 && typeof ips[0] === 'string') {
-                        formattedIps = (ips as unknown as string[]).map((ip) => ({
-                            ip,
-                            lastSeen: new Date(0),
-                        }));
-                    } else {
-                        formattedIps = ips
-                            .map((ip) => ({ ip: ip.ip, lastSeen: ip.lastSeen }))
-                            .sort(
-                                (a, b) =>
-                                    new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime(),
-                            );
-                    }
+                    const formattedIps = [...ipsByAddress.entries()]
+                        .map(([ip, lastSeen]) => ({ ip, lastSeen }))
+                        .sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
 
                     return {
                         nodeUuid: node.uuid,
@@ -204,12 +230,39 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                 };
             }
 
+            // Merge IPs from multiple per-inbound identities into one user result.
+            const ipsByUser = new Map<number, Map<string, Date>>();
+
+            for (const user of result.response.users) {
+                const { userId: parsedUserId } = parseClientEmail(user.userId);
+                const userId = Number(parsedUserId);
+                if (!Number.isFinite(userId)) continue;
+
+                let ipsByAddress = ipsByUser.get(userId);
+                if (!ipsByAddress) {
+                    ipsByAddress = new Map();
+                    ipsByUser.set(userId, ipsByAddress);
+                }
+
+                for (const ip of user.ips) {
+                    const lastSeen = new Date(ip.lastSeen);
+                    const existing = ipsByAddress.get(ip.ip);
+                    if (!existing || lastSeen > existing) {
+                        ipsByAddress.set(ip.ip, lastSeen);
+                    }
+                }
+            }
+
             return {
                 success: true,
                 nodeUuid: job.data.nodeUuid,
-                users: result.response.users
-                    .map((user) => ({ ...user, userId: Number(user.userId) }))
-                    .filter((user) => Number.isFinite(user.userId))
+                users: [...ipsByUser.entries()]
+                    .map(([userId, ipsByAddress]) => ({
+                        userId,
+                        ips: [...ipsByAddress.entries()]
+                            .map(([ip, lastSeen]) => ({ ip, lastSeen }))
+                            .sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime()),
+                    }))
                     .sort((a, b) => a.userId - b.userId),
             };
         } catch (error) {
@@ -293,6 +346,20 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                 return;
             }
 
+            const users = result.response.users
+                .map((user) => ({
+                    ...user,
+                    userId: parseClientEmail(user.userId).userId,
+                }))
+                .filter((user) => {
+                    try {
+                        BigInt(user.userId);
+                        return true;
+                    } catch {
+                        return false;
+                    }
+                });
+
             await this.rawCacheService.xaddTrimmedByAge(
                 EXPORT_TO_STREAM_KEYS.NODE_CONNECTIONS,
                 QueryNodesQueueProcessor.CONNECTIONS_EXPORT_MAX_AGE_MS,
@@ -300,7 +367,7 @@ export class QueryNodesQueueProcessor extends WorkerHost implements OnApplicatio
                     v: NODE_CONNECTIONS_STREAM_MESSAGE_VERSION,
                     nodeId: nodeResult.response.id.toString(),
                     ts: new Date().toISOString(),
-                    users: JSON.stringify(result.response.users),
+                    users: JSON.stringify(users),
                 },
             );
         } catch (error) {

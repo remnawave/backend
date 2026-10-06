@@ -25,6 +25,16 @@ export namespace GetInboundsByProfileUuidCommand {
             inbounds: z.array(
                 ConfigProfileInboundsSchema.extend({
                     activeSquads: z.array(z.uuid()),
+                    onlineByNode: z
+                        .array(
+                            z.object({
+                                nodeUuid: z.uuid(),
+                                count: z.number(),
+                            }),
+                        )
+                        .describe(
+                            'Live online users count for this inbound, broken down by node (~16s TTL)',
+                        ),
                 }),
             ),
         }),
