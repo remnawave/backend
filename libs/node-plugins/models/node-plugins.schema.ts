@@ -220,6 +220,32 @@ export const preStartPluginSchema = z.object({
         }),
 });
 
+export const postStartPluginSchema = z.object({
+    enabled: z
+        .boolean()
+        .default(false)
+        .meta({
+            title: 'Enabled',
+            markdownDescription: `Enables the post-start stage. All enabled sections below run in the background every time the Xray-Core started or restarted.${DOCS_LINK}`,
+        }),
+    webhook: z
+        .object({
+            enabled: z.boolean().meta({
+                title: 'Enable webhook',
+                markdownDescription: `Sends a \`POST\` request with a JSON body to the URL once the core is up.${DOCS_LINK}`,
+            }),
+            url: z.url({ protocol: /^https?$/, message: 'URL must be a valid http(s) URL' }).meta({
+                title: 'Webhook URL',
+                markdownDescription: `URL to send the request to. \n\n Body: \`{ "scope": "service", "event": "service.core_started", "timestamp": "...", "metadata": { "name", "uuid", "id", "tags", "countryCode" } }\`.${DOCS_LINK}`,
+            }),
+        })
+        .optional()
+        .meta({
+            title: 'Webhook',
+            markdownDescription: `Webhook sent after the core starts.${DOCS_LINK}`,
+        }),
+});
+
 export const NodePluginSchema = z.object({
     sharedLists: z
         .array(SharedListSchema)
@@ -248,6 +274,10 @@ export const NodePluginSchema = z.object({
     preStart: preStartPluginSchema.optional().meta({
         title: 'Pre-Start',
         markdownDescription: `Pre-Start Plugin configuration. Optional.${DOCS_LINK}`,
+    }),
+    postStart: postStartPluginSchema.optional().meta({
+        title: 'Post-Start',
+        markdownDescription: `Post-Start Plugin configuration. Optional.${DOCS_LINK}`,
     }),
 });
 
