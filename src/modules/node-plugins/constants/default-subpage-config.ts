@@ -26,8 +26,8 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
     preStart: {
         enabled: false,
         cleanupSockets: {
-            enabled: false,
             files: [],
+            enabled: false,
         },
     },
     postStart: {
