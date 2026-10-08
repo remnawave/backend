@@ -10,12 +10,14 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
     },
     torrentBlocker: {
         enabled: false,
-        blockDuration: 3600,
+        webhookUrl: "https://example.com/webhook",
         ignoreLists: {
             ip: [],
             userId: [],
         },
+        blockDuration: 3600,
         rulePlacement: 0,
+        includeRuleTags: ["change_me"],
     },
     connectionDrop: {
         enabled: false,
@@ -28,4 +30,11 @@ export const EXAMPLE_NODE_PLUGIN_CONFIG = {
             files: [],
         },
     },
+    postStart: {
+        enabled: false,
+        webhook: {
+            url: "https://example.com/webhook",
+            enabled: false,
+        },
+    }
 };
