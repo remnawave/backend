@@ -147,17 +147,19 @@ export class ExternalSquadService {
                 subpageConfigUuid: subpageConfigUuid,
             });
 
-            for (const template of externalSquad.templates) {
-                await this.rawCacheService.del(
-                    CACHE_KEYS.EXTERNAL_SQUAD_TEMPLATE_NAME(
-                        externalSquad.uuid,
-                        template.templateType,
-                    ),
-                );
-            }
-
             if (templates !== undefined) {
                 await this.syncExternalSquadTemplates(externalSquad, templates);
+            }
+
+            const affectedTemplateTypes = new Set([
+                ...externalSquad.templates.map((template) => template.templateType),
+                ...(templates ?? []).map((template) => template.templateType),
+            ]);
+
+            for (const templateType of affectedTemplateTypes) {
+                await this.rawCacheService.del(
+                    CACHE_KEYS.EXTERNAL_SQUAD_TEMPLATE_NAME(externalSquad.uuid, templateType),
+                );
             }
 
             await this.rawCacheService.del(CACHE_KEYS.EXTERNAL_SQUAD_SETTINGS(externalSquad.uuid));
