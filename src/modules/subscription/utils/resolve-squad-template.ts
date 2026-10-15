@@ -13,6 +13,8 @@ import { CheckTemplateExistsQuery } from '@modules/subscription-template/queries
 const SQUAD_PLACEHOLDER = '{squad}';
 const DEFAULT_TEMPLATE_NAME = 'Default';
 
+const warnedMissingTemplates = new Set<string>();
+
 /**
  * Resolves the template name for a subscription response:
  * - SRR template without {squad} wins as is;
@@ -65,13 +67,28 @@ export async function resolveSquadTemplate(
 
     const exists = await queryBus.execute(new CheckTemplateExistsQuery(candidate, templateType));
 
-    if (exists.isOk && exists.response) {
+    if (!exists.isOk) {
+        logger.warn(
+            `Failed to check template "${candidate}" (${templateType}), falling back to "${squadTemplate}"`,
+        );
+
+        return squadTemplate;
+    }
+
+    if (exists.response) {
         return candidate;
     }
 
-    logger.warn(
-        `Template "${candidate}" (${templateType}) not found, falling back to "${squadTemplate}"`,
-    );
+    const warnKey = `${templateType}:${candidate}`;
+
+    // A missing variant is a steady-state config, so warn once per process instead of per request
+    if (!warnedMissingTemplates.has(warnKey)) {
+        warnedMissingTemplates.add(warnKey);
+
+        logger.warn(
+            `Template "${candidate}" (${templateType}) not found, falling back to "${squadTemplate}"`,
+        );
+    }
 
     return squadTemplate;
 }
