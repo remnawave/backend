@@ -56,8 +56,6 @@ import {
 } from './models';
 import { GetSubpageConfigResponseModel } from './models/get-subpage-config.response.model';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
-import { resolveSquadTemplate } from './utils/resolve-squad-template';
-
 @Injectable()
 export class SubscriptionService {
     private readonly logger = new Logger(SubscriptionService.name);
@@ -116,13 +114,6 @@ export class SubscriptionService {
             if (!user.isOk) {
                 return new SubscriptionNotFoundResponse();
             }
-
-            srrContext.overrideTemplateName = await resolveSquadTemplate(
-                this.queryBus,
-                this.logger,
-                srrContext,
-                user.response.externalSquadUuid,
-            );
 
             const { subscriptionSettings: patchedSubscriptionSettings, hostsOverrides } =
                 await this.applyMaybeExternalSquadOverrides(

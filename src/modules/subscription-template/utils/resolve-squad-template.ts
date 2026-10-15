@@ -8,11 +8,13 @@ import {
 
 import { GetCachedTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import type { ISRRContext } from '@modules/subscription-response-rules/interfaces';
-import { CheckTemplateExistsQuery } from '@modules/subscription-template/queries/check-template-exists';
+
+import { CheckTemplateExistsQuery } from '../queries/check-template-exists';
 
 const SQUAD_PLACEHOLDER = '{squad}';
 const DEFAULT_TEMPLATE_NAME = 'Default';
 
+const logger = new Logger('ResolveSquadTemplate');
 const warnedMissingTemplates = new Set<string>();
 
 /**
@@ -21,10 +23,11 @@ const warnedMissingTemplates = new Set<string>();
  * - no SRR template -> external squad template (if any);
  * - SRR template with {squad} -> {squad} replaced by the squad template name (or Default),
  *   falling back to the squad template when the resulting template does not exist.
+ *
+ * Must be called with the final response type, i.e. right before rendering.
  */
 export async function resolveSquadTemplate(
     queryBus: QueryBus,
-    logger: Logger,
     srrContext: ISRRContext,
     externalSquadUuid: string | null,
 ): Promise<string | undefined> {
@@ -34,15 +37,14 @@ export async function resolveSquadTemplate(
         return srrTemplate;
     }
 
-    let templateType = srrContext.matchedResponseType as TSubscriptionTemplateType;
+    const templateType = srrContext.matchedResponseType as TSubscriptionTemplateType;
 
-    if (!SUBSCRIPTION_TEMPLATE_TYPE_VALUES.includes(templateType)) {
+    // XRAY_BASE64 is rendered without a template
+    if (
+        !SUBSCRIPTION_TEMPLATE_TYPE_VALUES.includes(templateType) ||
+        templateType === 'XRAY_BASE64'
+    ) {
         return srrTemplate;
-    }
-
-    if (templateType === 'XRAY_BASE64') {
-        // In case if XRAY_BASE64 matched as fallback
-        templateType = 'XRAY_JSON';
     }
 
     let squadTemplate: string | undefined;
