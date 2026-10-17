@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { getFirstVerifyPeerCertName, getPinnedCertSha256 } from '@common/utils/pinned-cert';
 import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
@@ -144,9 +145,15 @@ export class ClashGeneratorService {
                     node.alpn = opts.alpn.split(',');
                 }
 
-                // allowInsecure
-                if (opts.pinnedPeerCertSha256) {
-                    node['skip-cert-verify'] = true;
+                // `fingerprint` pins the cert and replaces the default chain check on its own
+                const pin = getPinnedCertSha256(opts.pinnedPeerCertSha256);
+                if (pin) {
+                    node.fingerprint = pin;
+                }
+
+                const certName = getFirstVerifyPeerCertName(opts.verifyPeerCertByName);
+                if (certName) {
+                    node['name-cert-verify'] = certName;
                 }
                 break;
             }
