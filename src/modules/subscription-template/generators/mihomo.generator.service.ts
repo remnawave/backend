@@ -4,12 +4,13 @@ import _ from 'lodash';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { isNonEmptyObject, parseIntRangeUtil } from '@common/utils';
+import { getFirstVerifyPeerCertName, getPinnedCertSha256 } from '@common/utils/pinned-cert';
 import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
 import { applyHostMapper } from '../host-mapper';
-import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
+import { ITlsSecurityOptions, ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 export interface MihomoData {
     proxies: ProxyNode[];
@@ -158,7 +159,7 @@ export class MihomoGeneratorService {
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
                 if (isStash && host.transport === 'xhttp') continue;
 
-                const node = this.buildProxyNode(host, isExtendedClient);
+                const node = this.buildProxyNode(host, isExtendedClient, isStash);
                 if (!node) continue;
 
                 data.proxies.push(node);
@@ -172,8 +173,12 @@ export class MihomoGeneratorService {
         }
     }
 
-    private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
-        const node = this.buildBaseProxyNode(host, isExtendedClient);
+    private buildProxyNode(
+        host: ResolvedProxyConfig,
+        isExtendedClient: boolean,
+        isStash: boolean,
+    ): ProxyNode | null {
+        const node = this.buildBaseProxyNode(host, isExtendedClient, isStash);
 
         if (!node) return null;
 
@@ -183,9 +188,10 @@ export class MihomoGeneratorService {
     private buildBaseProxyNode(
         host: ResolvedProxyConfig,
         isExtendedClient: boolean,
+        isStash: boolean,
     ): ProxyNode | null {
         if (host.protocol === 'hysteria') {
-            return this.buildHysteria2Node(host, isExtendedClient);
+            return this.buildHysteria2Node(host, isExtendedClient, isStash);
         }
 
         const node: ProxyNode = {
@@ -202,7 +208,7 @@ export class MihomoGeneratorService {
             return null;
         }
 
-        this.applySecurityFields(node, host);
+        this.applySecurityFields(node, host, isStash);
         this.applyTransportOpts(node, host);
 
         node['client-fingerprint'] = this.resolveFingerprint(host);
@@ -256,7 +262,11 @@ export class MihomoGeneratorService {
         }
     }
 
-    private applySecurityFields(node: ProxyNode, host: ResolvedProxyConfig): void {
+    private applySecurityFields(
+        node: ProxyNode,
+        host: ResolvedProxyConfig,
+        isStash: boolean,
+    ): void {
         switch (host.security) {
             case 'tls': {
                 const opts = host.securityOptions;
@@ -272,9 +282,8 @@ export class MihomoGeneratorService {
                     node.alpn = opts.alpn.split(',');
                 }
 
-                // allowInsecure
-                if (opts.pinnedPeerCertSha256 && node.type !== 'ss') {
-                    node['skip-cert-verify'] = true;
+                if (node.type !== 'ss') {
+                    Object.assign(node, this.buildPeerCertVerifyFields(opts, isStash));
                 }
                 break;
             }
@@ -666,6 +675,7 @@ export class MihomoGeneratorService {
     private buildHysteria2Node(
         host: ResolvedProxyConfig,
         isExtendedClient: boolean,
+        isStash: boolean,
     ): ProxyNode | null {
         if (host.protocol !== 'hysteria' || host.transport !== 'hysteria') {
             return null;
@@ -680,7 +690,7 @@ export class MihomoGeneratorService {
             password: host.transportOptions.auth,
             ...this.buildHysteria2QuicFields(host.streamOverrides.finalMask),
             ...this.buildHysteria2ObfsFields(host.streamOverrides.finalMask),
-            ...this.buildHysteria2TlsFields(host),
+            ...this.buildHysteria2TlsFields(host, isStash),
         };
 
         if (isExtendedClient && host.clientOverrides.serverDescription) {
@@ -731,15 +741,42 @@ export class MihomoGeneratorService {
         };
     }
 
-    private buildHysteria2TlsFields(host: ResolvedProxyConfig): Record<string, unknown> {
+    private buildHysteria2TlsFields(
+        host: ResolvedProxyConfig,
+        isStash: boolean,
+    ): Record<string, unknown> {
         if (host.security !== 'tls') return {};
-        const { serverName, pinnedPeerCertSha256, fingerprint, alpn } = host.securityOptions;
+        const { serverName, fingerprint, alpn } = host.securityOptions;
 
         return {
             ...(serverName && { sni: serverName }),
-            ...(pinnedPeerCertSha256 && { 'skip-cert-verify': true }),
+            ...this.buildPeerCertVerifyFields(host.securityOptions, isStash),
             ...(fingerprint && { 'client-fingerprint': fingerprint }),
             ...(alpn && { alpn: alpn.split(',') }),
+        };
+    }
+
+    /**
+     * Mihomo: `fingerprint` pins the cert and `name-cert-verify` overrides the verified name;
+     * both replace the default chain check on their own, so `skip-cert-verify` must not be set.
+     * Stash: pins via `server-cert-fingerprint`.
+     * An unparsable pin emits nothing, so the client falls back to regular verification.
+     */
+    private buildPeerCertVerifyFields(
+        opts: Pick<ITlsSecurityOptions, 'pinnedPeerCertSha256' | 'verifyPeerCertByName'>,
+        isStash: boolean,
+    ): Record<string, unknown> {
+        const pin = getPinnedCertSha256(opts.pinnedPeerCertSha256);
+
+        if (isStash) {
+            return pin ? { 'skip-cert-verify': true, 'server-cert-fingerprint': pin } : {};
+        }
+
+        const certName = getFirstVerifyPeerCertName(opts.verifyPeerCertByName);
+
+        return {
+            ...(pin && { fingerprint: pin }),
+            ...(certName && { 'name-cert-verify': certName }),
         };
     }
 
