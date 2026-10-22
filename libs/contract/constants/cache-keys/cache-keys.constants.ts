@@ -13,6 +13,8 @@ export const CACHE_KEYS = {
     NODE_SYSTEM_INFO: (uuid: string) => `node_system_info:${uuid}`,
     NODE_SYSTEM_STATS: (uuid: string) => `node_system_stats:${uuid}`,
     NODE_USERS_ONLINE: (uuid: string) => `node_users_online:${uuid}`,
+    NODE_INBOUND_USERS_ONLINE: (nodeUuid: string, inboundUuid: string) =>
+        `node_inbound_users_online:${nodeUuid}:${inboundUuid}`,
     NODE_VERSIONS: (uuid: string) => `node_versions:${uuid}`,
     NODE_XRAY_UPTIME: (uuid: string) => `node_xray_uptime:${uuid}`,
     RAW_INBOUND: (uuid: string) => `raw_inbound:${uuid}`,
@@ -29,6 +31,7 @@ export const CACHE_KEYS_TTL = {
     SUBSCRIPTION_SETTINGS: 3_600, // 1 hour
     NODE_SYSTEM_STATS: 30, // 30 seconds
     NODE_USERS_ONLINE: 16, // 16 seconds
+    NODE_INBOUND_USERS_ONLINE: 16, // 16 seconds
     NODE_XRAY_UPTIME: 16, // 16 seconds
     RAW_INBOUND: 3_600, // 1 hour
     XRAY_JSON_TEMPLATE: 3_600, // 1 hour
@@ -40,12 +43,16 @@ export const INTERNAL_CACHE_KEYS = {
     NODE_USER_USAGE: (nodeId: bigint) =>
         `${INTERNAL_CACHE_KEYS.NODE_USER_USAGE_PREFIX}${nodeId.toString()}`,
     NODE_USER_USAGE_KEYS: 'node_user_usage_keys',
+    NODE_USER_INBOUND_USAGE_PREFIX: 'node_user_inbound_usage:',
+    NODE_USER_INBOUND_USAGE: (nodeId: bigint) =>
+        `${INTERNAL_CACHE_KEYS.NODE_USER_INBOUND_USAGE_PREFIX}${nodeId.toString()}`,
     PROCESSING_POSTFIX: ':processing',
     RUNTIME_METRICS: 'runtime_metrics',
 } as const;
 
 export const INTERNAL_CACHE_KEYS_TTL = {
     NODE_USER_USAGE: 10_800, // 3 hours in seconds
+    NODE_USER_INBOUND_USAGE: 10_800, // 3 hours in seconds
 } as const;
 
 export const EXPORT_TO_STREAM_KEYS = {

@@ -5,6 +5,7 @@ import { Logger } from '@nestjs/common';
 import { CommandBus, EventBus, QueryBus } from '@nestjs/cqrs';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
+import { parseClientEmail } from '@common/helpers/xray-config/client-email';
 import { EVENTS } from '@libs/contracts/constants/events/events';
 
 import { TorrentBlockerEvent, UserEvent } from '@integration-modules/notifications/interfaces';
@@ -156,7 +157,7 @@ export class UserEventsQueueProcessor extends WorkerHost {
         try {
             const { event, nodeUuid, report } = job.data;
 
-            const id = BigInt(job.data.id);
+            const id = BigInt(parseClientEmail(job.data.id).userId);
 
             const getUserResult = await this.queryBus.execute(
                 new GetUserByUniqueFieldQuery(

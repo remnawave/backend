@@ -1,8 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { IEventHandler, EventsHandler } from '@nestjs/cqrs';
 
-import { RemoveUserCommand as RemoveUserFromNodeCommandSdk } from '@remnawave/node-contract';
-
 import { NodesQueuesService } from '@queue/_nodes';
 
 import { NodesRepository } from '../../repositories/nodes.repository';
@@ -18,23 +16,22 @@ export class RemoveUserFromNodeHandler implements IEventHandler<RemoveUserFromNo
     ) {}
     async handle(event: RemoveUserFromNodeEvent) {
         try {
-            const nodes = await this.nodesRepository.findConnectedNodesWithoutInbounds();
+            const nodes = await this.nodesRepository.findConnectedNodes();
 
             if (nodes.length === 0) {
                 return;
             }
 
-            const userData: RemoveUserFromNodeCommandSdk.Request = {
-                username: event.id.toString(),
-                hashData: {
-                    vlessUuid: event.vlessUuid,
-                },
-            };
-
             await this.nodesQueuesService.removeUserFromNodeBulk(
                 nodes.map((node) => ({
-                    data: userData,
-                    node: node.connectionOpts,
+                    data: {
+                        username: event.id.toString(),
+                        hashData: {
+                            vlessUuid: event.vlessUuid,
+                        },
+                    },
+                    node: { address: node.address, port: node.port, proxyUrl: node.proxyUrl },
+                    cleanupInbounds: node.activeInbounds.map(({ uuid, tag }) => ({ uuid, tag })),
                 })),
             );
 

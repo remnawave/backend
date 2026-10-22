@@ -11,6 +11,9 @@ import { TxKyselyService } from '@common/database';
 import { getKyselyUuid } from '@common/helpers';
 import { values } from '@common/helpers/kysely/values';
 
+import { IGetUniversalTopUser } from '@modules/nodes-user-usage-history/interfaces';
+
+import { BulkUpsertInboundUsageHistoryBuilder } from '../builders/bulk-upsert-inbound-usage-history';
 import { ConfigProfileConverter } from '../converters/config-profile.converter';
 import { ConfigProfileInboundWithSquadsEntity } from '../entities';
 import { ConfigProfileInboundEntity } from '../entities/config-profile-inbound.entity';
@@ -210,6 +213,168 @@ export class ConfigProfileRepository {
         });
 
         return new ConfigProfileInboundEntity(result);
+    }
+
+    public async findNodeUuidsByInboundUuids(
+        inboundUuids: string[],
+    ): Promise<Map<string, string[]>> {
+        const map = new Map<string, string[]>();
+        if (inboundUuids.length === 0) return map;
+
+        const rows = await this.qb.kysely
+            .selectFrom('configProfileInboundsToNodes')
+            .where(
+                'configProfileInboundsToNodes.configProfileInboundUuid',
+                'in',
+                inboundUuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .select(['configProfileInboundUuid', 'nodeUuid'])
+            .execute();
+
+        for (const row of rows) {
+            const list = map.get(row.configProfileInboundUuid);
+            if (list) {
+                list.push(row.nodeUuid);
+            } else {
+                map.set(row.configProfileInboundUuid, [row.nodeUuid]);
+            }
+        }
+
+        return map;
+    }
+
+    public async bulkUpsertInboundUsageHistory(
+        list: { inboundUuid: string; userId: string; totalBytes: string }[],
+    ): Promise<void> {
+        const { query } = new BulkUpsertInboundUsageHistoryBuilder(list);
+        await this.prisma.tx.$queryRaw(query);
+    }
+
+    public async getInboundUsage(params: {
+        inboundUuid: string;
+        start: Date;
+        end: Date;
+        minTotalBytes: number;
+        limit: number;
+        cursor?: number;
+    }): Promise<{
+        users: { id: number; totalBytes: number }[];
+        nextCursor: string | null;
+        hasMore: boolean;
+    }> {
+        const { inboundUuid, start, end, minTotalBytes, limit, cursor } = params;
+
+        let qb = this.qb.kysely
+            .selectFrom('userInboundUsageHistory as h')
+            .where('h.inboundUuid', '=', getKyselyUuid(inboundUuid))
+            .where('h.createdAt', '>=', start)
+            .where('h.createdAt', '<=', end);
+
+        if (cursor) {
+            qb = qb.where('h.userId', '>', BigInt(cursor));
+        }
+
+        const rows = await qb
+            .groupBy(['h.userId'])
+            .having((eb) => eb(eb.fn.sum('h.totalBytes'), '>=', BigInt(minTotalBytes)))
+            .select((eb) => ['h.userId as id', eb.fn.sum('h.totalBytes').as('totalBytes')])
+            .orderBy('h.userId', 'asc')
+            .limit(limit + 1)
+            .execute();
+
+        const hasMore = rows.length > limit;
+        if (hasMore) {
+            rows.pop();
+        }
+
+        return {
+            users: rows.map((row) => ({
+                id: Number(row.id),
+                totalBytes: Number(row.totalBytes),
+            })),
+            nextCursor: hasMore ? rows[rows.length - 1].id.toString() : null,
+            hasMore,
+        };
+    }
+
+    public async getInboundTopUsersUsage(params: {
+        inboundUuid: string;
+        start: Date;
+        end: Date;
+        limit: number;
+    }): Promise<IGetUniversalTopUser[]> {
+        const { inboundUuid, start, end, limit } = params;
+
+        return await this.qb.kysely
+            .selectFrom('userInboundUsageHistory as h')
+            .innerJoin('users as u', 'u.id', 'h.userId')
+            .where('h.inboundUuid', '=', getKyselyUuid(inboundUuid))
+            .where('h.createdAt', '>=', start)
+            .where('h.createdAt', '<=', end)
+            .select([
+                'u.id as userId',
+                'u.username',
+                (eb) => eb.fn.sum<bigint>('h.totalBytes').as('total'),
+            ])
+            .groupBy(['u.id', 'u.username'])
+            .orderBy((eb) => eb.fn.sum<bigint>('h.totalBytes'), 'desc')
+            .limit(limit)
+            .execute();
+    }
+
+    public async getInboundDailyTrafficSum(
+        inboundUuid: string,
+        start: Date,
+        end: Date,
+        dates: string[],
+    ): Promise<number[]> {
+        const query = Prisma.sql`
+        WITH daily_traffic AS (
+            SELECT
+                created_at::date AS date,
+                SUM(total_bytes) AS bytes
+            FROM user_inbound_usage_history
+            WHERE
+                inbound_uuid = ${inboundUuid}::uuid
+                AND created_at >= ${start}::date
+                AND created_at <= ${end}::date
+            GROUP BY created_at
+        )
+        SELECT
+            COALESCE(dt.bytes, 0) AS value
+        FROM unnest(${dates}::date[]) WITH ORDINALITY AS d(date, ord)
+        LEFT JOIN daily_traffic dt ON dt.date = d.date::date
+        ORDER BY d.ord;
+    `;
+
+        const result = await this.prisma.tx.$queryRaw<Array<{ value: bigint }>>(query);
+        return result.map((item) => Number(item.value));
+    }
+
+    public async getInboundUserDailyUsage(params: {
+        inboundUuid: string;
+        userId: bigint;
+        start: Date;
+        end: Date;
+        dates: string[];
+    }): Promise<{ date: string; totalBytes: number }[]> {
+        const { inboundUuid, userId, start, end, dates } = params;
+
+        const rows = await this.qb.kysely
+            .selectFrom('userInboundUsageHistory as h')
+            .where('h.inboundUuid', '=', getKyselyUuid(inboundUuid))
+            .where('h.userId', '=', userId)
+            .where('h.createdAt', '>=', start)
+            .where('h.createdAt', '<=', end)
+            .select((eb) => [
+                sql<string>`to_char(${eb.ref('h.createdAt')}, 'YYYY-MM-DD')`.as('date'),
+                'h.totalBytes as totalBytes',
+            ])
+            .execute();
+
+        const byDate = new Map(rows.map((row) => [row.date, Number(row.totalBytes)]));
+
+        return dates.map((date) => ({ date, totalBytes: byDate.get(date) ?? 0 }));
     }
 
     public async getInboundsByProfileUuid(
