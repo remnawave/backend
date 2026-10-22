@@ -22,7 +22,7 @@ import { formatExecutionTime, getTime } from '@common/utils/get-elapsed-time';
 
 import { ConfigProfileInboundEntity } from '@modules/config-profiles/entities';
 
-import { BulkDeleteByStatusBuilder, BulkUpdateUserUsedTrafficBuilder } from '../builders';
+import { BulkUpdateUserUsedTrafficBuilder } from '../builders';
 import { TriggerThresholdNotificationsBuilder } from '../builders/trigger-threshold-notifications-builder';
 import { GetUsersQueryDto, GetUsersStreamQueryDto } from '../dtos';
 import {
@@ -723,11 +723,18 @@ export class UsersRepository {
     }
 
     public async deleteManyByStatus(status: TUsersStatus, limit?: number): Promise<number> {
-        const { query } = new BulkDeleteByStatusBuilder(status, limit);
+        const result = await this.qb.kysely
+            .deleteFrom('users')
+            .where('id', 'in', (eb) =>
+                eb
+                    .selectFrom('users')
+                    .select('id')
+                    .where('status', '=', status)
+                    .limit(limit ?? 30000),
+            )
+            .executeTakeFirst();
 
-        const result = await this.prisma.tx.$executeRaw<unknown>(query);
-
-        return result || 0;
+        return Number(result?.numDeletedRows ?? 0n);
     }
 
     public async *getUsersForConfigStream(
