@@ -1,7 +1,9 @@
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js';
-import { createPrivateKey, createPublicKey, KeyObject } from 'node:crypto';
 
-import { generateEncryptionFromDecryption } from '../vless-encryption/generate-encryption-from-decryption';
+import {
+    generateEncryptionFromDecryption,
+    generateX25519PublicKey,
+} from '../vless-encryption/generate-encryption-from-decryption';
 
 const x25519PublicKeyCache = new Map<string, string>();
 const mldsa65PublicKeyCache = new Map<string, string>();
@@ -21,15 +23,7 @@ export async function resolveInboundAndPublicKey(inbounds: any[]): Promise<Map<s
             let pubKeyRaw = x25519PublicKeyCache.get(privateKey);
 
             if (pubKeyRaw === undefined) {
-                const { publicKey: jwkPublicKey } = await createX25519KeyPairFromBase64(privateKey);
-
-                const publicKeyJwk = jwkPublicKey.export({ format: 'jwk' });
-
-                if (!publicKeyJwk?.x) {
-                    continue;
-                }
-
-                pubKeyRaw = publicKeyJwk.x;
+                pubKeyRaw = await generateX25519PublicKey(privateKey);
                 x25519PublicKeyCache.set(privateKey, pubKeyRaw);
             }
 
@@ -113,35 +107,6 @@ export async function resolveEncryptionFromDecryption(
     }
 
     return encryptionMap;
-}
-
-async function createX25519KeyPairFromBase64(base64PrivateKey: string): Promise<{
-    publicKey: KeyObject;
-    privateKey: KeyObject;
-}> {
-    return new Promise((resolve, reject) => {
-        try {
-            const rawPrivateKey = Buffer.from(base64PrivateKey, 'base64');
-
-            const jwkPrivateKey = {
-                kty: 'OKP',
-                crv: 'X25519',
-                d: Buffer.from(rawPrivateKey).toString('base64url'),
-                x: '',
-            };
-
-            const privateKey = createPrivateKey({
-                key: jwkPrivateKey,
-                format: 'jwk',
-            });
-
-            const publicKey = createPublicKey(privateKey);
-
-            resolve({ publicKey, privateKey });
-        } catch (error) {
-            reject(error);
-        }
-    });
 }
 
 export function getMlDsa65PublicKey(seed: string): string | null {

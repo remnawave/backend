@@ -1,5 +1,5 @@
+import { x25519 } from '@noble/curves/ed25519.js';
 import { ml_kem768 } from '@noble/post-quantum/ml-kem.js';
-import { createPrivateKey, createPublicKey } from 'node:crypto';
 
 enum KeyType {
     MLKEM768 = 'mlkem768',
@@ -159,26 +159,7 @@ export async function generateX25519PublicKey(privateKeyBase64: string): Promise
             );
         }
 
-        const jwkPrivateKey = {
-            kty: 'OKP',
-            crv: 'X25519',
-            d: rawPrivateKey.toString('base64url'),
-            x: '',
-        };
-
-        const privateKeyObj = createPrivateKey({
-            key: jwkPrivateKey,
-            format: 'jwk',
-        });
-
-        const publicKeyObj = createPublicKey(privateKeyObj);
-        const publicKeyJwk = publicKeyObj.export({ format: 'jwk' });
-
-        if (!publicKeyJwk.x) {
-            throw new Error('Failed to generate public key: missing x coordinate');
-        }
-
-        return publicKeyJwk.x;
+        return Buffer.from(x25519.getPublicKey(rawPrivateKey)).toString('base64url');
     } catch (error) {
         throw new Error(
             `Failed to generate X25519 public key: ${error instanceof Error ? error.message : 'Unknown error'}`,
