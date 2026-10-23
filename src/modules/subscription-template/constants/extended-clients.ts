@@ -5,6 +5,7 @@ export const EXTENDED_CLIENTS_REGEXES = [
     /^koala-clash\//,
     /^Happ\//,
     /^INCY\//,
+    /^dropweb\//,
 ] as const;
 
 export function isExtendedClient(userAgent: string): boolean {
