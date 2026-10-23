@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { loadSecretsFromFiles } from '@common/utils/load-secrets-from-files';
 import { validateEnvConfig } from '@common/utils/validate-env-config';
 
 import { configSchema, Env } from '../app-config';
@@ -15,7 +16,11 @@ import { NotificationsConfigService } from './notifications-config.service';
             isGlobal: true,
             cache: true,
             envFilePath: '.env',
-            validate: (config) => validateEnvConfig<Env>(configSchema, config),
+            validate: (config) =>
+                validateEnvConfig<Env>(
+                    configSchema,
+                    loadSecretsFromFiles(config, Object.keys(configSchema.shape)),
+                ),
             load: [notificationsConfig],
         }),
     ],
