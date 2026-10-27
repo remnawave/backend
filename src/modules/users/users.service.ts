@@ -663,14 +663,43 @@ export class UsersService {
         internalSquadsUuids: string[],
     ): Promise<TResult<boolean>> {
         try {
+            const squadsUuids = [...new Set(internalSquadsUuids.map((uuid) => uuid.toLowerCase()))];
+
+            if (squadsUuids.length === 0) {
+                const users = await this.userRepository.getUsersByUserIds(userIds);
+
+                if (users.length === 0) {
+                    return ok(true);
+                }
+
+                await this.userRepository.replaceUsersInternalSquads(
+                    users.map((user) => user.id),
+                    [],
+                );
+
+                await this.eventBus.publish(
+                    new RemoveUsersFromNodeEvent(
+                        users.map((user) => ({ id: user.id, vlessUuid: user.vlessUuid })),
+                    ),
+                );
+
+                return ok(true);
+            }
+
+            const existingSquadsUuids =
+                await this.userRepository.getExistingInternalSquadUuids(squadsUuids);
+
+            if (existingSquadsUuids.length !== squadsUuids.length) {
+                return fail(ERRORS.INTERNAL_SQUAD_NOT_FOUND);
+            }
+
             const validatedUserIds = await this.userRepository.validateUserIds(userIds);
 
-            await this.userRepository.removeUsersFromInternalSquads(validatedUserIds);
+            if (validatedUserIds.length === 0) {
+                return ok(true);
+            }
 
-            await this.userRepository.addUsersToInternalSquads(
-                validatedUserIds,
-                internalSquadsUuids,
-            );
+            await this.userRepository.replaceUsersInternalSquads(validatedUserIds, squadsUuids);
 
             await this.eventBus.publish(new AddUsersToNodeEvent(validatedUserIds));
 
