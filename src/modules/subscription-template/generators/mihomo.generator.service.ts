@@ -155,7 +155,12 @@ export class MihomoGeneratorService {
                 if (!includeHidden && host.metadata.isHidden) continue;
                 if (host.metadata.excludeFromSubscriptionTypes.includes(templateType)) continue;
 
-                if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
+                if (
+                    UNSUPPORTED_TRANSPORTS.has(host.transport) &&
+                    (isStash || !this.hasMihomoMapper(host))
+                ) {
+                    continue;
+                }
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
                 if (isStash && host.transport === 'xhttp') continue;
 
@@ -171,6 +176,10 @@ export class MihomoGeneratorService {
             this.logger.error('Error generating clash config:', error);
             return '';
         }
+    }
+
+    private hasMihomoMapper(host: ResolvedProxyConfig): boolean {
+        return (host.clientOverrides.mapper.mihomo?.length ?? 0) > 0;
     }
 
     private buildProxyNode(
