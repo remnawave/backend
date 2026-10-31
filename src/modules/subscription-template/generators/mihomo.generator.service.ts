@@ -154,7 +154,12 @@ export class MihomoGeneratorService {
                 if (!includeHidden && host.metadata.isHidden) continue;
                 if (host.metadata.excludeFromSubscriptionTypes.includes(templateType)) continue;
 
-                if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
+                if (
+                    UNSUPPORTED_TRANSPORTS.has(host.transport) &&
+                    !this.hasMihomoMapper(host)
+                ) {
+                    continue;
+                }
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
                 if (isStash && host.transport === 'xhttp') continue;
 
@@ -170,6 +175,15 @@ export class MihomoGeneratorService {
             this.logger.error('Error generating clash config:', error);
             return '';
         }
+    }
+
+    /**
+     * mihomo has no transport for kcp, but a fork may (Prizrak-Core speaks
+     * VLESS over mKCP with finalmask). A host whose mihomo mapper builds the
+     * node opts in; without one it is left out as before.
+     */
+    private hasMihomoMapper(host: ResolvedProxyConfig): boolean {
+        return (host.clientOverrides.mapper.mihomo?.length ?? 0) > 0;
     }
 
     private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
