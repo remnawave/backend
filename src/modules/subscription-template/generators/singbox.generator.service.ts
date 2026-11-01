@@ -100,7 +100,7 @@ interface Hysteria2FinalMask {
     }>;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xhttp', 'xdrive']);
 const PROXY_PROTOCOL_TYPES = new Set(['hysteria2', 'shadowsocks', 'trojan', 'vless']);
 const SELECTOR_TYPES = new Set([...PROXY_PROTOCOL_TYPES, 'urltest']);
 const MULTIPLEX_PROTOCOLS = new Set(['h2mux', 'smux', 'yamux']);

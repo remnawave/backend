@@ -32,6 +32,7 @@ type WsConfig = Extract<ResolvedProxyConfig, { transport: 'ws' }>;
 type HttpUpgradeConfig = Extract<ResolvedProxyConfig, { transport: 'httpupgrade' }>;
 type TcpConfig = Extract<ResolvedProxyConfig, { transport: 'tcp' }>;
 type XHttpConfig = Extract<ResolvedProxyConfig, { transport: 'xhttp' }>;
+type XDriveConfig = Extract<ResolvedProxyConfig, { transport: 'xdrive' }>;
 type GrpcConfig = Extract<ResolvedProxyConfig, { transport: 'grpc' }>;
 type KcpConfig = Extract<ResolvedProxyConfig, { transport: 'kcp' }>;
 type HysteriaTransportConfig = Extract<ResolvedProxyConfig, { transport: 'hysteria' }>;
@@ -42,6 +43,7 @@ type TransportBuilderMap = {
     httpupgrade: (host: HttpUpgradeConfig) => Record<string, unknown>;
     tcp: (host: TcpConfig) => Record<string, unknown>;
     xhttp: (host: XHttpConfig) => Record<string, unknown>;
+    xdrive: (host: XDriveConfig) => Record<string, unknown>;
     grpc: (host: GrpcConfig) => Record<string, unknown>;
     kcp: (host: KcpConfig) => Record<string, unknown>;
 };
@@ -112,6 +114,7 @@ const TRANSPORT_BUILDERS: TransportBuilderMap = {
         ...(host.transportOptions.path && { path: host.transportOptions.path }),
         ...(host.transportOptions.extra && { extra: host.transportOptions.extra }),
     }),
+    xdrive: (host) => ({ ...host.transportOptions.settings }),
     grpc: (host) => ({
         serviceName: host.transportOptions.serviceName,
         authority: host.transportOptions.authority,
@@ -300,6 +303,11 @@ export class XrayJsonGeneratorService {
             }
         }
 
+        // Xray refuses an xdrive outbound without mux
+        if (host.transport === 'xdrive' && !outbound.mux) {
+            outbound.mux = { enabled: true, concurrency: 8 };
+        }
+
         return applyHostMapper(outbound, host.clientOverrides.mapper.xrayJson, host);
     }
 
@@ -313,6 +321,13 @@ export class XrayJsonGeneratorService {
                 return { tcpSettings: TRANSPORT_BUILDERS.tcp(host) };
             case 'xhttp':
                 return { xhttpSettings: TRANSPORT_BUILDERS.xhttp(host) };
+            case 'xdrive':
+                return {
+                    // the storage URLs in the settings name the site, the host address says where to dial it
+                    address: host.address,
+                    port: host.port,
+                    xdriveSettings: TRANSPORT_BUILDERS.xdrive(host),
+                };
             case 'grpc':
                 return { grpcSettings: TRANSPORT_BUILDERS.grpc(host) };
             case 'kcp':

@@ -57,6 +57,10 @@ export const XhttpTransportOptionsSchema = z.object({
     extra: z.record(z.string(), z.unknown()).nullable(),
 });
 
+export const XdriveTransportOptionsSchema = z.object({
+    settings: z.record(z.string(), z.unknown()).nullable(),
+});
+
 export const WsTransportOptionsSchema = z.object({
     path: z.string().nullable(),
     host: z.string().nullable(),
@@ -150,6 +154,11 @@ const XHttpTransportSchema = z.object({
     transportOptions: XhttpTransportOptionsSchema,
 });
 
+const XDriveTransportSchema = z.object({
+    transport: z.literal('xdrive'),
+    transportOptions: XdriveTransportOptionsSchema,
+});
+
 const WsTransportSchema = z.object({
     transport: z.literal('ws'),
     transportOptions: WsTransportOptionsSchema,
@@ -178,6 +187,7 @@ const HysteriaTransportSchema = z.object({
 export const TransportVariantSchema = z.discriminatedUnion('transport', [
     TcpTransportSchema.meta({ title: 'tcp' }),
     XHttpTransportSchema.meta({ title: 'xhttp' }),
+    XDriveTransportSchema.meta({ title: 'xdrive' }),
     WsTransportSchema.meta({ title: 'ws' }),
     HttpUpgradeTransportSchema.meta({ title: 'httpupgrade' }),
     GrpcTransportSchema.meta({ title: 'grpc' }),

@@ -43,6 +43,7 @@ import {
     TcpTransport,
     TransportVariant,
     WsTransport,
+    XDriveTransport,
     XHttpTransport,
 } from './interfaces';
 import { override, toNonEmptyRecord } from './utils';
@@ -202,6 +203,11 @@ export class ResolveProxyConfigService {
             };
         }
 
+        // xray-typed does not know xdrive yet
+        if ((rawNetwork as string) === 'xdrive') {
+            return this.resolveXdrive(streamSettings);
+        }
+
         switch (rawNetwork) {
             case 'xhttp':
                 return this.resolveXhttp(streamSettings.xhttpSettings, inputHost);
@@ -245,6 +251,19 @@ export class ResolveProxyConfigService {
                 host: this.resolveRandomizedValue(override(inputHost.host, settings?.host) ?? ''),
                 mode: settings?.mode ?? 'auto',
                 extra: override(toNonEmptyRecord(inputHost.xhttpExtraParams), settings?.extra),
+            },
+        };
+    }
+
+    private resolveXdrive(streamSettings: StreamSettingsConfig): XDriveTransport {
+        // the client talks to the same storage as the inbound, so it gets the inbound's settings
+        const settings = (streamSettings as { xdriveSettings?: Record<string, unknown> })
+            .xdriveSettings;
+
+        return {
+            transport: 'xdrive',
+            transportOptions: {
+                settings: toNonEmptyRecord(settings),
             },
         };
     }
