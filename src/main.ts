@@ -26,6 +26,7 @@ import {
     proxyCheckMiddleware,
     getRealIp,
     noRobotsMiddleware,
+    pathSecurityMiddleware,
     toolsAuthMiddleware,
 } from '@common/middlewares';
 import { customLogFilter } from '@common/utils/filter-logs';
@@ -123,7 +124,7 @@ async function bootstrap(): Promise<void> {
         );
     }
 
-    app.use(noRobotsMiddleware, proxyCheckMiddleware);
+    app.use(noRobotsMiddleware, proxyCheckMiddleware, pathSecurityMiddleware);
 
     app.setGlobalPrefix(ROOT);
 
