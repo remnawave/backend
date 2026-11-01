@@ -303,9 +303,13 @@ export class XrayJsonGeneratorService {
             }
         }
 
-        // Xray refuses an xdrive outbound without mux
-        if (host.transport === 'xdrive' && !outbound.mux) {
-            outbound.mux = { enabled: true, concurrency: 8 };
+        // Xray refuses an xdrive outbound without mux, so it stays on even if the host turned it off
+        if (host.transport === 'xdrive') {
+            outbound.mux = {
+                concurrency: 8,
+                ...(isNonEmptyObject(outbound.mux) ? outbound.mux : {}),
+                enabled: true,
+            };
         }
 
         return applyHostMapper(outbound, host.clientOverrides.mapper.xrayJson, host);
