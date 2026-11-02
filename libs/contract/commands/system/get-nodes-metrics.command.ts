@@ -28,6 +28,7 @@ export namespace GetNodesMetricsCommand {
                             tag: z.string(),
                             upload: z.string(),
                             download: z.string(),
+                            online: z.number(),
                         }),
                     ),
                     outboundsStats: z.array(

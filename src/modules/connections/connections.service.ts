@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { QueryBus } from '@nestjs/cqrs';
 
+import { buildClientEmail } from '@common/helpers/xray-config/client-email';
 import { fail, ok, TResult } from '@common/types';
 import { ERRORS } from '@libs/contracts/constants';
 
@@ -105,7 +106,15 @@ export class ConnectionsService {
                     for (const node of nodes) {
                         await this.nodesQueuesService.dropUsersConnections({
                             data: {
-                                userIds: dto.dropBy.userIds.map((userId) => userId.toString()),
+                                userIds: [
+                                    ...new Set(
+                                        dto.dropBy.userIds.flatMap((userId) =>
+                                            node.activeInbounds.map((inbound) =>
+                                                buildClientEmail(BigInt(userId), inbound.uuid),
+                                            ),
+                                        ),
+                                    ),
+                                ],
                             },
                             node: {
                                 address: node.address,

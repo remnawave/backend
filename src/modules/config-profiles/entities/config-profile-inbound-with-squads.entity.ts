@@ -2,6 +2,7 @@ import { ConfigProfileInboundEntity } from './config-profile-inbound.entity';
 
 export class ConfigProfileInboundWithSquadsEntity extends ConfigProfileInboundEntity {
     public activeSquads: string[];
+    public onlineByNode: { nodeUuid: string; count: number }[] = [];
 
     constructor(
         configProfileInbound: {

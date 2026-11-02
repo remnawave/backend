@@ -18,6 +18,7 @@ import { getVlessFlow } from '@common/utils/flow/get-vless-flow';
 
 import { UserForConfigEntity } from '@modules/users/entities/users-for-config';
 
+import { buildClientEmail } from './client-email';
 import {
     getDecodedKeySize,
     getSsPassword,
@@ -176,6 +177,7 @@ export class XRayConfig {
     public includeUserBatch(
         users: UserForConfigEntity[],
         inboundsUserSets: Map<string, HashedSet>,
+        tagToUuid: Map<string, string>,
     ): XrayConfig {
         if (!this.config.inbounds) return this.config;
 
@@ -192,7 +194,7 @@ export class XRayConfig {
             if (!inbound) continue;
 
             this.ensureSettings(inbound);
-            this.addUsersToInbound(inbound, tagUsers);
+            this.addUsersToInbound(inbound, tagUsers, tagToUuid.get(tag));
         }
 
         return this.config;
@@ -223,7 +225,11 @@ export class XRayConfig {
         return usersByTag;
     }
 
-    private addUsersToInbound(inbound: InboundConfig, users: UserForConfigEntity[]): void {
+    private addUsersToInbound(
+        inbound: InboundConfig,
+        users: UserForConfigEntity[],
+        inboundUuid: string | undefined,
+    ): void {
         switch (inbound.protocol) {
             case 'trojan':
                 if (!inbound.settings) {
@@ -233,7 +239,7 @@ export class XRayConfig {
                 for (const user of users) {
                     inbound.settings.clients.push({
                         password: user.trojanPassword,
-                        email: user.id.toString(),
+                        email: buildClientEmail(user.id, inboundUuid),
                         id: user.vlessUuid,
                     });
                 }
@@ -248,7 +254,7 @@ export class XRayConfig {
                 for (const user of users) {
                     inbound.settings.clients.push({
                         id: user.vlessUuid,
-                        email: user.id.toString(),
+                        email: buildClientEmail(user.id, inboundUuid),
                     });
                 }
                 break;
@@ -263,7 +269,7 @@ export class XRayConfig {
                     inbound.settings.clients.push({
                         id: user.vlessUuid,
                         auth: user.vlessUuid,
-                        email: user.id.toString(),
+                        email: buildClientEmail(user.id, inboundUuid),
                     });
                 }
                 break;
@@ -281,7 +287,7 @@ export class XRayConfig {
                     inbound.settings.clients.push({
                         password: getSsPassword(user.ssPassword, isSS2022),
                         ...(!isSS2022 && { method: method || 'chacha20-ietf-poly1305' }),
-                        email: user.id.toString(),
+                        email: buildClientEmail(user.id, inboundUuid),
                         id: user.vlessUuid,
                     });
                 }

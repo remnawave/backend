@@ -9,6 +9,7 @@ import { RawCacheService } from '@common/raw-cache';
 import { EXPORT_TO_STREAM_KEYS, INTERNAL_CACHE_KEYS } from '@libs/contracts/constants';
 import { USER_USAGE_STREAM_MESSAGE_VERSION } from '@libs/contracts/models';
 
+import { BulkUpsertInboundUsageHistoryCommand } from '@modules/config-profiles/commands/bulk-upsert-inbound-usage-history';
 import { BulkUpsertUserHistoryEntryCommand } from '@modules/nodes-user-usage-history/commands/bulk-upsert-user-history-entry';
 import { NodesUserUsageHistoryEntity } from '@modules/nodes-user-usage-history/entities';
 
@@ -63,6 +64,8 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
         switch (job.name) {
             case PushFromRedisJobNames.recordUserUsage:
                 return await this.handleRecordUserUsageJob(job);
+            case PushFromRedisJobNames.recordUserInboundUsage:
+                return await this.handleRecordUserInboundUsageJob(job);
             default:
                 this.logger.warn(`Job "${job.name}" is not handled.`);
                 break;
@@ -101,6 +104,40 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
         } catch (error) {
             this.logger.error(
                 `Error handling "${PushFromRedisJobNames.recordUserUsage}" job: ${error}`,
+            );
+            return;
+        } finally {
+            await this.rawCacheService.del(processingKey);
+        }
+    }
+
+    private async handleRecordUserInboundUsageJob(job: Job<IRecordUserUsageFromRedisPayload>) {
+        const { redisKey } = job.data;
+        const processingKey = `${redisKey}${INTERNAL_CACHE_KEYS.PROCESSING_POSTFIX}`;
+
+        try {
+            if (this.disableUserUsageRecords) {
+                return;
+            }
+
+            const exists = await this.rawCacheService.exists(redisKey);
+
+            if (!exists) {
+                return;
+            }
+
+            await this.rawCacheService.rename(redisKey, processingKey);
+
+            for await (const batch of this.scanAndBatchInbound(processingKey)) {
+                if (batch.length > 0) {
+                    await this.commandBus.execute(new BulkUpsertInboundUsageHistoryCommand(batch));
+                }
+            }
+
+            return;
+        } catch (error) {
+            this.logger.error(
+                `Error handling "${PushFromRedisJobNames.recordUserInboundUsage}" job: ${error}`,
             );
             return;
         } finally {
@@ -151,6 +188,28 @@ export class PushFromRedisQueueProcessor extends WorkerHost implements OnApplica
                         totalBytes: BigInt(chunk[i + 1]),
                     }),
                 );
+            }
+
+            if (batch.length > 0) {
+                yield batch;
+            }
+        }
+    }
+
+    private async *scanAndBatchInbound(
+        key: string,
+        batchSize: number = 10_000,
+    ): AsyncGenerator<{ userId: string; inboundUuid: string; totalBytes: string }[]> {
+        const stream = this.rawCacheService.hscanStream(key, { count: batchSize });
+
+        for await (const chunk of stream) {
+            const batch: { userId: string; inboundUuid: string; totalBytes: string }[] = [];
+
+            for (let i = 0; i < chunk.length; i += 2) {
+                const [userId, inboundUuid] = chunk[i].split(':');
+                if (!userId || !inboundUuid) continue;
+
+                batch.push({ userId, inboundUuid, totalBytes: chunk[i + 1] });
             }
 
             if (batch.length > 0) {
