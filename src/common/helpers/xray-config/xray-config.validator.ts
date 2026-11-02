@@ -51,6 +51,7 @@ const ALLOWED_NETWORKS = new Set([
     'raw',
     'tcp',
     'ws',
+    'xdrive',
     'xhttp',
 ]);
 

@@ -83,7 +83,7 @@ interface ProxyNode {
     serverDescription?: string;
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['kcp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['kcp', 'xdrive']);
 const UNSUPPORTED_PROTOCOLS = new Set<string>();
 
 const XHTTP_FIELD_MAP: [string, string, boolean?][] = [

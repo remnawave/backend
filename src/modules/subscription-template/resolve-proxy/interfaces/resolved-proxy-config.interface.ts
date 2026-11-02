@@ -39,6 +39,10 @@ export interface IXhttpTransportOptions {
     extra: Record<string, unknown> | null;
 }
 
+export interface IXdriveTransportOptions {
+    settings: Record<string, unknown> | null;
+}
+
 export interface IWsTransportOptions {
     path: string | null;
     host: string | null;
@@ -133,6 +137,11 @@ export type XHttpTransport = {
     transportOptions: IXhttpTransportOptions;
 };
 
+export type XDriveTransport = {
+    transport: 'xdrive';
+    transportOptions: IXdriveTransportOptions;
+};
+
 export type WsTransport = {
     transport: 'ws';
     transportOptions: IWsTransportOptions;
@@ -161,6 +170,7 @@ export type HysteriaTransport = {
 export type TransportVariant =
     | TcpTransport
     | XHttpTransport
+    | XDriveTransport
     | WsTransport
     | HttpUpgradeTransport
     | GrpcTransport
