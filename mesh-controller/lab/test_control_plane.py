@@ -75,7 +75,7 @@ def main():
     assert api('/status')['auto_switch'] and request()
     assert all(len(json.loads(node(name, 'cat /etc/meshagent/config.json'))['etcd']) == 3 for name in NODES)
     wait('agents publish fresh observations back to etcd', lambda: len(api('/status')['overlay']['obs']) == 3)
-    assert all(node(name,'test -d /var/lib/etcd.pre-*/member && echo archived')=='archived' for name in NODES)
+    assert all(node(name,'for directory in /var/lib/etcd.pre-*/member; do if [ -d "$directory" ]; then echo archived; break; fi; done')=='archived' for name in NODES)
     print('PASS: resume restores latest settings and archives previous etcd data',flush=True)
     job('/api/teardown',{'confirm':'REMOVE_MESH'})
     assert api('/status')['control_plane']['mode']=='removed'

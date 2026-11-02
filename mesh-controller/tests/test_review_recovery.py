@@ -13,7 +13,7 @@ from meshctl.app import Mesh, Ssh
 from meshctl.core import build_probe_script
 from meshctl.ops import Ops
 from meshctl.mtls import Migration
-from meshctl.standalone_store import atomic_json
+from meshctl.standalone_store import atomic_json, encoded
 
 PUBLIC_KEY = base64.b64encode(bytes(range(32))).decode()
 DOC = {'overlay':'10.88.0.16','underlay':'198.51.100.2','pubkey':PUBLIC_KEY}
@@ -223,3 +223,63 @@ def test_dns_provider_error_in_successful_http_response_is_not_treated_as_comple
         return SimpleNamespace(raise_for_status=lambda:None,json=lambda:result)
     monkeypatch.setattr('meshctl.ops.requests.request',request)
     with pytest.raises(RuntimeError,match='did not confirm'):model.cloudflare_update('198.51.100.2','203.0.113.3')
+
+
+def test_standalone_restart_discards_live_discovery_for_a_removed_voter(tmp_path,monkeypatch):
+    monkeypatch.setenv('MESHCTL_STATE_DIR',str(tmp_path))
+    mesh=Mesh({'entries':{},'exits':{},'mesh':{}},None,None)
+    members=[{'name':name,'host':f'198.51.100.{index}','user':'root',
+              'client_url':f'https://10.88.0.{index}:2389','peer_url':f'https://10.88.0.{index}:2381'}
+             for index,name in enumerate(('aa','bb','cc'),16)]
+    values={f'/mesh/nodes/{m["name"]}':dict(DOC,overlay=f'10.88.0.{i}') for i,m in enumerate(members,16)}
+    values['/mesh/control/etcd']={'members':members}
+    mesh.plane_store.seed(values)
+    mesh.save_plane(mode='standalone',desired_members=members[:2],paused_members=members,stop_pending=[])
+    # A legacy paused snapshot may still contain the original discovery after removal.
+    mesh.plane_store.rpc('/kv/deleterange',{'key':encoded('/mesh/nodes/cc')})
+    restarted=Mesh({'entries':{},'exits':{},'mesh':{}},None,None)
+    assert set(restarted.mesh['nodes'])=={'aa','bb'}
+    assert [m['name'] for m in restarted.members()]==['aa','bb']
+    assert len(restarted.plane_state['paused_members'])==3
+    assert 'etcd' not in restarted.control
+    assert '/mesh/control/etcd' not in restarted.plane_store.snapshot()
+    restarted.load_standalone(collect=False)
+    Mesh({'entries':{},'exits':{},'mesh':{}},None,None)
+
+
+def test_retry_entry_cleanup_preserves_relays_on_surviving_entry(tmp_path,monkeypatch):
+    model=Model(tmp_path,monkeypatch)
+    model.inventory.update(bb=dict(INV,host='198.51.100.3',overlay='10.88.0.17',role='entry'),
+                           cc=dict(INV,host='198.51.100.4',overlay='10.88.0.18',role='entry'))
+    model.mesh['nodes'].update(bb=dict(DOC,underlay='198.51.100.3',overlay='10.88.0.17'),
+                               cc=dict(DOC,underlay='198.51.100.4',overlay='10.88.0.18'))
+    model.relay_state={'aa':{'on':True,'hosts':{'vpn':'original'}}}
+    model.rebuild_cfg();offline=[True]
+    class Node:
+        def __init__(self,*a):pass
+        def run(self,*a,**k):
+            if offline[0]:raise OSError('offline')
+    monkeypatch.setattr('meshctl.provision.Node',Node)
+    model.set_relay=lambda *a,**k:pytest.fail('surviving entry must keep its working relay')
+    job={'steps':[]};model._remove_run(job,'bb')
+    assert job['status']=='failed'
+    model.rebuild_cfg()
+    assert set(model.cfg['entries'])=={'cc'}
+    # Simulate restart: reload the durable phase, not just the in-memory object.
+    model.plane_state=json.loads(model.plane_path.read_text())
+    offline[0]=False;model._remove_run(job,'bb')
+    assert job['status']=='done' and model.relay_state['aa']['on']
+    assert set(model.cfg['entries'])=={'cc'}
+
+
+def test_removed_bootstrap_node_stays_removed_but_can_be_explicitly_readded(tmp_path,monkeypatch):
+    model=Model(tmp_path,monkeypatch)
+    monkeypatch.setattr('meshctl.provision.Node',lambda *a:SimpleNamespace(run=lambda *a,**k:''))
+    model._remove_run({'steps':[]},'aa')
+    assert 'aa' not in model.cfg['exits']
+    restarted=Model(tmp_path,monkeypatch);restarted.inventory={};restarted.mesh['nodes']={}
+    restarted.rebuild_cfg()
+    assert 'aa' not in restarted.cfg['exits']
+    restarted.inventory={'aa':dict(INV,host='203.0.113.7')}
+    restarted.rebuild_cfg()
+    assert restarted.cfg['exits']['aa']['public_ip']=='203.0.113.7'

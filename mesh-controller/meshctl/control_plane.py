@@ -126,7 +126,14 @@ class ControlPlane:
         self.event('etcd paused below three voters; mesh continues without etcd', 'etcd')
 
     def load_standalone(self, collect=True):
+        # Live discovery is obsolete while etcd is stopped. Selected voters and
+        # stop targets are journaled separately in plane_state, including offline nodes.
+        # Drop legacy snapshots too, before validating against the current registry.
         values = self.plane_store.snapshot()
+        if '/mesh/control/etcd' in values:
+            self.plane_store.rpc('/kv/deleterange', {'key': encoded('/mesh/control/etcd')})
+            values.pop('/mesh/control/etcd')
+        self.control.pop('etcd', None)
         def prefix(name): return {key.rsplit('/', 1)[1]: value for key, value in values.items() if key.startswith('/mesh/' + name + '/')}
         self.inventory = prefix('inventory'); self.ipmap = prefix('ipmap'); self.relay_state = prefix('relay')
         self.flags = prefix('flags').get('main', {})

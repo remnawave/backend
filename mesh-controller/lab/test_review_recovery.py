@@ -98,5 +98,21 @@ print('key-preserved')
     finally:
         if paused:run('unpause','transit')
 
+    removal_restart()
+
+
+def removal_restart():
+    wait('three healthy voters before removal regression',lambda:api('/status')['quorum']['healthy']==3)
+    job('/api/etcd',{'name':'exit','member':False})
+    job('/api/nodes/remove',{'name':'exit'})
+    run('restart','controller')
+    wait('controller starts after paused voter removal',lambda:api('/status')['control_plane']['mode']=='standalone' and set(api('/status')['overlay']['nodes'])=={'entry','transit'})
+    assert all(stopped(name) for name in ('entry','transit','exit'))
+    fingerprint=node('exit','ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub -E sha256').split()[1]
+    job('/api/nodes',{'name':'exit','host':'172.30.88.13','user':'root','role':'exit','password':LAB_PASSWORD,'host_key_fingerprint':fingerprint})
+    job('/api/etcd',{'name':'exit','member':True})
+    wait('removed voter can be re-added and quorum restored',lambda:api('/status')['quorum']['healthy']==3)
+    print('PASS: pause, remove voter, restart controller and re-add voter restore a healthy mesh',flush=True)
+
 
 if __name__=='__main__':main()

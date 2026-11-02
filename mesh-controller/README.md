@@ -249,3 +249,8 @@ python3 mesh-controller/lab/test_review_recovery.py
 ```
 
 The lab generates a distinct SSH host identity for every container at runtime.
+
+Paused discovery and node-removal recovery:
+- Standalone reads discard saved live etcd discovery; selected voters and stop targets remain in the separate durable control-plane journal. This also repairs older paused snapshots that reference a removed voter.
+- Node cleanup retries resume their saved phase. Relay restoration runs only in the restore phase and keeps working relays when another entry survives.
+- Durable removal marks suppress obsolete bootstrap entries after restart; explicitly onboarded inventory can add the node again.

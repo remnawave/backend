@@ -143,6 +143,8 @@ class Ops(ControlPlane, EtcdMembers):
         self.inventory = records.inventory(self.inventory)
         self.ipmap = records.ipmap(self.ipmap)
         cfg = copy.deepcopy(self.base_cfg)
+        for name in getattr(self, 'plane_state', {}).get('removed_nodes', []):
+            cfg['entries'].pop(name, None); cfg['exits'].pop(name, None)
         for name, d in self.ipmap.items():
             ip = d.get("ip")
             if not ip:
@@ -656,16 +658,19 @@ class Ops(ControlPlane, EtcdMembers):
                 pending[name] = {'inventory': inv, 'spec': spec, 'phase': 'restore'}
                 self.save_plane(node_cleanup=pending)
             target = pending[name]
-            # Interrupted enables can have on=False while originals live in the pending operation.
-            restore = [name]
-            if target['inventory']['role'] == 'entry' and len(self.cfg['entries']) <= 1:
-                restore = list(self.relay_state)
-            for exit_name in restore:
-                relay = self.relay_state.get(exit_name) or {}
-                if relay.get('on') or relay.get('operation'):
-                    self.set_relay(exit_name, False, reason='node removed')
-            target['phase'] = 'cleanup'
-            self.save_plane(node_cleanup=pending)
+            if target['phase'] == 'restore':
+                # Interrupted enables can have on=False while originals live in the operation.
+                restore = [name]
+                if target['inventory']['role'] == 'entry' and not any(entry != name for entry in self.cfg['entries']):
+                    restore = list(self.relay_state)
+                for exit_name in restore:
+                    relay = self.relay_state.get(exit_name) or {}
+                    if relay.get('on') or relay.get('operation'):
+                        self.set_relay(exit_name, False, reason='node removed')
+                target['phase'] = 'cleanup'
+                self.save_plane(node_cleanup=pending)
+            # Bootstrap config must not resurrect a removed node after restart.
+            self.save_plane(removed_nodes=sorted(set(self.plane_state.get('removed_nodes', [])) | {name}))
             self.etcd_del(f'/mesh/nodes/{name}')
             self.mesh['nodes'].pop(name, None)
             self.step(job, 'mesh membership removed; remote cleanup target is durable until completion')
