@@ -18,3 +18,9 @@ Thanks to the all contributors who have helped improve Remnawave:
   <img src="https://contrib.rocks/image?repo=remnawave/backend" />
 </a>
 </p>
+
+### Optional WireGuard mesh proposal
+
+An opt-in node overlay and administrator API are documented in
+[mesh-controller/README.md](mesh-controller/README.md), including environment variables,
+permissions, Docker-only tests and rollback. The integration is disabled by default.

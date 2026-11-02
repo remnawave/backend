@@ -71,3 +71,7 @@ prisma/generated/types.ts
 
 frontend/
 f.json
+# Local mesh lab and Python build artifacts
+/mesh-controller/lab/state/
+__pycache__/
+*.pyc

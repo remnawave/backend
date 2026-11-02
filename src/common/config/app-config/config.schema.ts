@@ -25,6 +25,21 @@ export const configSchema = z
         __RW_METADATA_BUILD_TIME: z.string().default('2011-11-11T11:11:11Z'),
         __RW_METADATA_BUILD_NUMBER: z.string().default('0'),
 
+        MESH_CONTROLLER_URL: z
+            .url()
+            .refine((value) => {
+                const url = new URL(value);
+                return (
+                    ['http:', 'https:'].includes(url.protocol) &&
+                    !url.username &&
+                    !url.password &&
+                    !url.search &&
+                    !url.hash &&
+                    url.pathname === '/'
+                );
+            }, 'Mesh URL must be an HTTP(S) origin without credentials')
+            .optional(),
+        MESH_CONTROLLER_TOKEN: z.string().min(32).optional(),
         DATABASE_URL: z.string(),
         APP_PORT: z
             .string()
@@ -156,6 +171,13 @@ export const configSchema = z
             .pipe(z.array(z.number()).optional()),
     })
     .superRefine((data, ctx) => {
+        if (data.MESH_CONTROLLER_URL && !data.MESH_CONTROLLER_TOKEN) {
+            ctx.addIssue({
+                code: 'custom',
+                path: ['MESH_CONTROLLER_TOKEN'],
+                message: 'MESH_CONTROLLER_TOKEN is required when mesh is enabled',
+            });
+        }
         if (!data.REDIS_SOCKET && (!data.REDIS_HOST || !data.REDIS_PORT)) {
             ctx.issues.push({
                 input: data,

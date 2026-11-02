@@ -1,0 +1,41 @@
+x-node: &node
+  image: remnawave-mesh-lab:local
+  build:
+    context: ..
+    dockerfile: lab/Dockerfile
+  cap_add: [NET_ADMIN, NET_RAW]
+  sysctls:
+    net.ipv4.ip_forward: '1'
+    net.ipv4.conf.all.rp_filter: '0'
+    net.ipv4.conf.default.rp_filter: '0'
+  volumes:
+    - ./state:/state
+  command: ['sleep', 'infinity']
+services:
+  entry:
+    <<: *node
+    networks:
+      lab: { ipv4_address: 172.30.88.11 }
+  transit:
+    <<: *node
+    networks:
+      lab: { ipv4_address: 172.30.88.12 }
+  exit:
+    <<: *node
+    networks:
+      lab: { ipv4_address: 172.30.88.13 }
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.15
+    command:
+      - etcd
+      - --name=lab
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://172.30.88.10:2379
+      - --data-dir=/tmp/etcd
+    networks:
+      lab: { ipv4_address: 172.30.88.10 }
+networks:
+  lab:
+    internal: true
+    ipam:
+      config: [{ subnet: 172.30.88.0/24 }]

@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:18.4
+    env_file: ./state/panel.env
+    networks: [lab]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mesh_lab -d mesh_lab']
+      interval: 2s
+      retries: 30
+  redis:
+    image: valkey/valkey:9-alpine
+    command: ['valkey-server', '--save', '', '--appendonly', 'no']
+    networks: [lab]
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 2s
+      retries: 30
+  controller:
+    image: remnawave-mesh-controller:local
+    build:
+      context: ..
+    env_file: ./state/panel.env
+    environment:
+      MESHCTL_STATE_DIR: /state
+    volumes:
+      - ./state/controller-config.yaml:/config/config.yaml:ro
+      - ./state/controller-key:/secrets/id_ed25519:ro
+      - ./state/known_hosts:/secrets/known_hosts:ro
+      - ./state/controller:/state
+    networks: [lab]
+  panel:
+    image: remnawave-upstream-mesh-api:local
+    build:
+      context: ../..
+      dockerfile: mesh-controller/lab/Dockerfile.panel
+    env_file: ./state/panel.env
+    networks: [lab]
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }

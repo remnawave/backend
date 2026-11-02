@@ -1,0 +1,13 @@
+# Observation only. Enable operations explicitly after reviewing the topology.
+interval: 60
+sni: probe.example.com
+probe_ports: [443]
+auto_balancer: false  # requires a separate balancer integration, absent in upstream
+balancer_routing_mode: direct
+auto_switch: false
+auto_relay: false
+auto_ip_update: false
+entries: {}
+exits: {}
+mesh:
+  read_via: []

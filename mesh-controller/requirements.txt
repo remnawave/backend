@@ -1,0 +1,5 @@
+paramiko==3.5.0
+requests==2.32.3
+PyYAML==6.0.2
+prometheus-client==0.21.0
+cryptography==50.0.2
