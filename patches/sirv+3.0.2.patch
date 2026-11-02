@@ -1,0 +1,56 @@
+diff --git a/node_modules/sirv/build.js b/node_modules/sirv/build.js
+index 3734120..015314c 100644
+--- a/node_modules/sirv/build.js
++++ b/node_modules/sirv/build.js
+@@ -6,6 +6,14 @@ const { lookup } = require('mrmime');
+ 
+ const noop = () => {};
+ 
++const ANY_EXTN = {
++	test(uri) {
++		let start = uri.lastIndexOf('/') + 1, dot = uri.lastIndexOf('.');
++		if (start === 0 || dot <= start || dot === uri.length - 1) return false;
++		return /^[A-Za-z\s\d~$._-]+$/.test(uri.slice(start, dot)) && /^\w+$/.test(uri.slice(dot + 1));
++	}
++};
++
+ function isMatch(uri, arr) {
+ 	for (let i=0; i < arr.length; i++) {
+ 		if (arr[i].test(uri)) return true;
+@@ -140,7 +148,7 @@ module.exports = function (dir, opts={}) {
+ 
+ 	let ignores = [];
+ 	if (opts.ignores !== false) {
+-		ignores.push(/[/]([A-Za-z\s\d~$._-]+\.\w+){1,}$/); // any extn
++		ignores.push(ANY_EXTN); // any extn
+ 		if (opts.dotfiles) ignores.push(/\/\.\w/);
+ 		else ignores.push(/\/\.well-known/);
+ 		[].concat(opts.ignores || []).forEach(x => {
+diff --git a/node_modules/sirv/build.mjs b/node_modules/sirv/build.mjs
+index 2f866d5..2b0a4b0 100644
+--- a/node_modules/sirv/build.mjs
++++ b/node_modules/sirv/build.mjs
+@@ -6,6 +6,14 @@ import { lookup } from 'mrmime';
+ 
+ const noop = () => {};
+ 
++const ANY_EXTN = {
++	test(uri) {
++		let start = uri.lastIndexOf('/') + 1, dot = uri.lastIndexOf('.');
++		if (start === 0 || dot <= start || dot === uri.length - 1) return false;
++		return /^[A-Za-z\s\d~$._-]+$/.test(uri.slice(start, dot)) && /^\w+$/.test(uri.slice(dot + 1));
++	}
++};
++
+ function isMatch(uri, arr) {
+ 	for (let i=0; i < arr.length; i++) {
+ 		if (arr[i].test(uri)) return true;
+@@ -140,7 +148,7 @@ export default function (dir, opts={}) {
+ 
+ 	let ignores = [];
+ 	if (opts.ignores !== false) {
+-		ignores.push(/[/]([A-Za-z\s\d~$._-]+\.\w+){1,}$/); // any extn
++		ignores.push(ANY_EXTN); // any extn
+ 		if (opts.dotfiles) ignores.push(/\/\.\w/);
+ 		else ignores.push(/\/\.well-known/);
+ 		[].concat(opts.ignores || []).forEach(x => {
