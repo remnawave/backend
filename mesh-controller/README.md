@@ -204,3 +204,48 @@ Run the managed lifecycle acceptance suite after preparing its lab:
 ```sh
 python3 mesh-controller/lab/test_control_plane.py
 ```
+
+### Security boundaries and recovery
+
+Agents validate shared node names, IPv4 addresses, overlay ranges, WireGuard public
+keys and discovered etcd endpoints before accepting a registry update. Privileged
+agent network commands use argument arrays, never a shell. Controller inventory
+and probe targets are validated independently; malformed shared state is rejected
+without replacing the last accepted topology.
+
+WireGuard peers accept only the overlay/link ranges. Owned `MESHAGENT_*` firewall
+chains permit overlay transit and explicitly DNATed relay flows, and reject mesh
+forwarding into unrelated private networks. Return relay traffic must belong to an
+established DNAT connection. These rules preserve unrelated host firewall policy.
+
+This is a single-owner mesh: enrolled nodes sharing etcd must be mutually trusted.
+mTLS protects transport; per-node etcd RBAC is not provided. Validation prevents
+shared records from becoming commands, but does not prevent a credentialed peer
+from changing otherwise valid shared routing state. Do not use this as a boundary
+between hostile tenants.
+
+Individual removal persists an orphan cleanup target before unregistering a node,
+restores interrupted relay operations, and uses the same owned-service/firewall
+cleanup as full removal. Failed SSH cleanup remains visible and retryable after
+controller restart. A learner or unfinished membership change must be resolved
+before mesh-only removal.
+
+IP updates are journaled in `/state/ip-updates.json`. The new SSH address must prove
+the previously pinned host key before destinations change. Panel/DNS updates are
+retried until completion, including after a lost reply or restart. Pending address
+updates block removal and membership changes that could orphan their recovery.
+An interrupted etcd resume recovers into a pending stop operation; standalone mode
+is declared only after the selected members have stopped. Migration preserves each
+agent's existing WireGuard key path.
+
+Additional isolated acceptance tests (after the earlier setup/tests):
+
+```sh
+# After test_lab.py: private-network isolation, positive control, configured relay.
+python3 mesh-controller/lab/test_security.py
+# After test_empty_mesh.py: offline removal/retry, SSH address trust, migration,
+# and a real controller crash while etcd is starting.
+python3 mesh-controller/lab/test_review_recovery.py
+```
+
+The lab generates a distinct SSH host identity for every container at runtime.

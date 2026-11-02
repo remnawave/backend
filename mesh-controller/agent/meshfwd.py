@@ -27,13 +27,16 @@ def build_commands(rules: list, source_ip: str | None = None) -> list:
             raise ValueError("relay source must be a mesh overlay address")
     cmds = []
     for r in rules:
-        t = r["target"]
+        t = str(ipaddress.IPv4Address(r["target"]))
+        if ipaddress.IPv4Address(t) not in ipaddress.IPv4Network("10.88.0.0/24"):
+            raise ValueError("relay target must be a mesh address")
         for proto, rport, tport in r["maps"]:
+            if proto not in ("tcp", "udp") or any(type(port) is not int or not 1 <= port <= 65535 for port in (rport,tport)): raise ValueError("invalid relay port mapping")
             cmds.append(["-t", "nat", "-A", "MESHFWD", "-p", proto, "--dport", str(rport), "-j", "DNAT", "--to-destination", f"{t}:{tport}"])
             source_nat = ["SNAT", "--to-source", source_ip] if source_ip else ["MASQUERADE"]
             cmds.append(["-t", "nat", "-A", "MESHFWD_POST", "-d", t, "-p", proto, "--dport", str(tport), "-j", *source_nat])
-            cmds.append(["-t", "filter", "-A", "MESHFWD_FW", "-d", t, "-p", proto, "--dport", str(tport), "-j", "ACCEPT"])
-            cmds.append(["-t", "filter", "-A", "MESHFWD_FW", "-s", t, "-p", proto, "--sport", str(tport), "-j", "ACCEPT"])
+            cmds.append(["-t", "filter", "-A", "MESHFWD_FW", "-d", t, "-p", proto, "--dport", str(tport), "-m", "conntrack", "--ctstate", "DNAT", "-j", "ACCEPT"])
+            cmds.append(["-t", "filter", "-A", "MESHFWD_FW", "-s", t, "-p", proto, "--sport", str(tport), "-m", "conntrack", "--ctstate", "DNAT", "--ctdir", "REPLY", "-m", "state", "--state", "ESTABLISHED,RELATED", "-j", "ACCEPT"])
         cmds.append(["-t", "mangle", "-A", "MESHFWD_MSS", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-d", t, "-j", "TCPMSS", "--set-mss", str(MSS)])
         cmds.append(["-t", "mangle", "-A", "MESHFWD_MSS", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-s", t, "-j", "TCPMSS", "--set-mss", str(MSS)])
     return cmds

@@ -184,7 +184,11 @@ class Migration:
         self.wait_all()
         self.mesh.cfg = self.target
         for name, node in self.nodes.items():
-            self.mesh.install_agent(node, name, self.registry[name]['overlay'], self.registry, self.target['mesh']['etcd_endpoints'])
+            current = json.loads(node.run('cat /etc/meshagent/config.json'))
+            key_file = current.get('key_file')
+            if not isinstance(key_file, str) or not key_file.startswith('/'):
+                raise ValueError('existing agent has no valid WireGuard key path; refusing to replace it')
+            self.mesh.install_agent(node, name, self.registry[name]['overlay'], self.registry, self.target['mesh']['etcd_endpoints'], key_file=key_file)
             print(name, 'agent upgraded to mTLS and quality routing', flush=True)
         self.verify_agents()
 

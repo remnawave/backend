@@ -50,7 +50,7 @@ for path in pki.iterdir():path.chmod(0o600);os.chown(path,10001,10001)
     if process.returncode:raise RuntimeError(process.stderr[-1000:])
     known=[];seeds={};fingerprint=None
     for index,name in enumerate(['entry','transit','exit','spare'],1):
-        node(name,"mkdir -p /run/sshd /root/.ssh /etc/wireguard /etc/meshagent/tls /etc/mesh-etcd/tls /var/lib/etcd; chmod 700 /root/.ssh; cp /state/controller.pub /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys; ssh-keygen -A >/dev/null 2>&1; printf '\nPermitRootLogin yes\nPasswordAuthentication yes\n' >> /etc/ssh/sshd_config; /usr/sbin/sshd")
+        node(name,"mkdir -p /run/sshd /root/.ssh /etc/wireguard /etc/meshagent/tls /etc/mesh-etcd/tls /var/lib/etcd; chmod 700 /root/.ssh; cp /state/controller.pub /root/.ssh/authorized_keys; chmod 600 /root/.ssh/authorized_keys; rm -f /etc/ssh/ssh_host_*; ssh-keygen -A >/dev/null 2>&1; printf '\nPermitRootLogin yes\nPasswordAuthentication yes\n' >> /etc/ssh/sshd_config; /usr/sbin/sshd")
         # Set only this disposable container's password, via stdin (not process arguments).
         result=subprocess.run(ALL+['exec','-T',name,'chpasswd'],input='root:'+LAB_PASSWORD+'\n',capture_output=True,text=True)
         if result.returncode:raise RuntimeError('lab password setup failed')
@@ -72,7 +72,7 @@ for path in pki.iterdir():path.chmod(0o600);os.chown(path,10001,10001)
         (state/f'{name}-nodes.json').write_text(json.dumps(seeds))
         cfg={'name':name,'overlay':overlay,'key_file':'/etc/wireguard/lab.key','nodes_file':'/etc/meshagent/nodes.json','etcd':endpoints,'etcd_tls':tls,'routing_policy':'priority'}
         (state/f'{name}.json').write_text(json.dumps(cfg))
-        node(name, f'mkdir -p /usr/local/lib/meshagent; cp /app/agent/meshagent.py /usr/local/lib/meshagent/meshagent.py; cp /app/meshctl/routing.py /usr/local/lib/meshagent/routing.py; cp /state/{name}.json /etc/meshagent/config.json; cp /state/{name}-nodes.json /etc/meshagent/nodes.json; systemctl restart meshagent')
+        node(name, f'mkdir -p /usr/local/lib/meshagent; cp /app/agent/meshagent.py /usr/local/lib/meshagent/meshagent.py; cp /app/meshctl/routing.py /usr/local/lib/meshagent/routing.py; cp /app/meshctl/records.py /usr/local/lib/meshagent/records.py; cp /state/{name}.json /etc/meshagent/config.json; cp /state/{name}-nodes.json /etc/meshagent/nodes.json; systemctl restart meshagent')
     # Let WireGuard establish overlay routes before starting the real three-member cluster.
     deadline=time.monotonic()+45
     while time.monotonic()<deadline:

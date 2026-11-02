@@ -14,6 +14,7 @@ import logging
 import os
 from pathlib import Path
 import socket
+import shlex
 import ssl
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -27,6 +28,7 @@ import requests
 import yaml
 from prometheus_client import CollectorRegistry, Gauge, generate_latest
 
+from . import records
 from .ops import ETCD_PREFIXES, Ops, b64
 from .selection import select_balancer
 from .balancer import backend_route
@@ -72,7 +74,14 @@ class Ssh:
             temporary = self.trusted_hosts.with_suffix(".tmp")
             keys.save(str(temporary))
             temporary.chmod(0o600)
+            with open(temporary, 'rb') as stream:
+                os.fsync(stream.fileno())
             os.replace(temporary, self.trusted_hosts)
+            descriptor = os.open(str(self.trusted_hosts.parent), os.O_RDONLY)
+            try:
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
 
     def client(self, expected=None):
         client = paramiko.SSHClient()
@@ -87,6 +96,30 @@ class Ssh:
                 owner.remember_host(hostname, key)
         client.set_missing_host_key_policy(VerifiedFingerprint() if expected else paramiko.RejectPolicy())
         return client
+
+    def verify_host_move(self, old, new, user):
+        """Authorize an address move only after the new server proves the already pinned key."""
+        trusted = self.client()
+        keys = trusted.get_host_keys().lookup(old)
+        trusted.close()
+        if not keys: raise ValueError('no previously verified SSH host key for the old address')
+        expected = {key.asbytes() for key in keys.values()}
+        owner = self
+        class PreviousKey(paramiko.MissingHostKeyPolicy):
+            def missing_host_key(self, client, hostname, key):
+                if key.asbytes() not in expected:
+                    raise paramiko.SSHException('new address does not present the previously verified SSH host key')
+        client = self.client()
+        client.set_missing_host_key_policy(PreviousKey())
+        try:
+            client.connect(new, port=22, username=user, pkey=self.key, timeout=15, banner_timeout=15,
+                           auth_timeout=15, allow_agent=False, look_for_keys=False)
+            key = client.get_transport().get_remote_server_key()
+            if key.asbytes() not in expected:
+                raise paramiko.SSHException('new address does not present the previously verified SSH host key')
+            owner.remember_host(new, key)
+        finally:
+            client.close()
 
     def run(self, host: str, user: str, cmd: str, stdin: Optional[str] = None, timeout: int = 60) -> tuple[int, str, str]:
         ident = (host, user)
@@ -324,6 +357,13 @@ class Mesh(Ops):
         """Read the overlay state and the dynamic inventory from etcd (through a member)."""
         if not force and (self.etcd_running or self.node_operation_lock.locked()):
             return
+        if self.plane_state.get('mode') == 'pausing':
+            if self.node_operation_lock.acquire(blocking=False):
+                try:
+                    self.sync_standalone(force=True)
+                    self.finish_pause()
+                finally:
+                    self.node_operation_lock.release()
         if self.standalone():
             self.load_standalone()
             return
@@ -335,6 +375,10 @@ class Mesh(Ops):
                 if code != 0 or len(docs) < len(ETCD_PREFIXES):
                     continue
                 nodes, obs, route, flags, inv, relay, ipmap, logdocs, control = (decode_kvs(d) for d in docs[:len(ETCD_PREFIXES)])
+                nodes = records.nodes(nodes)
+                inv = records.inventory(inv)
+                ipmap = records.ipmap(ipmap)
+                control = records.control(control, nodes)
                 with self.lock:
                     if self.flags_generation == flags_generation:
                         self.flags = flags.get("main") or {}
@@ -364,7 +408,7 @@ class Mesh(Ops):
         if not eps:
             return
         script = "; ".join(
-            f"echo EP {ep}; {curl_etcd(self.cfg, ep, 3)[0]} {ep}/health; echo; {curl_etcd(self.cfg, ep, 3)[0]} -X POST {ep}/v3/maintenance/status -d '{{}}'; echo" for ep in eps)
+            f"echo EP {shlex.quote(ep)}; {curl_etcd(self.cfg, ep, 3)[0]} {shlex.quote(ep + "/health")}; echo; {curl_etcd(self.cfg, ep, 3)[0]} -X POST {shlex.quote(ep + "/v3/maintenance/status")} -d '{{}}'; echo" for ep in eps)
         try:
             code, out, err = self.member_run(via, script, timeout=40)
         except Exception as ex:  # noqa: BLE001
@@ -396,7 +440,7 @@ class Mesh(Ops):
 
     # ---- decisions -----------------------------------------------------
     def decide(self) -> None:
-        if self.plane_state.get('mode') in ('pausing', 'resuming', 'removed', 'tearing_down'):
+        if self.etcd_running or self.node_operation_lock.locked() or self.plane_state.get('mode') in ('pausing', 'resuming', 'removed', 'tearing_down'):
             return
         thr = self.cfg.get("ok_ratio", 0.67)
         for name, x in self.cfg["exits"].items():
@@ -625,7 +669,7 @@ class Mesh(Ops):
                     "node_management": self.seed_path is not None,
                     "membership": self.seed_path is not None and bool((self.cfg.get("mesh") or {}).get("etcd_tls")),
                     "relay": self.rw is not None,
-                    "ip_update": self.rw is not None,
+                    "ip_update": self.rw is not None and self.seed_path is not None,
                     "balancer": bool(self.cfg.get("balancer_uuid") or self.cfg.get("balancer_name")),
                 },
                 "cycles": self.cycles,

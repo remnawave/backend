@@ -20,6 +20,7 @@ from pathlib import Path
 import yaml
 
 from .app import Ssh
+from .cleanup import cleanup_node
 
 HERE = Path(__file__).resolve().parent
 AGENT_DIR = HERE.parent / "agent"
@@ -100,6 +101,7 @@ def apply(cfg, nodes, agents_only=False):
         n.run("which wg >/dev/null || (DEBIAN_FRONTEND=noninteractive apt-get install -y -qq wireguard-tools >/dev/null)")
         n.put(f"{LIB}/meshagent.py", agent, "755")
         n.put(f"{LIB}/routing.py", routing)
+        n.put(f"{LIB}/records.py", (HERE / "records.py").read_text())
         n.put("/etc/meshagent/nodes.json", json.dumps(seed, indent=1), "600")
         n.put("/etc/meshagent/config.json", json.dumps({
             "name": n.name, "overlay": cfg["nodes"][n.name]["overlay"],
@@ -152,11 +154,7 @@ def apply(cfg, nodes, agents_only=False):
 
 def teardown(cfg, nodes):
     def down(n: Node):
-        n.run("systemctl disable --now meshagent >/dev/null 2>&1; rm -f /etc/systemd/system/meshagent.service; systemctl daemon-reload; "
-              "docker rm -f etcd >/dev/null 2>&1; ip link del wgmesh 2>/dev/null; "
-              "for d in $(ip -o link show | grep -o 'wgm-[a-z0-9]*' | sort -u); do ip link del $d 2>/dev/null; done; "
-              "for c in FORWARD DOCKER-USER; do for f in -i -o; do iptables -D $c $f wgm+ -j ACCEPT 2>/dev/null; iptables -D $c $f wgmesh -j ACCEPT 2>/dev/null; done; done; "
-              f"rm -rf {LIB} /etc/meshagent /etc/wireguard/wgmesh.key /var/lib/etcd; true")
+        cleanup_node(n, {'overlay': cfg['nodes'][n.name]['overlay']})
         return n.name
     with ThreadPoolExecutor(8) as ex:
         print("removed from:", ", ".join(ex.map(down, nodes.values())))

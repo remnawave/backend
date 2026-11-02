@@ -5,6 +5,8 @@ Kept free of I/O so it can be unit-tested without servers.
 from __future__ import annotations
 
 import re
+import shlex
+import ipaddress
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -13,7 +15,10 @@ LINE_RE = re.compile(r"^P\|(?P<exit>[\w-]+)\|(?P<path>direct|wg)\|(?P<port>\d+)\
 
 
 def _script_args(name: str, ip: str, port: int, path: str) -> str:
-    return "probe %s %s %d %s &" % (name, ip, port, path)
+    if not re.fullmatch(r'[a-zA-Z0-9_-]{1,128}', name): raise ValueError('invalid probe name')
+    address = str(ipaddress.IPv4Address(ip))
+    if type(port) is not int or not 1 <= port <= 65535: raise ValueError('invalid probe port')
+    return 'probe %s %s %d %s &' % (shlex.quote(name), shlex.quote(address), port, shlex.quote(path))
 
 
 def build_probe_script(exits: Dict[str, dict], ports: List[int], sni: str, tries: int = TRIES) -> str:
@@ -23,6 +28,8 @@ def build_probe_script(exits: Dict[str, dict], ports: List[int], sni: str, tries
     back (http_code != 000). A plain TCP connect is NOT enough: the filter we
     fight lets SYN/SYN-ACK through and drops the payload.
     """
+    if not re.fullmatch(r'[a-zA-Z0-9.-]{1,253}', sni): raise ValueError('invalid probe SNI')
+    if type(tries) is not int or not 1 <= tries <= 10: raise ValueError('invalid probe attempts')
     lines = [
         "probe(){ ok=0; ms=0; for i in $(seq 1 %d); do" % tries,
         "  r=$(curl -sk -m 5 -o /dev/null -w '%%{http_code} %%{time_total}' --resolve %s:$3:$2 https://%s:$3/ 2>/dev/null)" % (sni, sni),

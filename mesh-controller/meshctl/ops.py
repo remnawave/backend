@@ -24,6 +24,9 @@ from typing import Dict, List, Optional
 import paramiko
 import requests
 
+from . import records
+from .cleanup import cleanup_node
+from .standalone_store import atomic_json
 from .etcd_members import EtcdMembers
 from .control_plane import ControlPlane
 from .transport import curl_etcd
@@ -92,11 +95,13 @@ class Ops(ControlPlane, EtcdMembers):
         self.flags_generation = 0
         self.relay_pending: Dict[str, tuple] = {}
         self.init_control_plane()
+        self.ip_updates_path = self.plane_path.parent / "ip-updates.json" if self.plane_path else None
+        self.ip_updates = json.loads(self.ip_updates_path.read_text()) if self.ip_updates_path and self.ip_updates_path.exists() else {}
 
     # ---- etcd through a member ----------------------------------------
     def members(self) -> List[dict]:
         if self.standalone():
-            return self.plane_state.get('desired_members', [])
+            return [{**record, 'host': (self.ipmap.get(record['name']) or {}).get('ip', record.get('host'))} for record in self.plane_state.get('desired_members', [])]
         records = (self.control.get("etcd") or {}).get("members")
         return [{**m, "host": (self.ipmap.get(m["name"]) or {}).get("ip") or m["host"]} for m in records] if records else (self.cfg.get("mesh") or {}).get("read_via", [])
 
@@ -135,6 +140,8 @@ class Ops(ControlPlane, EtcdMembers):
 
     # ---- effective configuration = static config + etcd inventory + ip overrides ----
     def rebuild_cfg(self) -> None:
+        self.inventory = records.inventory(self.inventory)
+        self.ipmap = records.ipmap(self.ipmap)
         cfg = copy.deepcopy(self.base_cfg)
         for name, d in self.ipmap.items():
             ip = d.get("ip")
@@ -147,7 +154,13 @@ class Ops(ControlPlane, EtcdMembers):
             for m in (cfg.get("mesh") or {}).get("read_via", []):
                 if m.get("name") == name:
                     m["host"] = ip
+        pending_cleanup = getattr(self, 'plane_state', {}).get('node_cleanup', {})
+        for name, pending in pending_cleanup.items():
+            self.inventory.setdefault(name, pending['inventory'])
+            if pending.get('phase') == 'cleanup':
+                cfg['entries'].pop(name, None); cfg['exits'].pop(name, None)
         for name, inv in self.inventory.items():
+            if pending_cleanup.get(name, {}).get('phase') == 'cleanup': continue
             ip = (self.ipmap.get(name) or {}).get("ip") or inv.get("host")
             if inv.get("role") == "entry":
                 cfg["entries"][name] = {"host": ip, "user": inv.get("user", "root"), "sudo": bool(inv.get("sudo"))}
@@ -324,53 +337,81 @@ class Ops(ControlPlane, EtcdMembers):
 
     # ---- IP changes -----------------------------------------------------
     def manage_ips(self) -> None:
-        registered = {n: v.get("underlay") for n, v in self.mesh["nodes"].items() if v and v.get("underlay")}
+        registered = {name: value.get('underlay') for name, value in self.mesh['nodes'].items() if value and value.get('underlay')}
+        changes = {name: (record['old'], record['new']) for name, record in self.ip_updates.items()}
         for name, old, new in self.ipwatch.observe(registered, self.reported_ip):
-            if not self.flag("auto_ip_update"):
-                self.event(f"{name}: public IP changed {old} -> {new} (tracking disabled)", "ip", name)
-                continue
+            if self.flag('auto_ip_update'):
+                changes.setdefault(name, (old, new))
+            else:
+                self.event(f'{name}: public IP changed (tracking disabled)', 'ip', name)
+        for name, (old, new) in changes.items():
+            if self.etcd_running or not self.node_operation_lock.acquire(blocking=False): return
             try:
                 self.handle_ip_change(name, old, new)
-            except Exception as ex:  # noqa: BLE001
-                self.event(f"{name}: IP change {old} -> {new}: error {ex}", "ip", name)
-                log.exception("ip change failed")
+            except Exception:
+                self.event(f'{name}: IP update incomplete; durable operation will be retried', 'ip', name)
+            finally:
+                self.node_operation_lock.release()
+
+    def save_ip_updates(self):
+        if self.ip_updates_path is None: raise ValueError('IP updates require persistent controller state')
+        atomic_json(self.ip_updates_path, self.ip_updates)
 
     def cloudflare_update(self, old: str, new: str) -> List[str]:
-        token, zone = os.environ.get("CF_API_TOKEN"), self.cfg.get("cloudflare_zone")
-        if not token or not zone:
-            return []
-        h = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        base = "https://api.cloudflare.com/client/v4"
-        z = requests.get(f"{base}/zones", params={"name": zone}, headers=h, timeout=20).json()["result"][0]["id"]
-        done = []
-        recs = requests.get(f"{base}/zones/{z}/dns_records", params={"per_page": 200, "content": old, "type": "A"}, headers=h, timeout=20).json()["result"]
-        for r in recs:
-            requests.patch(f"{base}/zones/{z}/dns_records/{r['id']}", json={"content": new}, headers=h, timeout=20).raise_for_status()
-            done.append(r["name"])
-        return done
+        token, zone = os.environ.get('CF_API_TOKEN'), self.cfg.get('cloudflare_zone')
+        if not token or not zone: return []
+        headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'}
+        base = 'https://api.cloudflare.com/client/v4'
+        def request(method, path, **kwargs):
+            response = requests.request(method, base+path, headers=headers, timeout=20, **kwargs)
+            response.raise_for_status()
+            data = response.json()
+            if data.get('success') is not True: raise RuntimeError('DNS provider did not confirm the update')
+            return data
+        zones = request('GET', '/zones', params={'name': zone})['result']
+        if len(zones) != 1: raise RuntimeError('DNS zone must resolve unambiguously')
+        zone_id = zones[0]['id']; all_records = []; page = 1
+        while True:
+            data = request('GET', f'/zones/{zone_id}/dns_records', params={'per_page':200,'page':page,'content':old,'type':'A'})
+            all_records.extend(data['result'])
+            if page >= data.get('result_info', {}).get('total_pages', 1): break
+            page += 1
+        for record in all_records:
+            request('PATCH', f"/zones/{zone_id}/dns_records/{record['id']}", json={'content': new})
+        return [record['name'] for record in all_records]
 
     def handle_ip_change(self, name: str, old: str, new: str) -> None:
-        steps = []
-        node_doc = dict(self.mesh["nodes"].get(name) or {})
-        node_doc["underlay"] = new
-        self.etcd_put(f"/mesh/nodes/{name}", node_doc)
-        self.etcd_put(f"/mesh/ipmap/{name}", {"ip": new, "old": old, "ts": int(time.time())})
-        self.ipmap[name] = {"ip": new, "old": old}
+        records.name(name); records.ipv4(old); records.ipv4(new)
+        if name not in self.ip_updates:
+            spec = self._node_spec(name)
+            rw_name = (self.inventory.get(name) or self.cfg['exits'].get(name) or self.cfg['entries'].get(name) or {}).get('rw_node')
+            self.ip_updates[name] = {'old': old, 'new': new, 'user': spec.get('user', 'root'), 'rw_node': rw_name}
+            self.save_ip_updates()  # before changing trust, DNS, panel addresses or mesh membership
+        update = self.ip_updates[name]
+        if (update['old'], update['new']) != (old, new): raise ValueError('complete the pending address update first')
+        if not update.get('verified'):
+            self.ssh.verify_host_move(old, new, update['user'])
+            update['verified'] = True; self.save_ip_updates()
+        if not update.get('panel_done'):
+            if self.rw and update.get('rw_node'):
+                match = next((node for node in self.rw.req('GET', '/api/nodes') if node['name'] == update['rw_node']), None)
+                if not match or match.get('address') not in (old, new): raise RuntimeError('panel node address changed independently; reconciliation required')
+                if match['address'] != new:
+                    self.rw.req('PATCH', '/api/nodes', {'uuid': match['uuid'], 'address': new})
+            update['panel_done'] = True; self.save_ip_updates()
+        if not update.get('dns_done'):
+            self.cloudflare_update(old, new)  # errors must keep the pending journal, never be swallowed
+            update['dns_done'] = True; self.save_ip_updates()
+        document = dict(self.mesh['nodes'][name], underlay=new)
+        self.etcd_put(f'/mesh/nodes/{name}', document)
+        mapping = {'ip': new, 'old': old, 'ts': int(time.time())}
+        self.etcd_put(f'/mesh/ipmap/{name}', mapping)
+        self.ipmap[name] = mapping; self.mesh['nodes'][name] = document
         self.rebuild_cfg()
-        steps.append("mesh")
-        rw_name = (self.cfg["exits"].get(name) or self.cfg["entries"].get(name) or {}).get("rw_node")
-        if self.rw and rw_name:
-            node = next((n for n in self.rw.req("GET", "/api/nodes") if n["name"] == rw_name), None)
-            if node and node.get("address") == old:
-                self.rw.req("PATCH", "/api/nodes", {"uuid": node["uuid"], "address": new})
-                steps.append(f"remnawave node {rw_name}")
-        try:
-            names = self.cloudflare_update(old, new)
-            if names:
-                steps.append("dns " + ", ".join(names))
-        except Exception as ex:  # noqa: BLE001
-            steps.append(f"dns FAILED ({ex})")
-        self.event(f"{name}: public IP {old} -> {new}; updated: {'; '.join(steps)}", "ip", name)
+        remaining = {key: value for key, value in self.ip_updates.items() if key != name}
+        atomic_json(self.ip_updates_path, remaining)
+        self.ip_updates = remaining
+        self.event(f'{name}: verified public IP update completed', 'ip', name)
 
     # ---- jobs: add / remove a node ---------------------------------------
     def new_job(self, kind: str, title: str) -> dict:
@@ -554,6 +595,7 @@ class Ops(ControlPlane, EtcdMembers):
         routing = (Path(__file__).resolve().parent / "routing.py").read_text()
         node.put(f"{LIB}/meshagent.py", agent, "755")
         node.put(f"{LIB}/routing.py", routing)
+        node.put(f"{LIB}/records.py", (Path(__file__).parent / "records.py").read_text())
         node.put("/etc/meshagent/nodes.json", json.dumps(seed, indent=1), "600")
         config = {"name": name, "overlay": overlay, "key_file": key_file,
                   "etcd": endpoints, "nodes_file": "/etc/meshagent/nodes.json", "routing_policy": "quality"}
@@ -576,40 +618,68 @@ class Ops(ControlPlane, EtcdMembers):
         node.run("systemctl daemon-reload && systemctl enable meshagent >/dev/null 2>&1 && systemctl restart meshagent")
 
     def start_remove(self, name: str) -> dict:
-        if name in {m["name"] for m in self.members()}:
-            raise ValueError("remove the node from etcd membership first")
-        if name not in self.inventory:
-            raise ValueError("only nodes added from the panel can be removed here")
+        if name in self.ip_updates:
+            raise ValueError('complete the pending IP update before removing the node')
+        pending = self.plane_state.get('node_cleanup', {})
+        if name not in self.inventory and name not in pending:
+            raise ValueError('only managed nodes or pending cleanup targets can be removed here')
+        if self.plane_path is None:
+            raise ValueError('removal requires persistent controller state')
         if not self.node_operation_lock.acquire(blocking=False):
-            raise ValueError("another mesh node operation is in progress")
-        if self.etcd_running or self.plane_state.get('mode') not in ('etcd', 'standalone'):
+            raise ValueError('another mesh node operation is in progress')
+        try:
+            operation = self.control.get('operation') or {}
+            if self.etcd_running or operation.get('stage') not in (None, 'done') or operation.get('cleanup_pending'):
+                raise ValueError('complete the pending etcd membership operation first')
+            if self.plane_state.get('mode') not in ('etcd', 'standalone'):
+                raise ValueError('complete the current control-plane operation first')
+            if name in {member['name'] for member in self.members()}:
+                raise ValueError('remove the node from etcd membership first')
+            if not self.standalone():
+                overlay = self.mesh['nodes'].get(name, {}).get('overlay') or pending.get(name, {}).get('spec', {}).get('overlay')
+                members = self.etcd_live_rpc('/cluster/member/list', {})['members']
+                if any(member.get('name') == name or f'https://{overlay}:2381' in member.get('peerURLs', []) for member in members):
+                    raise ValueError('remove the voting member or learner from etcd first')
+            job = self.new_job('remove-node', f'remove node {name}')
+            threading.Thread(target=self._node_job, args=(self._remove_run, job, name), daemon=True).start()
+            return job
+        except Exception:
             self.node_operation_lock.release()
-            raise ValueError('complete the current control-plane operation first')
-        job = self.new_job("remove-node", f"remove node {name}")
-        threading.Thread(target=self._node_job, args=(self._remove_run, job, name), daemon=True).start()
-        return job
+            raise
 
     def _remove_run(self, job: dict, name: str) -> None:
         try:
-            inv = self.inventory[name]
-            if (self.relay_state.get(name) or {}).get("on"):
-                self.set_relay(name, False, reason="node removed")
-            for key in (f"/mesh/nodes/{name}", f"/mesh/inventory/{name}", f"/mesh/obs/{name}", f"/mesh/route/{name}", f"/mesh/relay/{name}", f"/mesh/ipmap/{name}"):
-                self.etcd_del(key)
-            self.step(job, "removed from etcd; the other nodes drop their links to it")
-            try:
-                self.ssh.run(inv["host"], inv["user"], ("" if inv["user"] == "root" else "sudo -n ") +
-                             "bash -c 'systemctl disable --now meshagent >/dev/null 2>&1; rm -f /etc/systemd/system/meshagent.service; "
-                             "for d in $(ip -o link show | grep -o \"wgm-[a-z0-9]*\" | sort -u); do ip link del $d 2>/dev/null; done; "
-                             f"ip addr del {inv['overlay']}/32 dev lo 2>/dev/null; rm -rf {LIB} /etc/meshagent; true'", timeout=60)
-                self.step(job, "agent removed from the server")
-            except Exception as ex:  # noqa: BLE001
-                self.step(job, f"server cleanup skipped ({ex})")
+            pending = dict(self.plane_state.get('node_cleanup', {}))
+            if name not in pending:
+                inv = dict(self.inventory[name])
+                spec = {**self._node_spec(name), 'overlay': inv['overlay']}
+                pending[name] = {'inventory': inv, 'spec': spec, 'phase': 'restore'}
+                self.save_plane(node_cleanup=pending)
+            target = pending[name]
+            # Interrupted enables can have on=False while originals live in the pending operation.
+            restore = [name]
+            if target['inventory']['role'] == 'entry' and len(self.cfg['entries']) <= 1:
+                restore = list(self.relay_state)
+            for exit_name in restore:
+                relay = self.relay_state.get(exit_name) or {}
+                if relay.get('on') or relay.get('operation'):
+                    self.set_relay(exit_name, False, reason='node removed')
+            target['phase'] = 'cleanup'
+            self.save_plane(node_cleanup=pending)
+            self.etcd_del(f'/mesh/nodes/{name}')
+            self.mesh['nodes'].pop(name, None)
+            self.step(job, 'mesh membership removed; remote cleanup target is durable until completion')
+            from .provision import Node
+            cleanup_node(Node(name, target['spec'], self.ssh), target['spec'])
+            for prefix in ('inventory', 'obs', 'route', 'relay', 'ipmap'):
+                self.etcd_del(f'/mesh/{prefix}/{name}')
             self.inventory.pop(name, None)
+            self.ipmap.pop(name, None)
+            self.save_plane(node_cleanup={key: value for key, value in pending.items() if key != name})
             self.rebuild_cfg()
-            self.event(f"node {name} removed from mesh", "node", name)
-            job["status"] = "done"
-        except Exception as ex:  # noqa: BLE001
-            job["error"] = str(ex)[:400]
-            job["status"] = "failed"
-            self.step(job, f"FAILED: {job['error']}")
+            self.event(f'node {name} removed from mesh', 'node', name)
+            job['status'] = 'done'
+        except Exception as error:
+            job['error'] = str(error)[:400]
+            job['status'] = 'failed'
+            self.step(job, 'cleanup incomplete; retry removal to finish safely')

@@ -98,7 +98,7 @@ def test_full_removal_keeps_offline_cleanup_durable_and_retryable(tmp_path, monk
         def run(self, command, **kwargs):
             calls.append(self.name)
             if self.name in offline: raise OSError('offline')
-            assert 'MESHFWD' in command and 'systemctl disable --now meshagent' in command
+            assert 'MESHFWD' in command and 'meshagent meshfwd' in command and 'systemctl disable --now $unit' in command
             assert 'rm -rf /var/lib/etcd' not in command
     monkeypatch.setattr('meshctl.provision.Node', Node)
     plane.node_operation_lock.acquire()

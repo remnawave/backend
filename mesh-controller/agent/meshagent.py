@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """meshagent — one per node. Keeps the WireGuard overlay up and self-heals routes.
 
-Design: one WireGuard interface per link (wgm-<peer>) with AllowedIPs 0.0.0.0/0, and the
+Design: one WireGuard interface per link (wgm-<peer>) with mesh-only AllowedIPs, and the
 kernel routing table decides the path (`ip route 10.88.0.D/32 dev wgm-<via>`). A single
 shared interface would force both ends of a pair to switch in lock-step (WireGuard drops
 packets whose source is not in the peer's AllowedIPs); with a device per link every node
@@ -35,8 +35,10 @@ import urllib.request
 
 try:
     from meshctl.routing import LinkTracker, LinkQuality, next_hops
+    from meshctl import records
 except ImportError:  # installed flat on the node
     from routing import LinkTracker, LinkQuality, next_hops
+    import records
 
 log = logging.getLogger("meshagent")
 ROUND = 5           # seconds between rounds
@@ -47,11 +49,15 @@ BASE_PORT = 52000   # iface for peer Y on node X listens on BASE_PORT + last oct
 LEASE_TTL = 60
 
 
-def sh(cmd: str, check: bool = False) -> str:
-    r = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    if check and r.returncode != 0:
-        raise RuntimeError(f"{cmd}: {r.stderr.strip()}")
-    return r.stdout
+def command(args, check=False, stdin=None):
+    result = subprocess.run(args, input=stdin, capture_output=True, text=True, timeout=20)
+    if check and result.returncode:
+        raise RuntimeError(f"{args[0]} failed: {result.stderr.strip()[:300]}")
+    return result
+
+
+def run(args, check=False):
+    return command(args, check=check).stdout
 
 
 def icmp_ping(dev: str, target: str, timeout: float = 1.0):
@@ -99,7 +105,7 @@ def detect_public_ip(probe_target: str = "1.1.1.1"):
     Remnawave and the other peers. Behind NAT the source is private, so nothing is reported.
     """
     import ipaddress
-    out = sh(f"ip -4 route get {probe_target} 2>/dev/null")
+    out = run(["ip", "-4", "route", "get", records.ipv4(probe_target)])
     toks = out.split()
     if "src" not in toks:
         return None
@@ -157,8 +163,8 @@ class Etcd:
 
 class Agent:
     def __init__(self, cfg: dict):
-        self.cfg = cfg
-        self.name = cfg["name"]
+        self.cfg = dict(cfg, overlay=records.ipv4(cfg["overlay"], overlay=True))
+        self.name = records.name(cfg["name"])
         self.quality = {}
         self.quality_hops = {}
         self.loads = {}
@@ -170,7 +176,7 @@ class Agent:
 
     # ---- membership ----------------------------------------------------
     def load_nodes(self) -> dict:
-        nodes = json.load(open(self.cfg["nodes_file"]))
+        nodes = records.nodes(json.load(open(self.cfg["nodes_file"])))
         return nodes
 
     def refresh_nodes(self) -> None:
@@ -179,11 +185,11 @@ class Agent:
         try:
             kv = self.etcd.prefix("/mesh/nodes/")
             if kv:
-                self.nodes = {k.rsplit("/", 1)[1]: v for k, v in kv.items() if v}
+                self.nodes = records.nodes({k.rsplit("/", 1)[1]: v for k, v in kv.items() if v})
                 json.dump(self.nodes, open(self.cfg["nodes_file"], "w"))
             control = self.etcd.prefix("/mesh/control/")
             record = control.get("/mesh/control/etcd") or {}
-            endpoints = [m["client_url"] for m in record.get("members", [])]
+            endpoints = [records.endpoint(m["client_url"], self.nodes, 2389 if self.cfg.get("etcd_tls") else 2379, bool(self.cfg.get("etcd_tls"))) for m in record.get("members", [])]
             if endpoints and endpoints != self.etcd.endpoints:
                 if self.cfg.get("etcd_tls") and not all(ep.startswith("https://") for ep in endpoints):
                     raise ValueError("refusing unauthenticated discovered endpoints")
@@ -211,54 +217,74 @@ class Agent:
     def dev(self, peer: str) -> str:
         return f"wgm-{peer}"[:15]
 
+    def firewall(self):
+        """Only overlay transit and explicitly DNATed relay flows may bypass host forwarding rules."""
+        plan = ["*filter", ":MESHAGENT_FW - [0:0]", ":MESHAGENT_IN - [0:0]", "-F MESHAGENT_FW", "-F MESHAGENT_IN",
+            "-A MESHAGENT_FW -i wgm+ -s 10.88.0.0/24 -m conntrack --ctstate DNAT --ctdir REPLY -m state --state ESTABLISHED,RELATED -j RETURN",
+            "-A MESHAGENT_FW -o wgm+ -d 10.88.0.0/24 -m conntrack --ctstate DNAT --ctdir ORIGINAL -j RETURN",
+            "-A MESHAGENT_FW -i wgm+ -s 10.88.0.0/24 -d 10.88.0.0/24 -j ACCEPT",
+            "-A MESHAGENT_FW -o wgm+ -s 10.88.0.0/24 -d 10.88.0.0/24 -j ACCEPT",
+            "-A MESHAGENT_FW -i wgm+ -j DROP", "-A MESHAGENT_FW -o wgm+ -j DROP",
+            f"-A MESHAGENT_IN -s 10.88.0.0/24 -d {self.cfg['overlay']}/32 -j RETURN",
+            "-A MESHAGENT_IN -s 10.89.0.0/16 -d 10.89.0.0/16 -p icmp -j RETURN",
+            "-A MESHAGENT_IN -j DROP", "COMMIT", ""]
+        digest = tuple(plan)
+        if getattr(self, 'firewall_plan', None) == digest:
+            return
+        command(['iptables-restore', '--noflush'], check=True, stdin='\n'.join(plan))
+        parents = ['FORWARD']
+        if command(['iptables', '-S', 'DOCKER-USER']).returncode == 0: parents.append('DOCKER-USER')
+        for parent in parents:
+            for direction in ('-i', '-o'):
+                for interface in ('wgm+', 'wgmesh'):
+                    args = [parent, direction, interface, '-j', 'ACCEPT']
+                    while command(['iptables', '-C', *args]).returncode == 0:
+                        command(['iptables', '-D', *args], check=True)
+            if command(['iptables', '-C', parent, '-j', 'MESHAGENT_FW']).returncode:
+                command(['iptables', '-I', parent, '1', '-j', 'MESHAGENT_FW'], check=True)
+        if command(['iptables', '-C', 'INPUT', '-i', 'wgm+', '-j', 'MESHAGENT_IN']).returncode:
+            command(['iptables', '-I', 'INPUT', '1', '-i', 'wgm+', '-j', 'MESHAGENT_IN'], check=True)
+        self.firewall_plan = digest
+
     def ensure_links(self) -> None:
-        """Overlay address on lo, one wireguard device per peer, forwarding open."""
-        sh("sysctl -qw net.ipv4.ip_forward=1")
-        sh(f"ip addr replace {self.cfg['overlay']}/32 dev lo")
-        if "wgmesh:" in sh("ip -o link show"):          # migrate from the single-interface layout
-            sh("ip link del wgmesh")
-        existing = sh("ip -o link show")
-        me = self.octet(self.cfg["overlay"])
-        for p, n in self.nodes.items():
-            if p == self.name:
-                continue
-            d = self.dev(p)
-            if f" {d}:" not in existing:
-                sh(f"ip link add {d} type wireguard", check=True)
-            port = BASE_PORT + self.octet(n["overlay"])
-            ep = f"{n['underlay']}:{BASE_PORT + me}"
-            # Set the endpoint only when it changed: WireGuard learns a peer's new address by
-            # itself (roaming) and rewriting the old one every round would undo that.
-            ep_part = f"endpoint {ep} " if (self.applied_endpoint.get(p) != ep or f" {d}:" not in existing) else ""
-            sh(f"wg set {d} private-key {self.cfg['key_file']} listen-port {port} "
-               f"peer {n['pubkey']} {ep_part}"
-               f"allowed-ips 0.0.0.0/0 persistent-keepalive {KEEPALIVE}", check=True)
-            self.applied_endpoint[p] = ep
-            sh(f"ip link set {d} mtu 1280 up")
-            sh(f"ip addr replace {self.link_addr(self.cfg['overlay'], n['overlay'])} peer {self.link_peer(self.cfg['overlay'], n['overlay'])} dev {d}")
-            sh(f"sysctl -qw net.ipv4.conf.{d}.rp_filter=0")
-        # devices of nodes that were removed from the mesh
-        wanted = {self.dev(p) for p in self.nodes if p != self.name}
-        for line in sh("ip -o link show").splitlines():
-            parts = line.split(": ")
-            if len(parts) > 1:
-                dev = parts[1].split("@")[0]
-                if dev.startswith("wgm-") and dev not in wanted:
-                    sh(f"ip link del {dev}")
-                    log.info("removed stale device %s", dev)
-        chain = "DOCKER-USER" if sh("iptables -S DOCKER-USER 2>/dev/null") else "FORWARD"
-        for d in ("-i", "-o"):
-            if sh(f"iptables -C {chain} {d} wgm+ -j ACCEPT 2>&1 >/dev/null; echo $?").strip() != "0":
-                sh(f"iptables -I {chain} 1 {d} wgm+ -j ACCEPT")
-            sh(f"iptables -D {chain} {d} wgmesh -j ACCEPT 2>/dev/null")      # old layout leftovers
+        """Configure validated records with argv-only commands and scoped forwarding."""
+        self.nodes = records.nodes(self.nodes)
+        self.firewall()
+        run(['sysctl', '-qw', 'net.ipv4.ip_forward=1'])
+        run(['ip', 'addr', 'replace', self.cfg['overlay']+'/32', 'dev', 'lo'])
+        existing = run(['ip', '-o', 'link', 'show'])
+        if 'wgmesh:' in existing: run(['ip', 'link', 'del', 'wgmesh'])
+        me = self.octet(self.cfg['overlay'])
+        for peer, node in self.nodes.items():
+            if peer == self.name: continue
+            device = self.dev(peer)
+            fresh = f' {device}:' not in existing
+            if fresh: run(['ip', 'link', 'add', device, 'type', 'wireguard'], check=True)
+            endpoint = f"{node['underlay']}:{BASE_PORT + me}"
+            args = ['wg', 'set', device, 'private-key', self.cfg['key_file'], 'listen-port', str(BASE_PORT+self.octet(node['overlay'])), 'peer', node['pubkey']]
+            if fresh or self.applied_endpoint.get(peer) != endpoint: args += ['endpoint', endpoint]
+            args += ['allowed-ips', '10.88.0.0/24,10.89.0.0/16', 'persistent-keepalive', str(KEEPALIVE)]
+            run(args, check=True)
+            self.applied_endpoint[peer] = endpoint
+            run(['ip', 'link', 'set', device, 'mtu', '1280', 'up'])
+            run(['ip', 'addr', 'replace', self.link_addr(self.cfg['overlay'], node['overlay']), 'peer', self.link_peer(self.cfg['overlay'], node['overlay']), 'dev', device])
+            run(['sysctl', '-qw', f'net.ipv4.conf.{device}.rp_filter=0'])
+        wanted = {self.dev(peer) for peer in self.nodes if peer != self.name}
+        for line in run(['ip', '-o', 'link', 'show']).splitlines():
+            parts = line.split(': ')
+            if len(parts)>1:
+                device = parts[1].split('@')[0]
+                if device.startswith('wgm-') and device not in wanted:
+                    run(['ip', 'link', 'del', device])
+                    log.info('removed stale device %s', device)
 
     def apply_routes(self, hops: dict) -> None:
-        """One /32 route per destination, via its own device or via the transit's."""
-        for d, n in self.nodes.items():
-            if d == self.name:
-                continue
-            via = hops.get(d) or d
-            sh(f"ip route replace {n['overlay']}/32 dev {self.dev(via)} src {self.cfg['overlay']} metric 50")
+        """One /32 route per destination, through a known direct/transit peer."""
+        for destination, node in self.nodes.items():
+            if destination == self.name: continue
+            via = hops.get(destination) or destination
+            if via not in self.nodes: raise ValueError('unknown transit node')
+            run(['ip', 'route', 'replace', node['overlay']+'/32', 'dev', self.dev(via), 'src', self.cfg['overlay'], 'metric', '50'])
 
     # ---- measuring -----------------------------------------------------
     def measure(self) -> dict:

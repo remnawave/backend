@@ -11,6 +11,8 @@ import uuid
 
 from .standalone_store import StandaloneStore, atomic_json, encoded, decoded
 from .pki import create_ca, issue
+from . import records
+from .cleanup import cleanup_node
 
 PREFIX = '/mesh/'
 END = '/mesh0'
@@ -35,7 +37,8 @@ class ControlPlane:
             self.plane_store.seed({})
             self.save_plane(mode='standalone', desired_members=[], paused_members=[])
         if self.plane_state.get('mode') == 'resuming':
-            self.save_plane(mode='standalone')
+            members = self.plane_state.get('resume_members') or self.plane_state.get('desired_members', [])
+            self.save_plane(mode='pausing', paused_members=members, stop_pending=[member['name'] for member in members])
         if self.standalone():
             self.ensure_plane_pki()
             self.load_standalone(collect=False)
@@ -78,6 +81,8 @@ class ControlPlane:
         for name, record in self.mesh['nodes'].items():
             spec = self._node_spec(name)
             result[name] = {**spec, 'overlay': record['overlay']}
+        for name, pending in self.plane_state.get('node_cleanup', {}).items():
+            result.setdefault(name, pending['spec'])
         return result
 
     def pause_etcd(self, name, members, job, desired=None):
@@ -115,6 +120,7 @@ class ControlPlane:
             raise RuntimeError('etcd stop requires retry on: ' + ', '.join(errors))
         self.save_plane(mode='standalone')
         self.control['operation'] = {'name': 'mesh', 'kind': 'remove', 'stage': 'done'}
+        self.plane_store.rpc('/kv/put', {'key': encoded('/mesh/control/operation'), 'value': encoded(json.dumps(self.control['operation']))})
         if job is not None:
             self.step(job, 'etcd stopped on all members; data retained, WireGuard mesh remains active')
         self.event('etcd paused below three voters; mesh continues without etcd', 'etcd')
@@ -125,8 +131,8 @@ class ControlPlane:
         self.inventory = prefix('inventory'); self.ipmap = prefix('ipmap'); self.relay_state = prefix('relay')
         self.flags = prefix('flags').get('main', {})
         self._load_log(prefix('log'))
-        self.control.update(prefix('control'))
-        nodes = prefix('nodes')
+        self.control.update(records.control(prefix('control'), records.nodes(prefix('nodes'))))
+        nodes = records.nodes(prefix('nodes'))
         observations = prefix('obs'); routes = prefix('route')
         self.mesh = {'etcd_up': False, 'nodes': nodes,
                      'obs': {name: report.get('links', {}) for name, report in observations.items() if 0 <= time.time() - report.get('ts', 0) <= 60},
@@ -202,14 +208,11 @@ class ControlPlane:
         try:
             self.resume_etcd(desired, job)
         except Exception:
-            from .provision import Node
-            for record in desired:
-                try:
-                    Node(record['name'], self._node_spec(record['name']), self.ssh).run('if docker inspect etcd >/dev/null 2>&1; then docker stop etcd >/dev/null; fi', timeout=45)
-                except Exception:
-                    pass
-            self.save_plane(mode='standalone')
+            # Durable rollback also covers a controller crash before exception cleanup runs.
+            self.save_plane(mode='pausing', paused_members=desired, stop_pending=[record['name'] for record in desired])
+            self.load_standalone(collect=False)
             self.sync_standalone(force=True)
+            self.finish_pause(job)
             raise
 
     def resume_etcd(self, records, job):
@@ -218,7 +221,7 @@ class ControlPlane:
         mesh = self.cfg['mesh']; pki = mesh['pki']
         ca = Path(pki['ca_file']).read_text(); ca_key = Path(pki['ca_key_file']).read_text()
         generation = uuid.uuid4().hex[:12]
-        self.save_plane(mode='resuming', resume_generation=generation)
+        self.save_plane(mode='resuming', resume_generation=generation, resume_members=records)
         cluster = ','.join(record['name'] + '=' + record['peer_url'] for record in records)
         self.step(job, 'At least three members selected: starting a fresh mTLS cluster; previous data is archived')
         for record in records:
@@ -271,6 +274,8 @@ class ControlPlane:
         self.step(job, 'etcd healthy; latest local inventory/settings restored and agents reconnected')
 
     def start_teardown(self):
+        if getattr(self, 'ip_updates', {}):
+            raise ValueError('complete pending IP updates before removing the mesh')
         if self.plane_store is None:
             raise ValueError('persistent controller state is required')
         if not self.node_operation_lock.acquire(blocking=False):
@@ -299,14 +304,7 @@ class ControlPlane:
             for name, spec in targets.items():
                 try:
                     node = Node(name, spec, self.ssh)
-                    node.run('set -e; systemctl disable --now meshagent >/dev/null 2>&1; systemctl disable --now meshfwd >/dev/null 2>&1 || true; '
-                        'if docker inspect etcd >/dev/null 2>&1; then docker stop etcd >/dev/null; fi; '
-                        'for c in FORWARD DOCKER-USER; do for f in -i -o; do while iptables -C $c $f wgm+ -j ACCEPT 2>/dev/null; do iptables -D $c $f wgm+ -j ACCEPT; done; done; done; '
-                        'for rule in nat:PREROUTING:MESHFWD nat:POSTROUTING:MESHFWD_POST filter:FORWARD:MESHFWD_FW filter:DOCKER-USER:MESHFWD_FW mangle:FORWARD:MESHFWD_MSS; do table=${rule%%:*}; tail=${rule#*:}; parent=${tail%%:*}; chain=${tail#*:}; while iptables -t $table -C $parent -j $chain 2>/dev/null; do iptables -t $table -D $parent -j $chain; done; done; '
-                        'for rule in nat:MESHFWD nat:MESHFWD_POST filter:MESHFWD_FW mangle:MESHFWD_MSS; do table=${rule%%:*}; chain=${rule#*:}; if iptables -t $table -S $chain >/dev/null 2>&1; then iptables -t $table -F $chain; iptables -t $table -X $chain; fi; done; '
-                        'for device in $(ip -o link show | grep -o "wgm-[a-z0-9]*" | sort -u); do ip link del "$device"; done; '
-                        f'ip addr del {shlex.quote(spec["overlay"] + "/32")} dev lo 2>/dev/null || true; '
-                        'rm -rf /usr/local/lib/meshagent /etc/meshagent /etc/meshfwd; rm -f /usr/local/sbin/meshfwd.py /etc/systemd/system/meshfwd.service /etc/systemd/system/meshagent.service /etc/wireguard/wgmesh.key; systemctl daemon-reload', timeout=90)
+                    cleanup_node(node, spec)
                     self.step(job, name + ': mesh agent/interfaces removed; etcd stopped, data retained')
                     targets = {key: value for key, value in targets.items() if key != name}
                     self.save_plane(cleanup_targets=targets)
@@ -315,7 +313,7 @@ class ControlPlane:
             if failures:
                 raise RuntimeError('cleanup requires retry on: ' + ', '.join(failures))
             self.plane_store.seed({})
-            self.save_plane(mode='removed', desired_members=[], cleanup_targets={}, paused_members=[])
+            self.save_plane(mode='removed', desired_members=[], cleanup_targets={}, paused_members=[], node_cleanup={})
             self.flags = {}; self.state = {}; self.base_cfg['entries'] = {}; self.base_cfg['exits'] = {}
             self.load_standalone(collect=False)
             job['status'] = 'done'

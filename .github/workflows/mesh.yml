@@ -27,6 +27,8 @@ jobs:
             'npm ci --no-audit --no-fund && npm run migrate:generate && node --test test/mesh.test.cjs && npx tsc --noEmit'
       - name: Real WireGuard transit and recovery
         run: python3 mesh-controller/lab/test_lab.py
+      - name: Private network isolation and explicit relay traffic
+        run: python3 mesh-controller/lab/test_security.py
       - name: Compile upstream API
         run: docker build --target backend-build -t remnawave-mesh-backend-build:local .
       - name: Real panel authentication and sidecar integration
@@ -36,6 +38,7 @@ jobs:
           python3 mesh-controller/lab/prepare_managed.py
           python3 mesh-controller/lab/test_control_plane.py
           python3 mesh-controller/lab/test_empty_mesh.py
+          python3 mesh-controller/lab/test_review_recovery.py
       - name: Clean up this lab
         if: always()
         run: |

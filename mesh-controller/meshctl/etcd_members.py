@@ -8,6 +8,7 @@ import threading
 import time
 
 from .pki import issue
+from .records import endpoint
 from .transport import curl_etcd
 
 TLS = {'ca_file': '/etc/meshagent/tls/ca.crt', 'cert_file': '/etc/meshagent/tls/client.crt',
@@ -67,8 +68,8 @@ class EtcdMembers:
                 raise RuntimeError('an etcd member is not registered in the mesh')
             d = self._node_spec(name)
             out.append({'name':name,'host':d['host'],'user':d.get('user','root'),'sudo':bool(d.get('sudo')),
-                        'overlay':self.mesh['nodes'][name]['overlay'],'client_url':m['clientURLs'][0],
-                        'peer_url':m['peerURLs'][0]})
+                        'overlay':self.mesh['nodes'][name]['overlay'],'client_url':endpoint(m['clientURLs'][0], self.mesh['nodes']),
+                        'peer_url':endpoint(m['peerURLs'][0], self.mesh['nodes'], 2381)})
         if not out:
             raise RuntimeError('no voting etcd members discovered')
         return sorted(out,key=lambda m:m['name'])
@@ -93,6 +94,8 @@ class EtcdMembers:
             self._seed_cache({'members':records})
 
     def start_etcd_change(self, name, member, resume=False):
+        if getattr(self, 'ip_updates', {}):
+            raise ValueError('complete pending IP updates before changing etcd membership')
         if not isinstance(member,bool) or name not in self.mesh['nodes']:
             raise ValueError('known mesh node and boolean member are required')
         if not (self.cfg.get('mesh') or {}).get('etcd_tls'):
