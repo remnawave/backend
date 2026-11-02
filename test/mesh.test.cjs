@@ -24,7 +24,7 @@ function load(relative) {
     return compiled.exports;
 }
 const { MeshService } = load('mesh.service.ts');
-const { NodeSchema, FlagsSchema, MeshJobDto, MeshRelayDto } = load('mesh.dto.ts');
+const { NodeSchema, FlagsSchema, MeshJobDto, MeshRelayDto, MeshTeardownDto } = load('mesh.dto.ts');
 const credential = 'test-only-'.repeat(5);
 function client(origin, token = credential) {
     return new MeshService({
@@ -134,7 +134,7 @@ test('arbitrary controller paths and job traversal are rejected', async () => {
 });
 test('DTOs reject unknown automation flags, string booleans and command injection', () => {
     for (const flags of [
-        { auto_balancer: true },
+        { unsupported_flag: true },
         { auto_relay: 'false' },
         {},
         { auto_relay: true, unknown: true },
@@ -165,4 +165,42 @@ test('DTOs reject unknown automation flags, string booleans and command injectio
         }).success,
         true,
     );
+});
+
+test('balancer automation is rejected when the optional adapter is absent', async (t) => {
+    let writes = 0;
+    const origin = await server(t, (req, res) => {
+        if (req.method === 'POST') writes++;
+        res.end(JSON.stringify({ capabilities: { balancer: false } }));
+    });
+    await assert.rejects(
+        client(origin).request('/api/flags', { auto_balancer: true }),
+        (error) => error.getStatus() === 400,
+    );
+    assert.equal(writes, 0);
+});
+
+test('explicit balancer integration allows its automation flag', async (t) => {
+    let writes = 0;
+    const origin = await server(t, (req, res) => {
+        if (req.url === '/status') res.end(JSON.stringify({ capabilities: { balancer: true } }));
+        else {
+            writes++;
+            res.end('{}');
+        }
+    });
+    await client(origin).request('/api/flags', { auto_balancer: false });
+    assert.equal(writes, 1);
+});
+
+test('full teardown requires the exact explicit confirmation phrase', () => {
+    for (const input of [
+        {},
+        { confirm: true },
+        { confirm: 'remove' },
+        { confirm: 'REMOVE_MESH', other: true },
+    ]) {
+        assert.equal(MeshTeardownDto.schema.safeParse(input).success, false);
+    }
+    assert.equal(MeshTeardownDto.schema.safeParse({ confirm: 'REMOVE_MESH' }).success, true);
 });

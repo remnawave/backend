@@ -34,11 +34,22 @@ export class MeshService {
         }
         // No caller-controlled URLs, paths or redirects may forward the shared token.
         if (
-            !/^\/(status|api\/(flags|pin|probe|nodes|nodes\/remove|relay|etcd|jobs\/[a-f0-9]{6,32}))$/.test(
+            !/^\/(status|api\/(flags|pin|probe|teardown|nodes|nodes\/remove|relay|etcd|jobs\/[a-f0-9]{6,32}))$/.test(
                 path,
             )
         ) {
             throw new HttpException('Invalid mesh operation', HttpStatus.BAD_REQUEST);
+        }
+        if (path === '/api/flags' && body && Object.hasOwn(body, 'auto_balancer')) {
+            const status = (await this.request('/status')) as {
+                capabilities?: { balancer?: boolean };
+            };
+            if (!status.capabilities?.balancer) {
+                throw new HttpException(
+                    'Balancer integration is not configured',
+                    HttpStatus.BAD_REQUEST,
+                );
+            }
         }
         let response: Response;
         let data: unknown;

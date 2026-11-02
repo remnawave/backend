@@ -299,6 +299,14 @@ class Agent:
         self.ensure_links()
         local = self.measure()
         graph = {self.name: local}
+        if not self.etcd and self.cfg.get('graph_file'):
+            try:
+                saved = json.load(open(self.cfg['graph_file']))
+                graph.update({name: report.get('links', {}) for name, report in saved.items()
+                              if 0 <= time.time() - report.get('ts', 0) <= LEASE_TTL})
+                graph[self.name] = local
+            except (OSError, ValueError, TypeError):
+                pass
         load = round(os.getloadavg()[0] / max(os.cpu_count() or 1, 1), 2)
         self.loads[self.name] = load
         if self.etcd:

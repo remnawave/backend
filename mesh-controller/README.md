@@ -1,4 +1,4 @@
-# Optional WireGuard mesh (proposal)
+# Optional WireGuard mesh
 
 This opt-in service connects Remnawave nodes with a WireGuard overlay. When a direct
 link fails, agents select a mutually reachable transit node without changing the
@@ -6,7 +6,9 @@ client-facing inbound, subscription or user credential. The panel exposes authen
 administrator endpoints; node agents own the routing table and continue forwarding
 if the panel or controller is unavailable.
 
-This is an API-first proposal. There is no dashboard change in the frontend repository.
+The companion frontend provides the Mesh dashboard in the Nodes menu: automation,
+a compact live link map, quorum health and membership, exits/relays, overlay matrix,
+operation progress and the event journal. See https://github.com/remnawave/frontend/pull/478.
 No database migration, new default background connection or privileged panel container
 is required. Remove `MESH_CONTROLLER_URL` to disable the panel integration (mesh endpoints
 return 503); the normal panel API continues working.
@@ -19,7 +21,7 @@ return 503); the normal panel API continues working.
   and hysteresis. WireGuard private keys stay on the node.
 - etcd: leased observations, inventory and operation journals. Three voting members
   are recommended; membership changes use learners, verified mTLS and persistent
-  controller state. Removal refuses to leave fewer than three voting members.
+  controller state. Removing a voter below three deliberately stops etcd on every member. The mesh continues with a durable local journal; selecting at least three voters resumes a fresh mTLS cluster and archives the old data.
 - `agent/meshfwd.py`: optional DNAT relays. Explicit overlay-source SNAT ensures the
   return path works when a direct link has failed and packets traverse another node.
 - `src/modules/mesh/`: administrator-only panel bridge with validated request bodies,
@@ -48,7 +50,7 @@ Run it on a private container network, without publishing port 8080, with:
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | `MESHCTL_CONFIG=/config/config.yaml`       | Read-only config based on `config.example.yaml`                                                   |
 | `MESHCTL_KEY=/secrets/id_ed25519`          | Read-only controller SSH private key                                                              |
-| `MESHCTL_KNOWN_HOSTS=/secrets/known_hosts` | Independently verified host keys; unknown/changed hosts are rejected, including during onboarding |
+| `MESHCTL_KNOWN_HOSTS=/secrets/known_hosts` | Preconfigured verified host keys; new hosts additionally require an independently verified fingerprint supplied by the administrator |
 | `MESHCTL_STATE_DIR=/state`                 | Persistent writable volume owned by UID 10001; operation recovery and discovery                   |
 | `MESH_API_TOKEN`                           | Authenticates status and management requests                                                      |
 | `REMNAWAVE_URL`, `REMNAWAVE_API_TOKEN`     | Optional panel API origin/token, only for explicitly enabled host/API automation                  |
@@ -57,14 +59,21 @@ Run it on a private container network, without publishing port 8080, with:
 The controller container runs as UID 10001 and needs neither host networking nor
 NET_ADMIN. Node agents require root (or passwordless sudo), Python 3, WireGuard tools
 and iptables on **Linux**. SSH access is administrative: onboarding installs the
-controller public key and a system service. A node must already have an independently
-verified entry in `known_hosts`; no automatic host-key acceptance occurs.
+controller public key and a system service. A new node requires either an independently verified entry in `known_hosts` or its
+independently verified `SHA256:` host fingerprint in the onboarding form. The
+controller checks the fingerprint before authentication, persists the public host
+key under `/state/known_hosts`, and rejects mismatches. Fingerprints are not discovered
+and silently trusted by the browser. No automatic host-key acceptance occurs.
 
 Start with all `auto_*` flags false. A configured relay may explicitly change host
 addresses/ports; inspect its journal and enable only after proving the overlay path.
 Shared host records are not rewritten as single-node relays. User UUIDs and inbound
 bindings are preserved. Node onboarding credentials are forwarded only in the request
 body, used once in memory and redacted from job errors. Do not enable HTTP body logging.
+
+Private IPv4 node addresses are refused unless the operator explicitly sets
+`allow_private_nodes: true` (the isolated Docker lab does this). Loopback, link-local,
+multicast and unspecified node addresses remain rejected.
 
 The legacy CLI `meshctl.provision` can bootstrap a development mesh with HTTP etcd;
 that is **not** a production security recommendation. Use `meshctl.mtls` to migrate
@@ -79,8 +88,8 @@ client header. API-token roles are deliberately not granted mesh administration.
 | ------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/api/mesh/status`       | Health observations, overlay, routes, quorum and events                                                                          |
 | POST   | `/api/mesh/probe`        | Empty object; schedule a probe cycle                                                                                             |
-| POST   | `/api/mesh/flags`        | Optional boolean `auto_switch`, `auto_relay`, `auto_ip_update`; at least one                                                     |
-| POST   | `/api/mesh/nodes`        | `name`, public IPv4 `host`, `role` (`entry`/`exit`), `user`, exactly one of `password`/`private_key`; optional `rw_node`, `etcd` |
+| POST   | `/api/mesh/flags`        | Optional boolean `auto_switch`, `auto_relay`, `auto_ip_update`; at least one. `auto_balancer` requires an explicitly configured adapter                                                     |
+| POST   | `/api/mesh/nodes`        | `name`, IPv4 `host`, `host_key_fingerprint`, `role` (`entry`/`exit`), `user`, exactly one of `password`/`private_key`; optional `rw_node`, `etcd` |
 | POST   | `/api/mesh/nodes/remove` | `name`                                                                                                                           |
 | GET    | `/api/mesh/jobs/:id`     | Progress of a validated job ID                                                                                                   |
 | POST   | `/api/mesh/relay`        | `exit`, `mode` (`auto`/`direct`/`relay`)                                                                                         |
@@ -119,7 +128,10 @@ real controller; it verifies unauthenticated rejection, administrator access, re
 validation, controller outage isolation and opt-out. Requests execute inside the isolated API container; no lab service publishes a host port.
 The lab's single HTTP etcd is isolated on an internal Docker network and has **no host
 port**; it does not prove production mTLS quorum changes or remote systemd onboarding.
-Those behaviors have unit tests, not a multi-host acceptance test in this proposal.
+The managed UI lab below additionally exercises real SSH onboarding and real
+multi-member etcd mTLS, learner promotion, voter removal and data preservation.
+Production systemd/Docker service supervision is represented by a lab-only process
+adapter; it runs the actual etcd and agent binaries and is never installed in production.
 
 `Dockerfile.panel` is intentionally API-only and derives from the original Dockerfile's
 `backend-build` stage. It does not test frontend assets/validators. The normal Dockerfile
@@ -137,3 +149,58 @@ records using their relay journal while etcd is still reachable. Then unset the 
 integration and stop the controller. Agents and their existing WireGuard routes are
 independent of that panel toggle; remove them only after traffic has moved off overlay.
 Do not delete etcd state or rotate client keys as part of disabling the integration.
+
+## Managed frontend acceptance lab
+
+Build the companion frontend checkout with `npm ci` and `npm run start:build` in
+a Node 24 Docker container, then pass its resulting `dist` folder explicitly:
+
+```sh
+python3 mesh-controller/lab/prepare_managed.py --frontend-dist ../frontend/dist
+```
+
+The UI is available at `http://127.0.0.1:33080`. Only the UI gateway publishes a
+loopback port; node SSH, etcd, PostgreSQL and the controller remain on the internal
+Docker network. The disposable lab-only password in the test harness must never
+be reused on a public deployment. Start with the initial registration screen.
+
+The lab's management adapter substitutes process supervision for systemd and nested
+Docker, while running real SSH, real WireGuard agents and real etcd with peer/client
+certificate verification. Through the dashboard, a fourth node was installed by SSH,
+joined as an etcd learner, promoted, removed from quorum with its data retained, and
+then removed from mesh. The lab also covers the three-to-two etcd pause, forwarding and live transit failover without etcd, controller restart, two-to-three resume, and explicit full mesh removal.
+
+This lab uses a single Compose project. Tear down all of its services with:
+
+```sh
+docker compose -p rw-mesh-lab -f mesh-controller/lab/compose.yaml \
+  -f mesh-controller/lab/compose.panel.yaml -f mesh-controller/lab/compose.managed.yaml \
+  -f mesh-controller/lab/compose.ui.yaml down -v --remove-orphans
+```
+
+### Deliberately stopping etcd and removing mesh
+
+Leaving an etcd role with fewer than three selected voters snapshots `/mesh/` into
+`/state/standalone.json`, reconfigures agents to retain forwarding without etcd,
+and stops etcd on **all** previous members. It never deletes their data. Keep the
+controller state volume backed up: it is the authoritative settings journal in
+this mode. The controller distributes live graph observations over verified SSH;
+existing cached forwarding survives controller downtime, while new transit decisions
+need either the controller or etcd to exchange fresh observations.
+
+Selecting a third voter rebuilds a verified mTLS cluster, archives old data under
+`/var/lib/etcd.pre-<generation>`, restores the latest inventory/settings, and reconnects
+agents. Partial failures remain visible and can be retried. An unrelated existing
+CA is never automatically replaced.
+
+`POST /api/mesh/teardown` with `{ "confirm": "REMOVE_MESH" }` is a separate explicit
+operation. It restores relayed hosts, stops agents/etcd, removes managed overlay
+interfaces, firewall chains and agent configuration, and clears mesh inventory.
+VPN nodes and retained etcd data are preserved. Offline cleanup targets remain in
+the durable controller journal until a retry succeeds.
+
+Run the managed lifecycle acceptance suite after preparing its lab:
+
+```sh
+python3 mesh-controller/lab/test_control_plane.py
+```

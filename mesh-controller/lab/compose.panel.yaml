@@ -27,6 +27,7 @@ services:
       - ./state/controller-key:/secrets/id_ed25519:ro
       - ./state/known_hosts:/secrets/known_hosts:ro
       - ./state/controller:/state
+      - ./state/pki:/etcd-tls:ro
     networks: [lab]
   panel:
     image: remnawave-upstream-mesh-api:local

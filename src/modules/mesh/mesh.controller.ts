@@ -15,6 +15,7 @@ import {
     MeshNodeDto,
     MeshPinDto,
     MeshRelayDto,
+    MeshTeardownDto,
 } from './mesh.dto';
 import { MeshService } from './mesh.service';
 
@@ -64,6 +65,11 @@ export class MeshController {
     @Post('etcd')
     async setEtcd(@Body() body: MeshEtcdDto) {
         return { response: await this.meshService.request('/api/etcd', body) };
+    }
+
+    @Post('teardown')
+    async teardown(@Body() body: MeshTeardownDto) {
+        return { response: await this.meshService.request('/api/teardown', body) };
     }
 
     @Post('probe')

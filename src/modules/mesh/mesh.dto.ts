@@ -5,6 +5,7 @@ const name = z.string().regex(/^[a-z][a-z0-9]{1,7}$/);
 export const FlagsSchema = z
     .strictObject({
         auto_switch: z.boolean().optional(),
+        auto_balancer: z.boolean().optional(),
         auto_relay: z.boolean().optional(),
         auto_ip_update: z.boolean().optional(),
     })
@@ -25,6 +26,10 @@ export class MeshJobDto extends createZodDto(
 export const NodeSchema = z
     .strictObject({
         name,
+        host_key_fingerprint: z
+            .string()
+            .regex(/^SHA256:[A-Za-z0-9+/]{43}$/)
+            .optional(),
         host: z.ipv4(),
         user: z
             .string()
@@ -41,3 +46,7 @@ export const NodeSchema = z
         'Supply exactly one authentication method',
     );
 export class MeshNodeDto extends createZodDto(NodeSchema) {}
+
+export class MeshTeardownDto extends createZodDto(
+    z.strictObject({ confirm: z.literal('REMOVE_MESH') }),
+) {}

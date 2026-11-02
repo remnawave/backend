@@ -13,6 +13,8 @@ import hashlib
 import json
 import logging
 import os
+import re
+import hmac
 import threading
 import time
 import uuid
@@ -23,6 +25,7 @@ import paramiko
 import requests
 
 from .etcd_members import EtcdMembers
+from .control_plane import ControlPlane
 from .transport import curl_etcd
 from .journal import prepare_enable, prepare_restore, host_patches
 from .ipwatch import IpWatch
@@ -70,7 +73,7 @@ def shq(s: str) -> str:
     return "'" + s.replace("'", "'\"'\"'") + "'"
 
 
-class Ops(EtcdMembers):
+class Ops(ControlPlane, EtcdMembers):
     # attributes provided by Mesh: cfg, base_cfg, ssh, rw, lock, state, mesh, flags, event(), wake
 
     def init_ops(self) -> None:
@@ -88,9 +91,12 @@ class Ops(EtcdMembers):
         self.relay_generation = 0
         self.flags_generation = 0
         self.relay_pending: Dict[str, tuple] = {}
+        self.init_control_plane()
 
     # ---- etcd through a member ----------------------------------------
     def members(self) -> List[dict]:
+        if self.standalone():
+            return self.plane_state.get('desired_members', [])
         records = (self.control.get("etcd") or {}).get("members")
         return [{**m, "host": (self.ipmap.get(m["name"]) or {}).get("ip") or m["host"]} for m in records] if records else (self.cfg.get("mesh") or {}).get("read_via", [])
 
@@ -100,6 +106,11 @@ class Ops(EtcdMembers):
         return self.ssh.run(member['host'], member.get('user', 'root'), command, stdin=stdin, timeout=timeout)
 
     def etcd_rpc(self, path: str, body: dict) -> dict:
+        if self.standalone():
+            return self.plane_store.rpc(path, body)
+        return self.etcd_live_rpc(path, body)
+
+    def etcd_live_rpc(self, path: str, body: dict) -> dict:
         last = None
         curl, endpoint = curl_etcd(self.cfg)
         for m in self.members():
@@ -385,26 +396,42 @@ class Ops(EtcdMembers):
         if req.get("etcd") and not (self.cfg.get("mesh") or {}).get("etcd_tls"):
             raise ValueError("complete the etcd mTLS migration first")
         taken = set(self.mesh["nodes"]) | set(self.cfg["entries"]) | set(self.cfg["exits"])
-        err = validate_name(name, taken) or validate_host(host)
+        fingerprint = req.get("host_key_fingerprint")
+        if fingerprint is not None and (not isinstance(fingerprint, str) or not re.fullmatch(r"SHA256:[A-Za-z0-9+/]{43}", fingerprint)):
+            raise ValueError("a valid SHA256 SSH host key fingerprint is required")
+        if fingerprint and self.seed_path is None:
+            raise ValueError("persistent controller state is required for SSH trust")
+        err = validate_name(name, taken) or validate_host(host, allow_private=bool(self.cfg.get("allow_private_nodes")))
         if err:
             raise ValueError(err)
         if not (req.get("password") or req.get("private_key")):
             raise ValueError("password or private_key is required")
-        if not self.mesh["etcd_up"]:
+        if not self.mesh["etcd_up"] and not self.standalone():
             raise RuntimeError("etcd is not reachable, cannot register the node")
+        if not self.node_operation_lock.acquire(blocking=False):
+            raise ValueError("another mesh node operation is in progress")
+        if self.plane_state.get('mode') == 'removed':
+            self.save_plane(mode='standalone', cleanup_targets=None)
+        if self.etcd_running or self.plane_state.get('mode') not in ('etcd', 'standalone', 'removed'):
+            self.node_operation_lock.release()
+            raise ValueError('complete the current control-plane operation first')
         job = self.new_job("add-node", f"add node {name} ({host})")
         secret = {"password": req.get("password"), "private_key": req.get("private_key")}
-        threading.Thread(target=self._onboard_run, args=(job, name, host, str(req.get("user") or "root"), role, req.get("rw_node") or None, secret, bool(req.get("etcd"))), daemon=True).start()
+        threading.Thread(target=self._node_job, args=(self._onboard_run, job, name, host, str(req.get("user") or "root"), role, req.get("rw_node") or None, secret, bool(req.get("etcd")), fingerprint), daemon=True).start()
         return job
 
-    def _onboard_run(self, job: dict, name: str, host: str, user: str, role: str, rw_node: Optional[str], secret: dict, want_etcd: bool = False) -> None:
+    def _node_job(self, operation, *args):
+        try:
+            operation(*args)
+        finally:
+            self.node_operation_lock.release()
+
+    def _onboard_run(self, job: dict, name: str, host: str, user: str, role: str, rw_node: Optional[str], secret: dict, want_etcd: bool = False, fingerprint: Optional[str] = None) -> None:
         sensitive = [value for value in secret.values() if value]
         c = None
         try:
             # 1. first contact with the one-time credentials
-            c = paramiko.SSHClient()
-            c.load_host_keys(self.ssh.known_hosts)
-            c.set_missing_host_key_policy(paramiko.RejectPolicy())
+            c = self.ssh.client(fingerprint)
             kw = dict(hostname=host, port=22, username=user, timeout=15, banner_timeout=20, auth_timeout=20, allow_agent=False, look_for_keys=False)
             if secret.get("private_key"):
                 import io
@@ -421,6 +448,8 @@ class Ops(EtcdMembers):
             else:
                 kw["password"] = secret["password"]
             c.connect(**kw)
+            if fingerprint and not hmac.compare_digest(self.ssh.fingerprint(c.get_transport().get_remote_server_key()), fingerprint):
+                raise ValueError("SSH host fingerprint does not match the independently verified value")
             self.step(job, f"connected to {host} as {user}")
             sudo = "" if user == "root" else "sudo -n "
 
@@ -439,7 +468,7 @@ class Ops(EtcdMembers):
                 f"LOGIN_HOME=$(getent passwd {account} | cut -d: -f6); test -n \"$LOGIN_HOME\" && "
                 f"mkdir -p \"$LOGIN_HOME/.ssh\" && chmod 700 \"$LOGIN_HOME/.ssh\" && "
                 f"(grep -qF {shq(pub)} \"$LOGIN_HOME/.ssh/authorized_keys\" 2>/dev/null || "
-                f"echo {shq(pub)} >> \"$LOGIN_HOME/.ssh/authorized_keys\") && "
+                f"printf '%s' {shq(chr(10) + pub + chr(10))} >> \"$LOGIN_HOME/.ssh/authorized_keys\") && "
                 f"chmod 600 \"$LOGIN_HOME/.ssh/authorized_keys\" && "
                 f"chown {account}:$(id -gn {account}) \"$LOGIN_HOME/.ssh\" \"$LOGIN_HOME/.ssh/authorized_keys\"")
             if code != 0:
@@ -474,7 +503,7 @@ class Ops(EtcdMembers):
                    "slot": next_slot(slots) if role == "exit" else None, "added": int(time.time())}
             seed = {n: v for n, v in self.mesh["nodes"].items() if v}
             seed[name] = entry
-            endpoints = [m['client_url'] for m in self.members() if m.get('client_url')] or (self.cfg.get("mesh") or {}).get("etcd_endpoints") or []
+            endpoints = [] if self.standalone() else ([m['client_url'] for m in self.members() if m.get('client_url')] or (self.cfg.get("mesh") or {}).get("etcd_endpoints") or [])
             self.install_agent(node, name, overlay, seed, endpoints)
             self.step(job, "agent installed and started")
             self.etcd_put(f"/mesh/nodes/{name}", entry)
@@ -486,13 +515,13 @@ class Ops(EtcdMembers):
             deadline = time.time() + 150
             seen = 0
             while time.time() < deadline:
-                self.read_mesh()
+                self.read_mesh(force=True)
                 links = self.mesh["obs"].get(name) or {}
                 seen = sum(1 for v in links.values() if v.get("ok"))
-                if seen >= max(1, (len(seed) - 1) // 2):
+                if seen >= (max(1, (len(seed) - 1) // 2) if len(seed) > 1 else 0):
                     break
                 time.sleep(5)
-            if seen == 0:
+            if seen == 0 and len(seed) > 1:
                 raise RuntimeError("the node joined but sees no peers yet (check UDP 52000+ is not blocked for it)")
             self.step(job, f"{seen} overlay links are up")
             self.event(f"node {name} ({host}, {role}) added to mesh, overlay {overlay}", "node", name)
@@ -520,13 +549,13 @@ class Ops(EtcdMembers):
             if c is not None:
                 c.close()
 
-    def install_agent(self, node, name: str, overlay: str, seed: dict, endpoints: List[str]) -> None:
+    def install_agent(self, node, name: str, overlay: str, seed: dict, endpoints: List[str], key_file: str = "/etc/wireguard/wgmesh.key") -> None:
         agent = (AGENT_DIR / "meshagent.py").read_text()
         routing = (Path(__file__).resolve().parent / "routing.py").read_text()
         node.put(f"{LIB}/meshagent.py", agent, "755")
         node.put(f"{LIB}/routing.py", routing)
         node.put("/etc/meshagent/nodes.json", json.dumps(seed, indent=1), "600")
-        config = {"name": name, "overlay": overlay, "key_file": "/etc/wireguard/wgmesh.key",
+        config = {"name": name, "overlay": overlay, "key_file": key_file,
                   "etcd": endpoints, "nodes_file": "/etc/meshagent/nodes.json", "routing_policy": "quality"}
         tls = (self.cfg.get("mesh") or {}).get("etcd_tls")
         if tls:
@@ -538,6 +567,10 @@ class Ops(EtcdMembers):
             for path, content in [(tls["ca_file"], ca), (tls["cert_file"], cert), (tls["key_file"], key)]:
                 node.put(path, content, "600")
             config["etcd_tls"] = tls
+        if self.standalone() and self.plane_state.get('mode') != 'resuming':
+            config['etcd'] = []
+            config['graph_file'] = '/etc/meshagent/graph.json'
+            node.put('/etc/meshagent/graph.json', '{}', '600')
         node.put("/etc/meshagent/config.json", json.dumps(config, indent=1), "600")
         node.put("/etc/systemd/system/meshagent.service", AGENT_UNIT.format(lib=LIB))
         node.run("systemctl daemon-reload && systemctl enable meshagent >/dev/null 2>&1 && systemctl restart meshagent")
@@ -547,8 +580,13 @@ class Ops(EtcdMembers):
             raise ValueError("remove the node from etcd membership first")
         if name not in self.inventory:
             raise ValueError("only nodes added from the panel can be removed here")
+        if not self.node_operation_lock.acquire(blocking=False):
+            raise ValueError("another mesh node operation is in progress")
+        if self.etcd_running or self.plane_state.get('mode') not in ('etcd', 'standalone'):
+            self.node_operation_lock.release()
+            raise ValueError('complete the current control-plane operation first')
         job = self.new_job("remove-node", f"remove node {name}")
-        threading.Thread(target=self._remove_run, args=(job, name), daemon=True).start()
+        threading.Thread(target=self._node_job, args=(self._remove_run, job, name), daemon=True).start()
         return job
 
     def _remove_run(self, job: dict, name: str) -> None:

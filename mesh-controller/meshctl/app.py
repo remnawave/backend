@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import hmac
+import hashlib
 import json
 import logging
 import os
@@ -51,6 +52,41 @@ class Ssh:
         self.pool_lock = threading.Lock()
         self.jumps = jumps or {}
         self.known_hosts = os.environ.get("MESHCTL_KNOWN_HOSTS", "/secrets/known_hosts")
+        directory = os.environ.get("MESHCTL_STATE_DIR")
+        self.trusted_hosts = Path(directory) / "known_hosts" if directory else None
+        self.trust_lock = threading.Lock()
+
+    @staticmethod
+    def fingerprint(key):
+        return "SHA256:" + base64.b64encode(hashlib.sha256(key.asbytes()).digest()).decode().rstrip("=")
+
+    def remember_host(self, hostname, key):
+        if self.trusted_hosts is None:
+            raise ValueError("Persistent controller state is required to trust a new SSH host")
+        with self.trust_lock:
+            keys = paramiko.HostKeys()
+            if self.trusted_hosts.exists():
+                keys.load(str(self.trusted_hosts))
+            keys.add(hostname, key.get_name(), key)
+            self.trusted_hosts.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            temporary = self.trusted_hosts.with_suffix(".tmp")
+            keys.save(str(temporary))
+            temporary.chmod(0o600)
+            os.replace(temporary, self.trusted_hosts)
+
+    def client(self, expected=None):
+        client = paramiko.SSHClient()
+        client.load_host_keys(self.known_hosts)
+        if self.trusted_hosts and self.trusted_hosts.exists():
+            client.load_host_keys(str(self.trusted_hosts))
+        owner = self
+        class VerifiedFingerprint(paramiko.MissingHostKeyPolicy):
+            def missing_host_key(self, ssh_client, hostname, key):
+                if not expected or not hmac.compare_digest(owner.fingerprint(key), expected):
+                    raise paramiko.SSHException("SSH host fingerprint does not match the independently verified value")
+                owner.remember_host(hostname, key)
+        client.set_missing_host_key_policy(VerifiedFingerprint() if expected else paramiko.RejectPolicy())
+        return client
 
     def run(self, host: str, user: str, cmd: str, stdin: Optional[str] = None, timeout: int = 60) -> tuple[int, str, str]:
         ident = (host, user)
@@ -62,9 +98,7 @@ class Ssh:
             if not transport or not transport.is_active():
                 if c: c.close()
                 for attempt in range(3):
-                    c = paramiko.SSHClient()
-                    c.load_host_keys(self.known_hosts)
-                    c.set_missing_host_key_policy(paramiko.RejectPolicy())
+                    c = self.client()
                     try:
                         options = {}
                         if host in self.jumps:
@@ -255,6 +289,8 @@ class Mesh(Ops):
         return set(self.cfg.get("balancer_pin_disabled", [])) | set(self.flags.get("pin_disabled", []))
 
     def save_flags(self, patch: dict) -> dict:
+        if getattr(self, 'plane_state', {}).get('mode', 'etcd') not in ('etcd', 'standalone'):
+            raise ValueError('complete the current control-plane operation before changing settings')
         with self.flags_lock:
             return self._save_flags_locked(patch)
 
@@ -284,8 +320,13 @@ class Mesh(Ops):
         self.wake.set()
         return new
 
-    def read_mesh(self) -> None:
+    def read_mesh(self, force=False) -> None:
         """Read the overlay state and the dynamic inventory from etcd (through a member)."""
+        if not force and (self.etcd_running or self.node_operation_lock.locked()):
+            return
+        if self.standalone():
+            self.load_standalone()
+            return
         flags_generation, relay_generation, control_generation = self.flags_generation, self.relay_generation, self.control_generation
         for m in self.members():
             try:
@@ -355,6 +396,8 @@ class Mesh(Ops):
 
     # ---- decisions -----------------------------------------------------
     def decide(self) -> None:
+        if self.plane_state.get('mode') in ('pausing', 'resuming', 'removed', 'tearing_down'):
+            return
         thr = self.cfg.get("ok_ratio", 0.67)
         for name, x in self.cfg["exits"].items():
             if not x.get("probe", True):
@@ -575,6 +618,16 @@ class Mesh(Ops):
     def status(self) -> dict:
         with self.lock:
             return {
+                "control_plane": {"mode": self.plane_state.get('mode', 'etcd'),
+                    "desired_members": [record['name'] for record in self.plane_state.get('desired_members', [])],
+                    "pending_cleanup": sorted((self.plane_state.get('cleanup_targets') or {}).keys())},
+                "capabilities": {
+                    "node_management": self.seed_path is not None,
+                    "membership": self.seed_path is not None and bool((self.cfg.get("mesh") or {}).get("etcd_tls")),
+                    "relay": self.rw is not None,
+                    "ip_update": self.rw is not None,
+                    "balancer": bool(self.cfg.get("balancer_uuid") or self.cfg.get("balancer_name")),
+                },
                 "cycles": self.cycles,
                 "last_cycle": self.cycle_ts,
                 "auto_balancer": bool(self.flag("auto_balancer")),
@@ -673,6 +726,11 @@ def serve(mesh: Mesh, port: int) -> None:
             except Exception:  # noqa: BLE001
                 return self._json(400, {"error": "bad json"})
             try:
+                if self.path == "/api/teardown":
+                    if data.get('confirm') != 'REMOVE_MESH':
+                        return self._json(400, {"error": "explicit full mesh removal confirmation is required"})
+                    job = mesh.start_teardown()
+                    return self._json(202, {"job": job['id']})
                 if self.path == "/api/flags":
                     return self._json(200, {"flags": mesh.save_flags(data)})
                 if self.path == "/api/nodes":              # add a node (credentials are used once, never stored)

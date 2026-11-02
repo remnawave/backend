@@ -19,13 +19,15 @@ def validate_name(name: str, taken: Iterable[str]) -> Optional[str]:
     return None
 
 
-def validate_host(host: str) -> Optional[str]:
+def validate_host(host: str, allow_private: bool = False) -> Optional[str]:
     try:
         ip = ipaddress.ip_address(host)
     except ValueError:
         return "host must be an IP address"
-    if not ip.is_global:
-        return "host must be a public IP address"
+    if ip.version != 4 or ip.is_loopback or ip.is_multicast or ip.is_unspecified or ip.is_link_local:
+        return "host must be a usable IPv4 address"
+    if not ip.is_global and not (allow_private and ip.is_private):
+        return "host must be a public IP address unless private nodes are explicitly enabled"
     return None
 
 

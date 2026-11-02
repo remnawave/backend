@@ -14,7 +14,7 @@ permissions:
 jobs:
   local-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - name: Build local node image
@@ -31,12 +31,18 @@ jobs:
         run: docker build --target backend-build -t remnawave-mesh-backend-build:local .
       - name: Real panel authentication and sidecar integration
         run: python3 mesh-controller/lab/test_panel.py
+      - name: Managed mTLS lifecycle and empty-mesh bootstrap
+        run: |
+          python3 mesh-controller/lab/prepare_managed.py
+          python3 mesh-controller/lab/test_control_plane.py
+          python3 mesh-controller/lab/test_empty_mesh.py
       - name: Clean up this lab
         if: always()
         run: |
           if test -f mesh-controller/lab/state/panel.env; then
             docker compose -p rw-mesh-lab -f mesh-controller/lab/compose.yaml \
-              -f mesh-controller/lab/compose.panel.yaml down -v --remove-orphans
+              -f mesh-controller/lab/compose.panel.yaml -f mesh-controller/lab/compose.managed.yaml \
+              -f mesh-controller/lab/compose.ui.yaml down -v --remove-orphans
           else
             docker compose -p rw-mesh-lab -f mesh-controller/lab/compose.yaml down --remove-orphans
           fi

@@ -75,3 +75,25 @@ def test_verifies_known_host_keys(monkeypatch):
     ssh.run('host','root','true')
     assert Client.created[0].known_hosts == '/secrets/known_hosts'
     assert isinstance(Client.created[0].policy, app.paramiko.RejectPolicy)
+
+
+def test_verified_fingerprint_is_required_before_saving_new_host(tmp_path, monkeypatch):
+    import base64,hashlib
+    import paramiko
+    from pathlib import Path
+    known=tmp_path/'seed';known.write_text('')
+    monkeypatch.setenv('MESHCTL_KNOWN_HOSTS',str(known))
+    monkeypatch.setenv('MESHCTL_STATE_DIR',str(tmp_path/'state'))
+    monkeypatch.setattr(app.paramiko.Ed25519Key,'from_private_key_file',lambda path:None)
+    ssh=app.Ssh('/unused')
+    key=paramiko.RSAKey.generate(2048)
+    expected='SHA256:'+base64.b64encode(hashlib.sha256(key.asbytes()).digest()).decode().rstrip('=')
+    client=ssh.client(expected)
+    client._policy.missing_host_key(client,'192.0.2.10',key)
+    assert ssh.trusted_hosts.exists()
+    assert ssh.trusted_hosts.stat().st_mode & 0o777 == 0o600
+    reloaded=ssh.client()
+    assert reloaded.get_host_keys().lookup('192.0.2.10')[key.get_name()]==key
+    wrong=ssh.client('SHA256:'+'A'*43)
+    with pytest.raises(paramiko.SSHException):wrong._policy.missing_host_key(wrong,'192.0.2.20',key)
+    assert '192.0.2.20' not in ssh.trusted_hosts.read_text()

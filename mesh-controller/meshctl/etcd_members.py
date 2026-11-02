@@ -82,6 +82,8 @@ class EtcdMembers:
         self.etcd_put('/mesh/control/etcd', record)
 
     def refresh_etcd_control(self):
+        if getattr(self, 'standalone', lambda: False)():
+            return
         if not (self.cfg.get('mesh') or {}).get('etcd_tls') or self.etcd_running:
             return
         records = self._member_records(self.etcd_rpc('/cluster/member/list', {})['members'])
@@ -97,6 +99,10 @@ class EtcdMembers:
             raise ValueError('complete the etcd mTLS migration first')
         if self.seed_path is None:
             raise ValueError('membership changes require persistent controller state')
+        if getattr(self, 'node_operation_lock', None) and self.node_operation_lock.locked():
+            raise ValueError('wait for the current mesh node operation')
+        if getattr(self, 'plane_state', {}).get('mode', 'etcd') not in ('etcd', 'standalone', 'pausing'):
+            raise ValueError('complete the current control-plane operation first')
         with self.etcd_lock:
             if self.etcd_running:
                 raise ValueError('wait for the current etcd membership change')
@@ -154,6 +160,8 @@ class EtcdMembers:
 
     def change_etcd(self,name,member,job):
         from .provision import Node
+        if getattr(self, 'plane_store', None) is not None and self.standalone():
+            return self.change_standalone_member(name, member, job)
         pending = self.control.get('operation') or {}
         if (pending.get('stage') not in (None, 'done') or pending.get('cleanup_pending')) and (
                 pending.get('name') != name or pending.get('kind') != ('add' if member else 'remove')):
@@ -163,6 +171,9 @@ class EtcdMembers:
         members=self.etcd_rpc('/cluster/member/list',{})['members']
         target=next((m for m in members if m.get('name')==name or peer in m.get('peerURLs',[])),None)
         records=self._member_records(members)
+        if not member and target and not target.get('isLearner') and sum(not row.get('isLearner') for row in members if row['ID'] != target['ID']) < 3 and getattr(self, 'plane_store', None) is not None:
+            self._health(records, require_all=False)
+            return self.pause_etcd(name, members, job)
         if member: self._health(records, require_all=False)
         op=self.control.get('operation') or {}
         if (op.get('stage')=='done' and not op.get('cleanup_pending')) or op.get('name')!=name:op={}
