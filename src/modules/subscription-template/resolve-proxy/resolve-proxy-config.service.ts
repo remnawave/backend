@@ -45,7 +45,7 @@ import {
     WsTransport,
     XHttpTransport,
 } from './interfaces';
-import { override, toNonEmptyRecord } from './utils';
+import { override, stripServerOnlyMasks, toNonEmptyRecord } from './utils';
 
 export interface IResolveProxyConfigOptions {
     subscriptionSettings: SubscriptionSettingsEntity | null;
@@ -583,9 +583,11 @@ export class ResolveProxyConfigService {
             address: address,
             port: inputHost.port,
             streamOverrides: {
-                finalMask: override(
-                    toNonEmptyRecord(inputHost.finalMask),
-                    toNonEmptyRecord(inbound.streamSettings?.finalmask),
+                finalMask: stripServerOnlyMasks(
+                    override(
+                        toNonEmptyRecord(inputHost.finalMask),
+                        toNonEmptyRecord(inbound.streamSettings?.finalmask),
+                    ),
                 ),
                 sockopt: toNonEmptyRecord(inputHost.sockoptParams),
             },
