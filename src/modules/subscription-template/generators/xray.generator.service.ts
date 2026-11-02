@@ -407,6 +407,11 @@ export class XrayGeneratorService {
         // 4.4.5: pbk (required for REALITY)
         if (opts.publicKey) {
             params.pbk = opts.publicKey;
+
+            // Mihomo: https://github.com/MetaCubeX/mihomo/pull/3199
+            if (host.clientOverrides.mihomoX25519) {
+                params['support-x25519mlkem768'] = 1;
+            }
         }
 
         // 4.4.6: sid
