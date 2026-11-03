@@ -120,6 +120,8 @@ const XMUX_FIELD_MAP: [string, string, boolean?][] = [
 
 interface RemnawaveRootConfig {
     includeHiddenHosts?: boolean;
+    // Opt in only for templates assigned to XHTTP-capable Stash clients.
+    allowStashXhttp?: boolean;
 }
 
 @Injectable()
@@ -146,6 +148,8 @@ export class MihomoGeneratorService {
             const includeHidden =
                 (yamlConfig.remnawave as RemnawaveRootConfig | undefined)?.includeHiddenHosts ??
                 false;
+            const allowStashXhttp =
+                (yamlConfig.remnawave as RemnawaveRootConfig | undefined)?.allowStashXhttp === true;
 
             const data: MihomoData = { proxies: [], rules: [] };
             const proxyRemarks: string[] = [];
@@ -156,10 +160,14 @@ export class MihomoGeneratorService {
 
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
-                if (isStash && host.transport === 'xhttp') continue;
+                if (isStash && host.transport === 'xhttp' && !allowStashXhttp) continue;
 
                 const node = this.buildProxyNode(host, isExtendedClient);
                 if (!node) continue;
+
+                if (isStash && host.transport === 'xhttp') {
+                    this.normalizeStashXhttpSni(node);
+                }
 
                 data.proxies.push(node);
                 proxyRemarks.push(host.finalRemark);
@@ -178,6 +186,24 @@ export class MihomoGeneratorService {
         if (!node) return null;
 
         return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host);
+    }
+
+    private normalizeStashXhttpSni(node: ProxyNode): void {
+        const normalize = (settings: Record<string, unknown>): void => {
+            if (settings.sni === undefined && typeof settings.servername === 'string') {
+                settings.sni = settings.servername;
+            }
+            delete settings.servername;
+        };
+
+        normalize(node);
+        const options = node['xhttp-opts'];
+        if (options && typeof options === 'object') {
+            const download = (options as Record<string, unknown>)['download-settings'];
+            if (download && typeof download === 'object') {
+                normalize(download as Record<string, unknown>);
+            }
+        }
     }
 
     private buildBaseProxyNode(

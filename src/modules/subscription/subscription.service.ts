@@ -261,7 +261,8 @@ export class SubscriptionService {
                     user.response.id,
                     false,
                     srrContext.matchedResponseType === 'XRAY_JSON' ||
-                        srrContext.matchedResponseType === 'MIHOMO',
+                        srrContext.matchedResponseType === 'MIHOMO' ||
+                        srrContext.matchedResponseType === 'STASH',
                 ),
             );
 
