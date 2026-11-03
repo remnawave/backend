@@ -61,7 +61,7 @@ export const ResponseRuleModificationsSchema = z
             .meta({
                 title: 'Subscription Template',
                 markdownDescription:
-                    'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification have higher priority than settings from External Squads.**',
+                    'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification have higher priority than settings from External Squads.**\n\nThe name may contain the `{squad}` placeholder. It is replaced with the name of the External Squad template for this type, or **Default** if the user has no squad or the squad has no template for this type. E.g. `{squad}-mobile` becomes **Premium-mobile** for a squad using the **Premium** template. If the resulting template is not found, the External Squad template (or **Default**) will be used.',
             }),
         ignoreHostXrayJsonTemplate: z.boolean().optional().meta({
             title: 'Ignore Host Xray Json Template',

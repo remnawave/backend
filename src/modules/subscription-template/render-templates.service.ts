@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { QueryBus } from '@nestjs/cqrs';
 
 import { SUBSCRIPTION_CONFIG_TYPES } from './constants/config-types';
 import { ClashGeneratorService } from './generators/clash.generator.service';
@@ -12,10 +13,12 @@ import {
     IResolveProxyConfigOptions,
     ResolveProxyConfigService,
 } from './resolve-proxy/resolve-proxy-config.service';
+import { resolveSquadTemplate } from './utils/resolve-squad-template';
 
 @Injectable()
 export class RenderTemplatesService {
     constructor(
+        private readonly queryBus: QueryBus,
         private readonly resolveProxyConfigService: ResolveProxyConfigService,
         private readonly mihomoGeneratorService: MihomoGeneratorService,
         private readonly clashGeneratorService: ClashGeneratorService,
@@ -29,6 +32,12 @@ export class RenderTemplatesService {
         subscription: string;
     }> {
         const { srrContext, user, hosts, hostsOverrides, fallbackOptions } = params;
+
+        srrContext.overrideTemplateName = await resolveSquadTemplate(
+            this.queryBus,
+            srrContext,
+            user.externalSquadUuid,
+        );
 
         const formattedHosts = await this.resolveProxyConfigService.resolveProxyConfig({
             subscriptionSettings: srrContext.subscriptionSettings,

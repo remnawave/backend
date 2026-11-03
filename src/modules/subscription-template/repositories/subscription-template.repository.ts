@@ -160,6 +160,18 @@ export class SubscriptionTemplateRepository implements ICrud<SubscriptionTemplat
         return null;
     }
 
+    public async existsByNameAndType(
+        name: string,
+        templateType: TSubscriptionTemplateType,
+    ): Promise<boolean> {
+        const result = await this.prisma.tx.subscriptionTemplate.findUnique({
+            where: { templateType_name: { templateType, name } },
+            select: { uuid: true },
+        });
+
+        return !!result;
+    }
+
     public async reorderMany(
         dto: {
             uuid: string;
