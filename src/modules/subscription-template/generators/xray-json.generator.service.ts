@@ -47,19 +47,11 @@ type TransportBuilderMap = {
 };
 const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
     vless: (host) => ({
-        vnext: [
-            {
-                address: host.address,
-                port: host.port,
-                users: [
-                    {
-                        id: host.protocolOptions.id,
-                        encryption: host.protocolOptions.encryption || 'none',
-                        flow: host.protocolOptions.flow,
-                    },
-                ],
-            },
-        ],
+        address: host.address,
+        port: host.port,
+        id: host.protocolOptions.id,
+        encryption: host.protocolOptions.encryption || 'none',
+        flow: host.protocolOptions.flow,
     }),
 
     trojan: (host) => ({
