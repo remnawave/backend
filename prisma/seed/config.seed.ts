@@ -7,7 +7,9 @@ import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import { Redis } from 'ioredis';
 
+import { configSchema } from '@common/config/app-config/config.schema';
 import { getRedisConnectionOptions } from '@common/utils';
+import { loadSecretsFromFiles } from '@common/utils/load-secrets-from-files';
 
 import {
     checkupExternalSquads,
@@ -25,6 +27,8 @@ import {
     migrateScopes,
     migrateSharedLists,
 } from './seeders';
+
+loadSecretsFromFiles(process.env, Object.keys(configSchema.shape));
 
 dayjs.extend(utc);
 dayjs.extend(relativeTime);
