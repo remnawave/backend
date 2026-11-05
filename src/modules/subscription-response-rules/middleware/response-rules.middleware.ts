@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 
 import { HttpExceptionWithErrorCodeType } from '@common/exception/http-exeception-with-error-code.type';
 import { extractHwidHeaders } from '@common/utils/extract-hwid-headers/extract-hwid-headers.util';
+import { toSafeHeaderValue } from '@common/utils/response-header-value.util';
 import { truncateHeader } from '@common/utils/truncate-header.util';
 import {
     ERRORS,
@@ -92,16 +93,16 @@ export class ResponseRulesMiddleware implements NestMiddleware {
             if (result.matchedRule && result.matchedRule.responseModifications) {
                 const mods = result.matchedRule.responseModifications;
 
-                if (mods.headers && !mods.applyHeadersToEnd) {
-                    mods.headers.forEach((header) => {
-                        res.setHeader(header.key, header.value);
+                const headers = mods.headers ? this.getSafeHeaders(mods.headers) : undefined;
+
+                if (headers && !mods.applyHeadersToEnd) {
+                    headers.forEach(([key, value]) => {
+                        res.setHeader(key, value);
                     });
                 }
 
-                if (mods.headers && mods.applyHeadersToEnd) {
-                    ssrContext.headersToApply = Object.fromEntries(
-                        mods.headers.map((header) => [header.key, header.value]),
-                    );
+                if (headers && mods.applyHeadersToEnd) {
+                    ssrContext.headersToApply = Object.fromEntries(headers);
                 }
 
                 if (mods.subscriptionTemplate) {
@@ -162,6 +163,25 @@ export class ResponseRulesMiddleware implements NestMiddleware {
         } catch (error) {
             next(error);
         }
+    }
+
+    private getSafeHeaders(headers: { key: string; value: string }[]): [string, string][] {
+        const safeHeaders: [string, string][] = [];
+
+        for (const { key, value } of headers) {
+            const safeValue = toSafeHeaderValue(key, value);
+
+            if (safeValue === null) {
+                this.logger.warn(
+                    `Skipping response rule header "${key}": value contains invalid characters`,
+                );
+                continue;
+            }
+
+            safeHeaders.push([key, safeValue]);
+        }
+
+        return safeHeaders;
     }
 
     private resolveExtendedClients(
