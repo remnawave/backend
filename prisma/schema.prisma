@@ -292,6 +292,7 @@ model Hosts {
   keepSniBlank                 Boolean  @default(false) @map("keep_sni_blank")
   excludeFromSubscriptionTypes String[] @default([]) @map("exclude_from_subscription_types")
   mapper                       Json     @default("{}") @map("mapper")
+  includeInSrrRules            String[] @default([]) @map("include_in_srr_rules")
 
   internalSquadsMode String @default("EXCLUDE") @map("internal_squads_mode") // ENUM: EXCLUDE, ALLOW_ONLY
 

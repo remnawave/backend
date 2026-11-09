@@ -72,6 +72,7 @@ export namespace CreateHostCommand {
             .optional(z.array(z.enum(SUBSCRIPTION_TEMPLATE_TYPE)))
             .describe('Optional. Subscription types from which the host will be excluded from.'),
         mapper: HostMapperSchema.optional(),
+        includeInSrrRules: z.optional(z.array(z.string())),
         internalSquads: HostInternalSquadsSchema.optional(),
     });
 
