@@ -1,6 +1,6 @@
 {
   "name": "@remnawave/backend-contract",
-  "version": "3.4.15",
+  "version": "3.4.16",
   "description": "A contract library for Remnawave Backend. It can be used in backend and frontend.",
   "keywords": [],
   "homepage": "https://github.com/remnawave",
@@ -27,7 +27,7 @@
     "prepublish": "npm run build"
   },
   "dependencies": {
-    "zod": "4.5.4"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "typescript": "5.9.3"
