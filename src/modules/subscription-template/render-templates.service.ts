@@ -37,6 +37,7 @@ export class RenderTemplatesService {
             hostsOverrides,
             fallbackOptions,
             excludeHostsByTags: srrContext.excludeHostsByTags,
+            matchedRuleName: srrContext.matchedRuleName,
         });
 
         switch (srrContext.matchedResponseType) {
@@ -117,6 +118,7 @@ export class RenderTemplatesService {
             user,
             hostsOverrides,
             fallbackOptions,
+            matchedRuleName: 'RAW',
         });
     }
 }
