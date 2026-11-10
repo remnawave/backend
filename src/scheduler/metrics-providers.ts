@@ -9,6 +9,11 @@ export const METRIC_PROVIDERS = [
         labelNames: ['node_uuid'],
     }),
     makeGaugeProvider({
+        name: METRIC_NAMES.NODE_INBOUND_ONLINE_USERS,
+        help: 'Number of online users on a node, broken down by inbound',
+        labelNames: ['node_uuid', 'tag'],
+    }),
+    makeGaugeProvider({
         name: METRIC_NAMES.NODE_STATUS,
         help: 'Node connection status (1 - connected, 0 - disconnected)',
         labelNames: ['node_uuid'],
