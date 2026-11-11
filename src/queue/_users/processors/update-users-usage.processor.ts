@@ -38,33 +38,37 @@ export class UpdateUsersUsageQueueProcessor extends WorkerHost {
     }
 
     private async handleUpdateUsersUsage(job: Job<{ u: string; b: string; n: string }[]>) {
-        try {
-            const userUsageList = job.data;
+        const userUsageList = job.data;
 
-            const updatedUsers = await this.commandBus.execute(
-                new BulkIncrementUsedTrafficCommand(userUsageList),
+        const updatedUsers = await this.commandBus.execute(
+            new BulkIncrementUsedTrafficCommand(userUsageList),
+        );
+
+        if (!updatedUsers.isOk) {
+            this.logger.error(
+                `Error handling "${USERS_JOB_NAMES.UPDATE_USERS_USAGE}" job: ${JSON.stringify(updatedUsers)}`,
             );
 
-            if (!updatedUsers.isOk) {
-                throw new Error(JSON.stringify(updatedUsers));
-            }
+            // Rethrow so BullMQ retries the job (attempts: 3): the increment is a single statement, so nothing was applied.
+            throw new Error(JSON.stringify(updatedUsers));
+        }
 
-            if (updatedUsers.response.length > 0) {
+        if (updatedUsers.response.length > 0) {
+            try {
                 await this.usersQueuesService.fireUserEventBulk({
                     users: updatedUsers.response,
                     userEvent: EVENTS.USER.FIRST_CONNECTED,
                 });
+            } catch (error) {
+                // Traffic is already applied here: retrying the job would count it twice.
+                this.logger.error(
+                    `Error handling "${USERS_JOB_NAMES.UPDATE_USERS_USAGE}" job: ${error}`,
+                );
             }
-
-            return ok({
-                affectedRows: userUsageList.length,
-            });
-        } catch (error) {
-            this.logger.error(
-                `Error handling "${USERS_JOB_NAMES.UPDATE_USERS_USAGE}" job: ${error}`,
-            );
-
-            return;
         }
+
+        return ok({
+            affectedRows: userUsageList.length,
+        });
     }
 }
