@@ -11,6 +11,7 @@ import { CommonConfigModule } from '@common/config/common-config/common-config.m
 import { PrismaModule } from '@common/database';
 import { PrismaService } from '@common/database/prisma.service';
 import { RawCacheModule } from '@common/raw-cache/raw-cache.module';
+import { RequestAuthModule } from '@common/request-auth/request-auth.module';
 import { RuntimeMetricsModule } from '@common/runtime-metrics/runtime-metrics.module';
 import { getAssetsPath } from '@common/utils/get-assets-path';
 import { disableFrontend } from '@common/utils/startup-app/is-development';
@@ -26,6 +27,7 @@ const HASHED = /-[A-Za-z0-9_-]{8,}\.[a-z0-9]+$/i;
 @Module({
     imports: [
         RawCacheModule,
+        RequestAuthModule,
         CommonConfigModule,
         PrismaModule,
         ClsModule.forRoot({

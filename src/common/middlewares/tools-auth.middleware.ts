@@ -16,7 +16,15 @@ import {
     TBackendToolsJwtScope,
 } from '@libs/contracts/constants';
 
+import { rejectRequest } from './reject-request';
+
 const logger = new Logger('ToolsAuth');
+
+const FORBIDDEN = new HttpExceptionWithErrorCodeType(
+    ERRORS.FORBIDDEN.message,
+    ERRORS.FORBIDDEN.code,
+    ERRORS.FORBIDDEN.httpCode,
+);
 
 export function toolsAuthMiddleware(appSecret: string) {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -34,30 +42,28 @@ export function toolsAuthMiddleware(appSecret: string) {
                     maxAge: BACKEND_TOOLS_JWT_LIFETIME_HOURS * 3_600_000,
                 });
 
-                logger.warn(
-                    `Tools access granted. Request: ${req.originalUrl}. IP: ${'clientIp' in req ? req.clientIp : 'unknown'}`,
-                );
-
                 const redirectUrl = new URL(req.originalUrl, 'http://localhost');
                 redirectUrl.searchParams.delete('ott');
-                res.redirect(redirectUrl.pathname + redirectUrl.search);
+
+                const toolsRoot = `${ROOT}${BACKEND_TOOLS_ROOT}/`;
+                const redirectTarget = redirectUrl.pathname.startsWith(toolsRoot)
+                    ? redirectUrl.pathname + redirectUrl.search
+                    : toolsRoot;
+
+                logger.warn(
+                    `Tools access granted. Request: ${redirectTarget}. IP: ${'clientIp' in req ? req.clientIp : 'unknown'}`,
+                );
+
+                res.redirect(redirectTarget);
 
                 return;
             } else {
-                throw new HttpExceptionWithErrorCodeType(
-                    ERRORS.FORBIDDEN.message,
-                    ERRORS.FORBIDDEN.code,
-                    ERRORS.FORBIDDEN.httpCode,
-                );
+                return rejectRequest(req, res, FORBIDDEN);
             }
         }
 
         if (!hasValidCookie(req, appSecret)) {
-            throw new HttpExceptionWithErrorCodeType(
-                ERRORS.FORBIDDEN.message,
-                ERRORS.FORBIDDEN.code,
-                ERRORS.FORBIDDEN.httpCode,
-            );
+            return rejectRequest(req, res, FORBIDDEN);
         }
 
         return next();
@@ -85,7 +91,11 @@ function getCookie(req: Request, name: string): string | null {
         const [key, ...rest] = part.trim().split('=');
 
         if (key === name) {
-            return decodeURIComponent(rest.join('='));
+            try {
+                return decodeURIComponent(rest.join('='));
+            } catch {
+                return null;
+            }
         }
     }
 
@@ -102,6 +112,7 @@ function signJwt(appSecret: string) {
 function verifyJwt(token: string, appSecret: string, scope: TBackendToolsJwtScope): boolean {
     try {
         const decoded = jwt.verify(token, appSecret, {
+            algorithms: ['HS256'],
             issuer: BACKEND_TOOLS_JWT_ISSUER,
             ignoreExpiration: false,
         });

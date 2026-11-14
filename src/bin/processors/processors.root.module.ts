@@ -11,6 +11,7 @@ import { CommonConfigModule } from '@common/config/common-config';
 import { PrismaModule } from '@common/database';
 import { PrismaService } from '@common/database/prisma.service';
 import { RawCacheModule } from '@common/raw-cache/raw-cache.module';
+import { RequestAuthModule } from '@common/request-auth/request-auth.module';
 import { RuntimeMetricsModule } from '@common/runtime-metrics/runtime-metrics.module';
 
 import { RemnawaveModules } from '@modules/remnawave-backend.modules';
@@ -18,6 +19,7 @@ import { RemnawaveModules } from '@modules/remnawave-backend.modules';
 @Module({
     imports: [
         RawCacheModule,
+        RequestAuthModule,
         AxiosModule,
         CommonConfigModule,
         PrismaModule,

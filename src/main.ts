@@ -5,14 +5,11 @@ import 'zod/compile';
 
 process.title = 'rw-api';
 
-import { BACKEND_TOOLS_ROOT, ROOT } from '@contract/api';
+import { ROOT } from '@contract/api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
-import { json, NextFunction, Request, Response } from 'express';
-import helmet from 'helmet';
-import morgan from 'morgan';
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { createLogger } from 'winston';
@@ -22,14 +19,9 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { TypedConfigService } from '@common/config/app-config/typed-config.service';
-import {
-    proxyCheckMiddleware,
-    getRealIp,
-    noRobotsMiddleware,
-    toolsAuthMiddleware,
-} from '@common/middlewares';
 import { customLogFilter } from '@common/utils/filter-logs';
-import { getDocs, isDevelopment, isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
+import { getDocs, isDevOrDebugLogsEnabled } from '@common/utils/startup-app';
+import { registerHttpPipeline } from '@common/utils/startup-app/http-pipeline';
 
 import { AppModule } from './app.module';
 
@@ -73,67 +65,18 @@ async function bootstrap(): Promise<void> {
         logger: WinstonModule.createLogger({
             instance: logger,
         }),
+        bodyParser: false,
     });
 
     app.disable('x-powered-by');
 
-    app.use(json({ limit: '100mb' }));
-
     const config = app.get(TypedConfigService);
 
-    const helmetMiddleware = helmet({
-        contentSecurityPolicy: {
-            useDefaults: true,
-            directives: {
-                'script-src': ["'self'", "'wasm-unsafe-eval'"],
-                'img-src': ["'self'", 'data:', 'https:'],
-                'connect-src': ["'self'", 'https://raw.githubusercontent.com', 'https://ungh.cc'],
-            },
-        },
-    });
-
-    app.use(getRealIp);
-
-    const backendToolsPath = `${ROOT}${BACKEND_TOOLS_ROOT}`;
-    const isBackendToolsRequest = (req: Request): boolean =>
-        req.path.toLowerCase().startsWith(backendToolsPath);
-
-    app.use(backendToolsPath, toolsAuthMiddleware(config.getOrThrow('APP_SECRET')));
-
-    if (!isDevelopment()) {
-        app.use((req: Request, res: Response, next: NextFunction) => {
-            if (isBackendToolsRequest(req)) {
-                return next();
-            }
-            return helmetMiddleware(req, res, next);
-        });
-    }
-
-    if (config.getOrThrow('IS_HTTP_LOGGING_ENABLED')) {
-        app.use(
-            morgan(
-                ':remote-addr - ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"',
-                // {
-                //     skip: (req) => req.url === ROOT + METRICS_ROOT,
-                //     stream: {
-                //         write: (message) => logger.http(message.trim()),
-                //     },
-                // },
-            ),
-        );
-    }
-
-    app.use(noRobotsMiddleware, proxyCheckMiddleware);
+    registerHttpPipeline(app);
 
     app.setGlobalPrefix(ROOT);
 
     await getDocs(app);
-
-    app.enableCors({
-        origin: isDevelopment() ? '*' : config.getOrThrow('FRONT_END_DOMAIN'),
-        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-        credentials: false,
-    });
 
     app.useGlobalPipes(new ZodValidationPipe());
 
