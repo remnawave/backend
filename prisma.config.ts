@@ -1,7 +1,30 @@
 import 'dotenv/config';
 import type { PrismaConfig } from 'prisma';
 
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
+// Docker secrets: DATABASE_URL_FILE/DIRECT_URL_FILE point to a file holding the value.
+// Inlined on purpose, only this file (not src/) is copied into the runtime image.
+for (const key of ['DATABASE_URL', 'DIRECT_URL']) {
+    const filePath = process.env[`${key}_FILE`];
+
+    if (!filePath) {
+        continue;
+    }
+
+    if (process.env[key]) {
+        throw new Error(`${key} and ${key}_FILE are both set. Remove one of them.`);
+    }
+
+    const value = readFileSync(filePath, 'utf8').replace(/(\r?\n)+$/, '');
+
+    if (!value) {
+        throw new Error(`${key}_FILE points to "${filePath}", which is empty.`);
+    }
+
+    process.env[key] = value;
+}
 
 if (!process.env.DIRECT_URL) {
     // eslint-disable-next-line no-console
