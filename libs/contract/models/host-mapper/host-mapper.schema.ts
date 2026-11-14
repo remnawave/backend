@@ -229,6 +229,7 @@ export const Base64HostMapperOperationsSchema = buildOperationsSchema({
         'sid',
         'sni',
         'spx',
+        'support-x25519mlkem768',
         'tti',
         'type',
         'vcn',
