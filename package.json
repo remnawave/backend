@@ -36,9 +36,9 @@
     "fix": "oxfmt && oxlint --fix"
   },
   "dependencies": {
-    "@bull-board/api": "9.12.0",
-    "@bull-board/express": "9.12.0",
-    "@bull-board/nestjs": "9.12.0",
+    "@bull-board/api": "9.13.1",
+    "@bull-board/express": "9.13.1",
+    "@bull-board/nestjs": "9.13.1",
     "@kastov/nestjs-prisma-kysely": "0.1.2",
     "@kastov/request-ip": "^0.0.5",
     "@kastov/uuid-color": "^0.1.0",
@@ -64,7 +64,7 @@
     "@prisma/client": "6.19.3",
     "@remnawave/hashed-set": "^0.0.4",
     "@remnawave/node-contract": "3.4.5",
-    "@scalar/nestjs-api-reference": "^1.2.35",
+    "@scalar/nestjs-api-reference": "^1.2.37",
     "@simplewebauthn/server": "^13.3.3",
     "@songkeys/nestjs-redis": "^11.0.0",
     "@stablelib/base64": "^2.0.1",
@@ -72,8 +72,8 @@
     "@willsoto/nestjs-prometheus": "^6.1.1",
     "age-encryption": "^0.3.1",
     "arctic": "^3.7.0",
-    "axios": "^1.21.0",
-    "bullmq": "6.7.2",
+    "axios": "^1.21.1",
+    "bullmq": "6.7.6",
     "chalk": "^6.0.1",
     "consola": "^3.4.2",
     "cookie-parser": "^1.4.7",
@@ -118,8 +118,8 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@rspack/cli": "^2.3.1",
-    "@rspack/core": "^2.3.1",
+    "@rspack/cli": "^2.3.2",
+    "@rspack/core": "^2.3.2",
     "@rspack/dev-server": "^2.2.2",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -139,7 +139,7 @@
     "prisma-json-types-generator": "3.6.2",
     "prisma-kysely": "2.3.0",
     "run-script-webpack-plugin": "^0.2.3",
-    "ts-checker-rspack-plugin": "^1.7.2",
+    "ts-checker-rspack-plugin": "^1.8.0",
     "typescript": "~5.9.3",
     "webpack-node-externals": "^3.0.0"
   },
