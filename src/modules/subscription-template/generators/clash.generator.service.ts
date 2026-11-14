@@ -46,7 +46,7 @@ interface ClashData {
     rules: string[];
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp', 'xdrive']);
 const UNSUPPORTED_PROTOCOLS = new Set(['hysteria', 'vless']);
 
 @Injectable()

@@ -81,6 +81,9 @@ export class XrayGeneratorService {
     }
 
     private generateLink(host: ResolvedProxyConfig): ShareLink | null {
+        // xdrive has no share link format, it only goes out in xray-json
+        if (host.transport === 'xdrive') return null;
+
         switch (host.protocol) {
             case 'vless':
                 return this.buildVlessLink(host);
