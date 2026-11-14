@@ -1,0 +1,51 @@
+name: Optional mesh Docker tests
+on:
+  pull_request:
+    paths:
+      - 'mesh-controller/**'
+      - 'src/modules/mesh/**'
+      - 'src/modules/remnawave-backend.modules.ts'
+      - 'src/common/config/app-config/config.schema.ts'
+      - 'test/mesh.test.cjs'
+      - '.github/workflows/mesh.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build local node image
+        run: docker build -t remnawave-mesh-lab:local -f mesh-controller/lab/Dockerfile mesh-controller
+      - name: Controller and routing unit tests
+        run: docker run --rm -v "$PWD/mesh-controller:/app" -w /app remnawave-mesh-lab:local python -m pytest tests -q
+      - name: Panel bridge unit tests and type check
+        run: |
+          docker run --rm -v "$PWD:/opt/app" -w /opt/app node:24.22-trixie-slim sh -c \
+            'npm ci --no-audit --no-fund && npm run migrate:generate && node --test test/mesh.test.cjs && npx tsc --noEmit'
+      - name: Real WireGuard transit and recovery
+        run: python3 mesh-controller/lab/test_lab.py
+      - name: Private network isolation and explicit relay traffic
+        run: python3 mesh-controller/lab/test_security.py
+      - name: Compile upstream API
+        run: docker build --target backend-build -t remnawave-mesh-backend-build:local .
+      - name: Real panel authentication and sidecar integration
+        run: python3 mesh-controller/lab/test_panel.py
+      - name: Managed mTLS lifecycle and empty-mesh bootstrap
+        run: |
+          python3 mesh-controller/lab/prepare_managed.py
+          python3 mesh-controller/lab/test_control_plane.py
+          python3 mesh-controller/lab/test_empty_mesh.py
+          python3 mesh-controller/lab/test_review_recovery.py
+      - name: Clean up this lab
+        if: always()
+        run: |
+          if test -f mesh-controller/lab/state/panel.env; then
+            docker compose -p rw-mesh-lab -f mesh-controller/lab/compose.yaml \
+              -f mesh-controller/lab/compose.panel.yaml -f mesh-controller/lab/compose.managed.yaml \
+              -f mesh-controller/lab/compose.ui.yaml down -v --remove-orphans
+          else
+            docker compose -p rw-mesh-lab -f mesh-controller/lab/compose.yaml down --remove-orphans
+          fi

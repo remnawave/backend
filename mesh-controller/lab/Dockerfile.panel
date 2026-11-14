@@ -1,0 +1,8 @@
+# API-only local test runtime, using the unmodified upstream backend build stage.
+# Build first: docker build --target backend-build -t remnawave-mesh-backend-build:local .
+FROM remnawave-mesh-backend-build:local
+ENV NODE_ENV=production INSTANCE_TYPE=api DISABLE_FRONTEND=true
+COPY configs /var/lib/remnawave/configs
+COPY docker-entrypoint.sh ./
+ENTRYPOINT ["sh", "docker-entrypoint.sh"]
+CMD ["node", "dist/app.js"]

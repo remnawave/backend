@@ -1,0 +1,5 @@
+overlay_net: 10.88.0.0/24
+nodes:
+  entry: {host: 192.0.2.10, user: root, underlay: 192.0.2.10, overlay: 10.88.0.1}
+  transit: {host: 192.0.2.20, user: root, underlay: 192.0.2.20, overlay: 10.88.0.2}
+  exit: {host: 192.0.2.30, user: root, underlay: 192.0.2.30, overlay: 10.88.0.3}

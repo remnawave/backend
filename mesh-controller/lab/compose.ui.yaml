@@ -1,0 +1,11 @@
+services:
+  ui:
+    depends_on: [panel]
+    image: nginx:alpine
+    ports: ["127.0.0.1:33080:80"]
+    volumes:
+      - ./state/frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [lab, browser]
+networks:
+  browser: {}
