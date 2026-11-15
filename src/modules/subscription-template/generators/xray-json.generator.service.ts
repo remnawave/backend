@@ -6,7 +6,7 @@ import type {
     TRemnawaveInjectorSelector,
 } from '@libs/contracts/models';
 
-import { applyHostMapper } from '../host-mapper';
+import { applyHostMapper, IHostMapperContext } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 import { SubscriptionTemplateService } from '../subscription-template.service';
 import {
@@ -205,6 +205,7 @@ export class XrayJsonGeneratorService {
         const {
             hosts,
             isExtendedClient,
+            mapperContext,
             overrideTemplateName,
             ignoreHostXrayJsonTemplate = false,
         } = params;
@@ -232,12 +233,17 @@ export class XrayJsonGeneratorService {
                         host,
                         hosts,
                         isExtendedClient,
+                        mapperContext,
                     );
                     if (injected) configs.push(injected);
                     continue;
                 }
 
-                const outboundConfig = this.buildOutboundConfig(host, isExtendedClient);
+                const outboundConfig = this.buildOutboundConfig(
+                    host,
+                    isExtendedClient,
+                    mapperContext,
+                );
                 if (!outboundConfig) continue;
 
                 configs.push({
@@ -258,10 +264,11 @@ export class XrayJsonGeneratorService {
     private buildOutboundConfig(
         host: ResolvedProxyConfig,
         isExtendedClient: boolean,
+        mapperContext: IHostMapperContext,
         tag = 'proxy',
     ): XrayJsonConfig | null {
         try {
-            const outbound = this.buildOutbound(host, tag);
+            const outbound = this.buildOutbound(host, tag, mapperContext);
 
             const config: XrayJsonConfig = {
                 remarks: host.finalRemark,
@@ -284,7 +291,11 @@ export class XrayJsonGeneratorService {
         }
     }
 
-    private buildOutbound(host: ResolvedProxyConfig, tag: string): Outbound {
+    private buildOutbound(
+        host: ResolvedProxyConfig,
+        tag: string,
+        mapperContext: IHostMapperContext,
+    ): Outbound {
         const outbound: Outbound = {
             tag,
             protocol: host.protocol,
@@ -300,7 +311,7 @@ export class XrayJsonGeneratorService {
             }
         }
 
-        return applyHostMapper(outbound, host.clientOverrides.mapper.xrayJson, host);
+        return applyHostMapper(outbound, host.clientOverrides.mapper.xrayJson, host, mapperContext);
     }
 
     private buildTransportEntry(host: ResolvedProxyConfig): object {
@@ -371,18 +382,21 @@ export class XrayJsonGeneratorService {
             useHostRemarkAsTag,
             useHostTagAsTag,
         }: { tagPrefix?: string; useHostRemarkAsTag?: boolean; useHostTagAsTag?: boolean },
+        mapperContext: IHostMapperContext,
     ): Outbound[] {
         if (useHostRemarkAsTag) {
-            return hosts.map((h) => this.buildOutbound(h, h.finalRemark));
+            return hosts.map((h) => this.buildOutbound(h, h.finalRemark, mapperContext));
         }
 
         if (useHostTagAsTag) {
-            return hosts.map((h) => this.buildOutbound(h, h.metadata.tags[0] || h.finalRemark));
+            return hosts.map((h) =>
+                this.buildOutbound(h, h.metadata.tags[0] || h.finalRemark, mapperContext),
+            );
         }
 
         const proxyTag = tagPrefix ?? 'proxy';
         return hosts.map((h, i) =>
-            this.buildOutbound(h, i === 0 ? proxyTag : `${proxyTag}-${i + 1}`),
+            this.buildOutbound(h, i === 0 ? proxyTag : `${proxyTag}-${i + 1}`, mapperContext),
         );
     }
 
@@ -455,13 +469,16 @@ export class XrayJsonGeneratorService {
         host: ResolvedProxyConfig,
         allHosts: ResolvedProxyConfig[],
         isExtendedClient: boolean,
+        mapperContext: IHostMapperContext,
     ): XrayJsonConfig | null {
         const { remnawave: injector, ...template } = baseTemplate;
         if (!injector) return null;
         if (!injector.injectHosts && !injector.addVirtualHostAsOutbound) return null;
 
         const injectedOutbounds = [
-            ...(injector.addVirtualHostAsOutbound ? [this.buildOutbound(host, 'proxy')] : []),
+            ...(injector.addVirtualHostAsOutbound
+                ? [this.buildOutbound(host, 'proxy', mapperContext)]
+                : []),
             ...(injector.injectHosts ?? []).flatMap((entry) => {
                 return this.buildTaggedOutbounds(
                     this.resolveHosts(entry.selector, entry.selectFrom, host, allHosts),
@@ -470,6 +487,7 @@ export class XrayJsonGeneratorService {
                         useHostRemarkAsTag: entry.useHostRemarkAsTag,
                         useHostTagAsTag: entry.useHostTagAsTag,
                     },
+                    mapperContext,
                 );
             }),
         ];

@@ -5,7 +5,7 @@ import {
     RESPONSE_RULES_RESPONSE_TYPES,
     RESPONSE_RULES_RESPONSE_TYPES_DESCRIPTION,
 } from '../../constants';
-import { ResponseRuleConditionSchema } from './response-rule-condition.schema';
+import { ResponseRuleConditionNodeSchema } from './response-rule-condition.schema';
 import { ResponseRuleModificationsSchema } from './response-rule-modifications.schema';
 import {
     EXAMPLES_SRR_BLANK_RULE,
@@ -39,10 +39,10 @@ export const ResponseRuleSchemaBase = z.object({
     operator: z.enum(RESPONSE_RULES_OPERATORS).meta({
         markdownDescription: 'Operator to use for combining conditions in the rule.',
     }),
-    conditions: z.array(ResponseRuleConditionSchema).meta({
+    conditions: z.array(ResponseRuleConditionNodeSchema).meta({
         title: 'Conditions',
         markdownDescription:
-            'Array of conditions to check against the request headers. Conditions are applied with **operator**. If conditions are empty, the rule will be matched.',
+            'Array of conditions and condition groups to check against the request headers. Conditions are applied with **operator**. If conditions are empty, the rule will be matched.',
     }),
     responseType: z.enum(RESPONSE_RULES_RESPONSE_TYPES).meta({
         errorMessage: 'Invalid response type. Please select a valid response type.',

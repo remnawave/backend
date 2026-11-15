@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { THostMapperOperation } from '@libs/contracts/models';
 
-import { applyHostMapper } from '../host-mapper';
+import { applyHostMapper, IHostMapperContext } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 interface ShareLink {
@@ -48,9 +48,10 @@ export class XrayGeneratorService {
         hosts: ResolvedProxyConfig[],
         isBase64: boolean,
         isExtendedClient: boolean,
+        mapperContext: IHostMapperContext,
     ): Promise<string> {
         try {
-            const links = this.generateLinks(hosts, isExtendedClient);
+            const links = this.generateLinks(hosts, isExtendedClient, mapperContext);
             const joined = links.join('\n');
             return isBase64 ? Buffer.from(joined).toString('base64') : joined;
         } catch (error) {
@@ -59,7 +60,11 @@ export class XrayGeneratorService {
         }
     }
 
-    public generateLinks(hosts: ResolvedProxyConfig[], isExtendedClient: boolean): string[] {
+    public generateLinks(
+        hosts: ResolvedProxyConfig[],
+        isExtendedClient: boolean,
+        mapperContext: IHostMapperContext,
+    ): string[] {
         const links: string[] = [];
 
         for (const host of hosts) {
@@ -68,7 +73,7 @@ export class XrayGeneratorService {
             const shareLink = this.generateLink(host);
             if (!shareLink) continue;
 
-            const link = this.serializeLink(this.applyBase64Mapper(shareLink, host));
+            const link = this.serializeLink(this.applyBase64Mapper(shareLink, host, mapperContext));
 
             if (isExtendedClient && host.clientOverrides.serverDescription) {
                 links.push(`${link}?serverDescription=${host.clientOverrides.serverDescription}`);
@@ -425,7 +430,11 @@ export class XrayGeneratorService {
         }
     }
 
-    private applyBase64Mapper(link: ShareLink, host: ResolvedProxyConfig): ShareLink {
+    private applyBase64Mapper(
+        link: ShareLink,
+        host: ResolvedProxyConfig,
+        mapperContext: IHostMapperContext,
+    ): ShareLink {
         const operations = host.clientOverrides.mapper.base64;
 
         if (!operations || !operations.length) return link;
@@ -446,9 +455,9 @@ export class XrayGeneratorService {
             linkOperations.push({ ...operation, to: target });
         }
 
-        const mapped = applyHostMapper(link, linkOperations, host, true);
+        const mapped = applyHostMapper(link, linkOperations, host, mapperContext, true);
 
-        mapped.params = applyHostMapper(link.params, queryOperations, host, true);
+        mapped.params = applyHostMapper(link.params, queryOperations, host, mapperContext, true);
 
         return this.sanitizeLink(mapped, link);
     }

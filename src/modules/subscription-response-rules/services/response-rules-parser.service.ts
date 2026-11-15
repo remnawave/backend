@@ -4,7 +4,9 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { ResponseRulesConfigSchema } from '@libs/contracts/models';
 
-import { TResponseRulesConfig } from '../types/response-rules.types';
+import { TResponseRuleConditionNode, TResponseRulesConfig } from '../types/response-rules.types';
+
+const MAX_CONDITION_GROUP_DEPTH = 3;
 
 @Injectable()
 export class ResponseRulesParserService {
@@ -47,15 +49,7 @@ export class ResponseRulesParserService {
 
     private validateRules(config: TResponseRulesConfig): void {
         for (const rule of config.rules) {
-            for (const condition of rule.conditions) {
-                if (condition.operator === 'REGEX' || condition.operator === 'NOT_REGEX') {
-                    try {
-                        new RegExp(condition.value);
-                    } catch {
-                        throw new Error(`Invalid regex in rule "${rule.name}": ${condition.value}`);
-                    }
-                }
-            }
+            this.validateConditions(rule.name, rule.conditions, 0);
 
             if (
                 rule.responseModifications &&
@@ -67,6 +61,55 @@ export class ResponseRulesParserService {
                     } catch {
                         throw new Error(`Invalid regex in rule "${rule.name}": ${regex}`);
                     }
+                }
+            }
+        }
+    }
+
+    private validateConditions(
+        ruleName: string,
+        nodes: TResponseRuleConditionNode[],
+        depth: number,
+    ): void {
+        for (const node of nodes) {
+            if ('conditions' in node) {
+                if (depth >= MAX_CONDITION_GROUP_DEPTH) {
+                    throw new Error(
+                        `Condition groups in rule "${ruleName}" are nested deeper than ${MAX_CONDITION_GROUP_DEPTH} levels`,
+                    );
+                }
+
+                this.validateConditions(ruleName, node.conditions, depth + 1);
+                continue;
+            }
+
+            if (node.operator === 'REGEX' || node.operator === 'NOT_REGEX') {
+                const patterns = Array.isArray(node.value) ? node.value : [node.value];
+
+                for (const pattern of patterns) {
+                    try {
+                        new RegExp(pattern);
+                    } catch {
+                        throw new Error(`Invalid regex in rule "${ruleName}": ${pattern}`);
+                    }
+                }
+            }
+
+            if ('versionPattern' in node && node.versionPattern) {
+                let groups: number;
+
+                try {
+                    groups = new RegExp(`${node.versionPattern}|`).exec('')!.length - 1;
+                } catch {
+                    throw new Error(
+                        `Invalid version pattern in rule "${ruleName}": ${node.versionPattern}`,
+                    );
+                }
+
+                if (groups < 1) {
+                    throw new Error(
+                        `Version pattern in rule "${ruleName}" has no capture group: ${node.versionPattern}`,
+                    );
                 }
             }
         }

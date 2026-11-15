@@ -5,7 +5,7 @@ import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
-import { applyHostMapper } from '../host-mapper';
+import { applyHostMapper, IHostMapperContext } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 /**
@@ -114,6 +114,7 @@ export class SingBoxGeneratorService {
 
     public async generateConfig(
         hosts: ResolvedProxyConfig[],
+        mapperContext: IHostMapperContext,
         overrideTemplateName?: string,
     ): Promise<string> {
         try {
@@ -128,7 +129,7 @@ export class SingBoxGeneratorService {
                 if (host.metadata.excludeFromSubscriptionTypes.includes('SINGBOX')) continue;
                 if (UNSUPPORTED_TRANSPORTS.has(host.transport)) continue;
 
-                const outbound = this.buildOutbound(host);
+                const outbound = this.buildOutbound(host, mapperContext);
                 if (!outbound) continue;
 
                 userOutbounds.push(outbound);
@@ -141,13 +142,21 @@ export class SingBoxGeneratorService {
         }
     }
 
-    private buildOutbound(host: ResolvedProxyConfig): null | OutboundConfig {
+    private buildOutbound(
+        host: ResolvedProxyConfig,
+        mapperContext: IHostMapperContext,
+    ): null | OutboundConfig {
         try {
             const outbound = this.buildBaseOutbound(host);
 
             if (!outbound) return null;
 
-            return applyHostMapper(outbound, host.clientOverrides.mapper.singbox, host);
+            return applyHostMapper(
+                outbound,
+                host.clientOverrides.mapper.singbox,
+                host,
+                mapperContext,
+            );
         } catch {
             return null;
         }

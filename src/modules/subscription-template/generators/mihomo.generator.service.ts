@@ -8,7 +8,7 @@ import { FINGERPRINTS } from '@libs/contracts/constants';
 
 import { SubscriptionTemplateService } from '@modules/subscription-template/subscription-template.service';
 
-import { applyHostMapper } from '../host-mapper';
+import { applyHostMapper, IHostMapperContext } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 export interface MihomoData {
@@ -130,6 +130,7 @@ export class MihomoGeneratorService {
 
     public async generateConfig(
         hosts: ResolvedProxyConfig[],
+        mapperContext: IHostMapperContext,
         isStash = false,
         isExtendedClient = false,
         overrideTemplateName?: string,
@@ -158,7 +159,7 @@ export class MihomoGeneratorService {
                 if (UNSUPPORTED_PROTOCOLS.has(host.protocol)) continue;
                 if (isStash && host.transport === 'xhttp') continue;
 
-                const node = this.buildProxyNode(host, isExtendedClient);
+                const node = this.buildProxyNode(host, isExtendedClient, mapperContext);
                 if (!node) continue;
 
                 data.proxies.push(node);
@@ -172,12 +173,16 @@ export class MihomoGeneratorService {
         }
     }
 
-    private buildProxyNode(host: ResolvedProxyConfig, isExtendedClient: boolean): ProxyNode | null {
+    private buildProxyNode(
+        host: ResolvedProxyConfig,
+        isExtendedClient: boolean,
+        mapperContext: IHostMapperContext,
+    ): ProxyNode | null {
         const node = this.buildBaseProxyNode(host, isExtendedClient);
 
         if (!node) return null;
 
-        return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host);
+        return applyHostMapper(node, host.clientOverrides.mapper.mihomo, host, mapperContext);
     }
 
     private buildBaseProxyNode(

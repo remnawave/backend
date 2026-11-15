@@ -1,10 +1,11 @@
-import { cloneDeep, get, sample, set, toPath, unset } from 'lodash';
+import { cloneDeep, get, isEqual, sample, set, toPath, unset } from 'lodash';
 
-import { THostMapperOperation } from '@libs/contracts/models';
+import { THostMapperMatch, THostMapperOperation, THostMapperWhen } from '@libs/contracts/models';
 
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
 const HOST_SOURCE_PREFIX = '$host.';
+const SELF_SOURCE_PREFIX = '$self.';
 
 const HOST_ALLOWED_PATHS = [
     'address',
@@ -25,7 +26,11 @@ const HOST_ALLOWED_PATHS = [
     'transportOptions',
 ].map((path) => toPath(path));
 
-interface CopySource {
+export interface IHostMapperContext {
+    srrRuleName?: string;
+}
+
+interface ValueSource {
     path: string[];
     root: object;
 }
@@ -52,7 +57,7 @@ function isAllowedHostPath(segments: string[]): boolean {
     );
 }
 
-function resolveCopySource(from: string, host: ResolvedProxyConfig): CopySource | null {
+function resolveInputSource(from: string, host: ResolvedProxyConfig): ValueSource | null {
     if (!from.startsWith(HOST_SOURCE_PREFIX)) {
         const rawInbound = host.metadata.rawInbound;
 
@@ -68,10 +73,81 @@ function resolveCopySource(from: string, host: ResolvedProxyConfig): CopySource 
     return { root: host, path: segments };
 }
 
+function resolveSource(
+    path: string,
+    host: ResolvedProxyConfig,
+    self: object,
+    flatTargets: boolean,
+): ValueSource | null {
+    if (!path.startsWith(SELF_SOURCE_PREFIX)) return resolveInputSource(path, host);
+
+    const selfPath = path.slice(SELF_SOURCE_PREFIX.length);
+
+    if (!selfPath) return null;
+
+    return { root: self, path: flatTargets ? [selfPath] : toPath(selfPath) };
+}
+
+function matchesField(
+    match: THostMapperMatch,
+    host: ResolvedProxyConfig,
+    self: object,
+    flatTargets: boolean,
+): boolean {
+    const source = resolveSource(match.path, host, self, flatTargets);
+
+    if (!source) return false;
+
+    const value: unknown = get(source.root, source.path);
+
+    if ('exists' in match) {
+        return (value !== undefined && value !== null) === match.exists;
+    }
+
+    if ('equals' in match) {
+        return isEqual(value, match.equals);
+    }
+
+    if ('in' in match) {
+        return match.in.some((candidate) => isEqual(value, candidate));
+    }
+
+    if (Array.isArray(value)) {
+        return value.some((item) => isEqual(item, match.contains));
+    }
+
+    if (typeof value === 'string' && typeof match.contains === 'string') {
+        return value.includes(match.contains);
+    }
+
+    return false;
+}
+
+function matchesWhen(
+    when: THostMapperWhen | undefined,
+    context: IHostMapperContext,
+    host: ResolvedProxyConfig,
+    self: object,
+    flatTargets: boolean,
+): boolean {
+    if (!when) return true;
+
+    if (when.srrRule) {
+        if (!context.srrRuleName || !when.srrRule.includes(context.srrRuleName)) return false;
+    }
+
+    if (when.match) {
+        return when.match.every((match) => matchesField(match, host, self, flatTargets));
+    }
+
+    return true;
+}
+
 export function applyHostMapper<T extends object>(
     target: T,
     operations: THostMapperOperation[] | undefined,
     host: ResolvedProxyConfig,
+    context: IHostMapperContext,
     flatTargets = false,
 ): T {
     if (!operations || !operations.length) return target;
@@ -80,6 +156,8 @@ export function applyHostMapper<T extends object>(
 
     for (const operation of operations) {
         try {
+            if (!matchesWhen(operation.when, context, host, result, flatTargets)) continue;
+
             const to = flatTargets ? [operation.to] : operation.to;
 
             if (!flatTargets && isBlockedByPrimitive(result, operation.to)) {
@@ -88,7 +166,7 @@ export function applyHostMapper<T extends object>(
 
             switch (operation.op) {
                 case 'copy': {
-                    const source = resolveCopySource(operation.from, host);
+                    const source = resolveSource(operation.from, host, result, flatTargets);
 
                     if (!source) continue;
 

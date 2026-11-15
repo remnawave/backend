@@ -522,7 +522,7 @@ export class SubscriptionService {
                     hostsOverrides,
                 });
 
-                xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false);
+                xrayLinks = this.xrayGeneratorService.generateLinks(formattedHosts, false, {});
             }
 
             return ok(await this.getUserInfo(userEntity, xrayLinks, ssConfLinks));
@@ -1040,9 +1040,17 @@ export class SubscriptionService {
 
             return ok(
                 new ConnectionKeysResponseModel({
-                    enabledKeys: this.xrayGeneratorService.generateLinks(formattedEnabled, false),
-                    disabledKeys: this.xrayGeneratorService.generateLinks(formattedDisabled, false),
-                    hiddenKeys: this.xrayGeneratorService.generateLinks(formattedHidden, false),
+                    enabledKeys: this.xrayGeneratorService.generateLinks(
+                        formattedEnabled,
+                        false,
+                        {},
+                    ),
+                    disabledKeys: this.xrayGeneratorService.generateLinks(
+                        formattedDisabled,
+                        false,
+                        {},
+                    ),
+                    hiddenKeys: this.xrayGeneratorService.generateLinks(formattedHidden, false, {}),
                 }),
             );
         } catch (error) {

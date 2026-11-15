@@ -1,5 +1,6 @@
 import type { TRemnawaveInjector } from '@libs/contracts/models';
 
+import { IHostMapperContext } from '@modules/subscription-template/host-mapper';
 import { ResolvedProxyConfig } from '@modules/subscription-template/resolve-proxy/interfaces';
 
 export interface StreamSettings {
@@ -62,6 +63,7 @@ export interface XrayJsonConfig {
 export interface IGenerateConfigParams {
     hosts: ResolvedProxyConfig[];
     isExtendedClient: boolean;
+    mapperContext: IHostMapperContext;
     overrideTemplateName?: string;
     ignoreHostXrayJsonTemplate?: boolean;
 }

@@ -6,6 +6,7 @@ import { MihomoGeneratorService } from './generators/mihomo.generator.service';
 import { SingBoxGeneratorService } from './generators/singbox.generator.service';
 import { XrayJsonGeneratorService } from './generators/xray-json.generator.service';
 import { XrayGeneratorService } from './generators/xray.generator.service';
+import { IHostMapperContext } from './host-mapper';
 import { IGenerateSubscription } from './interfaces';
 import { ResolvedProxyConfig } from './resolve-proxy/interfaces';
 import {
@@ -40,6 +41,8 @@ export class RenderTemplatesService {
             matchedRuleName: srrContext.matchedRuleName,
         });
 
+        const mapperContext: IHostMapperContext = { srrRuleName: srrContext.matchedRuleName };
+
         switch (srrContext.matchedResponseType) {
             case 'XRAY_BASE64':
                 return {
@@ -47,6 +50,7 @@ export class RenderTemplatesService {
                         formattedHosts,
                         SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].isBase64,
                         srrContext.isExtendedClient,
+                        mapperContext,
                     ),
                     contentType: SUBSCRIPTION_CONFIG_TYPES['XRAY_BASE64'].CONTENT_TYPE,
                 };
@@ -64,6 +68,7 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.mihomoGeneratorService.generateConfig(
                         formattedHosts,
+                        mapperContext,
                         false,
                         srrContext.isExtendedClient,
                         srrContext.overrideTemplateName,
@@ -75,6 +80,7 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.singBoxGeneratorService.generateConfig(
                         formattedHosts,
+                        mapperContext,
                         srrContext.overrideTemplateName,
                     ),
                     contentType: SUBSCRIPTION_CONFIG_TYPES['SINGBOX'].CONTENT_TYPE,
@@ -84,6 +90,7 @@ export class RenderTemplatesService {
                 return {
                     subscription: await this.mihomoGeneratorService.generateConfig(
                         formattedHosts,
+                        mapperContext,
                         true,
                         false,
                         srrContext.overrideTemplateName,
@@ -96,6 +103,7 @@ export class RenderTemplatesService {
                     subscription: await this.xrayJsonGeneratorService.generateConfig({
                         hosts: formattedHosts,
                         isExtendedClient: srrContext.isExtendedClient,
+                        mapperContext,
                         overrideTemplateName: srrContext.overrideTemplateName,
                         ignoreHostXrayJsonTemplate: srrContext.ignoreHostXrayJsonTemplate,
                     }),

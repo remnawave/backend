@@ -16,6 +16,8 @@ const buildFromSchema = () =>
                 '',
                 '`address`, `port`, `finalRemark`, `protocol`, `transport`, `security`, `protocolOptions`, `transportOptions`, `securityOptions`, `mux`, `streamOverrides.finalMask`, `streamOverrides.sockopt`, `clientOverrides.serverDescription`, `metadata.remark`, `metadata.tags`, `metadata.inboundTag`',
                 '',
+                'With a `$self.` prefix the value is read from the **generated config** itself, including everything earlier operations wrote. In Base64 that is the query string, or the link itself for operations with a `$link.` target.',
+                '',
                 '> If the path resolves to nothing – or points outside the list above – the operation is skipped and the target key is **not** created.',
             ].join('\n'),
             examples: [
@@ -26,6 +28,8 @@ const buildFromSchema = () =>
                 '$host.securityOptions.serverName',
                 '$host.transportOptions.path',
                 '$host.mux.smux',
+                '$self.tls.server_name',
+                '$self.sni',
             ],
         });
 
@@ -45,6 +49,122 @@ const buildToSchema = (client: { examples: string[]; target: string }) =>
             ].join('\n'),
             examples: client.examples,
         });
+
+const buildMatchPathSchema = () =>
+    z
+        .string()
+        .min(1)
+        .max(512)
+        .meta({
+            title: 'Path',
+            markdownDescription: [
+                'The value to check. Without a prefix it is read from the **raw inbound**, with `$host.` from the **host** – the same paths `copy` accepts.',
+                '',
+                'With `$self.` it is read from the **generated config**, including everything earlier operations wrote. In Base64 that is the query string, or the link itself for operations with a `$link.` target.',
+                '',
+                '> A path outside the readable part of the host never satisfies the condition, not even `exists: false`.',
+            ].join('\n'),
+            examples: [
+                '$host.security',
+                '$host.transport',
+                '$host.metadata.tags',
+                '$self.tls.utls',
+                'streamSettings.realitySettings.serverNames',
+            ],
+        });
+
+const MatchScalarSchema = z.union([z.string(), z.number(), z.boolean()]);
+
+const HostMapperMatchSchema = z
+    .union([
+        z
+            .strictObject({
+                path: buildMatchPathSchema(),
+                equals: MatchScalarSchema.meta({
+                    title: 'Equals',
+                    markdownDescription: 'The value must be exactly this.',
+                }),
+            })
+            .meta({ title: 'Equals' }),
+        z
+            .strictObject({
+                path: buildMatchPathSchema(),
+                in: z.array(MatchScalarSchema).min(1).meta({
+                    title: 'In',
+                    markdownDescription: 'The value must be one of these.',
+                }),
+            })
+            .meta({ title: 'In' }),
+        z
+            .strictObject({
+                path: buildMatchPathSchema(),
+                contains: MatchScalarSchema.meta({
+                    title: 'Contains',
+                    markdownDescription:
+                        'An array must hold this item. A string must contain this substring.',
+                }),
+            })
+            .meta({ title: 'Contains' }),
+        z
+            .strictObject({
+                path: buildMatchPathSchema(),
+                exists: z.boolean().meta({
+                    title: 'Exists',
+                    markdownDescription:
+                        '`true` – the value is present. `false` – it is missing or `null`.',
+                }),
+            })
+            .meta({ title: 'Exists' }),
+    ])
+    .meta({
+        title: 'Field condition',
+        markdownDescription:
+            'A path and exactly one check: `equals`, `in`, `contains` or `exists`.',
+    });
+
+const HostMapperWhenSchema = z
+    .object({
+        srrRule: z
+            .array(z.string().min(1).max(255))
+            .min(1)
+            .optional()
+            .meta({
+                title: 'SRR rule',
+                markdownDescription: [
+                    'Names of Subscription Response Rules. The operation runs only when the request was matched by one of them.',
+                    '',
+                    'Requests matched by no rule never satisfy this condition. The raw subscription endpoint is matched as `RAW`.',
+                    '',
+                    '> Rules are referenced by name – renaming a rule silently disables the condition.',
+                ].join('\n'),
+                examples: [['Happ', 'Streisand']],
+            }),
+        match: z.array(HostMapperMatchSchema).min(1).max(20).optional().meta({
+            title: 'Field conditions',
+            markdownDescription:
+                'Checks on the host, the raw inbound or the generated config. All of them must pass.',
+        }),
+    })
+    .meta({
+        title: 'Condition',
+        markdownDescription: [
+            'The operation runs only when every listed condition is met. Without `when` it always runs.',
+            '',
+            '```json',
+            JSON.stringify(
+                {
+                    srrRule: ['Happ'],
+                    match: [
+                        { path: '$host.security', in: ['reality', 'tls'] },
+                        { path: '$host.metadata.tags', contains: 'cdn' },
+                    ],
+                },
+                null,
+                2,
+            ),
+            '```',
+        ].join('\n'),
+    });
 
 const buildValueSchema = () =>
     z.union([
@@ -69,15 +189,17 @@ const buildOperationsSchema = (client: {
                 .object({
                     op: z.literal('copy').meta({
                         title: 'Copy',
-                        markdownDescription: 'Take a value from the raw inbound.',
+                        markdownDescription:
+                            'Take a value from the raw inbound, the host or the generated config.',
                     }),
                     from: buildFromSchema(),
                     to: buildToSchema(client),
+                    when: HostMapperWhenSchema.optional(),
                 })
                 .meta({
-                    title: 'Copy from the inbound',
+                    title: 'Copy a value',
                     markdownDescription: [
-                        'Reads a value from the raw inbound and writes it into the generated config.',
+                        'Reads a value from the raw inbound, the host (`$host.`) or the generated config itself (`$self.`) and writes it into the generated config.',
                         '',
                         '```json',
                         JSON.stringify({ op: 'copy', ...client.copySnippet }, null, 2),
@@ -86,7 +208,7 @@ const buildOperationsSchema = (client: {
                     defaultSnippets: [
                         {
                             label: 'copy',
-                            description: 'Copy a value from the raw inbound',
+                            description: 'Copy a value from the inbound, the host or the config',
                             body: { op: 'copy', from: '$1', to: '$2' },
                         },
                     ],
@@ -105,6 +227,7 @@ const buildOperationsSchema = (client: {
                     }),
 
                     to: buildToSchema(client),
+                    when: HostMapperWhenSchema.optional(),
                 })
                 .meta({
                     title: 'Set a fixed value',
@@ -137,6 +260,7 @@ const buildOperationsSchema = (client: {
                     }),
 
                     to: buildToSchema(client),
+                    when: HostMapperWhenSchema.optional(),
                 })
                 .meta({
                     title: 'Pick a random value',
@@ -163,6 +287,7 @@ const buildOperationsSchema = (client: {
                         markdownDescription: 'Remove a field.',
                     }),
                     to: buildToSchema(client),
+                    when: HostMapperWhenSchema.optional(),
                 })
                 .meta({
                     title: 'Remove a field',
@@ -384,7 +509,7 @@ export const HostMapperSchema = z
             '',
             'Operations run **after** the generator has finished, so they can change or remove anything it produced.',
             '',
-            'The source for `copy` is the raw inbound of the config profile this host belongs to, or the host itself when the path starts with `$host.`.',
+            'The source for `copy` is the raw inbound of the config profile this host belongs to, the host itself when the path starts with `$host.`, or the generated config when it starts with `$self.`.',
             '',
             '> `to` is never checked against the target client. A misspelled key is written exactly like a real one.',
         ].join('\n'),
@@ -392,3 +517,5 @@ export const HostMapperSchema = z
 
 export type THostMapper = z.infer<typeof HostMapperSchema>;
 export type THostMapperOperation = z.infer<typeof HostMapperOperationsSchema>;
+export type THostMapperWhen = z.infer<typeof HostMapperWhenSchema>;
+export type THostMapperMatch = z.infer<typeof HostMapperMatchSchema>;

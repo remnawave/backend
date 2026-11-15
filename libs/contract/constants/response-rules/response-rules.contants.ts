@@ -13,7 +13,7 @@ export const RESPONSE_RULE_CONDITION_TYPES = {
     HEADER: 'HEADER',
 } as const;
 
-export const RESPONSE_RULES_CONDITION_OPERATORS = {
+export const RESPONSE_RULES_STRING_CONDITION_OPERATORS = {
     EQUALS: 'EQUALS',
     NOT_EQUALS: 'NOT_EQUALS',
     CONTAINS: 'CONTAINS',
@@ -24,6 +24,25 @@ export const RESPONSE_RULES_CONDITION_OPERATORS = {
     NOT_ENDS_WITH: 'NOT_ENDS_WITH',
     REGEX: 'REGEX',
     NOT_REGEX: 'NOT_REGEX',
+} as const;
+
+export const RESPONSE_RULES_VERSION_CONDITION_OPERATORS = {
+    VERSION_EQ: 'VERSION_EQ',
+    VERSION_GT: 'VERSION_GT',
+    VERSION_GTE: 'VERSION_GTE',
+    VERSION_LT: 'VERSION_LT',
+    VERSION_LTE: 'VERSION_LTE',
+} as const;
+
+export const RESPONSE_RULES_PRESENCE_CONDITION_OPERATORS = {
+    EXISTS: 'EXISTS',
+    NOT_EXISTS: 'NOT_EXISTS',
+} as const;
+
+export const RESPONSE_RULES_CONDITION_OPERATORS = {
+    ...RESPONSE_RULES_STRING_CONDITION_OPERATORS,
+    ...RESPONSE_RULES_VERSION_CONDITION_OPERATORS,
+    ...RESPONSE_RULES_PRESENCE_CONDITION_OPERATORS,
 } as const;
 
 export const RESPONSE_RULES_RESPONSE_TYPES = {
@@ -93,4 +112,17 @@ export const RESPONSE_RULES_CONDITION_OPERATORS_DESCRIPTION = {
         'Evaluates if the header value matches the specified regular expression pattern. `regex.test()`',
     [RESPONSE_RULES_CONDITION_OPERATORS.NOT_REGEX]:
         'Evaluates if the header value does not match the specified regular expression pattern. `!regex.test()`',
+    [RESPONSE_RULES_CONDITION_OPERATORS.VERSION_EQ]:
+        'The version taken from the header is **equal** to the specified version. `1.4` and `1.4.0` are equal.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.VERSION_GT]:
+        'The version taken from the header is **greater** than the specified version.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.VERSION_GTE]:
+        'The version taken from the header is **greater than or equal** to the specified version.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.VERSION_LT]:
+        'The version taken from the header is **less** than the specified version.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.VERSION_LTE]:
+        'The version taken from the header is **less than or equal** to the specified version.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.EXISTS]:
+        'The header is **present** in the request, even with an empty value.',
+    [RESPONSE_RULES_CONDITION_OPERATORS.NOT_EXISTS]: 'The header is **missing** from the request.',
 } as const;
