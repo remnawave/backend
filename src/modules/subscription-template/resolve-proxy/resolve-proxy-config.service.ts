@@ -6,6 +6,7 @@ import {
     HysteriaConfig,
     InboundConfig,
     KCPConfig,
+    MasqueConfig,
     SplitHTTPConfig,
     StreamSettingsConfig,
     TCPConfig,
@@ -37,6 +38,7 @@ import {
     HttpUpgradeTransport,
     HysteriaTransport,
     KcpTransport,
+    MasqueTransport,
     ProtocolVariant,
     ResolvedProxyConfig,
     SecurityVariant,
@@ -203,6 +205,7 @@ export class ResolveProxyConfigService {
         inputHost: HostWithRawInbound,
         protocol: ProtocolVariant,
         authOptions: {
+            userId: string;
             vlessUuid: string;
         },
     ): TransportVariant {
@@ -239,6 +242,8 @@ export class ResolveProxyConfigService {
                     protocol,
                     inputHost.vlessRouteId,
                 );
+            case 'masque':
+                return this.resolveMasque(streamSettings.masqueSettings, inputHost, authOptions);
             default:
                 return {
                     transport: 'tcp',
@@ -247,6 +252,24 @@ export class ResolveProxyConfigService {
                     },
                 };
         }
+    }
+
+    private resolveMasque(
+        settings: MasqueConfig | undefined,
+        inputHost: HostWithRawInbound,
+        authOptions: { userId: string; vlessUuid: string },
+    ): MasqueTransport {
+        return {
+            transport: 'masque',
+            transportOptions: {
+                host:
+                    this.resolveRandomizedValue(override(inputHost.host, settings?.host) ?? '') ||
+                    null,
+                path: override(inputHost.path, settings?.path),
+                user: authOptions.userId,
+                pass: authOptions.vlessUuid,
+            },
+        };
     }
 
     private resolveXhttp(
@@ -551,6 +574,11 @@ export class ResolveProxyConfigService {
                         version: 2,
                     },
                 };
+            case 'masque':
+                return {
+                    protocol: 'masque',
+                    protocolOptions: {},
+                };
             default:
                 return null;
         }
@@ -581,6 +609,7 @@ export class ResolveProxyConfigService {
         }
 
         const transport = this.resolveTransport(inbound.streamSettings, inputHost, protocol, {
+            userId: user.id.toString(),
             vlessUuid: user.vlessUuid,
         });
 
@@ -592,6 +621,10 @@ export class ResolveProxyConfigService {
             ctx.mldsa65PublicKeyMap,
             address,
         );
+
+        if (protocol.protocol === 'masque' && security.security !== 'tls') {
+            return null;
+        }
 
         return {
             finalRemark: finalRemark,

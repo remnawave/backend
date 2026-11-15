@@ -2,6 +2,7 @@ import { hasher } from 'node-object-hash';
 import {
     BalancingRule,
     InboundConfig,
+    MasqueInboundConfig,
     RoutingRule,
     ShadowsocksInboundConfig,
     sortXrayConfig,
@@ -25,13 +26,18 @@ import {
     SHADOWSOCKS_METHODS,
 } from './ss-cipher';
 
-const MANAGED_CLIENT_PROTOCOLS = new Set(['hysteria', 'shadowsocks', 'trojan', 'vless']);
-type ManagedInboundSettings = VLessInboundConfig | TrojanInboundConfig | ShadowsocksInboundConfig;
+const MANAGED_CLIENT_PROTOCOLS = new Set(['hysteria', 'masque', 'shadowsocks', 'trojan', 'vless']);
+type ManagedInboundSettings =
+    | MasqueInboundConfig
+    | ShadowsocksInboundConfig
+    | TrojanInboundConfig
+    | VLessInboundConfig;
 
 const ALLOWED_PROTOCOLS = new Set([
     'dokodemo-door',
     'http',
     'hysteria',
+    'masque',
     'mixed',
     'shadowsocks',
     'trojan',
@@ -48,6 +54,7 @@ const ALLOWED_NETWORKS = new Set([
     'httpupgrade',
     'hysteria',
     'kcp',
+    'masque',
     'raw',
     'tcp',
     'ws',
@@ -268,6 +275,21 @@ export class XRayConfig {
                 }
                 break;
 
+            case 'masque':
+                if (!inbound.settings) {
+                    break;
+                }
+                inbound.settings.clients ??= [];
+
+                for (const user of users) {
+                    inbound.settings.clients.push({
+                        id: user.vlessUuid,
+                        email: user.id.toString(),
+                        pass: user.vlessUuid,
+                    });
+                }
+                break;
+
             case 'shadowsocks': {
                 if (!inbound.settings) {
                     inbound.settings = {};
@@ -418,6 +440,7 @@ export class XRayConfig {
             this.validateProtocol(inbound);
             this.validateTag(inbound, seenTags);
             this.validateShadowsocks(inbound);
+            this.validateMasque(inbound);
         }
     }
 
@@ -453,6 +476,33 @@ export class XRayConfig {
             );
         }
         seenTags.add(inbound.tag);
+    }
+
+    private validateMasque(inbound: InboundConfig): void {
+        const network = inbound.streamSettings?.network;
+        const isMasqueProtocol = inbound.protocol === 'masque';
+
+        if (isMasqueProtocol !== (network === 'masque')) {
+            throw new Error(
+                `Inbound "${inbound.tag}": the "masque" protocol and the "masque" transport can only be used together. ` +
+                    '(inbound → streamSettings → network: "masque")',
+            );
+        }
+
+        if (inbound.protocol !== 'masque') return;
+
+        if (inbound.streamSettings?.security !== 'tls') {
+            throw new Error(
+                `Inbound "${inbound.tag}": MASQUE requires TLS. (inbound → streamSettings → security: "tls")`,
+            );
+        }
+
+        if (!inbound.settings?.address?.length) {
+            throw new Error(
+                `Inbound "${inbound.tag}": MASQUE address pool is required. ` +
+                    '(inbound → settings → address, e.g. ["10.13.0.1/24", "fd13::1/64"])',
+            );
+        }
     }
 
     private validateShadowsocks(inbound: InboundConfig): void {

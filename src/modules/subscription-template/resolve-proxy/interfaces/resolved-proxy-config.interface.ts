@@ -26,6 +26,8 @@ export interface IHysteriaProtocolOptions {
     version: number;
 }
 
+export type IMasqueProtocolOptions = Record<string, never>;
+
 // ─── Transport Options ───────────────────────────────────
 
 export interface ITcpTransportOptions {
@@ -67,6 +69,13 @@ export interface IKcpTransportOptions {
 export interface IHysteriaTransportOptions {
     version: number;
     auth: string;
+}
+
+export interface IMasqueTransportOptions {
+    host: string | null;
+    path: string | null;
+    user: string;
+    pass: string;
 }
 
 // ─── Security Options ────────────────────────────────────
@@ -115,11 +124,17 @@ export type HysteriaProtocol = {
     protocolOptions: IHysteriaProtocolOptions;
 };
 
+export type MasqueProtocol = {
+    protocol: 'masque';
+    protocolOptions: IMasqueProtocolOptions;
+};
+
 export type ProtocolVariant =
     | VlessProtocol
     | TrojanProtocol
     | ShadowsocksProtocol
-    | HysteriaProtocol;
+    | HysteriaProtocol
+    | MasqueProtocol;
 
 // ─── Transport Variants ──────────────────────────────────
 
@@ -158,6 +173,11 @@ export type HysteriaTransport = {
     transportOptions: IHysteriaTransportOptions;
 };
 
+export type MasqueTransport = {
+    transport: 'masque';
+    transportOptions: IMasqueTransportOptions;
+};
+
 export type TransportVariant =
     | TcpTransport
     | XHttpTransport
@@ -165,7 +185,8 @@ export type TransportVariant =
     | HttpUpgradeTransport
     | GrpcTransport
     | KcpTransport
-    | HysteriaTransport;
+    | HysteriaTransport
+    | MasqueTransport;
 
 // ─── Security Variants ───────────────────────────────────
 

@@ -91,6 +91,15 @@ export const HysteriaTransportOptionsSchema = z.object({
     auth: z.string(),
 });
 
+export const MasqueProtocolOptionsSchema = z.object({});
+
+export const MasqueTransportOptionsSchema = z.object({
+    host: z.string().nullable(),
+    path: z.string().nullable(),
+    user: z.string(),
+    pass: z.string(),
+});
+
 export const TlsSecurityOptionsSchema = z.object({
     pinnedPeerCertSha256: z.string().nullable(),
     verifyPeerCertByName: z.string().nullable(),
@@ -133,11 +142,17 @@ const HysteriaProtocolSchema = z.object({
     protocolOptions: HysteriaProtocolOptionsSchema,
 });
 
+const MasqueProtocolSchema = z.object({
+    protocol: z.literal('masque'),
+    protocolOptions: MasqueProtocolOptionsSchema,
+});
+
 export const ProtocolVariantSchema = z.discriminatedUnion('protocol', [
     VlessProtocolSchema.meta({ title: 'vless' }),
     TrojanProtocolSchema.meta({ title: 'trojan' }),
     ShadowsocksProtocolSchema.meta({ title: 'shadowsocks' }),
     HysteriaProtocolSchema.meta({ title: 'hysteria' }),
+    MasqueProtocolSchema.meta({ title: 'masque' }),
 ]);
 
 const TcpTransportSchema = z.object({
@@ -175,6 +190,11 @@ const HysteriaTransportSchema = z.object({
     transportOptions: HysteriaTransportOptionsSchema,
 });
 
+const MasqueTransportSchema = z.object({
+    transport: z.literal('masque'),
+    transportOptions: MasqueTransportOptionsSchema,
+});
+
 export const TransportVariantSchema = z.discriminatedUnion('transport', [
     TcpTransportSchema.meta({ title: 'tcp' }),
     XHttpTransportSchema.meta({ title: 'xhttp' }),
@@ -183,6 +203,7 @@ export const TransportVariantSchema = z.discriminatedUnion('transport', [
     GrpcTransportSchema.meta({ title: 'grpc' }),
     KcpTransportSchema.meta({ title: 'kcp' }),
     HysteriaTransportSchema.meta({ title: 'hysteria' }),
+    MasqueTransportSchema.meta({ title: 'masque' }),
 ]);
 
 const TlsSecuritySchema = z.object({

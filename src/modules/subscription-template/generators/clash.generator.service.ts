@@ -46,8 +46,8 @@ interface ClashData {
     rules: string[];
 }
 
-const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'xhttp']);
-const UNSUPPORTED_PROTOCOLS = new Set(['hysteria', 'vless']);
+const UNSUPPORTED_TRANSPORTS = new Set(['hysteria', 'kcp', 'masque', 'xhttp']);
+const UNSUPPORTED_PROTOCOLS = new Set(['hysteria', 'masque', 'vless']);
 
 @Injectable()
 export class ClashGeneratorService {

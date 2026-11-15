@@ -84,7 +84,7 @@ interface ProxyNode {
 }
 
 const UNSUPPORTED_TRANSPORTS = new Set(['kcp']);
-const UNSUPPORTED_PROTOCOLS = new Set<string>();
+const UNSUPPORTED_PROTOCOLS = new Set(['masque']);
 
 const XHTTP_FIELD_MAP: [string, string, boolean?][] = [
     ['noGRPCHeader', 'no-grpc-header'],
