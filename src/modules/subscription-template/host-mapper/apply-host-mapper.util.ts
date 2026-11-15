@@ -1,4 +1,4 @@
-import { cloneDeep, get, set, toPath, unset } from 'lodash';
+import { cloneDeep, get, sample, set, toPath, unset } from 'lodash';
 
 import { THostMapperOperation } from '@libs/contracts/models';
 
@@ -102,6 +102,10 @@ export function applyHostMapper<T extends object>(
 
                 case 'set':
                     set(result, to, cloneDeep(operation.value));
+                    break;
+
+                case 'pick':
+                    set(result, to, cloneDeep(sample(operation.values)));
                     break;
 
                 case 'unset':

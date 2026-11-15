@@ -46,9 +46,19 @@ const buildToSchema = (client: { examples: string[]; target: string }) =>
             examples: client.examples,
         });
 
+const buildValueSchema = () =>
+    z.union([
+        z.string(),
+        z.number(),
+        z.boolean(),
+        z.array(z.json()),
+        z.record(z.string(), z.json()),
+    ]);
+
 const buildOperationsSchema = (client: {
     copySnippet: { from: string; to: string };
     examples: string[];
+    pickSnippet: { to: string; values: unknown[] };
     setSnippet: { to: string; value: unknown };
     target: string;
     unsetSnippet: { to: string };
@@ -88,19 +98,11 @@ const buildOperationsSchema = (client: {
                         title: 'Set',
                         markdownDescription: 'Write a fixed value.',
                     }),
-                    value: z
-                        .union([
-                            z.string(),
-                            z.number(),
-                            z.boolean(),
-                            z.array(z.json()),
-                            z.record(z.string(), z.json()),
-                        ])
-                        .meta({
-                            title: 'Value',
-                            markdownDescription:
-                                'The value to write. Strings, numbers, booleans, arrays and objects are allowed.',
-                        }),
+                    value: buildValueSchema().meta({
+                        title: 'Value',
+                        markdownDescription:
+                            'The value to write. Strings, numbers, booleans, arrays and objects are allowed.',
+                    }),
 
                     to: buildToSchema(client),
                 })
@@ -118,6 +120,38 @@ const buildOperationsSchema = (client: {
                             label: 'set',
                             description: 'Write a fixed value',
                             body: { op: 'set', to: '$1', value: '$2' },
+                        },
+                    ],
+                }),
+
+            z
+                .object({
+                    op: z.literal('pick').meta({
+                        title: 'Pick',
+                        markdownDescription: 'Write one of the listed values, chosen at random.',
+                    }),
+                    values: z.array(buildValueSchema()).min(1).max(100).meta({
+                        title: 'Values',
+                        markdownDescription:
+                            'The values to choose from. A new one is picked on every subscription request. Strings, numbers, booleans, arrays and objects are allowed.',
+                    }),
+
+                    to: buildToSchema(client),
+                })
+                .meta({
+                    title: 'Pick a random value',
+                    markdownDescription: [
+                        'Writes one value from the list, chosen at random, into the generated config, creating the key if it is missing.',
+                        '',
+                        '```json',
+                        JSON.stringify({ op: 'pick', ...client.pickSnippet }, null, 2),
+                        '```',
+                    ].join('\n'),
+                    defaultSnippets: [
+                        {
+                            label: 'pick',
+                            description: 'Write a random value from a list',
+                            body: { op: 'pick', to: '$1', values: ['$2'] },
                         },
                     ],
                 }),
@@ -169,6 +203,10 @@ export const XrayJsonHostMapperOperationsSchema = buildOperationsSchema({
         from: 'streamSettings.tlsSettings.cipherSuites',
         to: 'streamSettings.tlsSettings.cipherSuites',
     },
+    pickSnippet: {
+        to: 'streamSettings.tlsSettings.fingerprint',
+        values: ['chrome', 'firefox', 'safari'],
+    },
     setSnippet: { to: 'streamSettings.tlsSettings.enableSessionResumption', value: true },
     unsetSnippet: { to: 'mux' },
 });
@@ -177,6 +215,7 @@ export const MihomoHostMapperOperationsSchema = buildOperationsSchema({
     target: 'the generated **proxy node**',
     examples: ['ip-version', 'client-fingerprint', 'tfo', 'reality-opts.support-x25519mlkem768'],
     copySnippet: { from: 'streamSettings.realitySettings.serverNames.0', to: 'servername' },
+    pickSnippet: { to: 'client-fingerprint', values: ['chrome', 'firefox', 'safari'] },
     setSnippet: { to: 'reality-opts.support-x25519mlkem768', value: true },
     unsetSnippet: { to: 'smux' },
 });
@@ -192,6 +231,7 @@ export const SingBoxHostMapperOperationsSchema = buildOperationsSchema({
         'tls.utls.fingerprint',
     ],
     copySnippet: { from: 'streamSettings.realitySettings.serverNames.0', to: 'tls.server_name' },
+    pickSnippet: { to: 'tls.utls.fingerprint', values: ['chrome', 'firefox', 'safari'] },
     setSnippet: { to: 'tls.utls.fingerprint', value: 'chrome' },
     unsetSnippet: { to: 'multiplex' },
 });
@@ -234,6 +274,7 @@ export const Base64HostMapperOperationsSchema = buildOperationsSchema({
         'vcn',
     ],
     copySnippet: { from: 'streamSettings.realitySettings.serverNames.0', to: 'sni' },
+    pickSnippet: { to: 'fp', values: ['chrome', 'firefox', 'safari'] },
     setSnippet: { to: 'fp', value: 'chrome' },
     unsetSnippet: { to: 'fm' },
 });
