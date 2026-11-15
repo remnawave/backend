@@ -11,6 +11,7 @@ import type {
 
 import { Injectable, Logger } from '@nestjs/common';
 
+import { MAX_HEADER_LENGTH } from '@common/utils/truncate-header.util';
 import {
     REQUEST_TEMPLATE_TYPE,
     RESPONSE_RULES_CONDITION_OPERATORS,
@@ -256,7 +257,9 @@ export class ResponseRulesMatcherService {
     ): string | undefined {
         const lowerHeaderName = headerName.toLowerCase();
         const headerValue = headers[lowerHeaderName];
-        return Array.isArray(headerValue) ? headerValue.join(',') : headerValue;
+        const joined = Array.isArray(headerValue) ? headerValue.join(',') : headerValue;
+
+        return joined?.slice(0, MAX_HEADER_LENGTH);
     }
 
     private applyOperator(
