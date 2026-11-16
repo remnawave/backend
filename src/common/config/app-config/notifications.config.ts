@@ -60,7 +60,7 @@ Please fix the notifications config file and restart the application.`);
     }
 }
 
-const PRODUCTION_CONFIG_PATH = '/var/lib/remnawave/configs/notifications/notifications-config.yml';
+const PRODUCTION_CONFIG_PATH = process.env.REMNAWAVE_NOTIFICATIONS_CONFIG_PATH ?? (process.env.REMNAWAVE_CONFIG_DIR ? join(process.env.REMNAWAVE_CONFIG_DIR, 'configs', 'notifications', 'notifications-config.yml') : '/var/lib/remnawave/configs/notifications/notifications-config.yml');
 
 const LOCAL_CONFIG_FILENAME = join(
     __dirname,

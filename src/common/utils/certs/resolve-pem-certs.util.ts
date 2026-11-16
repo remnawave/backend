@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import { sep } from 'node:path';
 
-const ALLOWED_PEM_DIR = '/var/lib/remnawave';
+const ALLOWED_PEM_DIR = process.env.REMNAWAVE_PEM_DIR ?? process.env.REMNAWAVE_CONFIG_DIR ?? '/var/lib/remnawave';
 
 export interface IResolvedPemCert {
     cert: string[];
