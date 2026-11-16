@@ -6,8 +6,6 @@ import {
 } from '@simplewebauthn/server';
 import * as arctic from 'arctic';
 import { AxiosError } from 'axios';
-import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
-import { promisify } from 'node:util';
 import { catchError, firstValueFrom } from 'rxjs';
 
 import { HttpService } from '@nestjs/axios';
@@ -17,6 +15,13 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 
 import { TypedConfigService } from '@common/config/app-config';
+import {
+    hashPassword,
+    isLegacyPasswordHash,
+    simulatePasswordVerification,
+    verifyLegacyPassword,
+    verifyPassword,
+} from '@common/helpers/password-hash';
 import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
 import { AUTH_ROUTES } from '@libs/contracts/api';
@@ -33,6 +38,7 @@ import { ERRORS } from '@libs/contracts/constants/errors';
 import { ServiceEvent } from '@integration-modules/notifications/interfaces';
 
 import { CreateAdminCommand } from '@modules/admin/commands/create-admin';
+import { UpdateAdminPasswordHashCommand } from '@modules/admin/commands/update-admin-password-hash';
 import { UpdatePasskeyCommand } from '@modules/admin/commands/update-passkey';
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
 import { CountAdminsByRoleQuery } from '@modules/admin/queries/count-admins-by-role';
@@ -51,7 +57,6 @@ import {
     GetStatusResponseModel,
 } from './model';
 
-const scryptAsync = promisify(scrypt);
 const REMNAWAVE_CUSTOM_CLAIM_KEY = 'remnawaveAccess';
 const OAUTH2_SCOPES = ['email', 'profile', 'openid'];
 
@@ -128,6 +133,8 @@ export class AuthService {
             });
 
             if (!admin.isOk) {
+                await simulatePasswordVerification(password, this.jwtSecret);
+
                 await this.emitFailedLoginAttempt(
                     username,
                     password,
@@ -139,10 +146,12 @@ export class AuthService {
                 return fail(ERRORS.FORBIDDEN);
             }
 
-            const isPasswordValid = await this.verifyPassword(
-                password,
-                admin.response.passwordHash,
-            );
+            const { passwordHash } = admin.response;
+            const isLegacyHash = isLegacyPasswordHash(passwordHash);
+
+            const isPasswordValid = isLegacyHash
+                ? await verifyLegacyPassword(password, passwordHash, this.jwtSecret)
+                : await verifyPassword(password, passwordHash, this.jwtSecret);
 
             if (!isPasswordValid) {
                 await this.emitFailedLoginAttempt(
@@ -154,6 +163,10 @@ export class AuthService {
                 );
                 this.logger.error('Invalid password.');
                 return fail(ERRORS.FORBIDDEN);
+            }
+
+            if (isLegacyHash) {
+                await this.upgradePasswordHash(admin.response.uuid, password);
             }
 
             const accessToken = this.jwtService.sign(
@@ -201,7 +214,7 @@ export class AuthService {
                 return fail(ERRORS.FORBIDDEN);
             }
 
-            const hashedPassword = await this.hashPassword(password);
+            const hashedPassword = await hashPassword(password, this.jwtSecret);
 
             const createAdminResponse = await this.createAdmin({
                 username,
@@ -802,32 +815,17 @@ export class AuthService {
         );
     }
 
-    private applySecretHmac(password: string, secret: string): Buffer {
-        const hmac = createHmac('sha256', secret);
-        hmac.update(password);
-        return hmac.digest();
-    }
+    private async upgradePasswordHash(adminUuid: string, plainPassword: string): Promise<void> {
+        const result = await this.commandBus.execute(
+            new UpdateAdminPasswordHashCommand(
+                adminUuid,
+                await hashPassword(plainPassword, this.jwtSecret),
+            ),
+        );
 
-    private async hashPassword(plainPassword: string): Promise<string> {
-        const hmacResult = this.applySecretHmac(plainPassword, this.jwtSecret);
-
-        const salt = randomBytes(16).toString('hex');
-
-        const derivedKey = (await scryptAsync(hmacResult.toString('hex'), salt, 64)) as Buffer;
-        const hash = derivedKey.toString('hex');
-
-        return `${salt}:${hash}`;
-    }
-
-    private async verifyPassword(plainPassword: string, storedHash: string): Promise<boolean> {
-        const hmacResult = this.applySecretHmac(plainPassword, this.jwtSecret);
-
-        const [salt, hash] = storedHash.split(':');
-
-        const derivedKey = (await scryptAsync(hmacResult.toString('hex'), salt, 64)) as Buffer;
-        const calculatedHash = derivedKey.toString('hex');
-
-        return timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash));
+        if (!result.isOk) {
+            this.logger.error('Failed to upgrade the admin password hash.');
+        }
     }
 
     private async createAdmin(dto: CreateAdminCommand): Promise<TResult<AdminEntity>> {
