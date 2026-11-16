@@ -24,11 +24,13 @@ import {
 } from '@common/helpers/password-hash';
 import { RawCacheService } from '@common/raw-cache';
 import { fail, ok, TResult } from '@common/types';
+import { getIpRateLimitKey } from '@common/utils/client-ip';
 import { AUTH_ROUTES } from '@libs/contracts/api';
 import {
     CACHE_KEYS,
     CACHE_KEYS_TTL,
     EVENTS,
+    INTERNAL_CACHE_KEYS,
     OAUTH2_PROVIDERS,
     ROLE,
     TOAuth2ProvidersKeys,
@@ -58,6 +60,9 @@ import {
 } from './model';
 
 const REMNAWAVE_CUSTOM_CLAIM_KEY = 'remnawaveAccess';
+const LOGIN_MAX_FAILED_ATTEMPTS = 5;
+const LOGIN_FAILED_ATTEMPTS_WINDOW_SECONDS = 600;
+const LOGIN_BLOCK_SECONDS = 3600;
 const OAUTH2_SCOPES = ['email', 'profile', 'openid'];
 
 @Injectable()
@@ -90,6 +95,16 @@ export class AuthService {
     > {
         try {
             const { username, password } = dto;
+
+            const loginAttemptsKey = INTERNAL_CACHE_KEYS.LOGIN_ATTEMPTS(getIpRateLimitKey(ip));
+            const loginAttempts = await this.rawCacheService.incrementWithTtl(
+                loginAttemptsKey,
+                LOGIN_FAILED_ATTEMPTS_WINDOW_SECONDS,
+            );
+
+            if (loginAttempts > LOGIN_MAX_FAILED_ATTEMPTS) {
+                return fail(ERRORS.FORBIDDEN);
+            }
 
             const statusResponse = await this.getStatus();
 
@@ -127,6 +142,7 @@ export class AuthService {
 
             if (!admin.isOk) {
                 await simulatePasswordVerification(password, this.jwtSecret);
+                await this.blockLoginIfExhausted(loginAttemptsKey, loginAttempts, ip);
 
                 await this.emitFailedLoginAttempt(
                     username,
@@ -146,10 +162,13 @@ export class AuthService {
                 : await verifyPassword(password, passwordHash, this.jwtSecret);
 
             if (!isPasswordValid) {
+                await this.blockLoginIfExhausted(loginAttemptsKey, loginAttempts, ip);
                 await this.emitFailedLoginAttempt(username, ip, userAgent, 'Invalid password.');
                 this.logger.error('Invalid password.');
                 return fail(ERRORS.FORBIDDEN);
             }
+
+            await this.rawCacheService.del(loginAttemptsKey);
 
             if (isLegacyHash) {
                 await this.upgradePasswordHash(admin.response.uuid, password);
@@ -791,6 +810,19 @@ export class AuthService {
     private async getFirstAdmin(): Promise<TResult<AdminEntity>> {
         return this.queryBus.execute<GetFirstAdminQuery, TResult<AdminEntity>>(
             new GetFirstAdminQuery(ROLE.ADMIN),
+        );
+    }
+
+    private async blockLoginIfExhausted(
+        loginAttemptsKey: string,
+        loginAttempts: number,
+        ip: string,
+    ): Promise<void> {
+        if (loginAttempts < LOGIN_MAX_FAILED_ATTEMPTS) return;
+
+        await this.rawCacheService.setNumber(loginAttemptsKey, loginAttempts, LOGIN_BLOCK_SECONDS);
+        this.logger.warn(
+            `IP ${ip} is blocked from logging in for ${LOGIN_BLOCK_SECONDS / 60} minutes after ${loginAttempts} failed attempts.`,
         );
     }
 
