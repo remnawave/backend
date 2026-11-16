@@ -60,7 +60,8 @@ Please fix the notifications config file and restart the application.`);
     }
 }
 
-const PRODUCTION_CONFIG_PATH = '/var/lib/remnawave/configs/notifications/notifications-config.yml';
+const DEFAULT_PRODUCTION_CONFIG_PATH =
+    '/var/lib/remnawave/configs/notifications/notifications-config.yml';
 
 const LOCAL_CONFIG_FILENAME = join(
     __dirname,
@@ -72,8 +73,25 @@ const LOCAL_CONFIG_FILENAME = join(
     'configs/notifications/notifications-config.yml',
 );
 
+function getProductionConfigPath(): string {
+    if (process.env.REMNAWAVE_NOTIFICATIONS_CONFIG_PATH) {
+        return process.env.REMNAWAVE_NOTIFICATIONS_CONFIG_PATH;
+    }
+
+    if (process.env.REMNAWAVE_CONFIG_DIR) {
+        return join(
+            process.env.REMNAWAVE_CONFIG_DIR,
+            'configs',
+            'notifications',
+            'notifications-config.yml',
+        );
+    }
+
+    return DEFAULT_PRODUCTION_CONFIG_PATH;
+}
+
 export default registerAs('notifications', (): NotificationsConfig => {
-    const configPath = isProduction() ? PRODUCTION_CONFIG_PATH : LOCAL_CONFIG_FILENAME;
+    const configPath = isProduction() ? getProductionConfigPath() : LOCAL_CONFIG_FILENAME;
 
     if (!existsSync(configPath)) {
         return { events: {} };
