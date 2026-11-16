@@ -11,6 +11,7 @@ import { fail, ok, TResult } from '@common/types';
 import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { hasContent } from '@common/utils/convert-type';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
+import { toSafeHeaderValue } from '@common/utils/response-header-value.util';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { ERRORS, EVENTS, TSubscriptionTemplateType, USERS_STATUS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
@@ -640,7 +641,19 @@ export class SubscriptionService {
             );
 
             for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.replace(value, userValueMap);
+                const safeValue = toSafeHeaderValue(
+                    key,
+                    TemplateEngine.replace(value, userValueMap),
+                );
+
+                if (safeValue === null) {
+                    this.logger.warn(
+                        `Skipping custom response header "${key}": value contains invalid characters`,
+                    );
+                    continue;
+                }
+
+                headers[key] = safeValue;
             }
         }
 
