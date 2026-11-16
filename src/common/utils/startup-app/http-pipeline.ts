@@ -13,6 +13,7 @@ import {
     proxyCheckMiddleware,
     toolsAuthMiddleware,
 } from '@common/middlewares';
+import { ClientIpService } from '@common/request-auth/client-ip.service';
 import { RequestAuthService } from '@common/request-auth/request-auth.service';
 import {
     AUTH_CONTROLLER,
@@ -39,7 +40,8 @@ export function registerHttpPipeline(app: NestExpressApplication): void {
         },
     });
 
-    app.use(getRealIp);
+    app.set('trust proxy', config.getOrThrow('TRUST_PROXY'));
+    app.use(getRealIp(app.get(ClientIpService)));
     app.use(proxyCheckMiddleware);
 
     const backendToolsPath = `${ROOT}${BACKEND_TOOLS_ROOT}`;

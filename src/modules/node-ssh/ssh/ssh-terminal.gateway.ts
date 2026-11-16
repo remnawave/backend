@@ -1,4 +1,3 @@
-import { getClientIp } from '@kastov/request-ip';
 import { verify } from 'jsonwebtoken';
 import { IncomingMessage } from 'node:http';
 import { Duplex } from 'node:stream';
@@ -9,10 +8,10 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { QueryBus } from '@nestjs/cqrs';
 
 import { TypedConfigService } from '@common/config/app-config';
+import { ClientIpService } from '@common/request-auth/client-ip.service';
 import { TResult } from '@common/types';
 import { isDevelopment } from '@common/utils/startup-app';
 import { ROLE } from '@libs/contracts/constants';
-import { REMNAWAVE_REAL_IP_HEADER } from '@libs/contracts/constants';
 import { SSH_TERMINAL_WS_PATH, SSH_TERMINAL_WS_PROTOCOL } from '@libs/contracts/models';
 
 import { AdminEntity } from '@modules/admin/entities/admin.entity';
@@ -39,6 +38,7 @@ export class SshTerminalGateway implements OnApplicationBootstrap, OnModuleDestr
 
     constructor(
         private readonly configService: TypedConfigService,
+        private readonly clientIpService: ClientIpService,
         private readonly httpAdapterHost: HttpAdapterHost,
         private readonly nodeSshService: NodeSshService,
         private readonly queryBus: QueryBus,
@@ -115,7 +115,7 @@ export class SshTerminalGateway implements OnApplicationBootstrap, OnModuleDestr
             return reject(socket, 401, 'Unauthorized');
         }
 
-        const clientIp = getClientIp(request, [REMNAWAVE_REAL_IP_HEADER]) ?? '0.0.0.0';
+        const clientIp = await this.clientIpService.resolve(request);
 
         const admin = await this.verifyAdminToken(credentials.token);
         if (!admin) {

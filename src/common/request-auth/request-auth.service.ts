@@ -126,22 +126,34 @@ export class RequestAuthService {
         );
     }
 
+    public async isApiTokenActive(apiTokenUuid: string): Promise<boolean> {
+        return (await this.getApiTokenScopes(apiTokenUuid)) !== null;
+    }
+
     private async verifyApiToken(user: IJWTAuthPayload, apiTokenUuid: string): Promise<boolean> {
+        const scopes = await this.getApiTokenScopes(apiTokenUuid);
+        if (!scopes) {
+            return false;
+        }
+
+        user.scopes = scopes;
+        return true;
+    }
+
+    private async getApiTokenScopes(apiTokenUuid: string): Promise<null | string[]> {
         const cached = await this.rawCacheService.get<string[]>(`api:${apiTokenUuid}`, true);
         if (cached) {
-            user.scopes = cached;
-            return true;
+            return cached;
         }
 
         const token = await this.getTokenByUuid({ uuid: apiTokenUuid });
         if (!token.isOk) {
-            return false;
+            return null;
         }
 
         const scopes = token.response.scopes ?? [];
 
         await this.rawCacheService.set(`api:${apiTokenUuid}`, scopes, 3600);
-        user.scopes = scopes;
-        return true;
+        return scopes;
     }
 }

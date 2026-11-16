@@ -1,4 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
+import proxyaddr from 'proxy-addr';
 import { z } from 'zod';
 
 import { compileShortUuidPattern } from '@common/utils/short-uuid';
@@ -11,6 +12,19 @@ const booleanString = (def: 'true' | 'false' = 'false') =>
         .refine((val) => val === 'true' || val === 'false', 'Must be "true" or "false".')
         .transform((val) => val === 'true')
         .pipe(z.boolean());
+
+const TRUST_PROXY_DEFAULT = '1';
+
+const isTrustProxy = (val: string): boolean => {
+    if (val === 'true' || val === 'false' || /^\d+$/.test(val)) return true;
+
+    try {
+        proxyaddr.compile(val.split(',').map((entry) => entry.trim()));
+        return true;
+    } catch {
+        return false;
+    }
+};
 
 export const configSchema = z
     .object({
@@ -41,6 +55,23 @@ export const configSchema = z
             .string()
             .default('12')
             .transform((val) => parseInt(val, 10)),
+        REQUIRE_REAL_IP_PROOF: booleanString('true'),
+        TRUST_PROXY: z
+            .string()
+            .default(TRUST_PROXY_DEFAULT)
+            .transform((val) => (val.trim() === '' ? TRUST_PROXY_DEFAULT : val.trim()))
+            .refine(
+                isTrustProxy,
+                'TRUST_PROXY must be "true"/"false", a non-negative integer (number of trusted ' +
+                    'reverse-proxy hops), or a comma-separated list of preset names ' +
+                    '(loopback, linklocal, uniquelocal) and/or IP addresses / CIDR subnets.',
+            )
+            .transform((val): boolean | number | string => {
+                if (val === 'true') return true;
+                if (val === 'false') return false;
+                if (/^\d+$/.test(val)) return Number(val);
+                return val;
+            }),
         IS_TELEGRAM_NOTIFICATIONS_ENABLED: booleanString('false'),
         TELEGRAM_BOT_TOKEN: z.string().optional(),
         TELEGRAM_BOT_API_ROOT: z.string().default('https://api.telegram.org'),
