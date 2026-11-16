@@ -42,7 +42,6 @@ ${separator}
 <tg-emoji emoji-id='5330115548900501467'>🔑</tg-emoji> <tg-emoji emoji-id='5472267631979405211'>❌</tg-emoji><b>#login_attempt_failed</b>
 ${separator}
 <tg-emoji emoji-id='5256143829672672750'>👥</tg-emoji> <code>${e.data.loginAttempt?.username}</code>
-<tg-emoji emoji-id='5330115548900501467'>🔑</tg-emoji> <b>Password:</b> <code>${e.data.loginAttempt?.password}</code>
 <tg-emoji emoji-id='5447410659077661506'>🌐</tg-emoji> <b>IP:</b> <code>${e.data.loginAttempt?.ip}</code>
 <tg-emoji emoji-id='5460756166143405924'>💻</tg-emoji> <b>User agent:</b> <code>${e.data.loginAttempt?.userAgent}</code>
 <tg-emoji emoji-id='5443038326535759644'>💬</tg-emoji> <b>Description:</b> <code>${e.data.loginAttempt?.description}</code>`,
