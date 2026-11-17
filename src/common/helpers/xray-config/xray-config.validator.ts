@@ -92,7 +92,7 @@ export class XRayConfig {
     }
 
     public getConfigHash(): string {
-        const hash = hasher({ trim: true, sort: false }).hash;
+        const hash = hasher({ trim: false, sort: false }).hash;
         return hash(this.getSortedConfig());
     }
 
