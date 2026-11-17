@@ -12,14 +12,13 @@ import { prettyBytesUtil } from '@common/utils/bytes/pretty-bytes.util';
 import { hasContent } from '@common/utils/convert-type';
 import { HwidHeaders } from '@common/utils/extract-hwid-headers';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
-import { ERRORS, EVENTS, TSubscriptionTemplateType, USERS_STATUS } from '@libs/contracts/constants';
+import { ERRORS, EVENTS, USERS_STATUS } from '@libs/contracts/constants';
 import { THwidSettings } from '@libs/contracts/models';
 
 import { UserHwidDeviceEvent } from '@integration-modules/notifications/interfaces';
 
 import { ExternalSquadEntity } from '@modules/external-squads/entities/external-squad.entity';
 import { GetCachedExternalSquadSettingsQuery } from '@modules/external-squads/queries/get-cached-external-squad-settings';
-import { GetCachedTemplateNameQuery } from '@modules/external-squads/queries/get-template-name';
 import { CreateWithAdvisoryLockCommand } from '@modules/hwid-user-devices/commands/create-with-advisory-lock';
 import { HwidUserDeviceEntity } from '@modules/hwid-user-devices/entities/hwid-user-device.entity';
 import { CheckHwidExistsQuery } from '@modules/hwid-user-devices/queries/check-hwid-exists/check-hwid-exists.query';
@@ -57,7 +56,6 @@ import {
 } from './models';
 import { GetSubpageConfigResponseModel } from './models/get-subpage-config.response.model';
 import { getSubscriptionRefillDate, getSubscriptionUserInfo } from './utils/get-user-info.headers';
-
 @Injectable()
 export class SubscriptionService {
     private readonly logger = new Logger(SubscriptionService.name);
@@ -115,29 +113,6 @@ export class SubscriptionService {
 
             if (!user.isOk) {
                 return new SubscriptionNotFoundResponse();
-            }
-
-            if (!srrContext.overrideTemplateName) {
-                if (user.response.externalSquadUuid) {
-                    let templateTypeMatcher =
-                        srrContext.matchedResponseType as TSubscriptionTemplateType;
-
-                    if (templateTypeMatcher === 'XRAY_BASE64') {
-                        // In case if XRAY_BASE64 matched as fallback
-                        templateTypeMatcher = 'XRAY_JSON';
-                    }
-
-                    const templateName = await this.queryBus.execute(
-                        new GetCachedTemplateNameQuery(
-                            user.response.externalSquadUuid,
-                            templateTypeMatcher,
-                        ),
-                    );
-
-                    if (templateName.isOk) {
-                        srrContext.overrideTemplateName = templateName.response;
-                    }
-                }
             }
 
             const { subscriptionSettings: patchedSubscriptionSettings, hostsOverrides } =
