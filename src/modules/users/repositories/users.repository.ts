@@ -1019,6 +1019,38 @@ export class UsersRepository {
             .execute();
     }
 
+    @Transactional()
+    public async replaceUsersInternalSquads(
+        usersIds: bigint[],
+        internalSquadsUuids: string[],
+    ): Promise<void> {
+        await this.removeUsersFromInternalSquads(usersIds);
+
+        if (internalSquadsUuids.length === 0) {
+            return;
+        }
+
+        await this.addUsersToInternalSquads(usersIds, internalSquadsUuids);
+    }
+
+    public async getExistingInternalSquadUuids(internalSquadsUuids: string[]): Promise<string[]> {
+        if (internalSquadsUuids.length === 0) {
+            return [];
+        }
+
+        const result = await this.qb.kysely
+            .selectFrom('internalSquads')
+            .select('uuid')
+            .where(
+                'uuid',
+                'in',
+                internalSquadsUuids.map((uuid) => getKyselyUuid(uuid)),
+            )
+            .execute();
+
+        return result.map((squad) => squad.uuid);
+    }
+
     public async validateUserIds(userIds: number[] | bigint[]): Promise<bigint[]> {
         const result = await this.qb.kysely
             .selectFrom('users')
