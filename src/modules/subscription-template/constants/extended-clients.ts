@@ -3,6 +3,7 @@ export const EXTENDED_CLIENTS_REGEXES = [
     /^Flowvy\//,
     /^prizrak-box\//,
     /^koala-clash\//,
+    /^ClodClash\//,
     /^Happ\//,
     /^INCY\//,
 ] as const;
