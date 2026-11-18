@@ -21,6 +21,7 @@ export interface InboundStats {
     tag: string;
     upload: string;
     download: string;
+    online: number;
 }
 
 export interface OutboundStats {

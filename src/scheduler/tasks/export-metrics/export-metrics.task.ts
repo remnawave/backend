@@ -9,7 +9,7 @@ import { RawCacheService } from '@common/raw-cache';
 import { RuntimeMetric } from '@common/runtime-metrics/interfaces';
 import { TResult } from '@common/types';
 import { resolveCountryEmoji } from '@common/utils/resolve-country-emoji';
-import { INTERNAL_CACHE_KEYS, METRIC_NAMES } from '@libs/contracts/constants';
+import { CACHE_KEYS, INTERNAL_CACHE_KEYS, METRIC_NAMES } from '@libs/contracts/constants';
 
 import { NodesEntity } from '@modules/nodes/entities/nodes.entity';
 import { GetAllNodesQuery } from '@modules/nodes/queries/get-all-nodes/get-all-nodes.query';
@@ -19,6 +19,7 @@ import { GetShortUserStatsQuery } from '@modules/users/queries/get-short-user-st
 
 import { JOBS_INTERVALS } from '@scheduler/intervals';
 import {
+    INodeBandwidthMetricLabels,
     INodeBaseMetricLabels,
     INodeMetricLabel,
     INodeSystemMetricLabels,
@@ -39,6 +40,8 @@ export class ExportMetricsTask {
         @InjectMetric(METRIC_NAMES.USERS_ONLINE_STATS) public usersOnlineStats: Gauge<string>,
         @InjectMetric(METRIC_NAMES.USERS_TOTAL) public usersTotal: Gauge<string>,
         @InjectMetric(METRIC_NAMES.NODE_ONLINE_USERS) public nodeOnlineUsers: Gauge<string>,
+        @InjectMetric(METRIC_NAMES.NODE_INBOUND_ONLINE_USERS)
+        public nodeInboundOnlineUsers: Gauge<string>,
         @InjectMetric(METRIC_NAMES.NODE_STATUS) public nodeStatus: Gauge<string>,
 
         @InjectMetric(METRIC_NAMES.PROCESS_RSS_BYTES)
@@ -173,6 +176,8 @@ export class ExportMetricsTask {
                 new GetNodesSystemStatsQuery(nodes.map((node) => ({ uuid: node.uuid }))),
             );
 
+            const inboundOnlineUsersByNode = await this.getInboundOnlineUsersByNode(nodes);
+
             nodes.forEach((node) => {
                 const infoLabels = {
                     node_uuid: node.uuid,
@@ -189,6 +194,16 @@ export class ExportMetricsTask {
                 } satisfies INodeMetricLabel;
 
                 this.nodeStatus.set(baseNodeLabels, node.isConnected ? 1 : 0);
+
+                for (const inbound of node.activeInbounds) {
+                    this.nodeInboundOnlineUsers.set(
+                        {
+                            node_uuid: node.uuid,
+                            tag: inbound.tag,
+                        } satisfies INodeBandwidthMetricLabels,
+                        inboundOnlineUsersByNode.get(node.uuid)?.get(inbound.uuid) ?? 0,
+                    );
+                }
 
                 if (nodesSystemStats.isOk && nodesSystemStats.response.get(node.uuid)) {
                     const nodeSystemStats = nodesSystemStats.response.get(node.uuid);
@@ -269,6 +284,41 @@ export class ExportMetricsTask {
         } catch (error) {
             this.logger.error(`Error in reportNodesStats: ${error}`);
         }
+    }
+
+    private async getInboundOnlineUsersByNode(
+        nodes: NodesEntity[],
+    ): Promise<Map<string, Map<string, number>>> {
+        const byNode = new Map<string, Map<string, number>>();
+
+        const pipeline = this.rawCacheService.createPipeline();
+        const keyOrder: { nodeUuid: string; inboundUuid: string }[] = [];
+
+        for (const node of nodes) {
+            for (const inbound of node.activeInbounds) {
+                pipeline.get(CACHE_KEYS.NODE_INBOUND_USERS_ONLINE(node.uuid, inbound.uuid));
+                keyOrder.push({ nodeUuid: node.uuid, inboundUuid: inbound.uuid });
+            }
+        }
+
+        if (keyOrder.length === 0) return byNode;
+
+        const results = await pipeline.exec();
+        if (!results) return byNode;
+
+        results.forEach(([err, raw], index) => {
+            if (err || !raw) return;
+            const { nodeUuid, inboundUuid } = keyOrder[index];
+
+            let inboundCounts = byNode.get(nodeUuid);
+            if (!inboundCounts) {
+                inboundCounts = new Map();
+                byNode.set(nodeUuid, inboundCounts);
+            }
+            inboundCounts.set(inboundUuid, Number(raw));
+        });
+
+        return byNode;
     }
 
     private async getShortUserStats(): Promise<TResult<ShortUserStats>> {

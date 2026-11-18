@@ -19,6 +19,7 @@ import {
     IRecreateTablesPayload,
     IUnblockIpsPayload,
 } from '../interfaces/executor.payload.interface';
+import { NodeUserRemovalService } from '../node-user-removal.service';
 
 @Processor(QUEUES_NAMES.NODES.BULK_USERS, {
     concurrency: 25,
@@ -26,7 +27,10 @@ import {
 export class NodeBulkUsersQueueProcessor extends WorkerHost {
     private readonly logger = new Logger(NodeBulkUsersQueueProcessor.name);
 
-    constructor(private readonly axios: AxiosService) {
+    constructor(
+        private readonly axios: AxiosService,
+        private readonly nodeUserRemovalService: NodeUserRemovalService,
+    ) {
         super();
     }
 
@@ -75,8 +79,8 @@ export class NodeBulkUsersQueueProcessor extends WorkerHost {
 
     private async handleRemoveUsersFromNode(job: Job<IRemoveUsersFromNodePayload>) {
         try {
-            const { data, node } = job.data;
-            const result = await this.axios.deleteUsers(data, node);
+            const { node } = job.data;
+            const result = await this.nodeUserRemovalService.removeUsers(job.data);
 
             if (!result.isOk) {
                 this.logger.error(

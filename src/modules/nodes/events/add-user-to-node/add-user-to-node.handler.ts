@@ -4,6 +4,7 @@ import { EventsHandler } from '@nestjs/cqrs';
 
 import { AddUserCommand as AddUserToNodeCommandSdk } from '@remnawave/node-contract';
 
+import { buildClientEmail } from '@common/helpers/xray-config/client-email';
 import {
     getCipherTypeFromString,
     getSsPassword,
@@ -63,14 +64,14 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'trojan':
                             return {
                                 type: inboundType,
-                                username: id.toString(),
+                                username: buildClientEmail(id, inbound.uuid),
                                 password: trojanPassword,
                                 tag: inbound.tag,
                             };
                         case 'vless':
                             return {
                                 type: inboundType,
-                                username: id.toString(),
+                                username: buildClientEmail(id, inbound.uuid),
                                 uuid: vlessUuid,
                                 flow: getVlessFlowFromDbInbound(inbound),
                                 tag: inbound.tag,
@@ -78,7 +79,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'shadowsocks':
                             return {
                                 type: inboundType,
-                                username: id.toString(),
+                                username: buildClientEmail(id, inbound.uuid),
                                 password: ssPassword,
                                 tag: inbound.tag,
                                 cipherType: getCipherTypeFromString(inbound.rawInbound),
@@ -87,7 +88,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'shadowsocks22':
                             return {
                                 type: inboundType,
-                                username: id.toString(),
+                                username: buildClientEmail(id, inbound.uuid),
                                 password: getSsPassword(ssPassword, true),
                                 tag: inbound.tag,
                             };
@@ -95,7 +96,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                         case 'masque':
                             return {
                                 type: inboundType,
-                                username: id.toString(),
+                                username: buildClientEmail(id, inbound.uuid),
                                 password: vlessUuid,
                                 tag: inbound.tag,
                             };
@@ -130,6 +131,10 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
                             port: node.port,
                             proxyUrl: node.proxyUrl,
                         },
+                        cleanupInbounds: node.activeInbounds.map(({ uuid, tag }) => ({
+                            uuid,
+                            tag,
+                        })),
                     });
 
                     continue;
@@ -137,6 +142,7 @@ export class AddUserToNodeHandler implements IEventHandler<AddUserToNodeEvent> {
 
                 await this.nodesQueuesService.addUserToNode({
                     data: filteredData,
+                    cleanupInbounds: node.activeInbounds.map(({ uuid, tag }) => ({ uuid, tag })),
                     node: {
                         address: node.address,
                         port: node.port,
