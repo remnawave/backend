@@ -1,5 +1,4 @@
 import { filter, shuffle } from 'lodash';
-import { customAlphabet } from 'nanoid';
 import {
     GRPCConfig,
     HTTPUpgradeConfig,
@@ -23,6 +22,7 @@ import {
 } from '@common/helpers/xray-config';
 import { getSsPassword, isSS2022MethodFromMethod } from '@common/helpers/xray-config/ss-cipher';
 import { getVlessFlow } from '@common/utils/flow';
+import { renderHostPattern } from '@common/utils/host-pattern';
 import { TemplateEngine } from '@common/utils/templates/replace-templates-values';
 import { setVlessRouteForUuid } from '@common/utils/vless-route';
 import { SECURITY_LAYERS, USERS_STATUS } from '@libs/contracts/constants';
@@ -65,13 +65,11 @@ export interface IResolveProxyConfigOptions {
 
 @Injectable()
 export class ResolveProxyConfigService {
-    private readonly nanoid: ReturnType<typeof customAlphabet>;
     private readonly subPublicDomain: string;
     private readonly domainRegex =
         /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 
     constructor(private readonly configService: TypedConfigService) {
-        this.nanoid = customAlphabet('0123456789abcdefghjkmnopqrstuvwxyz', 10);
         this.subPublicDomain = this.configService.getOrThrow('SUB_PUBLIC_DOMAIN');
     }
 
@@ -673,14 +671,10 @@ export class ResolveProxyConfigService {
 
         if (value.includes(',')) {
             const parts = value.split(',');
-            return parts[Math.floor(Math.random() * parts.length)].trim();
+            return renderHostPattern(parts[Math.floor(Math.random() * parts.length)].trim());
         }
 
-        if (value.includes('*')) {
-            return value.replace('*', this.nanoid()).trim();
-        }
-
-        return value;
+        return renderHostPattern(value).trim();
     }
 
     private isDomain(str: string): boolean {

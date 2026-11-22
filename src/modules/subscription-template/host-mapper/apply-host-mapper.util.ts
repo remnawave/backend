@@ -1,5 +1,6 @@
 import { cloneDeep, get, isEqual, sample, set, toPath, unset } from 'lodash';
 
+import { renderRandomTokens } from '@common/utils/host-pattern';
 import { THostMapperMatch, THostMapperOperation, THostMapperWhen } from '@libs/contracts/models';
 
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
@@ -179,11 +180,11 @@ export function applyHostMapper<T extends object>(
                 }
 
                 case 'set':
-                    set(result, to, cloneDeep(operation.value));
+                    set(result, to, renderRandomTokens(cloneDeep(operation.value)));
                     break;
 
                 case 'pick':
-                    set(result, to, cloneDeep(sample(operation.values)));
+                    set(result, to, renderRandomTokens(cloneDeep(sample(operation.values))));
                     break;
 
                 case 'unset':
