@@ -14,7 +14,7 @@ import { UserSubscriptionRequestHistoryConverter } from '../user-subscription-re
 
 const SUB_HISTORY_FILTER_COLUMN_MAP = {
     id: sql`CAST(id AS TEXT)`,
-    userId: sql`CAST(user_id AS TEXT)`,
+    userId: sql.ref('user_subscription_request_history.user_id'),
     requestAt: sql.ref('user_subscription_request_history.request_at'),
     requestIp: sql.ref('user_subscription_request_history.request_ip'),
     userAgent: sql.ref('user_subscription_request_history.user_agent'),
@@ -154,7 +154,16 @@ export class UserSubscriptionRequestHistoryRepository implements ICrudWithId<Use
                 continue;
             }
 
-            if (filter.id === 'id' || filter.id === 'userId') {
+            if (filter.id === 'userId') {
+                try {
+                    qb = qb.where(column, '=', BigInt(filter.value as string));
+                } catch {
+                    qb = qb.where('id', 'is', null);
+                }
+                continue;
+            }
+
+            if (filter.id === 'id') {
                 try {
                     BigInt(filter.value as string);
                     qb = qb.where(column, 'like', `%${filter.value}%`);

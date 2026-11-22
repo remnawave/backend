@@ -13,7 +13,7 @@ import { HwidUserDeviceEntity } from '../entities/hwid-user-device.entity';
 import { HwidUserDevicesConverter } from '../hwid-user-devices.converter';
 
 const HWID_FILTER_COLUMN_MAP = {
-    userId: sql`CAST(user_id AS TEXT)`,
+    userId: sql.ref('hwid_user_devices.user_id'),
     hwid: sql.ref('hwid_user_devices.hwid'),
     platform: sql.ref('hwid_user_devices.platform'),
     userAgent: sql.ref('hwid_user_devices.user_agent'),
@@ -173,8 +173,7 @@ export class HwidUserDevicesRepository implements Omit<
 
             if (filter.id === 'userId') {
                 try {
-                    BigInt(filter.value as string);
-                    qb = qb.where(column, 'like', `%${filter.value}%`);
+                    qb = qb.where(column, '=', BigInt(filter.value as string));
                 } catch {
                     continue;
                 }
