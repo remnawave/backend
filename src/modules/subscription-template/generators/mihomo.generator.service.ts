@@ -11,9 +11,9 @@ import { SubscriptionTemplateService } from '@modules/subscription-template/subs
 import { applyHostMapper, IHostMapperContext } from '../host-mapper';
 import { ResolvedProxyConfig } from '../resolve-proxy/interfaces';
 
-export interface MihomoData {
-    proxies: ProxyNode[];
-    rules: string[];
+interface MihomoProxyEntry {
+    node: ProxyNode;
+    tags: string[];
 }
 
 interface NetworkConfig {
@@ -148,8 +148,7 @@ export class MihomoGeneratorService {
                 (yamlConfig.remnawave as RemnawaveRootConfig | undefined)?.includeHiddenHosts ??
                 false;
 
-            const data: MihomoData = { proxies: [], rules: [] };
-            const proxyRemarks: string[] = [];
+            const entries: MihomoProxyEntry[] = [];
 
             for (const host of hosts) {
                 if (!includeHidden && host.metadata.isHidden) continue;
@@ -167,11 +166,10 @@ export class MihomoGeneratorService {
                 const node = this.buildProxyNode(host, isExtendedClient, mapperContext);
                 if (!node) continue;
 
-                data.proxies.push(node);
-                proxyRemarks.push(host.finalRemark);
+                entries.push({ node, tags: host.metadata.tags });
             }
 
-            return await this.renderConfig(data, proxyRemarks, yamlConfig);
+            return await this.renderConfig(entries, yamlConfig);
         } catch (error) {
             this.logger.error('Error generating clash config:', error);
             return '';
@@ -576,8 +574,7 @@ export class MihomoGeneratorService {
     }
 
     private async renderConfig(
-        data: MihomoData,
-        proxyRemarks: string[],
+        entries: MihomoProxyEntry[],
         yamlConfig: Record<string, unknown>,
     ): Promise<string> {
         try {
@@ -593,14 +590,14 @@ export class MihomoGeneratorService {
                     ...(Array.isArray(yamlConfig.proxies)
                         ? (yamlConfig.proxies as ProxyNode[])
                         : []),
-                    ...data.proxies,
+                    ...entries.map((entry) => entry.node),
                 ],
                 'proxy-groups': sourceGroups.map((group) => {
                     const remnawaveCustom = group.remnawave as Record<string, unknown> | undefined;
                     const { remnawave: _remnawave, ...restGroup } = group;
                     const cleanGroup = remnawaveCustom ? restGroup : group;
 
-                    const remarks = this.resolveGroupRemarks(remnawaveCustom, proxyRemarks);
+                    const remarks = this.resolveGroupRemarks(remnawaveCustom, entries);
 
                     return {
                         ...cleanGroup,
@@ -614,7 +611,7 @@ export class MihomoGeneratorService {
                 }),
             };
 
-            const providers = this.buildProxyProviders(yamlConfig, data);
+            const providers = this.buildProxyProviders(yamlConfig, entries);
             if (providers) {
                 finalConfig['proxy-providers'] = providers;
             }
@@ -628,15 +625,19 @@ export class MihomoGeneratorService {
 
     private resolveGroupRemarks(
         remnawaveCustom: Record<string, unknown> | undefined,
-        proxyRemarks: string[],
+        entries: MihomoProxyEntry[],
     ): string[] {
         if (!remnawaveCustom) {
-            return [...proxyRemarks];
+            return entries.map((entry) => entry.node.name);
         }
 
         if (remnawaveCustom['include-proxies'] === false) {
             return [];
         }
+
+        const proxyRemarks = this.filterByTags(entries, remnawaveCustom).map(
+            (entry) => entry.node.name,
+        );
 
         if (remnawaveCustom['select-random-proxy'] === true) {
             const random = proxyRemarks[Math.floor(Math.random() * proxyRemarks.length)];
@@ -647,12 +648,40 @@ export class MihomoGeneratorService {
             return _.shuffle(proxyRemarks);
         }
 
-        return [...proxyRemarks];
+        return proxyRemarks;
+    }
+
+    /**
+     * `include-tags` / `exclude-tags` from a template's `remnawave` block, each a tag or a list.
+     * Keeps hosts that have any include tag and none of the exclude tags (exclude wins).
+     * An absent or empty directive does not filter.
+     */
+    private filterByTags(
+        entries: MihomoProxyEntry[],
+        remnawaveCustom: Record<string, unknown>,
+    ): MihomoProxyEntry[] {
+        const includeTags = this.parseTags(remnawaveCustom['include-tags']);
+        const excludeTags = this.parseTags(remnawaveCustom['exclude-tags']);
+
+        return entries.filter((entry) => {
+            if (includeTags && !entry.tags.some((tag) => includeTags.has(tag))) return false;
+            if (excludeTags && entry.tags.some((tag) => excludeTags.has(tag))) return false;
+            return true;
+        });
+    }
+
+    private parseTags(value: unknown): Set<string> | null {
+        if (value === undefined || value === null) {
+            return null;
+        }
+
+        // String(): yaml parses unquoted numeric tags (e.g. 2024) as numbers
+        return new Set([value].flat().map(String));
     }
 
     private buildProxyProviders(
         yamlConfig: Record<string, unknown>,
-        data: MihomoData,
+        entries: MihomoProxyEntry[],
     ): Record<string, Record<string, unknown>> | undefined {
         const providers = yamlConfig['proxy-providers'] as
             | Record<string, Record<string, unknown>>
@@ -669,7 +698,11 @@ export class MihomoGeneratorService {
                 const { remnawave: _remnawave, ...cleanProvider } = provider;
 
                 if (remnawaveCustom['include-proxies'] === true) {
-                    return [providerKey, { ...cleanProvider, payload: [...data.proxies] }];
+                    const payload = this.filterByTags(entries, remnawaveCustom).map(
+                        (entry) => entry.node,
+                    );
+
+                    return [providerKey, { ...cleanProvider, payload }];
                 }
 
                 return [providerKey, cleanProvider];
