@@ -162,7 +162,12 @@ export class SubscriptionService {
                     });
 
                 return new SubscriptionWithConfigResponse({
-                    headers: this.getUserProfileHeadersInfo(user.response, subscriptionSettings),
+                    headers: this.getUserProfileHeadersInfo(
+                        user.response,
+                        subscriptionSettings,
+                        false,
+                        srrContext,
+                    ),
                     body: subscription,
                     contentType: contentType,
                 });
@@ -190,6 +195,8 @@ export class SubscriptionService {
                         headers: this.getUserProfileHeadersInfo(
                             user.response,
                             subscriptionSettings,
+                            false,
+                            srrContext,
                         ),
                         body: '',
                         contentType: 'text/plain',
@@ -291,6 +298,7 @@ export class SubscriptionService {
                     user.response,
                     subscriptionSettings,
                     hwidCheckup !== null && !hwidCheckup.limitBypassed,
+                    srrContext,
                 ),
                 body: subscription.subscription,
                 contentType: subscription.contentType,
@@ -611,10 +619,24 @@ export class SubscriptionService {
         }
     }
 
+    private resolveHeaderTemplates(
+        headers: Record<string, string> | undefined,
+        userValueMap: ReturnType<typeof TemplateEngine.createUserValueMap>,
+    ): void {
+        if (!headers) {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(headers)) {
+            headers[key] = TemplateEngine.replace(value, userValueMap);
+        }
+    }
+
     private getUserProfileHeadersInfo(
         user: UserEntity,
         settings: SubscriptionSettingsEntity,
         hwidLimit: boolean = false,
+        srrContext?: ISRRContext,
     ): ISubscriptionHeaders {
         const headers: ISubscriptionHeaders = {
             'content-disposition': `attachment; filename=${user.username}`,
@@ -632,16 +654,25 @@ export class SubscriptionService {
             headers['x-hwid-active'] = 'true';
         }
 
-        if (settings.customResponseHeaders) {
+        if (
+            settings.customResponseHeaders ||
+            srrContext?.headersBefore ||
+            srrContext?.headersToApply
+        ) {
             const userValueMap = TemplateEngine.createUserValueMap(
                 user,
                 settings,
                 this.subPublicDomain,
             );
 
-            for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
-                headers[key] = TemplateEngine.replace(value, userValueMap);
+            if (settings.customResponseHeaders) {
+                for (const [key, value] of Object.entries(settings.customResponseHeaders)) {
+                    headers[key] = TemplateEngine.replace(value, userValueMap);
+                }
             }
+
+            this.resolveHeaderTemplates(srrContext?.headersBefore, userValueMap);
+            this.resolveHeaderTemplates(srrContext?.headersToApply, userValueMap);
         }
 
         return headers;

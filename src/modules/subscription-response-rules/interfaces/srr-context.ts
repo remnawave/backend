@@ -15,6 +15,7 @@ export interface ISRRContext {
     subscriptionSettings: SubscriptionSettingsEntity;
     overrideTemplateName?: string;
     ignoreHostXrayJsonTemplate?: boolean;
+    headersBefore?: Record<string, string>;
     headersToApply?: Record<string, string>;
     ignoreServeJsonAtBaseSubscription?: boolean;
     disableHwidCheck?: boolean;

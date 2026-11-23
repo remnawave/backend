@@ -54,6 +54,7 @@ export class SubscriptionController {
         }
 
         response.set({
+            ...srrContext.headersBefore,
             ...result.headers,
             ...srrContext.headersToApply,
         });

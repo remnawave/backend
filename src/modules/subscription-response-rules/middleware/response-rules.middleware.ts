@@ -96,6 +96,9 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                     mods.headers.forEach((header) => {
                         res.setHeader(header.key, header.value);
                     });
+                    ssrContext.headersBefore = Object.fromEntries(
+                        mods.headers.map((header) => [header.key, header.value]),
+                    );
                 }
 
                 if (mods.headers && mods.applyHeadersToEnd) {
