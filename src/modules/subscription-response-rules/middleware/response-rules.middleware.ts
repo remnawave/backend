@@ -93,9 +93,6 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 const mods = result.matchedRule.responseModifications;
 
                 if (mods.headers && !mods.applyHeadersToEnd) {
-                    mods.headers.forEach((header) => {
-                        res.setHeader(header.key, header.value);
-                    });
                     ssrContext.headersBefore = Object.fromEntries(
                         mods.headers.map((header) => [header.key, header.value]),
                     );
@@ -136,6 +133,7 @@ export class ResponseRulesMiddleware implements NestMiddleware {
 
             switch (ssrContext.matchedResponseType) {
                 case RESPONSE_RULES_RESPONSE_TYPES.BLOCK:
+                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType(
                         ERRORS.FORBIDDEN.message,
                         ERRORS.FORBIDDEN.code,
@@ -143,9 +141,11 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                     );
 
                 case RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_404:
+                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType('Not Found', 'E404', 404);
 
                 case RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_451:
+                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType(
                         'Unavailable For Legal Reasons',
                         'E451',
@@ -164,6 +164,16 @@ export class ResponseRulesMiddleware implements NestMiddleware {
             next();
         } catch (error) {
             next(error);
+        }
+    }
+
+    private applyEarlyHeaders(res: Response, headers: Record<string, string> | undefined): void {
+        if (!headers) {
+            return;
+        }
+
+        for (const [key, value] of Object.entries(headers)) {
+            res.setHeader(key, value);
         }
     }
 

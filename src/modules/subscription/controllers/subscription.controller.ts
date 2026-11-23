@@ -40,6 +40,20 @@ export class SubscriptionController {
         private readonly responseRulesEncryptionService: ResponseRulesEncryptionService,
     ) {}
 
+    private applySrrHeaders(
+        response: Response,
+        srrContext: ISRRContext,
+        applyMiddle?: () => void,
+    ): void {
+        if (srrContext.headersBefore) {
+            response.set(srrContext.headersBefore);
+        }
+        applyMiddle?.();
+        if (srrContext.headersToApply) {
+            response.set(srrContext.headersToApply);
+        }
+    }
+
     private async finalizeSubscriptionResponse(
         response: Response,
         srrContext: ISRRContext,
@@ -53,10 +67,8 @@ export class SubscriptionController {
             contentType = 'text/plain';
         }
 
-        response.set({
-            ...srrContext.headersBefore,
-            ...result.headers,
-            ...srrContext.headersToApply,
+        this.applySrrHeaders(response, srrContext, () => {
+            response.set(result.headers);
         });
 
         return response.type(contentType).send(body);
@@ -100,6 +112,7 @@ export class SubscriptionController {
         }
 
         if (result instanceof SubscriptionRawResponse) {
+            this.applySrrHeaders(response, srrContext);
             return response.status(200).send(result);
         }
 
@@ -123,6 +136,7 @@ export class SubscriptionController {
         }
 
         if (result instanceof SubscriptionRawResponse) {
+            this.applySrrHeaders(response, srrContext);
             return response.status(200).send(result);
         }
 

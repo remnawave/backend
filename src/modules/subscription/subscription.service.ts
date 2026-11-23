@@ -87,13 +87,16 @@ export class SubscriptionService {
             const { userAgent, hwidHeaders } = srrContext;
 
             if (srrContext.matchedResponseType === 'BROWSER') {
-                const subscriptionInfo = await this.getSubscriptionInfo({
-                    searchBy: {
-                        uniqueFieldKey: 'shortUuid',
-                        uniqueField: shortUuid,
+                const subscriptionInfo = await this.getSubscriptionInfo(
+                    {
+                        searchBy: {
+                            uniqueFieldKey: 'shortUuid',
+                            uniqueField: shortUuid,
+                        },
+                        authenticated: false,
                     },
-                    authenticated: false,
-                });
+                    srrContext,
+                );
 
                 if (!subscriptionInfo.isOk) {
                     return new SubscriptionNotFoundResponse();
@@ -456,6 +459,7 @@ export class SubscriptionService {
 
     public async getSubscriptionInfo(
         params: IGetSubscriptionInfo,
+        srrContext?: ISRRContext,
     ): Promise<TResult<SubscriptionRawResponse>> {
         try {
             const { searchBy, authenticated, userEntity: userEntityParam } = params;
@@ -513,6 +517,8 @@ export class SubscriptionService {
                 settings = patchedSubscriptionSettings;
                 hostsOverrides = patchedHostsOverrides;
             }
+
+            this.resolveSrrHeaders(userEntity, settings, srrContext);
 
             let formattedHosts: ResolvedProxyConfig[] = [];
             let xrayLinks: string[] = [];
@@ -630,6 +636,25 @@ export class SubscriptionService {
         for (const [key, value] of Object.entries(headers)) {
             headers[key] = TemplateEngine.replace(value, userValueMap);
         }
+    }
+
+    private resolveSrrHeaders(
+        user: UserEntity,
+        settings: SubscriptionSettingsEntity,
+        srrContext?: ISRRContext,
+    ): void {
+        if (!srrContext?.headersBefore && !srrContext?.headersToApply) {
+            return;
+        }
+
+        const userValueMap = TemplateEngine.createUserValueMap(
+            user,
+            settings,
+            this.subPublicDomain,
+        );
+
+        this.resolveHeaderTemplates(srrContext.headersBefore, userValueMap);
+        this.resolveHeaderTemplates(srrContext.headersToApply, userValueMap);
     }
 
     private getUserProfileHeadersInfo(
