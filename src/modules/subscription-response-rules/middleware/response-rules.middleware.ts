@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 
 import { HttpExceptionWithErrorCodeType } from '@common/exception/http-exeception-with-error-code.type';
 import { extractHwidHeaders } from '@common/utils/extract-hwid-headers/extract-hwid-headers.util';
+import { parseTemplate } from '@common/utils/templates/template-parser';
 import { truncateHeader } from '@common/utils/truncate-header.util';
 import {
     ERRORS,
@@ -93,9 +94,18 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 const mods = result.matchedRule.responseModifications;
 
                 if (mods.headers && !mods.applyHeadersToEnd) {
-                    ssrContext.headersBefore = Object.fromEntries(
-                        mods.headers.map((header) => [header.key, header.value]),
-                    );
+                    const deduped = new Map<string, [string, string]>();
+                    for (const header of mods.headers) {
+                        deduped.set(header.key.toLowerCase(), [header.key, header.value]);
+                    }
+
+                    ssrContext.headersBefore = Object.fromEntries(deduped.values());
+
+                    for (const [key, value] of deduped.values()) {
+                        if (!this.hasTemplateValue(value)) {
+                            res.setHeader(key, value);
+                        }
+                    }
                 }
 
                 if (mods.headers && mods.applyHeadersToEnd) {
@@ -133,7 +143,6 @@ export class ResponseRulesMiddleware implements NestMiddleware {
 
             switch (ssrContext.matchedResponseType) {
                 case RESPONSE_RULES_RESPONSE_TYPES.BLOCK:
-                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType(
                         ERRORS.FORBIDDEN.message,
                         ERRORS.FORBIDDEN.code,
@@ -141,11 +150,9 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                     );
 
                 case RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_404:
-                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType('Not Found', 'E404', 404);
 
                 case RESPONSE_RULES_RESPONSE_TYPES.STATUS_CODE_451:
-                    this.applyEarlyHeaders(res, ssrContext.headersBefore);
                     throw new HttpExceptionWithErrorCodeType(
                         'Unavailable For Legal Reasons',
                         'E451',
@@ -167,14 +174,9 @@ export class ResponseRulesMiddleware implements NestMiddleware {
         }
     }
 
-    private applyEarlyHeaders(res: Response, headers: Record<string, string> | undefined): void {
-        if (!headers) {
-            return;
-        }
-
-        for (const [key, value] of Object.entries(headers)) {
-            res.setHeader(key, value);
-        }
+    private hasTemplateValue(value: string): boolean {
+        const parsed = parseTemplate(value);
+        return parsed.transform !== null || parsed.nodes.some((node) => node.kind === 'variable');
     }
 
     private resolveExtendedClients(
