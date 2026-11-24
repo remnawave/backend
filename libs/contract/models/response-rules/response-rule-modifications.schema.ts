@@ -83,7 +83,8 @@ export const ResponseRuleModificationsSchema = z
                     '- `^FlClash ?X/`\n' +
                     '- `^Flowvy/`\n' +
                     '- `^prizrak-box/`\n' +
-                    '- `^koala-clash/`\n\n' +
+                    '- `^koala-clash/`\n' +
+                    '- `^ClodClash/`\n\n' +
                     '**Default Xray extended clients:**\n' +
                     '- `^Happ/`\n' +
                     '- `^INCY/`\n\n' +
