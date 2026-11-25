@@ -654,7 +654,7 @@ export class MihomoGeneratorService {
     /**
      * `include-tags` / `exclude-tags` from a template's `remnawave` block, each a tag or a list.
      * Keeps hosts that have any include tag and none of the exclude tags (exclude wins).
-     * An absent or empty directive does not filter.
+     * An absent or empty directive (null, [], '') does not filter.
      */
     private filterByTags(
         entries: MihomoProxyEntry[],
@@ -670,13 +670,16 @@ export class MihomoGeneratorService {
         });
     }
 
+    /** A tag or a list of tags; blank items are ignored, and no tags left means no filter. */
     private parseTags(value: unknown): Set<string> | null {
-        if (value === undefined || value === null) {
-            return null;
-        }
+        const tags = [value]
+            .flat()
+            .filter((tag) => tag !== undefined && tag !== null)
+            // String(): yaml parses unquoted numeric tags (e.g. 2024) as numbers
+            .map((tag) => String(tag).trim())
+            .filter((tag) => tag.length > 0);
 
-        // String(): yaml parses unquoted numeric tags (e.g. 2024) as numbers
-        return new Set([value].flat().map(String));
+        return tags.length > 0 ? new Set(tags) : null;
     }
 
     private buildProxyProviders(
