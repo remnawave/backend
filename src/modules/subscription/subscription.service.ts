@@ -117,6 +117,15 @@ export class SubscriptionService {
                 return new SubscriptionNotFoundResponse();
             }
 
+            const externalSquadTemplate = this.resolveTemplateByExternalSquad(
+                srrContext.templateByExternalSquad,
+                user.response.externalSquadUuid,
+            );
+
+            if (externalSquadTemplate) {
+                srrContext.overrideTemplateName = externalSquadTemplate;
+            }
+
             if (!srrContext.overrideTemplateName) {
                 if (user.response.externalSquadUuid) {
                     let templateTypeMatcher =
@@ -645,6 +654,19 @@ export class SubscriptionService {
         }
 
         return headers;
+    }
+
+    private resolveTemplateByExternalSquad(
+        templateByExternalSquad: ISRRContext['templateByExternalSquad'],
+        externalSquadUuid: string | null,
+    ): string | undefined {
+        if (!templateByExternalSquad || !externalSquadUuid) {
+            return undefined;
+        }
+
+        return templateByExternalSquad.find((entry) =>
+            entry.externalSquads.includes(externalSquadUuid),
+        )?.template;
     }
 
     private async applyMaybeExternalSquadOverrides(

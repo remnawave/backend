@@ -61,7 +61,47 @@ export const ResponseRuleModificationsSchema = z
             .meta({
                 title: 'Subscription Template',
                 markdownDescription:
-                    'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification have higher priority than settings from External Squads.**',
+                    'Override the subscription template with the given name. If not provided, the default subscription template will be used. If the template name is not found, the default subscription template for this type will be used. **This modification has higher priority than settings from External Squads, but lower than subscriptionTemplateByExternalSquad.**',
+            }),
+        subscriptionTemplateByExternalSquad: z
+            .array(
+                z
+                    .object({
+                        externalSquads: z
+                            .array(z.uuid('External Squad must be a UUID'))
+                            .min(1, 'At least one External Squad is required')
+                            .meta({
+                                title: 'External Squads',
+                                markdownDescription:
+                                    'UUIDs of the External Squads this entry applies to.',
+                            }),
+                        template: z.string().min(1, 'Subscription template name is required').meta({
+                            title: 'Subscription Template',
+                            markdownDescription:
+                                'Name of the subscription template to use for users in these External Squads.',
+                        }),
+                    })
+                    .meta({
+                        title: 'Template for External Squads',
+                    }),
+            )
+            .min(1)
+            .optional()
+            .meta({
+                title: 'Subscription Template by External Squad',
+                markdownDescription: [
+                    "Pick the subscription template by the user's External Squad. Entries are checked top to bottom, the first entry that lists the user's squad wins.",
+                    '',
+                    'If no entry matches (or the user has no External Squad), **subscriptionTemplate** of this rule is used. Without it, the template of the External Squad or the default template is used, as usual.',
+                ].join('\n'),
+                defaultSnippets: [
+                    {
+                        label: 'Template for External Squads',
+                        markdownDescription:
+                            'Use a separate template for users in the listed External Squads, others fall back to **subscriptionTemplate**',
+                        body: [{ externalSquads: ['$1'], template: '$2' }],
+                    },
+                ],
             }),
         ignoreHostXrayJsonTemplate: z.boolean().optional().meta({
             title: 'Ignore Host Xray Json Template',

@@ -14,6 +14,7 @@ export interface ISRRContext {
     ip: string;
     subscriptionSettings: SubscriptionSettingsEntity;
     overrideTemplateName?: string;
+    templateByExternalSquad?: { externalSquads: string[]; template: string }[];
     ignoreHostXrayJsonTemplate?: boolean;
     headersToApply?: Record<string, string>;
     ignoreServeJsonAtBaseSubscription?: boolean;
