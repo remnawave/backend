@@ -59,13 +59,9 @@ const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
     }),
 
     trojan: (host) => ({
-        servers: [
-            {
-                address: host.address,
-                port: host.port,
-                password: host.protocolOptions.password,
-            },
-        ],
+        address: host.address,
+        port: host.port,
+        password: host.protocolOptions.password,
     }),
     hysteria: (host) => ({
         address: host.address,
@@ -78,16 +74,12 @@ const PROTOCOL_BUILDERS: ProtocolBuilderMap = {
     }),
 
     shadowsocks: (host) => ({
-        servers: [
-            {
-                address: host.address,
-                port: host.port,
-                password: host.protocolOptions.password,
-                method: host.protocolOptions.method,
-                uot: host.protocolOptions.uot,
-                UoTVersion: host.protocolOptions.uotVersion,
-            },
-        ],
+        address: host.address,
+        port: host.port,
+        password: host.protocolOptions.password,
+        method: host.protocolOptions.method,
+        uot: host.protocolOptions.uot,
+        UoTVersion: host.protocolOptions.uotVersion,
     }),
 };
 
