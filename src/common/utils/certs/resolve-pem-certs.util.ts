@@ -1,7 +1,15 @@
 import { readFileSync, realpathSync } from 'node:fs';
 import { sep } from 'node:path';
 
-const ALLOWED_PEM_DIR = '/var/lib/remnawave';
+const DEFAULT_ALLOWED_PEM_DIR = '/var/lib/remnawave';
+
+function getAllowedPemDir(): string {
+    return (
+        process.env.REMNAWAVE_PEM_DIR ??
+        process.env.REMNAWAVE_CONFIG_DIR ??
+        DEFAULT_ALLOWED_PEM_DIR
+    );
+}
 
 export interface IResolvedPemCert {
     cert: string[];
@@ -10,11 +18,12 @@ export interface IResolvedPemCert {
 }
 
 function resolveAllowedPemPath(filePath: string): string {
+    const allowedPemDir = getAllowedPemDir();
     const realPath = realpathSync(filePath);
-    const allowedDir = realpathSync(ALLOWED_PEM_DIR);
+    const allowedDir = realpathSync(allowedPemDir);
 
     if (!realPath.startsWith(allowedDir + sep)) {
-        throw new Error(`PEM file must be located inside ${ALLOWED_PEM_DIR}`);
+        throw new Error(`PEM file must be located inside ${allowedPemDir}`);
     }
 
     return realPath;
