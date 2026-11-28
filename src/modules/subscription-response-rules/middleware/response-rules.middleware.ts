@@ -7,6 +7,7 @@ import { QueryBus } from '@nestjs/cqrs';
 
 import { HttpExceptionWithErrorCodeType } from '@common/exception/http-exeception-with-error-code.type';
 import { extractHwidHeaders } from '@common/utils/extract-hwid-headers/extract-hwid-headers.util';
+import { parseTemplate } from '@common/utils/templates/template-parser';
 import { truncateHeader } from '@common/utils/truncate-header.util';
 import {
     ERRORS,
@@ -93,9 +94,18 @@ export class ResponseRulesMiddleware implements NestMiddleware {
                 const mods = result.matchedRule.responseModifications;
 
                 if (mods.headers && !mods.applyHeadersToEnd) {
-                    mods.headers.forEach((header) => {
-                        res.setHeader(header.key, header.value);
-                    });
+                    const deduped = new Map<string, [string, string]>();
+                    for (const header of mods.headers) {
+                        deduped.set(header.key.toLowerCase(), [header.key, header.value]);
+                    }
+
+                    ssrContext.headersBefore = Object.fromEntries(deduped.values());
+
+                    for (const [key, value] of deduped.values()) {
+                        if (!this.hasTemplateValue(value)) {
+                            res.setHeader(key, value);
+                        }
+                    }
                 }
 
                 if (mods.headers && mods.applyHeadersToEnd) {
@@ -165,6 +175,11 @@ export class ResponseRulesMiddleware implements NestMiddleware {
         } catch (error) {
             next(error);
         }
+    }
+
+    private hasTemplateValue(value: string): boolean {
+        const parsed = parseTemplate(value);
+        return parsed.transform !== null || parsed.nodes.some((node) => node.kind === 'variable');
     }
 
     private resolveExtendedClients(

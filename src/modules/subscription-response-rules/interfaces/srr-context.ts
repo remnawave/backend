@@ -16,6 +16,7 @@ export interface ISRRContext {
     overrideTemplateName?: string;
     templateByExternalSquad?: { externalSquads: string[]; template: string }[];
     ignoreHostXrayJsonTemplate?: boolean;
+    headersBefore?: Record<string, string>;
     headersToApply?: Record<string, string>;
     ignoreServeJsonAtBaseSubscription?: boolean;
     disableHwidCheck?: boolean;
